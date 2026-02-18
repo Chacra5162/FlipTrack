@@ -209,6 +209,30 @@ main { padding: 24px 32px; max-width: 1440px; margin: 0 auto; }
   padding:12px 18px; border-bottom:1px solid var(--border);
   flex-wrap:wrap; background:var(--surface2);
 }
+
+/* Collapsible filter panel */
+.filter-panel {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.28s ease;
+}
+.filter-panel.open {
+  max-height: 400px;
+}
+
+/* Filter toggle button */
+.filter-toggle-btn {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--muted); font-family: 'DM Mono', monospace;
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px;
+  padding: 6px 10px; cursor: pointer; white-space: nowrap;
+  transition: all 0.15s; flex-shrink: 0;
+}
+.filter-toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
+.filter-toggle-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(200,255,87,0.06); }
+.filter-toggle-chevron { display: inline-block; transition: transform 0.22s ease; font-style: normal; }
+.filter-toggle-btn.open .filter-toggle-chevron { transform: rotate(180deg); }
 .search-wrap { position:relative; }
 .search-wrap input {
   background:var(--surface); border:1px solid var(--border); color:var(--text);
@@ -1445,7 +1469,16 @@ textarea { resize:vertical; min-height:70px; }
         <span class="search-icon">⌕</span>
         <input type="text" id="invSearch" placeholder="Search name, SKU, category…" oninput="renderInv()">
       </div>
+      <button class="filter-toggle-btn" id="filterToggleBtn" onclick="toggleFilterPanel()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+        Filters
+        <i class="filter-toggle-chevron">▾</i>
+      </button>
+      <span id="activeFiltersBadge" style="display:none;font-size:9px;background:var(--accent);color:#0a0a0f;padding:2px 7px;font-family:'DM Mono',monospace;letter-spacing:0.5px;font-weight:700"></span>
     </div>
+
+    <!-- Collapsible filter panel -->
+    <div class="filter-panel" id="filterPanel">
     <div class="inv-toolbar" id="platToolbar" style="border-top:none;padding-top:0;background:var(--surface);border-bottom:1px solid var(--border)">
       <span style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);white-space:nowrap">Platform</span>
       <div id="platChips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1;overflow-x:auto;padding-bottom:2px"></div>
@@ -1453,6 +1486,19 @@ textarea { resize:vertical; min-height:70px; }
     <div class="inv-toolbar" id="catToolbar" style="border-top:none;padding-top:0;background:var(--surface);border-bottom:1px solid var(--border)">
       <span style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);white-space:nowrap">Category</span>
       <div id="catChips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1"></div>
+    </div>
+    <div class="inv-toolbar" id="subcatToolbar" style="display:none;border-top:none;padding-top:0;background:var(--surface);border-bottom:1px solid var(--border);padding-left:36px">
+      <span id="subcatToolbarLabel" style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--accent3);white-space:nowrap">↳ Subcategory</span>
+      <div id="subcatChips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1"></div>
+    </div>
+    <div class="inv-toolbar" id="subsubcatToolbar" style="display:none;border-top:none;padding-top:0;background:var(--surface);border-bottom:1px solid var(--border);padding-left:60px">
+      <span id="subsubcatLabel" style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);white-space:nowrap">↳↳ Type</span>
+      <div id="subsubcatChips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1"></div>
+    </div>
+    </div>
+
+    <!-- Sort / actions bar (always visible) -->
+    <div class="inv-toolbar" style="border-top:none;padding-top:8px;padding-bottom:8px;background:var(--surface);border-bottom:1px solid var(--border)">
       <select class="sort-select" id="sortSel" onchange="renderInv()">
         <option value="added-desc">Newest First</option>
         <option value="added-asc">Oldest First</option>
@@ -1464,14 +1510,6 @@ textarea { resize:vertical; min-height:70px; }
       <div class="toolbar-spacer"></div>
       <button class="btn-secondary" onclick="printStickers(false)" style="font-size:11px;padding:5px 10px;white-space:nowrap">🏷 Print All</button>
       <span id="invCnt" style="font-size:11px;color:var(--muted);white-space:nowrap"></span>
-    </div>
-    <div class="inv-toolbar" id="subcatToolbar" style="display:none;border-top:none;padding-top:0;background:var(--surface);border-bottom:1px solid var(--border);padding-left:36px">
-      <span id="subcatToolbarLabel" style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--accent3);white-space:nowrap">↳ Subcategory</span>
-      <div id="subcatChips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1"></div>
-    </div>
-    <div class="inv-toolbar" id="subsubcatToolbar" style="display:none;border-top:none;padding-top:0;background:var(--surface);border-bottom:1px solid var(--border);padding-left:60px">
-      <span id="subsubcatLabel" style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);white-space:nowrap">↳↳ Type</span>
-      <div id="subsubcatChips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1"></div>
     </div>
     <div class="bulk-bar" id="bulkBar">
       <span class="bulk-count" id="bulkCnt">0 selected</span>
@@ -1941,7 +1979,7 @@ let inv  = JSON.parse(localStorage.getItem('ft3_inv')  || '[]');
 let sales= JSON.parse(localStorage.getItem('ft3_sal')  || '[]');
 let expenses = JSON.parse(localStorage.getItem('ft3_exp') || '[]');
 let activeDrawId = null, activeSoldId = null;
-let platFilt = 'all', catFilt = 'all', subcatFilt = 'all', subsubcatFilt = 'all', stockFilt = 'all', sel = new Set(), dragSrc = null;
+let platFilt = new Set(), catFilt = new Set(), subcatFilt = 'all', subsubcatFilt = 'all', stockFilt = 'all', sel = new Set(), dragSrc = null;
 
 // Subcategory definitions — nested: category → subcategory → optional sub-subcategories
 const CLOTHING_TYPES = ['Shirts', 'T-Shirts', 'Pants', 'Jeans', 'Shorts', 'Jackets', 'Hoodies', 'Sweaters', 'Dresses', 'Skirts', 'Socks', 'Underwear', 'Activewear', 'Swimwear', 'Outerwear', 'Suits', 'Loungewear'];
@@ -2576,23 +2614,25 @@ function toggleBdSubs(id) {
 }
 
 function filterToCat(cat) {
-  catFilt = cat;
+  catFilt = new Set([cat]);
   subcatFilt = 'all';
   subsubcatFilt = 'all';
   stockFilt = 'all';
   const invTab = document.querySelectorAll('.nav-tab')[1];
   switchView('inventory', invTab);
   bnav('bn-inventory');
+  openFilterPanel();
 }
 
 function filterToSubcat(cat, sub) {
-  catFilt = cat;
+  catFilt = new Set([cat]);
   subcatFilt = sub;
   subsubcatFilt = 'all';
   stockFilt = 'all';
   const invTab = document.querySelectorAll('.nav-tab')[1];
   switchView('inventory', invTab);
   bnav('bn-inventory');
+  openFilterPanel();
 }
 
 // PLATFORM & CATEGORY CHIPS
@@ -2607,15 +2647,46 @@ const PLATFORM_GROUPS = [
   { label: 'Other',     items: ['Other'] },
 ];
 
+// FILTER PANEL TOGGLE
+function toggleFilterPanel() {
+  const panel = document.getElementById('filterPanel');
+  const btn   = document.getElementById('filterToggleBtn');
+  const isOpen = panel.classList.toggle('open');
+  btn.classList.toggle('open', isOpen);
+}
+
+function openFilterPanel() {
+  document.getElementById('filterPanel').classList.add('open');
+  document.getElementById('filterToggleBtn').classList.add('open');
+}
+
+function updateFiltersBadge() {
+  const badge = document.getElementById('activeFiltersBadge');
+  const btn   = document.getElementById('filterToggleBtn');
+  if (!badge) return;
+  const count = platFilt.size + catFilt.size
+    + (subcatFilt !== 'all' ? 1 : 0)
+    + (subsubcatFilt !== 'all' ? 1 : 0);
+  if (count) {
+    badge.textContent = count + ' active';
+    badge.style.display = 'inline';
+    btn.classList.add('active');
+  } else {
+    badge.style.display = 'none';
+    btn.classList.remove('active');
+  }
+}
+
 function buildChips() {
   // Platform chips — show all platforms, grouped with dividers
   const inUse = new Set(inv.flatMap(i=>getPlatforms(i)).filter(Boolean));
-  let platHtml = `<span class="filter-chip ${platFilt==='all'?'active':''}" onclick="setPlatFilt('all',this)">All</span>`;
+  // Platform chips — "All" clears the set; clicking a platform toggles it
+  let platHtml = `<span class="filter-chip ${platFilt.size===0?'active':''}" onclick="setPlatFilt('all',this)">All</span>`;
   PLATFORM_GROUPS.forEach(group => {
     platHtml += `<span class="plat-group-divider">${group.label}</span>`;
     group.items.forEach(p => {
       const dot = inUse.has(p) ? `<span class="plat-dot"></span>` : '';
-      platHtml += `<span class="filter-chip plat-chip ${platFilt===p?'active':''}" onclick="setPlatFilt('${p}',this)">${dot}${p}</span>`;
+      platHtml += `<span class="filter-chip plat-chip ${platFilt.has(p)?'active':''}" onclick="setPlatFilt('${p}',this)">${dot}${p}</span>`;
     });
   });
   document.getElementById('platChips').innerHTML = platHtml;
@@ -2624,18 +2695,19 @@ function buildChips() {
   const catEl=document.getElementById('catChips');
   catEl.innerHTML=cats.map(c=>{
     const safe=c.replace(/'/g,"\\'");
-    return `<span class="filter-chip cat-chip ${catFilt===c?'active':''}" onclick="setCatFilt('${safe}',this)">${c==='all'?'All Categories':c}</span>`;
+    const isActive = c==='all' ? catFilt.size===0 : catFilt.has(c);
+    return `<span class="filter-chip cat-chip ${isActive?'active':''}" onclick="setCatFilt('${safe}',this)">${c==='all'?'All Categories':c}</span>`;
   }).join('');
 
   // hide category row if no categories set yet
   document.getElementById('catToolbar').style.display=cats.length>1?'flex':'none';
 
-  // subcategory row — only show when a category with defined subcats is active
-  const subcatDefs = SUBCATS[catFilt];
+  // subcategory row — only show when exactly one category is active and has defined subcats
   const subcatBar  = document.getElementById('subcatToolbar');
+  const singleCat  = catFilt.size === 1 ? [...catFilt][0] : null;
+  const subcatDefs = singleCat ? SUBCATS[singleCat] : null;
   if (subcatDefs) {
-    // also include subcats actually used in inventory for this category
-    const usedSubs = [...new Set(inv.filter(i=>i.category===catFilt).map(i=>i.subcategory||'').filter(Boolean))];
+    const usedSubs = [...new Set(inv.filter(i=>i.category===singleCat).map(i=>i.subcategory||'').filter(Boolean))];
     const allSubs  = [...new Set([...subcatDefs, ...usedSubs])];
     document.getElementById('subcatChips').innerHTML=
       ['all',...allSubs].map(s=>{
@@ -2665,20 +2737,28 @@ function buildChips() {
     subsubBar.style.display='none';
     subsubcatFilt='all';
   }
+  updateFiltersBadge();
 }
 
-function setPlatFilt(p,el){
-  platFilt=p;
-  document.querySelectorAll('#platChips .filter-chip').forEach(c=>c.classList.remove('active'));
-  el.classList.add('active');
+function setPlatFilt(p, el) {
+  if (p === 'all') {
+    platFilt.clear();
+  } else {
+    if (platFilt.has(p)) platFilt.delete(p);
+    else platFilt.add(p);
+  }
   renderInv();
 }
-function setCatFilt(c,el){
-  catFilt=c;
-  subcatFilt='all';
-  subsubcatFilt='all';
-  document.querySelectorAll('#catChips .cat-chip').forEach(x=>x.classList.remove('active'));
-  el.classList.add('active');
+function setCatFilt(c, el) {
+  if (c === 'all') {
+    catFilt.clear();
+  } else {
+    if (catFilt.has(c)) catFilt.delete(c);
+    else catFilt.add(c);
+  }
+  // reset sub-filters when cats change
+  subcatFilt = 'all';
+  subsubcatFilt = 'all';
   renderInv();
 }
 function setSubcatFilt(s,el){
@@ -2718,8 +2798,8 @@ function renderInv() {
   const q=(document.getElementById('invSearch').value||'').toLowerCase();
   let items=inv.filter(i=>{
     const mq=!q||i.name.toLowerCase().includes(q)||(i.sku||'').toLowerCase().includes(q)||(i.category||'').toLowerCase().includes(q)||(i.subcategory||'').toLowerCase().includes(q)||(i.subtype||'').toLowerCase().includes(q)||(i.upc||'').toLowerCase().includes(q);
-    const mp=platFilt==='all'||getPlatforms(i).includes(platFilt);
-    const mc=catFilt==='all'||(i.category||'')=== catFilt;
+    const mp=platFilt.size===0||getPlatforms(i).some(p=>platFilt.has(p));
+    const mc=catFilt.size===0||(catFilt.has(i.category||''));
     const ms=subcatFilt==='all'||(i.subcategory||'')===subcatFilt;
     const mss=subsubcatFilt==='all'||(i.subtype||'')===subsubcatFilt;
     const mst=stockFilt==='all'||(stockFilt==='low'&&(i.qty===0||i.qty<=(i.lowAlert||2)));
@@ -3427,8 +3507,8 @@ function printStickers(selectedOnly, ids) {
     const q = (document.getElementById('invSearch').value||'').toLowerCase();
     items = inv.filter(i => {
       const mq = !q || i.name.toLowerCase().includes(q) || (i.sku||'').toLowerCase().includes(q);
-      const mp = platFilt==='all' || getPlatforms(i).includes(platFilt);
-      const mc = catFilt==='all'  || (i.category||'')===catFilt;
+      const mp = platFilt.size===0 || getPlatforms(i).some(p=>platFilt.has(p));
+      const mc = catFilt.size===0  || catFilt.has(i.category||'');
       const ms = subcatFilt==='all' || (i.subcategory||'')===subcatFilt;
       const mss = subsubcatFilt==='all' || (i.subtype||'')===subsubcatFilt;
       return mq&&mp&&mc&&ms&&mss;
@@ -4304,35 +4384,19 @@ function renderPlatTags(item) {
   return html;
 }
 
-if(localStorage.getItem('ft3_inv') === null){
-  inv=[
-    {id:uid(),name:"Vintage Levi's 501 Jeans (32×32)",sku:"JNS-001",category:"Clothing",subcategory:"Men",subtype:"Jeans",platform:"eBay",platforms:["eBay","Depop","Poshmark"],cost:12,price:65,qty:3,fees:5.2,ship:8,lowAlert:1,notes:"Thrifted. Good condition.",added:new Date(Date.now()-8e8).toISOString()},
-    {id:uid(),name:"Sony WH-1000XM3 Headphones",sku:"ELEC-014",category:"Electronics",platform:"Amazon",platforms:["Amazon","eBay"],cost:85,price:180,qty:1,fees:18,ship:0,lowAlert:1,notes:"Refurb, comes with case.",added:new Date(Date.now()-7e8).toISOString()},
-    {id:uid(),name:"Handmade Ceramic Mug Set (4pc)",sku:"ETY-022",category:"Home",platform:"Etsy",platforms:["Etsy"],cost:14,price:42,qty:6,fees:3.5,ship:9,lowAlert:2,notes:"Local pottery studio.",added:new Date(Date.now()-6e8).toISOString()},
-    {id:uid(),name:"Nike Air Force 1 '07 (US 10)",sku:"SHOE-007",category:"Clothing",subcategory:"Footwear",subtype:"Men",platform:"eBay",platforms:["eBay","StockX","GOAT"],cost:55,price:110,qty:0,fees:8.8,ship:12,lowAlert:1,notes:"DS in box.",added:new Date(Date.now()-5e8).toISOString()},
-    {id:uid(),name:"Vintage Pyrex Mixing Bowl Set",sku:"KIT-003",category:"Kitchenware",platform:"Facebook Marketplace",platforms:["Facebook Marketplace","Craigslist"],cost:8,price:35,qty:2,fees:0,ship:0,lowAlert:1,notes:"Local pickup only.",added:new Date(Date.now()-4e8).toISOString()},
-    {id:uid(),name:"Polaroid Now Camera (White)",sku:"CAM-009",category:"Electronics",platform:"eBay",platforms:["eBay"],cost:45,price:89,qty:4,fees:7,ship:10,lowAlert:2,notes:"New in box.",added:new Date(Date.now()-3e8).toISOString()},
-    {id:uid(),name:"Gucci Monogram Belt",sku:"ACC-M-001",category:"Clothing",subcategory:"Men's Accessories",subtype:"",platform:"eBay",platforms:["eBay","The RealReal","Vestiaire Collective"],cost:120,price:280,qty:1,fees:22,ship:8,lowAlert:1,notes:"Authentic, includes box.",added:new Date(Date.now()-2e8).toISOString()},
-    {id:uid(),name:"Kate Spade Crossbody Bag",sku:"ACC-W-002",category:"Clothing",subcategory:"Women's Accessories",subtype:"",platform:"Amazon",platforms:["Amazon","Poshmark"],cost:55,price:130,qty:2,fees:12,ship:0,lowAlert:1,notes:"New with tags.",added:new Date(Date.now()-1e8).toISOString()},
-  ];
-  const id0=inv[0].id,id1=inv[1].id,id2=inv[2].id;
-  sales=[
-    {id:uid(),itemId:id0,price:68,qty:1,fees:5.5,ship:8,date:"2025-11-10"},
-    {id:uid(),itemId:id1,price:175,qty:1,fees:17,ship:0,date:"2025-11-12"},
-    {id:uid(),itemId:id2,price:44,qty:2,fees:4,ship:18,date:"2025-12-01"},
-  ];
-  expenses=[
-    {id:uid(),date:"2025-11-05",category:"Shipping Supplies",description:"Poly mailers 200-pack",amount:22.99},
-    {id:uid(),date:"2025-11-08",category:"Packaging Materials",description:"Bubble wrap roll 12\"",amount:14.50},
-    {id:uid(),date:"2025-11-15",category:"Platform Fees",description:"eBay monthly store fee",amount:27.95},
-    {id:uid(),date:"2025-11-20",category:"Printing",description:"Thermal label rolls (4 pack)",amount:18.00},
-    {id:uid(),date:"2025-12-02",category:"Shipping Supplies",description:"Kraft boxes assorted sizes",amount:31.40},
-    {id:uid(),date:"2025-12-10",category:"Platform Fees",description:"Poshmark promoted listings",amount:15.00},
-  ];
-  save();
-}
 
 setDefaultExpDate();
+
+refresh();
+
+// Initialise Supabase sync on load
+initSupabaseClient();
+if (_sb) {
+  setSyncStatus('syncing');
+  pullFromCloud()
+    .then(() => { setSyncStatus('connected'); refresh(); })
+    .catch(e  => { setSyncStatus('error', e.message); });
+}
 
 refresh();
 
