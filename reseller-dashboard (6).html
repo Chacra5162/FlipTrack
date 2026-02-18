@@ -97,6 +97,26 @@ header {
   -webkit-tap-highlight-color: transparent;
 }
 .sync-dot-btn:hover { border-color: var(--border2); }
+
+/* Mobile manual sync button */
+.mobile-sync-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 16px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.mobile-sync-btn:active { color: var(--accent); border-color: var(--accent); transform: rotate(180deg); }
+@media (max-width: 820px) {
+  .mobile-sync-btn { display: flex; }
+}
 .sync-dot {
   width: 8px; height: 8px; border-radius: 50%;
   background: var(--border2); flex-shrink: 0;
@@ -1529,6 +1549,7 @@ textarea { resize:vertical; min-height:70px; }
       <span class="sync-dot" id="syncDot"></span>
       <span class="sync-dot-lbl" id="syncDotLbl">Local only</span>
     </button>
+    <button class="mobile-sync-btn" id="mobileSyncBtn" onclick="mobileSyncNow()" title="Sync now" style="display:none">↺</button>
     <button class="btn-secondary" onclick="exportCSV()">↓ Export</button>
     <button class="btn-primary" id="headerAddBtn" onclick="openAddModal()">+ Add Item</button>
   </div>
@@ -2157,7 +2178,6 @@ const SUBSUBCATS = Object.fromEntries(
 let _sb = null;          // Supabase client instance
 let _syncDebounce = null;
 let _pollTimer    = null; // background poll handle
-let _lastPullHash = '';   // fingerprint of last pulled data to skip no-op refreshes
 
 const SYNC_KEYS = {
   url:       'ft3_sync_url',
@@ -2287,16 +2307,7 @@ async function pullFromCloud() {
     // ft_expenses table not created yet — skip silently
   }
 
-  // Build fingerprint
-  const newHash = JSON.stringify([
-    (remoteInv   || []).map(r => r.id + r.updated_at).sort(),
-    (remoteSales || []).map(r => r.id + r.updated_at).sort(),
-    (remoteExp   || []).map(r => r.id + r.updated_at).sort(),
-  ]);
-  if (newHash === _lastPullHash) return false;
-  _lastPullHash = newHash;
-
-  // Merge inventory
+  // Merge inventory (remote wins)
   if (remoteInv) {
     const localMap  = new Map(inv.map(i  => [i.id,  i]));
     const remoteMap = new Map(remoteInv.map(r => [r.id, r.data]));
@@ -2310,7 +2321,7 @@ async function pullFromCloud() {
     inv = merged.filter(Boolean);
   }
 
-  // Merge sales
+  // Merge sales (remote wins)
   if (remoteSales) {
     const localMap  = new Map(sales.map(s => [s.id, s]));
     const remoteMap = new Map(remoteSales.map(r => [r.id, r.data]));
@@ -2320,7 +2331,7 @@ async function pullFromCloud() {
     sales = merged.filter(Boolean);
   }
 
-  // Merge expenses (only if table is available)
+  // Merge expenses (only if table is available; remote wins)
   if (remoteExp) {
     const localMap  = new Map(expenses.map(e => [e.id, e]));
     const remoteMap = new Map(remoteExp.map(r => [r.id, r.data]));
@@ -2377,13 +2388,10 @@ const POLL_INTERVAL = 30000; // 30 seconds
 async function pollOnce() {
   if (!_sb) return;
   try {
-    const changed = await pullFromCloud();
-    if (changed) {
-      refresh();
-      setSyncStatus('connected');
-    }
+    await pullFromCloud();
+    refresh();
+    setSyncStatus('connected');
   } catch(e) {
-    // silent — don't disrupt the UI for background poll failures
     console.warn('FlipTrack poll error:', e.message);
   }
 }
@@ -2409,6 +2417,24 @@ document.addEventListener('visibilitychange', () => {
     }
   }
 });
+
+async function mobileSyncNow() {
+  if (!_sb) { toast('Set up sync in settings first', true); openSyncSettings(); return; }
+  const btn = document.getElementById('mobileSyncBtn');
+  if (btn) btn.style.opacity = '0.4';
+  setSyncStatus('syncing');
+  try {
+    await pullFromCloud();
+    refresh();
+    setSyncStatus('connected');
+    toast('Synced ✓');
+  } catch(e) {
+    setSyncStatus('error', e.message);
+    toast('Sync failed: ' + e.message, true);
+  } finally {
+    if (btn) btn.style.opacity = '1';
+  }
+}
 
 // ── Settings modal ────────────────────────────────────────────────────────────
 function openSyncSettings() {
@@ -2458,7 +2484,6 @@ function disconnectSync() {
   localStorage.removeItem(SYNC_KEYS.url);
   localStorage.removeItem(SYNC_KEYS.key);
   _sb = null;
-  _lastPullHash = '';
   setSyncStatus('disconnected');
   closeSyncSettings();
   toast('Sync disconnected');
