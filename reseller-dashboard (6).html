@@ -1177,6 +1177,82 @@ textarea { resize:vertical; min-height:70px; }
   font-size: 13px;
 }
 
+/* Mobile stat chips inside name cell */
+.bd-mobile-stats {
+  display: none;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+  align-items: center;
+}
+.bd-mobile-stats span {
+  font-size: 10px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+}
+
+/* ── BREAKDOWN MOBILE ─────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .bd-summary-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .bd-sum-card { padding: 10px 12px; }
+  .bd-sum-val  { font-size: 15px; }
+
+  /* Hide column headers — replaced by inline chip labels */
+  .bd-col-headers { display: none; }
+
+  /* Show the inline mobile stat chips */
+  .bd-mobile-stats { display: flex; }
+
+  /* Category row: flex layout — chevron | name block | value */
+  .bd-cat-row {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    padding: 12px 14px;
+    gap: 6px;
+  }
+  /* Hide desktop-only stat columns */
+  .bd-cat-row > .bd-col-val,
+  .bd-cat-row > .bd-col-units,
+  .bd-cat-row > .bd-col-m { display: none; }
+  /* Show only the first bd-col-val (value) */
+  .bd-cat-row > .bd-col-val:first-of-type {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    margin-left: auto;
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+
+  /* Sub row: same treatment */
+  .bd-sub-row {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    padding: 9px 14px 9px 28px;
+    gap: 6px;
+  }
+  .bd-sub-row > div:first-child { display: none; } /* chevron spacer */
+  .bd-sub-row > .bd-col-val,
+  .bd-sub-row > .bd-col-units,
+  .bd-sub-row > .bd-col-m { display: none; }
+  .bd-sub-row > .bd-col-val:first-of-type {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    margin-left: auto;
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+}
+
 /* ── RESPONSIVE ─────────────────────────────────────────────────────────── */
 
 /* Tablet landscape / small desktop */
@@ -2688,6 +2764,11 @@ function renderBreakdown() {
               <div>
                 <div class="bd-sub-name clickable">↳ ${sub}</div>
                 <div style="font-size:9px;color:var(--muted);margin-top:2px">${sd.items} item${sd.items!==1?'s':''}</div>
+                <div class="bd-mobile-stats">
+                  <span>${fmt(sd.cost)} cost</span>
+                  <span>${sd.units} units</span>
+                  <span class="margin-badge ${margCls(sm)}">${pct(sm)}</span>
+                </div>
               </div>
               <div class="bd-col-val">${fmt(sd.value)}</div>
               <div class="bd-col-val" style="color:var(--muted)">${fmt(sd.cost)}</div>
@@ -2709,6 +2790,11 @@ function renderBreakdown() {
             <div class="bd-cat-bar-fill" style="width:${pct_share}%;background:${accent}"></div>
           </div>
           <div style="font-size:9px;color:var(--muted);margin-top:2px">${pct_share}% of total value · ${d.items} item${d.items!==1?'s':''}</div>
+          <div class="bd-mobile-stats">
+            <span>${fmt(d.cost)} cost</span>
+            <span>${d.units} units</span>
+            <span class="margin-badge ${margCls(margin)}">${pct(margin)}</span>
+          </div>
         </div>
         <div class="bd-col-val" style="color:${accent}">${fmt(d.value)}</div>
         <div class="bd-col-val" style="color:var(--muted)">${fmt(d.cost)}</div>
