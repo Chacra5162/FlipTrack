@@ -1747,7 +1747,8 @@ textarea { resize:vertical; min-height:70px; }
           <button type="button" onclick="regenAccountId()" style="background:none;border:none;color:var(--muted);font-size:10px;cursor:pointer;text-decoration:underline;padding:0">Regenerate</button>
         </label>
         <div style="display:flex;gap:8px">
-          <input type="text" id="sync_account_id" spellcheck="false" style="font-family:'DM Mono',monospace;font-size:11px;flex:1" placeholder="Paste your Account ID from another device">
+          <input type="text" id="sync_account_id" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="none"
+            style="font-family:'DM Mono',monospace;font-size:11px;flex:1" placeholder="Paste your Account ID from another device">
           <button type="button" onclick="copyAccountId()" class="btn-secondary" style="font-size:11px;padding:6px 10px;white-space:nowrap">Copy</button>
         </div>
         <div style="font-size:10px;color:var(--muted);margin-top:5px">
@@ -1759,15 +1760,26 @@ textarea { resize:vertical; min-height:70px; }
         <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px">Supabase Connection</div>
         <div class="fgrp" style="margin-bottom:10px">
           <label>Project URL</label>
-          <input type="text" id="sync_url" placeholder="https://xxxxxxxxxxxx.supabase.co" spellcheck="false">
+          <input type="url" id="sync_url" placeholder="https://xxxxxxxxxxxx.supabase.co"
+            spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="none" inputmode="url">
         </div>
         <div class="fgrp" style="margin-bottom:0">
           <label>Anon / Public API Key</label>
-          <input type="text" id="sync_key" placeholder="eyJhbGciOiJIUzI1NiIs..." spellcheck="false" style="font-size:11px;font-family:'DM Mono',monospace">
+          <div style="display:flex;gap:6px;align-items:center">
+            <input type="password" id="sync_key" placeholder="eyJhbGciOiJIUzI1NiIs…"
+              spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="none"
+              style="font-size:11px;font-family:'DM Mono',monospace;flex:1">
+            <button type="button" id="sync_key_toggle" onclick="toggleSyncKeyVis()"
+              style="background:var(--surface);border:1px solid var(--border);color:var(--muted);font-size:12px;padding:6px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0">
+              Show
+            </button>
+          </div>
+          <div style="font-size:10px;color:var(--muted);margin-top:4px">Paste your full anon/public key from Supabase → Settings → API</div>
         </div>
       </div>
 
-      <div style="border-top:1px solid var(--border);padding-top:14px">
+      <!-- Action buttons -->
+      <div style="border-top:1px solid var(--border);padding-top:14px;margin-bottom:20px">
         <div style="font-size:10px;color:var(--muted);margin-bottom:12px">
           Need help? See the <strong style="color:var(--text)">FLIPTRACK-SYNC-SETUP.md</strong> file for step-by-step Supabase setup instructions.
         </div>
@@ -1777,10 +1789,13 @@ textarea { resize:vertical; min-height:70px; }
           <button type="button" class="btn-danger" onclick="disconnectSync()" style="font-size:12px;margin-left:auto">Disconnect</button>
         </div>
       </div>
-    </div>
-    <div class="modal-ft">
-      <button class="btn-secondary" onclick="closeSyncSettings()">Cancel</button>
-      <button class="btn-primary" onclick="saveSyncSettings()">Save &amp; Connect</button>
+
+      <!-- Save & Connect moved INTO scrollable body so iOS keyboard never hides it -->
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn-secondary" onclick="closeSyncSettings()">Cancel</button>
+        <button class="btn-primary" onclick="saveSyncSettings()">Save &amp; Connect</button>
+      </div>
+
     </div>
   </div>
 </div>
@@ -2177,6 +2192,18 @@ function regenAccountId() {
 function copyAccountId() {
   navigator.clipboard?.writeText(document.getElementById('sync_account_id').value);
   toast('Account ID copied');
+}
+
+function toggleSyncKeyVis() {
+  const inp = document.getElementById('sync_key');
+  const btn = document.getElementById('sync_key_toggle');
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    btn.textContent = 'Hide';
+  } else {
+    inp.type = 'password';
+    btn.textContent = 'Show';
+  }
 }
 
 function updateSyncStatusBar(msg, type) {
