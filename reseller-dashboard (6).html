@@ -2013,6 +2013,8 @@ const SUBSUBCATS = Object.fromEntries(
 
 let _sb = null;          // Supabase client instance
 let _syncDebounce = null;
+let _pollTimer    = null; // background poll handle
+let _lastPullHash = '';   // fingerprint of last pulled data to skip no-op refreshes
 
 const SYNC_KEYS = {
   url:       'ft3_sync_url',
@@ -2049,9 +2051,10 @@ function setSyncStatus(state, msg) {
   const lbl  = document.getElementById('syncDotLbl');
   if (!dot || !lbl) return;
   dot.className = 'sync-dot';
+  const now = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
   const map = {
     disconnected: { cls: '',          txt: 'Local only' },
-    connected:    { cls: 'connected', txt: 'Synced' },
+    connected:    { cls: 'connected', txt: `Synced ${now}` },
     syncing:      { cls: 'syncing',   txt: 'Syncing…' },
     error:        { cls: 'error',     txt: msg || 'Sync error' },
   };
@@ -2101,7 +2104,7 @@ async function pushToCloud() {
 
 // ── Pull Supabase → local (merge, remote wins if newer) ─────────────────────
 async function pullFromCloud() {
-  if (!_sb) return;
+  if (!_sb) return false;
   const accountId = getAccountId();
 
   const [{ data: remoteInv, error: e1 }, { data: remoteSales, error: e2 }] = await Promise.all([
@@ -2111,17 +2114,23 @@ async function pullFromCloud() {
 
   if (e1 || e2) throw new Error((e1 || e2).message);
 
+  // Build a lightweight fingerprint — sorted IDs + updated_at timestamps
+  const newHash = JSON.stringify([
+    (remoteInv  || []).map(r => r.id + r.updated_at).sort(),
+    (remoteSales|| []).map(r => r.id + r.updated_at).sort(),
+  ]);
+  if (newHash === _lastPullHash) return false; // nothing changed
+  _lastPullHash = newHash;
+
   // Merge inventory
   if (remoteInv) {
     const localMap  = new Map(inv.map(i  => [i.id,  i]));
     const remoteMap = new Map(remoteInv.map(r => [r.id, r.data]));
-    // Remote items override local; keep local-only items too
     const merged = [...new Set([...localMap.keys(), ...remoteMap.keys()])].map(id => {
       const local  = localMap.get(id);
       const remote = remoteMap.get(id);
       if (!local) return remote;
       if (!remote) return local;
-      // Remote wins (it represents another device's save)
       return remote;
     });
     inv = merged.filter(Boolean);
@@ -2141,6 +2150,7 @@ async function pullFromCloud() {
   localStorage.setItem('ft3_inv',  JSON.stringify(inv));
   localStorage.setItem('ft3_sal',  JSON.stringify(sales));
   localStorage.setItem('ft3_exp',  JSON.stringify(expenses));
+  return true; // data changed
 }
 
 // ── Full sync ────────────────────────────────────────────────────────────────
@@ -2177,6 +2187,45 @@ function autoSync() {
   }, 2000);
 }
 
+// ── Background poll: pull remote changes every 30s ───────────────────────────
+const POLL_INTERVAL = 30000; // 30 seconds
+
+async function pollOnce() {
+  if (!_sb) return;
+  try {
+    const changed = await pullFromCloud();
+    if (changed) {
+      refresh();
+      setSyncStatus('connected');
+    }
+  } catch(e) {
+    // silent — don't disrupt the UI for background poll failures
+    console.warn('FlipTrack poll error:', e.message);
+  }
+}
+
+function startPoll() {
+  stopPoll();
+  if (!_sb) return;
+  _pollTimer = setInterval(pollOnce, POLL_INTERVAL);
+}
+
+function stopPoll() {
+  if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+}
+
+// Pause polling when tab is hidden, resume when visible
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    stopPoll();
+  } else {
+    if (_sb) {
+      pollOnce();   // immediate catch-up pull on tab focus
+      startPoll();
+    }
+  }
+});
+
 // ── Settings modal ────────────────────────────────────────────────────────────
 function openSyncSettings() {
   document.getElementById('sync_url').value = localStorage.getItem(SYNC_KEYS.url) || '';
@@ -2197,7 +2246,7 @@ function saveSyncSettings() {
   localStorage.setItem(SYNC_KEYS.key, key);
   if (initSupabaseClient()) {
     updateSyncStatusBar('Connected! Performing initial sync…', 'ok');
-    syncNow().then(() => closeSyncSettings());
+    syncNow().then(() => { startPoll(); closeSyncSettings(); });
   } else {
     updateSyncStatusBar('Failed to connect — check URL and key.', 'err');
   }
@@ -2221,9 +2270,11 @@ async function testConnection() {
 
 function disconnectSync() {
   if (!confirm('Disconnect cloud sync? Local data is unaffected.')) return;
+  stopPoll();
   localStorage.removeItem(SYNC_KEYS.url);
   localStorage.removeItem(SYNC_KEYS.key);
   _sb = null;
+  _lastPullHash = '';
   setSyncStatus('disconnected');
   closeSyncSettings();
   toast('Sync disconnected');
@@ -4394,18 +4445,7 @@ initSupabaseClient();
 if (_sb) {
   setSyncStatus('syncing');
   pullFromCloud()
-    .then(() => { setSyncStatus('connected'); refresh(); })
-    .catch(e  => { setSyncStatus('error', e.message); });
-}
-
-refresh();
-
-// Initialise Supabase sync on load
-initSupabaseClient();
-if (_sb) {
-  setSyncStatus('syncing');
-  pullFromCloud()
-    .then(() => { setSyncStatus('connected'); refresh(); })
+    .then(() => { setSyncStatus('connected'); refresh(); startPoll(); })
     .catch(e  => { setSyncStatus('error', e.message); });
 }
 </script>
