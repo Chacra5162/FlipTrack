@@ -4249,31 +4249,7 @@ function renderPlatTags(item) {
   return html;
 }
 
-if(!inv.length){
-  inv=[
-    {id:uid(),name:"Vintage Levi's 501 Jeans (32×32)",sku:"JNS-001",category:"Clothing",subcategory:"Men",subtype:"Jeans",platform:"eBay",platforms:["eBay","Depop","Poshmark"],cost:12,price:65,qty:3,fees:5.2,ship:8,lowAlert:1,notes:"Thrifted. Good condition.",added:new Date(Date.now()-8e8).toISOString()},
-    {id:uid(),name:"Sony WH-1000XM3 Headphones",sku:"ELEC-014",category:"Electronics",platform:"Amazon",platforms:["Amazon","eBay"],cost:85,price:180,qty:1,fees:18,ship:0,lowAlert:1,notes:"Refurb, comes with case.",added:new Date(Date.now()-7e8).toISOString()},
-    {id:uid(),name:"Handmade Ceramic Mug Set (4pc)",sku:"ETY-022",category:"Home",platform:"Etsy",platforms:["Etsy"],cost:14,price:42,qty:6,fees:3.5,ship:9,lowAlert:2,notes:"Local pottery studio.",added:new Date(Date.now()-6e8).toISOString()},
-    {id:uid(),name:"Nike Air Force 1 '07 (US 10)",sku:"SHOE-007",category:"Clothing",subcategory:"Footwear",subtype:"Men",platform:"eBay",platforms:["eBay","StockX","GOAT"],cost:55,price:110,qty:0,fees:8.8,ship:12,lowAlert:1,notes:"DS in box.",added:new Date(Date.now()-5e8).toISOString()},
-    {id:uid(),name:"Vintage Pyrex Mixing Bowl Set",sku:"KIT-003",category:"Kitchenware",platform:"Facebook Marketplace",platforms:["Facebook Marketplace","Craigslist"],cost:8,price:35,qty:2,fees:0,ship:0,lowAlert:1,notes:"Local pickup only.",added:new Date(Date.now()-4e8).toISOString()},
-    {id:uid(),name:"Polaroid Now Camera (White)",sku:"CAM-009",category:"Electronics",platform:"eBay",platforms:["eBay"],cost:45,price:89,qty:4,fees:7,ship:10,lowAlert:2,notes:"New in box.",added:new Date(Date.now()-3e8).toISOString()},
-    {id:uid(),name:"Gucci Monogram Belt",sku:"ACC-M-001",category:"Clothing",subcategory:"Men's Accessories",subtype:"",platform:"eBay",platforms:["eBay","The RealReal","Vestiaire Collective"],cost:120,price:280,qty:1,fees:22,ship:8,lowAlert:1,notes:"Authentic, includes box.",added:new Date(Date.now()-2e8).toISOString()},
-    {id:uid(),name:"Kate Spade Crossbody Bag",sku:"ACC-W-002",category:"Clothing",subcategory:"Women's Accessories",subtype:"",platform:"Amazon",platforms:["Amazon","Poshmark"],cost:55,price:130,qty:2,fees:12,ship:0,lowAlert:1,notes:"New with tags.",added:new Date(Date.now()-1e8).toISOString()},
-  ];
-  const id0=inv[0].id,id1=inv[1].id,id2=inv[2].id;
-  sales=[
-    {id:uid(),itemId:id0,price:68,qty:1,fees:5.5,ship:8,date:"2025-11-10"},
-    {id:uid(),itemId:id1,price:175,qty:1,fees:17,ship:0,date:"2025-11-12"},
-    {id:uid(),itemId:id2,price:44,qty:2,fees:4,ship:18,date:"2025-12-01"},
-  ];
-  expenses=[
-    {id:uid(),date:"2025-11-05",category:"Shipping Supplies",description:"Poly mailers 200-pack",amount:22.99},
-    {id:uid(),date:"2025-11-08",category:"Packaging Materials",description:"Bubble wrap roll 12\"",amount:14.50},
-    {id:uid(),date:"2025-11-15",category:"Platform Fees",description:"eBay monthly store fee",amount:27.95},
-    {id:uid(),date:"2025-11-20",category:"Printing",description:"Thermal label rolls (4 pack)",amount:18.00},
-    {id:uid(),date:"2025-12-02",category:"Shipping Supplies",description:"Kraft boxes assorted sizes",amount:31.40},
-    {id:uid(),date:"2025-12-10",category:"Platform Fees",description:"Poshmark promoted listings",amount:15.00},
-  ];
+
   save();
 }
 
