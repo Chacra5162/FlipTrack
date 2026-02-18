@@ -2142,44 +2142,49 @@ async function pushToCloud() {
     return { id: i.id, account_id: accountId, data: d, updated_at: new Date().toISOString() };
   });
 
-  const salesRows = expenses.map(e => ({
-    id: e.id, account_id: accountId, data: e, updated_at: new Date().toISOString()
+  const saleRows = sales.map(s => ({
+    id: s.id, account_id: accountId, data: s, updated_at: new Date().toISOString()
   }));
 
   const expRows = expenses.map(e => ({
     id: e.id, account_id: accountId, data: e, updated_at: new Date().toISOString()
   }));
 
-  const saleRows = sales.map(s => ({
-    id: s.id, account_id: accountId, data: s, updated_at: new Date().toISOString()
-  }));
-
-  // Fetch current cloud IDs to detect deletions
-  const [{ data: cloudInvIds }, { data: cloudSaleIds }, { data: cloudExpIds }] = await Promise.all([
+  // Fetch current cloud IDs to detect deletions (inventory + sales, always required)
+  const [{ data: cloudInvIds, error: ei }, { data: cloudSaleIds, error: es }] = await Promise.all([
     _sb.from('ft_inventory').select('id').eq('account_id', accountId),
     _sb.from('ft_sales').select('id').eq('account_id', accountId),
-    _sb.from('ft_expenses').select('id').eq('account_id', accountId),
   ]);
+  if (ei || es) throw new Error((ei || es).message);
 
   const localInvIds  = new Set(inv.map(i => i.id));
   const localSalIds  = new Set(sales.map(s => s.id));
-  const localExpIds  = new Set(expenses.map(e => e.id));
   const deletedInv   = (cloudInvIds  || []).map(r => r.id).filter(id => !localInvIds.has(id));
   const deletedSales = (cloudSaleIds || []).map(r => r.id).filter(id => !localSalIds.has(id));
-  const deletedExp   = (cloudExpIds  || []).map(r => r.id).filter(id => !localExpIds.has(id));
 
   const ops = [
-    _sb.from('ft_inventory').upsert(invRows,  { onConflict: 'id' }),
-    _sb.from('ft_sales').upsert(saleRows,     { onConflict: 'id' }),
-    _sb.from('ft_expenses').upsert(expRows,   { onConflict: 'id' }),
+    _sb.from('ft_inventory').upsert(invRows, { onConflict: 'id' }),
+    _sb.from('ft_sales').upsert(saleRows,    { onConflict: 'id' }),
   ];
   if (deletedInv.length)   ops.push(_sb.from('ft_inventory').delete().in('id', deletedInv));
   if (deletedSales.length) ops.push(_sb.from('ft_sales').delete().in('id', deletedSales));
-  if (deletedExp.length)   ops.push(_sb.from('ft_expenses').delete().in('id', deletedExp));
 
   const results = await Promise.all(ops);
   const err = results.find(r => r.error)?.error;
   if (err) throw new Error(err.message);
+
+  // Expenses — sync separately so a missing ft_expenses table doesn't break the rest
+  try {
+    const { data: cloudExpIds } = await _sb.from('ft_expenses').select('id').eq('account_id', accountId);
+    const localExpIds  = new Set(expenses.map(e => e.id));
+    const deletedExp   = (cloudExpIds || []).map(r => r.id).filter(id => !localExpIds.has(id));
+    const expOps = [_sb.from('ft_expenses').upsert(expRows, { onConflict: 'id' })];
+    if (deletedExp.length) expOps.push(_sb.from('ft_expenses').delete().in('id', deletedExp));
+    await Promise.all(expOps);
+  } catch(e) {
+    console.warn('FlipTrack: expenses table not available —', e.message,
+      '\nRun the ft_expenses SQL from FLIPTRACK-SYNC-SETUP.md to enable expense sync.');
+  }
 }
 
 // ── Pull Supabase → local (merge, remote wins if newer) ─────────────────────
@@ -2187,25 +2192,32 @@ async function pullFromCloud() {
   if (!_sb) return false;
   const accountId = getAccountId();
 
+  // Inventory + sales are always required
   const [
-    { data: remoteInv,  error: e1 },
-    { data: remoteSales,error: e2 },
-    { data: remoteExp,  error: e3 },
+    { data: remoteInv,   error: e1 },
+    { data: remoteSales, error: e2 },
   ] = await Promise.all([
     _sb.from('ft_inventory').select('id, data, updated_at').eq('account_id', accountId),
     _sb.from('ft_sales').select('id, data, updated_at').eq('account_id', accountId),
-    _sb.from('ft_expenses').select('id, data, updated_at').eq('account_id', accountId),
   ]);
+  if (e1 || e2) throw new Error((e1 || e2).message);
 
-  if (e1 || e2 || e3) throw new Error((e1 || e2 || e3).message);
+  // Expenses — optional; table may not exist yet
+  let remoteExp = null;
+  try {
+    const { data, error } = await _sb.from('ft_expenses').select('id, data, updated_at').eq('account_id', accountId);
+    if (!error) remoteExp = data;
+  } catch(e) {
+    // ft_expenses table not created yet — skip silently
+  }
 
-  // Build a lightweight fingerprint — sorted IDs + updated_at timestamps
+  // Build fingerprint
   const newHash = JSON.stringify([
     (remoteInv   || []).map(r => r.id + r.updated_at).sort(),
     (remoteSales || []).map(r => r.id + r.updated_at).sort(),
     (remoteExp   || []).map(r => r.id + r.updated_at).sort(),
   ]);
-  if (newHash === _lastPullHash) return false; // nothing changed
+  if (newHash === _lastPullHash) return false;
   _lastPullHash = newHash;
 
   // Merge inventory
@@ -2232,7 +2244,7 @@ async function pullFromCloud() {
     sales = merged.filter(Boolean);
   }
 
-  // Merge expenses
+  // Merge expenses (only if table is available)
   if (remoteExp) {
     const localMap  = new Map(expenses.map(e => [e.id, e]));
     const remoteMap = new Map(remoteExp.map(r => [r.id, r.data]));
@@ -2246,7 +2258,7 @@ async function pullFromCloud() {
   localStorage.setItem('ft3_inv',  JSON.stringify(inv));
   localStorage.setItem('ft3_sal',  JSON.stringify(sales));
   localStorage.setItem('ft3_exp',  JSON.stringify(expenses));
-  return true; // data changed
+  return true;
 }
 
 // ── Full sync ────────────────────────────────────────────────────────────────
