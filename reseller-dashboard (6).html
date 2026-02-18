@@ -68,7 +68,7 @@ header {
 .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: -0.5px; }
 .logo span { color: var(--accent); }
 
-.header-center { display: flex; gap: 4px; }
+.header-center { display: flex; gap: 4px; flex-wrap: wrap; }
 
 .nav-tab {
   font-family: 'Syne', sans-serif;
@@ -1524,6 +1524,20 @@ textarea { resize:vertical; min-height:70px; }
   /* Hide the header + Add Item button since the FAB replaces it on mobile */
   #headerAddBtn { display: none; }
 }
+
+/* iPad landscape / mobile landscape (820px–1100px): header has all tabs + buttons, needs to be compact */
+@media (min-width: 821px) and (max-width: 1100px) {
+  header { padding: 10px 16px; gap: 8px; flex-wrap: nowrap; overflow: visible; }
+  .logo  { font-size: 17px; white-space: nowrap; flex-shrink: 0; }
+  .date-badge { display: none; }
+  .btn-secondary { display: none; } /* hide Export to save space */
+  .nav-tab { font-size: 10px; padding: 5px 8px; white-space: nowrap; }
+  .header-right { gap: 8px; flex-shrink: 0; }
+  .sync-dot-btn { padding: 4px 8px; }
+  .sync-dot-lbl { display: none; } /* hide "Synced 2:34 PM" text, keep dot only */
+  #headerAddBtn { font-size: 11px; padding: 6px 12px; white-space: nowrap; }
+}
+
 @media (max-width: 480px) {
   .bnav-btn { padding: 6px 4px; }
 }
@@ -2231,7 +2245,6 @@ async function pushToCloud() {
   if (!_sb) return;
   const accountId = getAccountId();
 
-  // Upsert inventory rows (strip image blobs to keep rows under 1MB)
   const invRows = inv.map(i => {
     const d = { ...i };
     if (d.image && d.image.length > 500000) delete d.image;
@@ -2242,44 +2255,30 @@ async function pushToCloud() {
     id: s.id, account_id: accountId, data: s, updated_at: new Date().toISOString()
   }));
 
-  const expRows = expenses.map(e => ({
-    id: e.id, account_id: accountId, data: e, updated_at: new Date().toISOString()
-  }));
-
-  // Fetch current cloud IDs to detect deletions (inventory + sales, always required)
-  const [{ data: cloudInvIds, error: ei }, { data: cloudSaleIds, error: es }] = await Promise.all([
-    _sb.from('ft_inventory').select('id').eq('account_id', accountId),
-    _sb.from('ft_sales').select('id').eq('account_id', accountId),
+  const [r1, r2] = await Promise.all([
+    invRows.length  ? _sb.from('ft_inventory').upsert(invRows,  { onConflict: 'id' }) : Promise.resolve({}),
+    saleRows.length ? _sb.from('ft_sales').upsert(saleRows,     { onConflict: 'id' }) : Promise.resolve({}),
   ]);
-  if (ei || es) throw new Error((ei || es).message);
+  if (r1.error || r2.error) throw new Error((r1.error || r2.error).message);
 
-  const localInvIds  = new Set(inv.map(i => i.id));
-  const localSalIds  = new Set(sales.map(s => s.id));
-  const deletedInv   = (cloudInvIds  || []).map(r => r.id).filter(id => !localInvIds.has(id));
-  const deletedSales = (cloudSaleIds || []).map(r => r.id).filter(id => !localSalIds.has(id));
-
-  const ops = [
-    _sb.from('ft_inventory').upsert(invRows, { onConflict: 'id' }),
-    _sb.from('ft_sales').upsert(saleRows,    { onConflict: 'id' }),
-  ];
-  if (deletedInv.length)   ops.push(_sb.from('ft_inventory').delete().in('id', deletedInv));
-  if (deletedSales.length) ops.push(_sb.from('ft_sales').delete().in('id', deletedSales));
-
-  const results = await Promise.all(ops);
-  const err = results.find(r => r.error)?.error;
-  if (err) throw new Error(err.message);
-
-  // Expenses — sync separately so a missing ft_expenses table doesn't break the rest
+  // Expenses — separate so missing table doesn't break the rest
   try {
-    const { data: cloudExpIds } = await _sb.from('ft_expenses').select('id').eq('account_id', accountId);
-    const localExpIds  = new Set(expenses.map(e => e.id));
-    const deletedExp   = (cloudExpIds || []).map(r => r.id).filter(id => !localExpIds.has(id));
-    const expOps = [_sb.from('ft_expenses').upsert(expRows, { onConflict: 'id' })];
-    if (deletedExp.length) expOps.push(_sb.from('ft_expenses').delete().in('id', deletedExp));
-    await Promise.all(expOps);
+    const expRows = expenses.map(e => ({
+      id: e.id, account_id: accountId, data: e, updated_at: new Date().toISOString()
+    }));
+    if (expRows.length) await _sb.from('ft_expenses').upsert(expRows, { onConflict: 'id' });
   } catch(e) {
-    console.warn('FlipTrack: expenses table not available —', e.message,
-      '\nRun the ft_expenses SQL from FLIPTRACK-SYNC-SETUP.md to enable expense sync.');
+    console.warn('FlipTrack: ft_expenses not available:', e.message);
+  }
+}
+
+// Immediately delete one or more rows from Supabase when user removes data
+async function pushDeleteToCloud(table, ids) {
+  if (!_sb || !ids.length) return;
+  try {
+    await _sb.from(table).delete().in('id', ids);
+  } catch(e) {
+    console.warn(`FlipTrack: delete from ${table} failed:`, e.message);
   }
 }
 
@@ -2307,38 +2306,19 @@ async function pullFromCloud() {
     // ft_expenses table not created yet — skip silently
   }
 
-  // Merge inventory (remote wins)
+  // Remote is authoritative — replace local with remote data.
+  // (Deletions on another device are reflected by the row simply not existing in remote.)
   if (remoteInv) {
-    const localMap  = new Map(inv.map(i  => [i.id,  i]));
-    const remoteMap = new Map(remoteInv.map(r => [r.id, r.data]));
-    const merged = [...new Set([...localMap.keys(), ...remoteMap.keys()])].map(id => {
-      const local  = localMap.get(id);
-      const remote = remoteMap.get(id);
-      if (!local) return remote;
-      if (!remote) return local;
-      return remote;
-    });
-    inv = merged.filter(Boolean);
+    inv = remoteInv.map(r => r.data).filter(Boolean);
   }
 
-  // Merge sales (remote wins)
   if (remoteSales) {
-    const localMap  = new Map(sales.map(s => [s.id, s]));
-    const remoteMap = new Map(remoteSales.map(r => [r.id, r.data]));
-    const merged = [...new Set([...localMap.keys(), ...remoteMap.keys()])].map(id => {
-      return remoteMap.get(id) || localMap.get(id);
-    });
-    sales = merged.filter(Boolean);
+    sales = remoteSales.map(r => r.data).filter(Boolean);
   }
 
-  // Merge expenses (only if table is available; remote wins)
+  // Expenses (only if table is available)
   if (remoteExp) {
-    const localMap  = new Map(expenses.map(e => [e.id, e]));
-    const remoteMap = new Map(remoteExp.map(r => [r.id, r.data]));
-    const merged = [...new Set([...localMap.keys(), ...remoteMap.keys()])].map(id => {
-      return remoteMap.get(id) || localMap.get(id);
-    });
-    expenses = merged.filter(Boolean);
+    expenses = remoteExp.map(r => r.data).filter(Boolean);
   }
 
   // Persist merged result locally
@@ -3165,7 +3145,7 @@ function toggleSel(id,cb){cb.checked?sel.add(id):sel.delete(id);cb.closest('tr')
 function toggleAll(cb){document.querySelectorAll('#invBody tr[data-id]').forEach(r=>{const id=r.dataset.id;const rc=r.querySelector('input[type=checkbox]');if(cb.checked){sel.add(id);rc.checked=true;r.classList.add('sel');}else{sel.delete(id);rc.checked=false;r.classList.remove('sel');}});syncBulk();}
 function clearSel(){sel.clear();document.getElementById('selAll').checked=false;renderInv();}
 function syncBulk(){const b=document.getElementById('bulkBar');b.classList.toggle('on',sel.size>0);document.getElementById('bulkCnt').textContent=sel.size+' selected';}
-function bulkDel(){if(!sel.size)return;if(!confirm(`Delete ${sel.size} item(s)?`))return;inv=inv.filter(i=>!sel.has(i.id));sel.clear();save();refresh();toast('Deleted ✓');}
+function bulkDel(){if(!sel.size)return;if(!confirm(`Delete ${sel.size} item(s)?`))return;const ids=[...sel];inv=inv.filter(i=>!sel.has(i.id));sel.clear();save();refresh();toast('Deleted ✓');pushDeleteToCloud('ft_inventory',ids);}
 function bulkSold(){if(!sel.size)return;const ok=[...sel].filter(id=>{const it=inv.find(i=>i.id===id);return it&&it.qty>0;});if(!ok.length){toast('No sellable items selected',true);return;}if(!confirm(`Record sale for ${ok.length} item(s) at list price?`))return;const today=new Date().toISOString().split('T')[0];for(const id of ok){const it=inv.find(i=>i.id===id);sales.push({id:uid(),itemId:id,price:it.price,qty:1,fees:it.fees||0,ship:it.ship||0,date:today});it.qty=Math.max(0,(it.qty||0)-1);}sel.clear();save();refresh();toast(`${ok.length} sale(s) recorded ✓`);}
 
 // SUBCATEGORY SYNC HELPERS
@@ -3270,7 +3250,7 @@ function saveDrawer(){
   Object.assign(item, getDimsFromForm('d'));
   save(); closeDrawer(); refresh(); toast('Changes saved ✓');
 }
-function delCurrent(){const item=inv.find(i=>i.id===activeDrawId);if(!confirm(`Delete "${item?.name}"?`))return;inv=inv.filter(i=>i.id!==activeDrawId);save();closeDrawer();refresh();toast('Item deleted');}
+function delCurrent(){const item=inv.find(i=>i.id===activeDrawId);if(!confirm(`Delete "${item?.name}"?`))return;const id=activeDrawId;inv=inv.filter(i=>i.id!==id);save();closeDrawer();refresh();toast('Item deleted');pushDeleteToCloud('ft_inventory',[id]);}
 
 // ADD MODAL
 function openAddModal(){document.getElementById('addOv').classList.add('on');}
@@ -3400,6 +3380,7 @@ function delExpense(id) {
   save();
   renderExpenses();
   toast('Expense deleted');
+  pushDeleteToCloud('ft_expenses',[id]);
 }
 
 function renderExpenses() {
@@ -3714,10 +3695,11 @@ function delSale(id){
   if(s){const it=inv.find(i=>i.id===s.itemId);if(it)it.qty+=(s.qty||0);}
   sales=sales.filter(x=>x.id!==id);
   save(); refresh(); renderSalesView(); toast('Sale removed, stock restored');
+  pushDeleteToCloud('ft_sales',[id]);
 }
 
 // DELETE ITEM
-function delItem(id){const item=inv.find(i=>i.id===id);if(!confirm(`Delete "${item?.name}"?`))return;inv=inv.filter(i=>i.id!==id);sel.delete(id);save();refresh();toast('Item deleted');}
+function delItem(id){const item=inv.find(i=>i.id===id);if(!confirm(`Delete "${item?.name}"?`))return;inv=inv.filter(i=>i.id!==id);sel.delete(id);save();refresh();toast('Item deleted');pushDeleteToCloud('ft_inventory',[id]);}
 
 // EXPORT
 // ── BARCODES ────────────────────────────────────────────────────────────────
