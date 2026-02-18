@@ -2004,7 +2004,7 @@ async function pushToCloud() {
   // Upsert inventory rows (strip image blobs to keep rows under 1MB)
   const invRows = inv.map(i => {
     const d = { ...i };
-    if (d.image && d.image.length > 500000) delete d.image; // skip very large images
+    if (d.image && d.image.length > 500000) delete d.image;
     return { id: i.id, account_id: accountId, data: d, updated_at: new Date().toISOString() };
   });
 
@@ -2012,12 +2012,27 @@ async function pushToCloud() {
     id: s.id, account_id: accountId, data: s, updated_at: new Date().toISOString()
   }));
 
-  const [{ error: e1 }, { error: e2 }] = await Promise.all([
-    _sb.from('ft_inventory').upsert(invRows, { onConflict: 'id' }),
-    _sb.from('ft_sales').upsert(salesRows, { onConflict: 'id' }),
+  // Fetch current cloud IDs to detect deletions
+  const [{ data: cloudInvIds }, { data: cloudSaleIds }] = await Promise.all([
+    _sb.from('ft_inventory').select('id').eq('account_id', accountId),
+    _sb.from('ft_sales').select('id').eq('account_id', accountId),
   ]);
 
-  if (e1 || e2) throw new Error((e1 || e2).message);
+  const localInvIds  = new Set(inv.map(i => i.id));
+  const localSalIds  = new Set(sales.map(s => s.id));
+  const deletedInv   = (cloudInvIds  || []).map(r => r.id).filter(id => !localInvIds.has(id));
+  const deletedSales = (cloudSaleIds || []).map(r => r.id).filter(id => !localSalIds.has(id));
+
+  const ops = [
+    _sb.from('ft_inventory').upsert(invRows, { onConflict: 'id' }),
+    _sb.from('ft_sales').upsert(salesRows,   { onConflict: 'id' }),
+  ];
+  if (deletedInv.length)   ops.push(_sb.from('ft_inventory').delete().in('id', deletedInv));
+  if (deletedSales.length) ops.push(_sb.from('ft_sales').delete().in('id', deletedSales));
+
+  const results = await Promise.all(ops);
+  const err = results.find(r => r.error)?.error;
+  if (err) throw new Error(err.message);
 }
 
 // ── Pull Supabase → local (merge, remote wins if newer) ─────────────────────
@@ -4249,7 +4264,7 @@ function renderPlatTags(item) {
   return html;
 }
 
-if(!inv.length){
+if(localStorage.getItem('ft3_inv') === null){
   inv=[
     {id:uid(),name:"Vintage Levi's 501 Jeans (32×32)",sku:"JNS-001",category:"Clothing",subcategory:"Men",subtype:"Jeans",platform:"eBay",platforms:["eBay","Depop","Poshmark"],cost:12,price:65,qty:3,fees:5.2,ship:8,lowAlert:1,notes:"Thrifted. Good condition.",added:new Date(Date.now()-8e8).toISOString()},
     {id:uid(),name:"Sony WH-1000XM3 Headphones",sku:"ELEC-014",category:"Electronics",platform:"Amazon",platforms:["Amazon","eBay"],cost:85,price:180,qty:1,fees:18,ship:0,lowAlert:1,notes:"Refurb, comes with case.",added:new Date(Date.now()-7e8).toISOString()},
