@@ -4601,9 +4601,30 @@ let _scanTargetId = null;
 let _scanStream   = null;
 let _scanRaf      = null;
 let _scanActive   = false;
+let _quaggaActive = false;
 
-// Wire Cancel button imperatively — no async onclick confusion
 document.getElementById('scannerCancelBtn').addEventListener('click', function() { closeScanner(); });
+
+function _loadScript(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = src; s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+async function _ensureQuagga() {
+  if (typeof Quagga !== 'undefined') return true;
+  const urls = [
+    'https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js',
+  ];
+  for (const url of urls) {
+    try { await _loadScript(url); if (typeof Quagga !== 'undefined') return true; } catch {}
+  }
+  return false;
+}
 
 async function openScanner(targetInputId) {
   _scanTargetId = targetInputId;
@@ -4628,8 +4649,15 @@ async function openScanner(targetInputId) {
     if ('BarcodeDetector' in window) {
       _runNativeDetector(video);
     } else {
-      _setResult('⚠ Barcode scanning not supported in this browser', true);
-      document.getElementById('scannerSub').textContent = 'Use Chrome on Android, or Chrome/Edge on desktop';
+      // Fallback: Quagga2 — works in Safari, Firefox, all browsers
+      _setResult('Loading decoder…', false);
+      const ok = await _ensureQuagga();
+      if (ok) {
+        _runQuagga();
+      } else {
+        _setResult('⚠ Barcode decoder unavailable', true);
+        document.getElementById('scannerSub').textContent = 'Check your connection and try again';
+      }
     }
   } catch (e) {
     const msg = e ? (e.message || String(e)) : '';
@@ -4662,6 +4690,49 @@ function _runNativeDetector(video) {
   _scanRaf = requestAnimationFrame(tick);
 }
 
+function _runQuagga() {
+  _quaggaActive = true;
+  // Quagga2 takes over the video element directly via a live stream config
+  const video = document.getElementById('scannerVideo');
+  Quagga.init({
+    inputStream: {
+      name: 'Live',
+      type: 'LiveStream',
+      target: video,
+      constraints: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+      area: { top: '20%', right: '10%', left: '10%', bottom: '20%' },
+    },
+    decoder: {
+      readers: ['ean_reader','ean_8_reader','upc_reader','upc_e_reader','code_128_reader','code_39_reader','i2of5_reader'],
+      multiple: false,
+    },
+    locate: true,
+    numOfWorkers: 0, // 0 = main thread, avoids SharedArrayBuffer issues on iOS
+  }, (err) => {
+    if (err) {
+      _quaggaActive = false;
+      _setResult('⚠ Decoder failed to start', true);
+      document.getElementById('scannerSub').textContent = err.message || String(err);
+      return;
+    }
+    Quagga.start();
+    _setResult('Point camera at barcode…', false);
+  });
+
+  Quagga.onDetected((result) => {
+    if (!_scanActive || !_quaggaActive) return;
+    const code = result && result.codeResult && result.codeResult.code;
+    if (code) _onScanSuccess(code);
+  });
+}
+
+function _stopQuagga() {
+  if (_quaggaActive) {
+    _quaggaActive = false;
+    try { Quagga.offDetected(); Quagga.stop(); } catch {}
+  }
+}
+
 async function _populateCamList() {
   try {
     const devices = await navigator.mediaDevices.enumerateDevices();
@@ -4680,6 +4751,7 @@ async function _populateCamList() {
 
 async function switchCamera(deviceId) {
   if (!_scanActive) return;
+  _stopQuagga();
   _stopStream();
   try {
     _scanStream = await navigator.mediaDevices.getUserMedia({
@@ -4690,6 +4762,7 @@ async function switchCamera(deviceId) {
     await video.play();
     _setResult('Point camera at barcode…', false);
     if ('BarcodeDetector' in window) _runNativeDetector(video);
+    else _runQuagga();
   } catch {
     _setResult('⚠ Could not switch camera', true);
   }
@@ -4733,6 +4806,7 @@ function _onScanSuccess(value) {
 
 function closeScanner() {
   _scanActive = false;
+  _stopQuagga();
   _stopStream();
   document.getElementById('scannerOv').classList.remove('on');
   document.getElementById('scannerCamSel').style.display = 'none';
