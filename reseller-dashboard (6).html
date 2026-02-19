@@ -1910,6 +1910,8 @@ textarea { resize:vertical; min-height:70px; }
     <div class="nav-tab" onclick="switchView('inventory',this)">Inventory</div>
     <div class="nav-tab" onclick="switchView('sales',this)">Sales Log</div>
     <div class="nav-tab" onclick="switchView('expenses',this)">Expenses</div>
+    <div class="nav-tab" onclick="switchView('supplies',this)">Supplies</div>
+    <div class="nav-tab" onclick="switchView('insights',this)">Insights</div>
     <div class="nav-tab" onclick="switchView('reports',this)">Reports</div>
     <div class="nav-tab" onclick="switchView('breakdown',this)">Value Breakdown</div>
   </div>
@@ -2077,6 +2079,58 @@ textarea { resize:vertical; min-height:70px; }
   </div>
 </div>
 
+<!-- VIEW: SUPPLIES -->
+<div id="view-supplies" class="view">
+  <div class="panel" style="animation:none;margin-bottom:14px">
+    <div class="panel-header">
+      <div class="panel-title">Add Supply Item</div>
+    </div>
+    <div class="panel-body">
+      <div class="form-grid">
+        <div class="fgrp full"><label>Supply Name *</label><input type="text" id="sup_name" placeholder="e.g. 6×9 Poly Mailer, 8×8×6 Box, Bubble Wrap Roll…"></div>
+        <div class="fgrp"><label>Category</label>
+          <select id="sup_cat">
+            <option value="Boxes">Boxes</option>
+            <option value="Mailers">Mailers</option>
+            <option value="Bubble Wrap">Bubble Wrap / Padding</option>
+            <option value="Tape">Tape</option>
+            <option value="Labels">Labels</option>
+            <option value="Envelopes">Envelopes</option>
+            <option value="Tissue Paper">Tissue Paper / Filler</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="fgrp"><label>Quantity on Hand *</label><input type="number" id="sup_qty" placeholder="0" min="0"></div>
+        <div class="fgrp"><label>Unit Cost ($)</label><input type="number" id="sup_cost" placeholder="0.00" step="0.01"></div>
+        <div class="fgrp"><label>Low Stock Alert (qty)</label><input type="number" id="sup_alert" placeholder="5" min="0"></div>
+        <div class="fgrp"><label>Notes</label><input type="text" id="sup_notes" placeholder="e.g. Amazon ASIN, supplier…"></div>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn-primary" onclick="addSupply()">Add Supply</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="animation:none">
+    <div class="panel-header">
+      <div class="panel-title">Supplies Stock</div>
+      <span id="supLowBadge" style="display:none;font-size:11px;background:rgba(255,107,107,0.15);color:#ff6b6b;padding:3px 10px;font-family:'DM Mono',monospace">⚠ low stock</span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="inv-table">
+        <thead><tr>
+          <th>Name</th><th>Category</th><th>In Stock</th><th>Unit Cost</th><th>Alert At</th><th>Notes</th><th style="text-align:right">Actions</th>
+        </tr></thead>
+        <tbody id="supBody"></tbody>
+      </table>
+      <div id="supEmpty" class="empty-state" style="display:none">
+        <div class="empty-icon">📦</div>
+        <p>No supplies added yet.<br>Track boxes, mailers, tape and other packaging materials here.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- VIEW: VALUE BREAKDOWN -->
 <div id="view-breakdown" class="view">
   <div id="breakdownContent"></div>
@@ -2148,6 +2202,13 @@ textarea { resize:vertical; min-height:70px; }
     </div>
     <div style="overflow-x:auto">
       <table class="inv-table">
+        <colgroup>
+          <col style="width:14%">
+          <col style="width:20%">
+          <col style="width:42%">
+          <col style="width:12%">
+          <col style="width:12%">
+        </colgroup>
         <thead><tr>
           <th>Date</th><th>Category</th><th>Description</th>
           <th style="text-align:right">Amount</th>
@@ -2161,6 +2222,11 @@ textarea { resize:vertical; min-height:70px; }
       </div>
     </div>
   </div>
+</div>
+
+<!-- VIEW: INSIGHTS -->
+<div id="view-insights" class="view">
+  <div id="insightsContent"></div>
 </div>
 
 <!-- VIEW: REPORTS -->
@@ -2217,7 +2283,13 @@ textarea { resize:vertical; min-height:70px; }
         <div class="edit-grp"><div class="edit-lbl">List Price ($)</div><input class="edit-inp" id="d_price" type="number" step="0.01"></div>
         <div class="edit-grp"><div class="edit-lbl">Fees ($)</div><input class="edit-inp" id="d_fees" type="number" step="0.01"></div>
         <div class="edit-grp"><div class="edit-lbl">Shipping ($)</div><input class="edit-inp" id="d_ship" type="number" step="0.01"></div>
-        <div class="edit-grp"><div class="edit-lbl">Low Stock Alert</div><input class="edit-inp" id="d_alert" type="number" min="0"></div>
+        <div class="edit-grp full" style="align-items:flex-start">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;margin-top:2px">
+            <input type="checkbox" id="d_bulk" onchange="toggleBulkFields('d')" style="width:15px;height:15px;accent-color:var(--accent);flex-shrink:0">
+            <span class="edit-lbl" style="margin:0">Bulk Item — multiple units</span>
+          </label>
+        </div>
+        <div class="edit-grp" id="d_alert_grp"><div class="edit-lbl">Low Stock Alert</div><input class="edit-inp" id="d_alert" type="number" min="0"></div>
         <div class="edit-grp"><div class="edit-lbl">Restock URL</div><input class="edit-inp" id="d_url" type="text" placeholder="Source link"></div>
         <div class="edit-grp full"><div class="edit-lbl">Notes</div><textarea class="edit-ta" id="d_notes"></textarea></div>
       </div>
@@ -2324,7 +2396,7 @@ textarea { resize:vertical; min-height:70px; }
   <!-- UPC panel -->
   <div class="pr-input-bar" id="prPanelUpc">
     <input type="text" id="prUpcInput" inputmode="numeric" pattern="[0-9]*"
-           placeholder="Scan or type UPC / EAN barcode…"
+           placeholder="Scan or enter barcode…"
            autocomplete="off" autocorrect="off" autocapitalize="none"
            onkeydown="if(event.key==='Enter')lookupPrices()">
     <button class="pr-scan-btn" onclick="openPriceScanner()">
@@ -2433,7 +2505,7 @@ textarea { resize:vertical; min-height:70px; }
         <div class="fgrp">
           <label>UPC / Barcode</label>
           <div class="upc-input-row">
-            <input type="text" id="f_upc" placeholder="Scan or type UPC…" style="font-family:'DM Mono',monospace;font-size:12px">
+            <input type="text" id="f_upc" placeholder="Scan or enter barcode…" style="font-family:'DM Mono',monospace;font-size:12px">
             <button type="button" class="upc-scan-btn" onclick="openScanner('f_upc')" title="Scan with camera">📷</button>
           </div>
         </div>
@@ -2445,12 +2517,23 @@ textarea { resize:vertical; min-height:70px; }
           <label>Platforms * <span style="color:var(--muted);font-weight:400;font-size:10px">— select all that apply</span></label>
           <div class="plat-picker" id="f_plat_picker"></div>
         </div>
-        <div class="fgrp"><label>Quantity *</label><input type="number" id="f_qty" value="1" min="1"></div>
+        <div class="fgrp full">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none">
+            <input type="checkbox" id="f_bulk" onchange="toggleBulkFields('f')" style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0">
+            <span style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">Bulk Item <span style="font-size:10px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400">— multiple units available</span></span>
+          </label>
+        </div>
+        <div id="f_bulk_fields" style="display:none;grid-column:1/-1;display:none">
+          <div class="form-grid" style="margin-top:0">
+            <div class="fgrp"><label>Quantity *</label><input type="number" id="f_qty" value="1" min="1"></div>
+            <div class="fgrp"><label>Low Stock Alert</label><input type="number" id="f_alert" placeholder="2" min="0"></div>
+          </div>
+        </div>
+        <input type="hidden" id="f_qty_single" value="1">
         <div class="fgrp"><label>Cost ($) *</label><input type="number" id="f_cost" placeholder="0.00" step="0.01" oninput="prevProfit()"></div>
         <div class="fgrp"><label>List Price ($) *</label><input type="number" id="f_price" placeholder="0.00" step="0.01" oninput="prevProfit()"></div>
         <div class="fgrp"><label>Fees ($)</label><input type="number" id="f_fees" placeholder="0.00" step="0.01" oninput="prevProfit()"></div>
         <div class="fgrp"><label>Shipping ($)</label><input type="number" id="f_ship" placeholder="0.00" step="0.01" oninput="prevProfit()"></div>
-        <div class="fgrp"><label>Low Stock Alert</label><input type="number" id="f_alert" placeholder="2" min="0"></div>
         <div class="fgrp full"><label>Notes</label><textarea id="f_notes" placeholder="Condition, sourcing, etc."></textarea></div>
         <div class="fgrp full">
           <label style="display:flex;align-items:center;justify-content:space-between">
@@ -2513,14 +2596,58 @@ textarea { resize:vertical; min-height:70px; }
     <div class="modal-bd">
       <div class="sold-info" id="soldInfo"></div>
       <div class="form-grid">
-        <div class="fgrp"><label>Sold Price ($) *</label><input type="number" id="s_price" placeholder="0.00" step="0.01"></div>
-        <div class="fgrp"><label>Qty Sold *</label><input type="number" id="s_qty" value="1" min="1"></div>
+        <div class="fgrp">
+          <label>Sold Price ($) *</label>
+          <input type="number" id="s_price" placeholder="0.00" step="0.01">
+        </div>
+        <div class="fgrp">
+          <label>Price Is</label>
+          <div style="display:flex;gap:0;margin-top:2px">
+            <button type="button" id="s_price_each" onclick="sPriceType('each')"
+              style="flex:1;padding:8px 6px;font-family:'DM Mono',monospace;font-size:11px;border:1px solid var(--accent);background:var(--accent);color:#0a0a0f;cursor:pointer;border-radius:0;font-weight:700">
+              Each
+            </button>
+            <button type="button" id="s_price_total" onclick="sPriceType('total')"
+              style="flex:1;padding:8px 6px;font-family:'DM Mono',monospace;font-size:11px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;border-radius:0">
+              Total
+            </button>
+          </div>
+          <div style="font-size:9px;color:var(--muted);margin-top:3px" id="s_price_hint">Price per individual unit</div>
+        </div>
+        <div class="fgrp"><label>Qty Sold *</label><input type="number" id="s_qty" value="1" min="1" oninput="updateSalePriceHint()"></div>
+        <div class="fgrp full"><label>Platform Sold On *</label>
+          <select id="s_platform" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:9px 12px;font-family:'DM Mono',monospace;font-size:12px;width:100%">
+          </select>
+        </div>
         <div class="fgrp"><label>Platform Fees ($)</label><input type="number" id="s_fees" placeholder="0.00" step="0.01"></div>
         <div class="fgrp"><label>Shipping Cost ($)</label><input type="number" id="s_ship" placeholder="0.00" step="0.01"></div>
         <div class="fgrp full"><label>Date Sold</label><input type="date" id="s_date"></div>
       </div>
     </div>
     <div class="modal-ft"><button class="btn-secondary" onclick="closeSold()">Cancel</button><button class="btn-primary" onclick="recSale()">Record Sale</button></div>
+  </div>
+</div>
+
+<!-- MATERIALS USED MODAL (shown after recording a sale) -->
+<div class="overlay" id="matsOv">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-hd">
+      <div class="modal-ttl">📦 Materials Used</div>
+      <button class="modal-x" onclick="skipMaterials()">×</button>
+    </div>
+    <div class="modal-bd">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;font-family:'DM Mono',monospace">
+        Select packaging materials used for this sale to deduct from stock.
+      </div>
+      <div id="matsBody" style="display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto"></div>
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--muted)">
+        <a href="#" onclick="event.preventDefault();skipMaterials()" style="color:var(--muted)">Skip — no materials used</a>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-secondary" onclick="skipMaterials()">Skip</button>
+      <button class="btn-primary" onclick="confirmMaterials()">Deduct &amp; Done</button>
+    </div>
   </div>
 </div>
 
@@ -2543,11 +2670,19 @@ textarea { resize:vertical; min-height:70px; }
     <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
     Expenses
   </button>
-  <button class="bnav-more-item" id="bn-more-reports" onclick="switchView('reports',document.querySelectorAll('.nav-tab')[4]);bnav('bn-more-reports');closeBnavMore()">
+  <button class="bnav-more-item" id="bn-more-supplies" onclick="switchView('supplies',document.querySelectorAll('.nav-tab')[4]);bnav('bn-more-supplies');closeBnavMore()">
+    <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+    Supplies
+  </button>
+  <button class="bnav-more-item" id="bn-more-insights" onclick="switchView('insights',document.querySelectorAll('.nav-tab')[5]);bnav('bn-more-insights');closeBnavMore()">
+    <svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+    Insights
+  </button>
+  <button class="bnav-more-item" id="bn-more-reports" onclick="switchView('reports',document.querySelectorAll('.nav-tab')[6]);bnav('bn-more-reports');closeBnavMore()">
     <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
     Reports
   </button>
-  <button class="bnav-more-item" id="bn-more-breakdown" onclick="switchView('breakdown',document.querySelectorAll('.nav-tab')[5]);bnav('bn-more-breakdown');closeBnavMore()">
+  <button class="bnav-more-item" id="bn-more-breakdown" onclick="switchView('breakdown',document.querySelectorAll('.nav-tab')[7]);bnav('bn-more-breakdown');closeBnavMore()">
     <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
     Breakdown
   </button>
@@ -2580,9 +2715,59 @@ textarea { resize:vertical; min-height:70px; }
 
 <script>
 // DATA
+// ── SOUND ENGINE ──────────────────────────────────────────────────────────────
+const _sfx = (() => {
+  let ctx = null;
+  function ac() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+  function tone(freq, type, vol, start, dur, fadeStart, fadeEnd) {
+    const c = ac();
+    const o = c.createOscillator();
+    const g = c.createGain();
+    o.connect(g); g.connect(c.destination);
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, c.currentTime + start);
+    g.gain.linearRampToValueAtTime(0, c.currentTime + start + dur);
+    o.start(c.currentTime + start);
+    o.stop(c.currentTime + start + dur + 0.01);
+  }
+  return {
+    // 🆕 Create item — bright ascending two-note chime
+    create() {
+      tone(523.25, 'sine', 0.18, 0,    0.10);  // C5
+      tone(783.99, 'sine', 0.18, 0.10, 0.14);  // G5
+      if (navigator.vibrate) navigator.vibrate([30, 40, 60]);  // two taps, second stronger
+    },
+    // ✏️ Edit/save — soft single confirm click
+    edit() {
+      tone(440,    'sine', 0.14, 0,    0.08);  // A4
+      tone(554.37, 'sine', 0.12, 0.07, 0.10);  // C#5
+      if (navigator.vibrate) navigator.vibrate(25);  // single soft tap
+    },
+    // 💸 Sale — satisfying cash-register style ascending run
+    sale() {
+      tone(523.25, 'triangle', 0.15, 0,    0.07);  // C5
+      tone(659.25, 'triangle', 0.15, 0.07, 0.07);  // E5
+      tone(783.99, 'triangle', 0.16, 0.14, 0.07);  // G5
+      tone(1046.5, 'triangle', 0.18, 0.21, 0.14);  // C6
+      if (navigator.vibrate) navigator.vibrate([20, 30, 20, 30, 80]);  // quick rolls then a solid buzz
+    },
+    // 🧾 Expense — low dull thud (money leaving)
+    expense() {
+      tone(220,  'sine',   0.20, 0,    0.06);  // A3
+      tone(174.61,'sine',  0.16, 0.05, 0.12);  // F3
+      if (navigator.vibrate) navigator.vibrate([60, 20, 30]);  // heavy-then-light, money going out
+    },
+  };
+})();
+
 let inv  = JSON.parse(localStorage.getItem('ft3_inv')  || '[]');
 let sales= JSON.parse(localStorage.getItem('ft3_sal')  || '[]');
 let expenses = JSON.parse(localStorage.getItem('ft3_exp') || '[]');
+let supplies = JSON.parse(localStorage.getItem('ft_supplies') || '[]');
 let activeDrawId = null, activeSoldId = null;
 let platFilt = new Set(), catFilt = new Set(), subcatFilt = 'all', subsubcatFilt = 'all', stockFilt = 'all', sel = new Set(), dragSrc = null;
 
@@ -2968,7 +3153,7 @@ const platCls = p => ({
   'Bonanza':'plt-bonanza','Ruby Lane':'plt-bonanza','Chairish':'plt-chairish',
   '1stDibs':'plt-1stdibs','Swappa':'plt-swappa','Decluttr':'plt-decluttr',
 }[p]||'plt-other');
-const sc = (qty, alert) => qty===0?'low':qty<=(alert||2)?'warn':'ok';
+const sc = (qty, alert, bulk) => !bulk ? (qty===0?'low':'ok') : qty===0?'low':qty<=(alert||2)?'warn':'ok';
 const mkc = c => ({ok:'var(--good)',warn:'var(--warn)',low:'var(--danger)'}[c]);
 const margCls = m => m>=0.35?'mb-high':m>=0.15?'mb-mid':'mb-low';
 
@@ -2978,10 +3163,10 @@ function calc(item) {
   return {cost,price,fees,ship,pu,m,roi};
 }
 
-function toast(msg, err) {
+function toast(msg, err, dur) {
   const t = document.getElementById('toast');
   t.textContent=msg; t.className='toast'+(err?' err':'');
-  t.classList.add('on'); setTimeout(()=>t.classList.remove('on'),2300);
+  t.classList.add('on'); setTimeout(()=>t.classList.remove('on'), dur||2300);
 }
 
 // VIEWS
@@ -2995,16 +3180,18 @@ function switchView(n, el) {
   if(n==='breakdown') renderBreakdown();
   if(n==='expenses')  { setDefaultExpDate(); renderExpenses(); }
   if(n==='reports')   renderReports();
+  if(n==='supplies')  renderSupplies();
+  if(n==='insights')  renderInsights();
 }
 
 function goToBreakdown() {
-  const tab = document.querySelectorAll('.nav-tab')[5];
+  const tab = document.querySelectorAll('.nav-tab')[7];
   switchView('breakdown', tab);
   bnav('bn-more-breakdown');
 }
 
 function goToReports() {
-  const tab = document.querySelectorAll('.nav-tab')[4];
+  const tab = document.querySelectorAll('.nav-tab')[6];
   switchView('reports', tab);
   bnav('bn-more-reports');
 }
@@ -3028,7 +3215,7 @@ function clearStockFilt() {
 function updateStats() {
   const invVal = inv.reduce((a,i)=>a+(i.price||0)*(i.qty||0),0);
   const units  = inv.reduce((a,i)=>a+(i.qty||0),0);
-  const low    = inv.filter(i=>i.qty>0&&i.qty<=(i.lowAlert||2));
+  const low    = inv.filter(i=>i.bulk&&i.qty>0&&i.qty<=(i.lowAlert||2));
   const out    = inv.filter(i=>i.qty===0);
   let rev=0,cogs=0,fees=0;
   for(const s of sales){
@@ -3108,7 +3295,7 @@ function renderDash() {
   const tbody=document.getElementById('dashBody');
   if(!items.length){tbody.innerHTML='<tr><td colspan="4" style="padding:20px;color:var(--muted);font-size:12px;text-align:center">No items yet.</td></tr>';return;}
   tbody.innerHTML=items.map(item=>{
-    const {m}=calc(item);const c=sc(item.qty,item.lowAlert);
+    const {m}=calc(item);const c=sc(item.qty,item.lowAlert,item.bulk);
     return `<tr onclick="openDrawer('${item.id}')" style="cursor:pointer">
       <td><div class="item-name">${item.name}</div><div class="item-meta"><span class="item-sku">${item.sku||'—'}</span>${item.upc?`<span class="upc-tag">${item.upc}</span>`:''}${item.category?`<span class="cat-tag">${item.category}</span>`:''} ${item.subcategory?`<span class="cat-tag" style="background:rgba(200,255,87,0.1);color:var(--accent)">${item.subcategory}</span>`:''} ${item.subtype?`<span class="cat-tag" style="background:rgba(123,97,255,0.15);color:var(--accent3)">${item.subtype}</span>`:''}</div></td>
       <td>${renderPlatTags(item)}</td>
@@ -3479,14 +3666,14 @@ function renderInv() {
     const mc=catFilt.size===0||(catFilt.has(i.category||''));
     const ms=subcatFilt==='all'||(i.subcategory||'')===subcatFilt;
     const mss=subsubcatFilt==='all'||(i.subtype||'')===subsubcatFilt;
-    const mst=stockFilt==='all'||(stockFilt==='low'&&(i.qty===0||i.qty<=(i.lowAlert||2)));
+    const mst=stockFilt==='all'||(stockFilt==='low'&&(i.qty===0||(i.bulk&&i.qty<=(i.lowAlert||2))));
     return mq&&mp&&mc&&ms&&mss&&mst;
   });
 
   // Stock filter banner
   const banner = document.getElementById('stockFilterBanner');
   if (stockFilt !== 'all') {
-    const lowCnt = inv.filter(i=>i.qty>0&&i.qty<=(i.lowAlert||2)).length;
+    const lowCnt = inv.filter(i=>i.bulk&&i.qty>0&&i.qty<=(i.lowAlert||2)).length;
     const outCnt = inv.filter(i=>i.qty===0).length;
     document.getElementById('stockFilterLabel').textContent =
       `Showing low stock (${lowCnt}) and out of stock (${outCnt}) items only`;
@@ -3503,7 +3690,7 @@ function renderInv() {
   const maxQ=Math.max(...inv.map(i=>i.qty||0),1);
   tbody.innerHTML=items.map((item)=>{
     const {cost,price,m}=calc(item);
-    const c=sc(item.qty,item.lowAlert);
+    const c=sc(item.qty,item.lowAlert,item.bulk);
     const bp=Math.min(100,((item.qty||0)/maxQ)*100);
     const isSel=sel.has(item.id);
     return `<tr data-id="${item.id}" class="${isSel?'sel':''}">
@@ -3559,7 +3746,7 @@ function adjStock(id, d) {
   item.qty=Math.max(0,(item.qty||0)+d);
   save(); refresh();
   if(item.qty===0) toast('⚠ Out of stock!',true);
-  else if(item.qty<=(item.lowAlert||2)) toast(`⚠ Low: ${item.qty} left`,true);
+  else if(item.bulk&&item.qty<=(item.lowAlert||2)) toast(`⚠ Low: ${item.qty} left`,true);
 }
 
 // DRAG & DROP
@@ -3645,7 +3832,7 @@ function openDrawer(id) {
   const iSales=sales.filter(s=>s.itemId===id);
   const totSold=iSales.reduce((a,s)=>a+(s.qty||0),0);
   const totRev =iSales.reduce((a,s)=>a+(s.price||0)*(s.qty||0),0);
-  const c=sc(item.qty,item.lowAlert);
+  const c=sc(item.qty,item.lowAlert,item.bulk);
   document.getElementById('dMets').innerHTML=`
     <div class="d-met"><div class="dm-lbl">In Stock</div><div class="dm-val" style="color:${mkc(c)}">${item.qty||0}</div></div>
     <div class="d-met"><div class="dm-lbl">Profit/Unit</div><div class="dm-val" style="color:var(--good)">${fmt(pu)}</div></div>
@@ -3661,6 +3848,9 @@ function openDrawer(id) {
   const subs = SUBCATS[item.category||''] || [];
   const dl = document.getElementById('d_subcat_dl');
   if (dl) dl.innerHTML = subs.map(s => `<option value="${s}">`).join('');
+  // Bulk toggle
+  const dBulk = document.getElementById('d_bulk');
+  if (dBulk) { dBulk.checked = !!item.bulk; toggleBulkFields('d'); }
   buildPlatPicker('d_plat_picker', getPlatforms(item));
   populateSubcatSelect('d_subcat', item.category||'', item.subcategory||'');
   populateSubtypeSelect('d_subtype', item.subcategory||'', item.subtype||'');
@@ -3709,16 +3899,38 @@ function saveDrawer(){
   item.fees    =parseFloat(document.getElementById('d_fees').value)||0;
   item.ship    =parseFloat(document.getElementById('d_ship').value)||0;
   item.lowAlert=parseInt(document.getElementById('d_alert').value)||2;
+  item.bulk    =document.getElementById('d_bulk')?.checked||false;
   item.url     =document.getElementById('d_url').value.trim();
   item.notes   =document.getElementById('d_notes').value.trim();
   Object.assign(item, getDimsFromForm('d'));
-  save(); closeDrawer(); refresh(); toast('Changes saved ✓');
+  save(); closeDrawer(); refresh(); _sfx.edit(); toast('Changes saved ✓');
 }
 function delCurrent(){const item=inv.find(i=>i.id===activeDrawId);if(!confirm(`Delete "${item?.name}"?`))return;const id=activeDrawId;inv=inv.filter(i=>i.id!==id);save();closeDrawer();refresh();toast('Item deleted');pushDeleteToCloud('ft_inventory',[id]);}
 
 // ADD MODAL
 function openAddModal(){document.getElementById('addOv').classList.add('on');}
-function closeAdd(){document.getElementById('addOv').classList.remove('on');['f_name','f_sku','f_upc','f_cat','f_subcat_txt','f_cost','f_price','f_fees','f_ship','f_notes','f_alert'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});document.getElementById('f_qty').value='1';pendingAddImage=null;renderImgZone('fImgWrap','f');clearDimForm('f');buildPlatPicker('f_plat_picker',[]);prevProfit();}
+function closeAdd(){
+  document.getElementById('addOv').classList.remove('on');
+  ['f_name','f_sku','f_upc','f_cat','f_subcat_txt','f_cost','f_price','f_fees','f_ship','f_notes','f_alert'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('f_qty').value='1';
+  const bulkCb = document.getElementById('f_bulk'); if(bulkCb) bulkCb.checked=false;
+  const bulkFields = document.getElementById('f_bulk_fields'); if(bulkFields) bulkFields.style.display='none';
+  pendingAddImage=null;renderImgZone('fImgWrap','f');clearDimForm('f');buildPlatPicker('f_plat_picker',[]);prevProfit();
+}
+function toggleBulkFields(pfx) {
+  const bulk = document.getElementById(pfx + '_bulk')?.checked;
+  if (pfx === 'f') {
+    const wrap = document.getElementById('f_bulk_fields');
+    if (wrap) wrap.style.display = bulk ? 'block' : 'none';
+    const qty = document.getElementById('f_qty');
+    if (!bulk && qty) qty.value = '1';
+  }
+  if (pfx === 'd') {
+    const alertGrp = document.getElementById('d_alert_grp');
+    if (alertGrp) alertGrp.style.display = bulk ? '' : 'none';
+  }
+}
+
 function prevProfit(){
   const cost=parseFloat(document.getElementById('f_cost').value)||0;
   const price=parseFloat(document.getElementById('f_price').value)||0;
@@ -3739,8 +3951,10 @@ function addItem(){
   const cat=document.getElementById('f_cat').value.trim();
   const selPlats=getSelectedPlats('f_plat_picker');
   const platform=selPlats[0]||'Other';
-  inv.push({id:uid(),name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:(document.getElementById('f_subcat_txt').value||'').trim(),subtype:document.getElementById('f_subtype').value||'',platform,platforms:selPlats,cost:parseFloat(document.getElementById('f_cost').value)||0,price,qty:parseInt(document.getElementById('f_qty').value)||1,fees:parseFloat(document.getElementById('f_fees').value)||0,ship:parseFloat(document.getElementById('f_ship').value)||0,lowAlert:parseInt(document.getElementById('f_alert').value)||2,notes:document.getElementById('f_notes').value.trim(),image:pendingAddImage||null,...getDimsFromForm('f'),added:new Date().toISOString()});
-  save(); closeAdd(); refresh(); toast('Item added ✓');
+  const isBulk = document.getElementById('f_bulk')?.checked || false;
+  const qty = isBulk ? (parseInt(document.getElementById('f_qty').value)||1) : 1;
+  inv.push({id:uid(),name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:(document.getElementById('f_subcat_txt').value||'').trim(),subtype:document.getElementById('f_subtype').value||'',platform,platforms:selPlats,cost:parseFloat(document.getElementById('f_cost').value)||0,price,qty,bulk:isBulk,fees:parseFloat(document.getElementById('f_fees').value)||0,ship:parseFloat(document.getElementById('f_ship').value)||0,lowAlert:isBulk?(parseInt(document.getElementById('f_alert').value)||2):2,notes:document.getElementById('f_notes').value.trim(),image:pendingAddImage||null,...getDimsFromForm('f'),added:new Date().toISOString()});
+  save(); closeAdd(); refresh(); _sfx.create(); toast('Item added ✓');
 }
 
 // SOLD MODAL
@@ -3761,18 +3975,59 @@ function openSoldModal(id){
   document.getElementById('s_fees').value=item.fees||'';
   document.getElementById('s_ship').value=item.ship||'';
   document.getElementById('s_date').value=new Date().toISOString().split('T')[0];
+  // Build platform dropdown — item's own platforms first, then the rest
+  const itemPlats = getPlatforms(item);
+  const others = PLATFORMS.filter(p => !itemPlats.includes(p));
+  const sel = document.getElementById('s_platform');
+  sel.innerHTML = [
+    ...itemPlats.map(p => `<option value="${p}" selected>${p} ★</option>`),
+    `<option value="" disabled>${itemPlats.length ? '── Other platforms ──' : '── Select platform ──'}</option>`,
+    ...others.map(p => `<option value="${p}">${p}</option>`)
+  ].join('');
+  if (itemPlats.length) sel.value = itemPlats[0];
+  sPriceType('each');
   document.getElementById('soldOv').classList.add('on');
 }
+let _sPriceType = 'each'; // 'each' or 'total'
+
+function sPriceType(type) {
+  _sPriceType = type;
+  const eachBtn  = document.getElementById('s_price_each');
+  const totalBtn = document.getElementById('s_price_total');
+  const on  = 'flex:1;padding:8px 6px;font-family:\'DM Mono\',monospace;font-size:11px;border:1px solid var(--accent);background:var(--accent);color:#0a0a0f;cursor:pointer;border-radius:0;font-weight:700';
+  const off = 'flex:1;padding:8px 6px;font-family:\'DM Mono\',monospace;font-size:11px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;border-radius:0';
+  eachBtn.style.cssText  = type === 'each'  ? on : off;
+  totalBtn.style.cssText = type === 'total' ? on : off;
+  updateSalePriceHint();
+}
+
+function updateSalePriceHint() {
+  const qty = parseInt(document.getElementById('s_qty').value) || 1;
+  const price = parseFloat(document.getElementById('s_price').value) || 0;
+  const hint = document.getElementById('s_price_hint');
+  if (!hint) return;
+  if (_sPriceType === 'each') {
+    hint.textContent = qty > 1 ? `Per unit · total = ${fmt(price * qty)}` : 'Price per individual unit';
+  } else {
+    hint.textContent = qty > 1 ? `Total for all ${qty} units · each = ${fmt(price / qty)}` : 'Total sale price';
+  }
+}
+
 function closeSold(){document.getElementById('soldOv').classList.remove('on');activeSoldId=null;}
 function recSale(){
   const item=inv.find(i=>i.id===activeSoldId);
   if(!item){toast('Item not found — it may have been deleted',true);closeSold();return;}
-  const price=parseFloat(document.getElementById('s_price').value)||0;
+  const rawPrice=parseFloat(document.getElementById('s_price').value)||0;
   const qty=parseInt(document.getElementById('s_qty').value)||1;
-  if(!price){toast('Sold price required',true);return;}
+  if(!rawPrice){toast('Sold price required',true);return;}
   if(qty>item.qty){toast(`Only ${item.qty} available`,true);return;}
-  sales.push({id:uid(),itemId:activeSoldId,price,qty,fees:parseFloat(document.getElementById('s_fees').value)||0,ship:parseFloat(document.getElementById('s_ship').value)||0,date:document.getElementById('s_date').value||new Date().toISOString()});
-  item.qty-=qty; save(); closeSold(); refresh(); toast('Sale recorded ✓');
+  // Convert to per-unit price for storage (all sale records store per-unit price)
+  const price = _sPriceType === 'total' ? rawPrice / qty : rawPrice;
+  const platform = document.getElementById('s_platform').value || 'Other';
+  sales.push({id:uid(),itemId:activeSoldId,price,qty,platform,fees:parseFloat(document.getElementById('s_fees').value)||0,ship:parseFloat(document.getElementById('s_ship').value)||0,date:document.getElementById('s_date').value||new Date().toISOString()});
+  item.qty-=qty; save(); closeSold(); refresh(); _sfx.sale(); toast('Sale recorded ✓');
+  // Prompt for materials used if any supplies exist
+  openMaterialsModal(() => {});
 }
 
 // SALES VIEW
@@ -3793,7 +4048,7 @@ function renderSalesView(){
     const pr=rev-cost-(s.fees||0)-(s.ship||0);
     return `<tr>
       <td><div class="item-name" style="cursor:${it?'pointer':'default'}" ${it?`onclick="openDrawer('${it.id}')"`:''}>${nm}</div>${it?.category?`<div class="item-meta"><span class="cat-tag">${it.category}</span></div>`:''}</td>
-      <td>${it ? renderPlatTags(it) : '-'}</td>
+      <td>${s.platform ? `<span class="plat-tag ${platCls(s.platform)||''}">${s.platform}</span>` : (it ? renderPlatTags(it) : '-')}</td>
       <td style="color:var(--muted);font-size:11px">${ds(s.date)}</td>
       <td>${s.qty}</td>
       <td>${fmt(s.price)}</td>
@@ -3803,6 +4058,258 @@ function renderSalesView(){
       <td><div class="td-acts"><button class="act-btn red" onclick="delSale('${s.id}')">✕</button></div></td>
     </tr>`;
   }).join('');
+}
+
+// ── INSIGHTS ──────────────────────────────────────────────────────────────────
+
+function renderInsights() {
+  const el = document.getElementById('insightsContent');
+  if (!el) return;
+
+  if (!sales.length && !inv.length) {
+    el.innerHTML = `<div class="panel" style="animation:none"><div class="empty-state"><div class="empty-icon">🔍</div><p>No data yet.<br>Add inventory and record some sales to see insights.</p></div></div>`;
+    return;
+  }
+
+  const now    = new Date();
+  const msDay  = 86400000;
+  const day30  = new Date(now - 30 * msDay);
+  const day60  = new Date(now - 60 * msDay);
+  const day90  = new Date(now - 90 * msDay);
+
+  // ── Per-item stats ────────────────────────────────────────────────────────
+  const itemStats = inv.map(item => {
+    const itemSales = sales.filter(s => s.itemId === item.id);
+    const revenue   = itemSales.reduce((a,s) => a + (s.price||0)*(s.qty||0), 0);
+    const unitsSold = itemSales.reduce((a,s) => a + (s.qty||0), 0);
+    const profit    = itemSales.reduce((a,s) => a + (s.price||0)*(s.qty||0) - (item.cost||0)*(s.qty||0) - (s.fees||0) - (s.ship||0), 0);
+    const lastSale  = itemSales.length ? new Date(Math.max(...itemSales.map(s=>new Date(s.date)))) : null;
+    const daysSinceSale = lastSale ? Math.floor((now - lastSale) / msDay) : null;
+    const addedDate = new Date(item.added || now);
+    const daysListed = Math.floor((now - addedDate) / msDay);
+    const margin    = revenue > 0 ? profit / revenue : 0;
+    const roi       = item.cost > 0 ? profit / (item.cost * (unitsSold || 1)) : 0;
+    const recentSales30 = itemSales.filter(s => new Date(s.date) >= day30);
+    return { item, itemSales, revenue, unitsSold, profit, lastSale, daysSinceSale, daysListed, margin, roi, recentSales30 };
+  });
+
+  // ── Category stats ────────────────────────────────────────────────────────
+  const catMap = {};
+  for (const { item, revenue, profit, unitsSold } of itemStats) {
+    const cat = item.category || 'Uncategorized';
+    if (!catMap[cat]) catMap[cat] = { revenue:0, profit:0, units:0, items:0 };
+    catMap[cat].revenue += revenue;
+    catMap[cat].profit  += profit;
+    catMap[cat].units   += unitsSold;
+    catMap[cat].items++;
+  }
+  const topCats = Object.entries(catMap).sort((a,b)=>b[1].profit-a[1].profit).slice(0,5);
+
+  // ── Platform stats ────────────────────────────────────────────────────────
+  const platMap = {};
+  for (const s of sales) {
+    const p = s.platform || (inv.find(i=>i.id===s.itemId) ? (inv.find(i=>i.id===s.itemId).platform||'Other') : 'Other');
+    if (!platMap[p]) platMap[p] = { revenue:0, units:0, count:0 };
+    platMap[p].revenue += (s.price||0)*(s.qty||0);
+    platMap[p].units   += (s.qty||0);
+    platMap[p].count++;
+  }
+  const topPlats = Object.entries(platMap).sort((a,b)=>b[1].revenue-a[1].revenue).slice(0,6);
+
+  // ── Velocity & age analysis ───────────────────────────────────────────────
+  const sellers   = itemStats.filter(s=>s.unitsSold>0).sort((a,b)=>b.unitsSold-a.unitsSold);
+  const nonsellers = itemStats.filter(s=>s.unitsSold===0&&s.daysListed>=14).sort((a,b)=>b.daysListed-a.daysListed);
+  const topProfit = [...itemStats].filter(s=>s.profit>0).sort((a,b)=>b.profit-a.profit).slice(0,5);
+  const topROI    = [...itemStats].filter(s=>s.roi>0&&s.unitsSold>0).sort((a,b)=>b.roi-a.roi).slice(0,5);
+  const stale     = nonsellers.filter(s=>s.daysListed>=30).slice(0,5);
+  const recentHot = itemStats.filter(s=>s.recentSales30.length>0).sort((a,b)=>b.recentSales30.length-a.recentSales30.length).slice(0,5);
+
+  // ── Expense stats ─────────────────────────────────────────────────────────
+  const totalExp     = expenses.reduce((a,e)=>a+(e.amount||0),0);
+  const totalRevenue = sales.reduce((a,s)=>a+(s.price||0)*(s.qty||0),0);
+  const totalProfit  = sellers.reduce((a,s)=>a+s.profit,0) - totalExp;
+  const expByCat     = {};
+  for (const e of expenses) {
+    expByCat[e.category] = (expByCat[e.category]||0) + (e.amount||0);
+  }
+  const topExpCats = Object.entries(expByCat).sort((a,b)=>b[1]-a[1]).slice(0,4);
+  const exp30 = expenses.filter(e=>new Date(e.date)>=day30).reduce((a,e)=>a+(e.amount||0),0);
+  const rev30 = sales.filter(s=>new Date(s.date)>=day30).reduce((a,s)=>a+(s.price||0)*(s.qty||0),0);
+
+  // ── Helper renderers ──────────────────────────────────────────────────────
+  const bar = (val, max, color='var(--accent)') => {
+    const w = max > 0 ? Math.round((val/max)*100) : 0;
+    return `<div style="height:6px;background:var(--surface3);border-radius:3px;margin-top:5px"><div style="height:6px;width:${w}%;background:${color};border-radius:3px;transition:width 0.4s"></div></div>`;
+  };
+  const tag = (txt, color='var(--accent)') =>
+    `<span style="font-size:9px;padding:2px 7px;background:${color}20;color:${color};font-family:'DM Mono',monospace;border:1px solid ${color}40">${txt}</span>`;
+
+  const insightCard = (icon, title, body, accent='var(--accent)') => `
+    <div style="background:var(--surface2);border:1px solid var(--border);padding:16px 18px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:8px">
+        <span style="font-size:16px">${icon}</span>
+        <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:${accent}">${title}</span>
+      </div>
+      ${body}
+    </div>`;
+
+  const itemRow = (stat, showMetric) => {
+    const i = stat.item;
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+      <div style="min-width:0;flex:1">
+        <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer" onclick="openDrawer('${i.id}')">${i.name}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:1px">${i.category||'—'}${i.subcategory?' · '+i.subcategory:''}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;margin-left:12px">${showMetric(stat)}</div>
+    </div>`;
+  };
+
+  // ── Summary KPIs ──────────────────────────────────────────────────────────
+  const totalSalesCount = sales.reduce((a,s)=>a+(s.qty||0),0);
+  const avgMargin = sellers.length ? sellers.reduce((a,s)=>a+s.margin,0)/sellers.length : 0;
+  const kpis = `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+      ${[
+        ['Total Revenue', fmt(totalRevenue), 'var(--accent)'],
+        ['Net Profit', fmt(totalProfit), totalProfit>=0?'var(--good)':'var(--danger)'],
+        ['Units Sold', totalSalesCount, 'var(--accent3)'],
+        ['Avg Margin', pct(avgMargin), avgMargin>=0.2?'var(--good)':'var(--warn)'],
+      ].map(([lbl,val,col])=>`
+        <div style="background:var(--surface2);border:1px solid var(--border);padding:12px 14px">
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">${lbl}</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:${col}">${val}</div>
+        </div>`).join('')}
+    </div>`;
+
+  // ── Section: What's hot right now ─────────────────────────────────────────
+  const hotSection = recentHot.length ? insightCard('🔥', 'Hot Right Now — 30 days',
+    recentHot.map(s => itemRow(s, s => `
+      <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--accent);font-weight:700">${s.recentSales30.length} sale${s.recentSales30.length>1?'s':''}</div>
+      <div style="font-size:10px;color:var(--muted)">${fmt(s.revenue)} rev</div>`)).join(''),
+    'var(--accent)'
+  ) : '';
+
+  // ── Section: Top profit generators ───────────────────────────────────────
+  const profitSection = topProfit.length ? insightCard('💰', 'Top Profit Generators',
+    topProfit.map((s,i) => itemRow(s, s => `
+      <div style="font-size:12px;font-family:'DM Mono',monospace;color:var(--good);font-weight:700">${fmt(s.profit)}</div>
+      <div style="font-size:10px;color:var(--muted)">${pct(s.margin)} margin</div>`)).join('') +
+    (topProfit[0] ? bar(topProfit[0].profit, topProfit[0].profit, 'var(--good)') : ''),
+    'var(--good)'
+  ) : '';
+
+  // ── Section: Best ROI ─────────────────────────────────────────────────────
+  const roiSection = topROI.length ? insightCard('📈', 'Best Return on Investment',
+    topROI.map(s => itemRow(s, s => `
+      <div style="font-size:12px;font-family:'DM Mono',monospace;color:var(--accent3);font-weight:700">${pct(s.roi)} ROI</div>
+      <div style="font-size:10px;color:var(--muted)">cost ${fmt(s.item.cost)}</div>`)).join(''),
+    'var(--accent3)'
+  ) : '';
+
+  // ── Section: Not moving ───────────────────────────────────────────────────
+  const staleSection = stale.length ? insightCard('🕸️', 'Not Moving — Consider Repricing',
+    stale.map(s => itemRow(s, s => `
+      <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--warn);font-weight:700">${s.daysListed}d listed</div>
+      <div style="font-size:10px;color:var(--muted)">0 sold · ${fmt(s.item.price)} list</div>`)).join('') +
+    `<div style="margin-top:10px;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">💡 Try lowering the price by 10–20% or listing on an additional platform</div>`,
+    'var(--warn)'
+  ) : '';
+
+  // ── Section: Category breakdown ───────────────────────────────────────────
+  const maxCatProfit = topCats[0]?.[1]?.profit || 1;
+  const catSection = topCats.length ? insightCard('🗂️', 'Top Categories by Profit',
+    topCats.map(([cat, d]) => `
+      <div style="padding:6px 0">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;font-weight:600">${cat}</span>
+          <span style="font-size:12px;font-family:'DM Mono',monospace;color:var(--good);font-weight:700">${fmt(d.profit)}</span>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${d.units} unit${d.units!==1?'s':''} sold · ${fmt(d.revenue)} revenue · ${d.items} item${d.items!==1?'s':''}</div>
+        ${bar(d.profit, maxCatProfit, 'var(--good)')}
+      </div>`).join('')
+  ) : '';
+
+  // ── Section: Platform performance ─────────────────────────────────────────
+  const maxPlatRev = topPlats[0]?.[1]?.revenue || 1;
+  const platSection = topPlats.length ? insightCard('🏪', 'Platform Performance',
+    topPlats.map(([plat, d]) => `
+      <div style="padding:5px 0">
+        <div style="display:flex;justify-content:space-between">
+          <span style="font-size:12px;font-weight:600">${plat}</span>
+          <span style="font-size:12px;font-family:'DM Mono',monospace;color:var(--accent)">${fmt(d.revenue)}</span>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:1px">${d.count} sale${d.count!==1?'s':''} · ${d.units} unit${d.units!==1?'s':''}</div>
+        ${bar(d.revenue, maxPlatRev)}
+      </div>`).join('')
+  ) : '';
+
+  // ── Section: Expense health ───────────────────────────────────────────────
+  const expRatio = totalRevenue > 0 ? totalExp / totalRevenue : 0;
+  const expHealth = expRatio < 0.1 ? ['✅','Low','var(--good)'] : expRatio < 0.25 ? ['⚠️','Moderate','var(--warn)'] : ['🔴','High','var(--danger)'];
+  const maxExpCat = topExpCats[0]?.[1] || 1;
+  const expSection = expenses.length ? insightCard('🧾', 'Expense Health',
+    `<div style="display:flex;gap:12px;margin-bottom:12px">
+      <div style="flex:1;background:var(--surface);border:1px solid var(--border);padding:10px">
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Expense Ratio</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:${expHealth[2]}">${pct(expRatio)}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">of revenue · ${expHealth[0]} ${expHealth[1]}</div>
+      </div>
+      <div style="flex:1;background:var(--surface);border:1px solid var(--border);padding:10px">
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Last 30 Days</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:var(--danger)">${fmt(exp30)}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">vs ${fmt(rev30)} revenue</div>
+      </div>
+    </div>` +
+    topExpCats.map(([cat,amt])=>`
+      <div style="padding:5px 0">
+        <div style="display:flex;justify-content:space-between">
+          <span style="font-size:12px">${cat}</span>
+          <span style="font-size:12px;font-family:'DM Mono',monospace;color:var(--danger)">${fmt(amt)}</span>
+        </div>
+        ${bar(amt, maxExpCat, 'var(--danger)')}
+      </div>`).join(''),
+    'var(--danger)'
+  ) : '';
+
+  // ── Section: Stale inventory value ───────────────────────────────────────
+  const staleValue = nonsellers.filter(s=>s.daysListed>=30).reduce((a,s)=>a+(s.item.cost||0)*(s.item.qty||1),0);
+  const staleCount = nonsellers.filter(s=>s.daysListed>=30).length;
+  const capitalSection = staleCount > 0 ? insightCard('🔒', 'Tied-Up Capital',
+    `<div style="margin-bottom:10px">
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:var(--warn)">${fmt(staleValue)}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">cost basis sitting in ${staleCount} item${staleCount>1?'s':''} with no sales after 30+ days</div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">💡 Freeing this capital could fund ${Math.floor(staleValue / Math.max(inv.reduce((a,i)=>a+(i.cost||0),0)/inv.length,1))} new average-cost items</div>`,
+    'var(--warn)'
+  ) : '';
+
+  // ── Assemble ──────────────────────────────────────────────────────────────
+  el.innerHTML = `
+    <div style="padding:0 0 24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px">Insights</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Based on ${inv.length} items · ${sales.length} sales · ${expenses.length} expenses</div>
+        </div>
+        <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">Updated ${new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}</div>
+      </div>
+      ${kpis}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          ${hotSection}
+          ${profitSection}
+          ${capitalSection}
+          ${staleSection}
+        </div>
+        <div>
+          ${roiSection}
+          ${catSection}
+          ${platSection}
+          ${expSection}
+        </div>
+      </div>
+      ${!sellers.length && !stale.length ? '<div style="text-align:center;color:var(--muted);font-size:13px;padding:40px 0;font-family:\'DM Mono\',monospace">Record some sales to unlock deeper insights ↗</div>' : ''}
+    </div>`;
 }
 
 // ── EXPENSES ─────────────────────────────────────────────────────────────────
@@ -3835,7 +4342,7 @@ function addExpense() {
   // Clear form fields except date and category
   document.getElementById('exp_desc').value = '';
   document.getElementById('exp_amt').value  = '';
-  toast('Expense added ✓');
+  _sfx.expense(); toast('Expense added ✓');
 }
 
 function delExpense(id) {
@@ -3870,10 +4377,10 @@ function renderExpenses() {
   tbody.innerHTML = filtered.map(e => {
     const cls = EXP_CAT_CLASS[e.category] || 'exp-other';
     return `<tr>
-      <td style="color:var(--muted);font-size:11px">${ds(e.date)}</td>
+      <td style="color:var(--muted);font-size:11px;white-space:nowrap">${ds(e.date)}</td>
       <td><span class="exp-cat-badge ${cls}">${e.category}</span></td>
-      <td>${e.description}</td>
-      <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:var(--danger)">${fmt(e.amount)}</td>
+      <td style="max-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${e.description.replace(/"/g,'&quot;')}">${e.description}</td>
+      <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:var(--danger);white-space:nowrap">${fmt(e.amount)}</td>
       <td style="text-align:right"><button class="act-btn red" onclick="delExpense('${e.id}')">✕</button></td>
     </tr>`;
   }).join('');
@@ -4671,6 +5178,171 @@ function clearDimForm(ctx) {
   setDimUnit(ctx, 'in');
 }
 
+// ── SUPPLIES ──────────────────────────────────────────────────────────────────
+
+function saveSupplies() {
+  localStorage.setItem('ft_supplies', JSON.stringify(supplies));
+  syncSupplies();
+}
+
+async function syncSupplies() {
+  if (!supabase || !accountId) return;
+  try {
+    const rows = supplies.map(s => ({ id: s.id, account_id: accountId, data: s }));
+    await supabase.from('ft_supplies').upsert(rows, { onConflict: 'id' });
+  } catch {}
+}
+
+async function pullSupplies() {
+  if (!supabase || !accountId) return;
+  try {
+    const { data } = await supabase.from('ft_supplies').select('data').eq('account_id', accountId);
+    if (data && data.length) supplies = data.map(r => r.data).filter(Boolean);
+    saveLocalSupplies();
+  } catch {}
+}
+
+function saveLocalSupplies() {
+  localStorage.setItem('ft_supplies', JSON.stringify(supplies));
+}
+
+function addSupply() {
+  const name = document.getElementById('sup_name').value.trim();
+  if (!name) { toast('Supply name required', true); return; }
+  const qty  = parseInt(document.getElementById('sup_qty').value) || 0;
+  const alert= parseInt(document.getElementById('sup_alert').value) || 5;
+  supplies.push({
+    id:    uid(),
+    name,
+    category: document.getElementById('sup_cat').value,
+    qty,
+    cost:  parseFloat(document.getElementById('sup_cost').value) || 0,
+    alert,
+    notes: document.getElementById('sup_notes').value.trim(),
+    added: new Date().toISOString()
+  });
+  ['sup_name','sup_qty','sup_cost','sup_alert','sup_notes'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('sup_cat').value = 'Boxes';
+  saveSupplies();
+  renderSupplies();
+  toast('Supply added ✓');
+}
+
+function updateSupplyQty(id, delta) {
+  const s = supplies.find(s => s.id === id);
+  if (!s) return;
+  s.qty = Math.max(0, (s.qty || 0) + delta);
+  saveSupplies();
+  renderSupplies();
+}
+
+function setSupplyQty(id, val) {
+  const s = supplies.find(s => s.id === id);
+  if (!s) return;
+  s.qty = Math.max(0, parseInt(val) || 0);
+  saveSupplies();
+  checkSupplyAlerts();
+}
+
+function delSupply(id) {
+  supplies = supplies.filter(s => s.id !== id);
+  saveSupplies();
+  renderSupplies();
+  toast('Removed ✓');
+}
+
+function renderSupplies() {
+  const tbody = document.getElementById('supBody');
+  const empty = document.getElementById('supEmpty');
+  const badge = document.getElementById('supLowBadge');
+  if (!tbody) return;
+  const lowCount = supplies.filter(s => s.qty <= (s.alert || 5)).length;
+  if (badge) badge.style.display = lowCount ? '' : 'none';
+  if (!supplies.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = supplies.map(s => {
+    const isLow = s.qty <= (s.alert || 5);
+    const qtyColor = s.qty === 0 ? 'color:#ff6b6b;font-weight:700' : isLow ? 'color:#ffaa33;font-weight:700' : '';
+    const lowTag = isLow ? `<span style="font-size:9px;background:rgba(255,107,107,0.15);color:#ff6b6b;padding:1px 6px;font-family:'DM Mono',monospace;margin-left:6px">LOW</span>` : '';
+    return `<tr>
+      <td><div class="item-name">${s.name}${lowTag}</div></td>
+      <td><span class="cat-tag">${s.category||'Other'}</span></td>
+      <td style="${qtyColor}">
+        <div style="display:flex;align-items:center;gap:6px">
+          <button onclick="updateSupplyQty('${s.id}',-1)" style="background:var(--surface3);border:1px solid var(--border);color:var(--text);width:22px;height:22px;cursor:pointer;font-size:14px;line-height:1;padding:0">−</button>
+          <input type="number" value="${s.qty}" min="0" onchange="setSupplyQty('${s.id}',this.value)"
+            style="width:52px;text-align:center;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;padding:3px 4px">
+          <button onclick="updateSupplyQty('${s.id}',1)" style="background:var(--surface3);border:1px solid var(--border);color:var(--text);width:22px;height:22px;cursor:pointer;font-size:14px;line-height:1;padding:0">+</button>
+        </div>
+      </td>
+      <td style="color:var(--muted);font-size:12px">${s.cost ? fmt(s.cost) : '—'}</td>
+      <td style="color:var(--muted);font-size:12px">${s.alert || 5}</td>
+      <td style="color:var(--muted);font-size:11px">${s.notes||'—'}</td>
+      <td style="text-align:right"><button class="btn-danger" style="font-size:11px;padding:4px 10px" onclick="delSupply('${s.id}')">Remove</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function checkSupplyAlerts() {
+  const low = supplies.filter(s => s.qty <= (s.alert || 5) && s.qty >= 0);
+  if (!low.length) return;
+  const names = low.map(s => `${s.name} (${s.qty} left)`).join(', ');
+  toast(`⚠ Low stock: ${names}`, true, 5000);
+}
+
+// ── MATERIALS MODAL ───────────────────────────────────────────────────────────
+
+let _pendingSaleCallback = null;
+
+function openMaterialsModal(onConfirm) {
+  if (!supplies.length) { onConfirm([]); return; }
+  _pendingSaleCallback = onConfirm;
+  const body = document.getElementById('matsBody');
+  body.innerHTML = supplies.map(s => {
+    const isLow = s.qty <= (s.alert || 5);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface);border:1px solid ${isLow?'rgba(255,107,107,0.35)':'var(--border)'};border-radius:2px">
+      <input type="checkbox" id="mat_${s.id}" style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-family:'Syne',sans-serif;font-weight:600">${s.name}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${s.category} · ${s.qty} in stock${isLow ? ' · <span style="color:#ff6b6b">LOW</span>' : ''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        <span style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">Qty used:</span>
+        <input type="number" id="matqty_${s.id}" value="1" min="1" max="${s.qty}"
+          style="width:48px;text-align:center;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;padding:4px 6px">
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('matsOv').classList.add('on');
+}
+
+function confirmMaterials() {
+  const used = [];
+  for (const s of supplies) {
+    const cb = document.getElementById('mat_' + s.id);
+    if (cb && cb.checked) {
+      const qtyUsed = parseInt(document.getElementById('matqty_' + s.id).value) || 1;
+      used.push({ supplyId: s.id, qty: qtyUsed });
+      s.qty = Math.max(0, s.qty - qtyUsed);
+    }
+  }
+  document.getElementById('matsOv').classList.remove('on');
+  if (used.length) {
+    saveSupplies();
+    renderSupplies();
+    checkSupplyAlerts();
+    toast(`Materials deducted ✓`);
+  }
+  if (_pendingSaleCallback) { _pendingSaleCallback(used); _pendingSaleCallback = null; }
+}
+
+function skipMaterials() {
+  document.getElementById('matsOv').classList.remove('on');
+  if (_pendingSaleCallback) { _pendingSaleCallback([]); _pendingSaleCallback = null; }
+}
+
 // ── UPC / BARCODE SCANNER ─────────────────────────────────────────────────────
 
 let _scanTargetId = null;
@@ -4867,9 +5539,11 @@ function _onScanSuccess(value) {
   if (navigator.vibrate) navigator.vibrate(80);
 
   if (_scanTargetId === '__priceResearch__') {
+    // Strip any non-digit prefix a barcode scanner might prepend (e.g. "UPC ", "EAN:")
+    const cleanValue = value.replace(/^[^0-9]+/, '').trim();
     setTimeout(() => {
       closeScanner();
-      document.getElementById('prUpcInput').value = value;
+      document.getElementById('prUpcInput').value = cleanValue;
       document.getElementById('prOv').classList.add('on');
       lookupPrices();
     }, 700);
