@@ -3544,13 +3544,15 @@ function bulkSold(){if(!sel.size)return;const ok=[...sel].filter(id=>{const it=i
 function populateSubcatSelect(selectId, category, currentValue) {
   const subs = SUBCATS[category] || [];
   const sel = document.getElementById(selectId);
+  if (!sel) return;
   const grpId = selectId === 'd_subcat' ? 'd_subcat_grp' : 'f_subcat_grp';
+  const grp = document.getElementById(grpId);
   if (subs.length) {
     sel.innerHTML = '<option value="">— None —</option>' + subs.map(s=>`<option value="${s}" ${s===currentValue?'selected':''}>${s}</option>`).join('');
-    document.getElementById(grpId).style.display = '';
+    if (grp) grp.style.display = '';
   } else {
     sel.innerHTML = '<option value="">— None —</option>';
-    document.getElementById(grpId).style.display = 'none';
+    if (grp) grp.style.display = 'none';
   }
 }
 
