@@ -3594,17 +3594,19 @@ function populateSubcatSelect(selectId, category, currentValue) {
 function populateSubtypeSelect(selectId, subcategory, currentValue) {
   const types = SUBSUBCATS[subcategory] || [];
   const sel = document.getElementById(selectId);
+  if (!sel) return;
   const grpId = selectId === 'd_subtype' ? 'd_subtype_grp' : 'f_subtype_grp';
   const lblId = selectId === 'd_subtype' ? 'd_subtype_lbl' : 'f_subtype_lbl';
   const label = ['Men','Women','Children'].includes(subcategory) ? 'Clothing Type' : 'Type';
   const lblEl = document.getElementById(lblId);
   if (lblEl) lblEl.textContent = label;
+  const grp = document.getElementById(grpId);
   if (types.length) {
     sel.innerHTML = '<option value="">— None —</option>' + types.map(t=>`<option value="${t}" ${t===currentValue?'selected':''}>${t}</option>`).join('');
-    document.getElementById(grpId).style.display = '';
+    if (grp) grp.style.display = '';
   } else {
     sel.innerHTML = '<option value="">— None —</option>';
-    document.getElementById(grpId).style.display = 'none';
+    if (grp) grp.style.display = 'none';
   }
 }
 
@@ -3698,7 +3700,8 @@ function saveDrawer(){
   item.upc     =document.getElementById('d_upc').value.trim();
   item.category=document.getElementById('d_cat').value.trim();
   item.subcategory=(document.getElementById('d_subcat_txt').value||'').trim();
-  item.subtype=document.getElementById('d_subtype').value||'';
+  const _dSubtype = document.getElementById('d_subtype');
+  item.subtype = _dSubtype ? (_dSubtype.value||'') : (item.subtype||'');
   item.platforms=getSelectedPlats('d_plat_picker');
   item.platform =(item.platforms[0]||'Other'); // keep legacy field for compat
   item.cost    =parseFloat(document.getElementById('d_cost').value)||0;
