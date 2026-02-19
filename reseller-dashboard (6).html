@@ -7,14 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.4/umd/index.min.js" onerror="loadZxingFallback()"></script>
-<script>
-function loadZxingFallback() {
-  var s = document.createElement('script');
-  s.src = 'https://unpkg.com/@zxing/browser@0.1.4/umd/index.min.js';
-  document.head.appendChild(s);
-}
-</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js'"></script>
 <style>
 :root {
   --bg: #0a0a0f;
@@ -897,19 +890,15 @@ textarea { resize:vertical; min-height:70px; }
   background: #000;
   border-radius: 8px;
   overflow: hidden;
-  /* Force GPU layer so iOS Safari renders video correctly inside fixed containers */
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
 }
-.scanner-video {
-  width: 100%;
-  display: block;
-  aspect-ratio: 4/3;
-  object-fit: cover;
-  /* iOS Safari: prevent video from rendering below fixed ancestors */
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-}
+/* Normalize html5-qrcode injected elements */
+#scannerVideo { width: 100%; aspect-ratio: 4/3; display: block; }
+#scannerVideo video,
+#scannerVideo img { width: 100% !important; height: 100% !important; object-fit: cover !important; display: block !important; border-radius: 0 !important; }
+#scannerVideo > div { padding: 0 !important; border: none !important; background: transparent !important; }
+#scannerVideo canvas { display: none !important; }
 .scanner-aim {
   position: absolute;
   inset: 0;
@@ -2260,7 +2249,7 @@ textarea { resize:vertical; min-height:70px; }
   <div class="scanner-header">Scan Barcode / UPC</div>
   <select class="scanner-cam-select" id="scannerCamSel" onchange="switchCamera(this.value)" style="display:none"></select>
   <div class="scanner-box">
-    <video class="scanner-video" id="scannerVideo" autoplay muted playsinline></video>
+    <div id="scannerVideo"></div>
     <div class="scanner-aim">
       <div class="scanner-aim-inner">
         <div class="scanner-line"></div>
@@ -4603,13 +4592,11 @@ function clearDimForm(ctx) {
   setDimUnit(ctx, 'in');
 }
 
-// ── UPC / BARCODE SCANNER ────────────────────────────────────────────────────
+// ── UPC / BARCODE SCANNER (html5-qrcode) ─────────────────────────────────────
 
-let _scanTargetId  = null;  // which input to fill when scan succeeds
-let _scanStream    = null;  // active MediaStream
-let _scanReader    = null;  // ZXing or BarcodeDetector reader
-let _scanActive    = false;
-let _nativeLoop    = null;  // requestAnimationFrame handle for BarcodeDetector
+let _scanTargetId = null;
+let _scanActive   = false;
+let _html5Qr      = null;   // Html5Qrcode instance
 
 async function openScanner(targetInputId) {
   _scanTargetId = targetInputId;
@@ -4618,139 +4605,97 @@ async function openScanner(targetInputId) {
   document.getElementById('scannerSub').textContent    = 'Hold steady — auto-detects UPC, EAN, QR, Code 128 & more';
   _scanActive = true;
 
+  // Ensure html5-qrcode library is loaded
+  if (typeof Html5Qrcode === 'undefined') {
+    document.getElementById('scannerResult').textContent = '⏳ Loading scanner…';
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js')
+      .catch(() => loadScript('https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js'))
+      .catch(() => {
+        document.getElementById('scannerResult').textContent = '⚠ Scanner unavailable — type UPC manually';
+        document.getElementById('scannerSub').textContent = 'Check your internet connection';
+        return Promise.reject('load failed');
+      });
+  }
+
   try {
-    // Enumerate cameras and populate selector if more than one
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const cams = devices.filter(d => d.kind === 'videoinput');
-    const sel  = document.getElementById('scannerCamSel');
-    if (cams.length > 1) {
-      sel.innerHTML = cams.map((c,i) => `<option value="${c.deviceId}">${c.label || 'Camera ' + (i+1)}</option>`).join('');
-      // Default to rear camera on mobile
-      const rear = cams.find(c => /back|rear|environment/i.test(c.label));
-      if (rear) sel.value = rear.deviceId;
+    // Populate camera list
+    const cameras = await Html5Qrcode.getCameras();
+    const sel = document.getElementById('scannerCamSel');
+    if (cameras.length > 1) {
+      sel.innerHTML = cameras.map(c => `<option value="${c.id}">${c.label || c.id}</option>`).join('');
+      // Prefer rear/back camera
+      const rear = cameras.find(c => /back|rear|environment/i.test(c.label));
+      if (rear) sel.value = rear.id;
       sel.style.display = 'block';
     } else {
       sel.style.display = 'none';
     }
-
-    await startCameraStream(sel.value || undefined);
+    const camId = sel.value || (cameras[0] && cameras[0].id) || null;
+    await startHtml5Scanner(camId);
   } catch(e) {
-    document.getElementById('scannerResult').textContent = '⚠ Camera permission denied or unavailable';
+    if (e === 'load failed') return;
+    document.getElementById('scannerResult').textContent = '⚠ ' + (e.message || 'Camera error');
   }
 }
 
-async function startCameraStream(deviceId) {
-  // Stop any existing stream
-  stopStream();
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload  = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
 
-  const constraints = {
-    video: {
-      facingMode: deviceId ? undefined : 'environment',
-      deviceId: deviceId ? { exact: deviceId } : undefined,
-      width: { ideal: 1280 }, height: { ideal: 720 },
-    }
+async function startHtml5Scanner(cameraId) {
+  await stopScan();
+
+  // html5-qrcode needs a clean container — clear any previous content
+  const container = document.getElementById('scannerVideo');
+  container.innerHTML = '';
+
+  _html5Qr = new Html5Qrcode('scannerVideo', { verbose: false });
+
+  const config = {
+    fps: 15,
+    qrbox: { width: Math.min(280, window.innerWidth * 0.65), height: 140 },
+    aspectRatio: 1.333,
+    supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
+    formatsToSupport: [
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E,
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.QR_CODE,
+      Html5QrcodeSupportedFormats.DATA_MATRIX,
+      Html5QrcodeSupportedFormats.ITF,
+    ]
   };
 
-  _scanStream = await navigator.mediaDevices.getUserMedia(constraints);
-  const video = document.getElementById('scannerVideo');
-  video.srcObject = _scanStream;
-  await video.play();
+  const startOpts = cameraId
+    ? { deviceId: { exact: cameraId } }
+    : { facingMode: 'environment' };
+
+  await _html5Qr.start(
+    startOpts,
+    config,
+    (decodedText) => { if (_scanActive) onScanSuccess(decodedText); },
+    () => {} // ignore per-frame not-found errors
+  );
 
   document.getElementById('scannerResult').textContent = 'Point camera at barcode…';
-
-  // Try native BarcodeDetector first (Chrome Android, Safari 17+)
-  if ('BarcodeDetector' in window) {
-    startNativeDetector(video);
-  } else {
-    startZxingDetector(video);
-  }
 }
 
-function startNativeDetector(video) {
-  const detector = new BarcodeDetector({
-    formats: ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','qr_code','data_matrix','itf','aztec','pdf417']
-  });
-
-  const loop = async () => {
-    if (!_scanActive) return;
+async function stopScan() {
+  if (_html5Qr) {
     try {
-      const barcodes = await detector.detect(video);
-      if (barcodes.length > 0) {
-        onScanSuccess(barcodes[0].rawValue);
-        return;
-      }
+      await _html5Qr.stop();
+      _html5Qr.clear();
     } catch {}
-    _nativeLoop = requestAnimationFrame(loop);
-  };
-  _nativeLoop = requestAnimationFrame(loop);
-}
-
-function startZxingDetector(video) {
-  if (typeof ZXingBrowser === 'undefined') {
-    // Library not loaded yet — try loading it now
-    document.getElementById('scannerResult').textContent = '⏳ Loading scanner…';
-    document.getElementById('scannerSub').textContent = '';
-
-    const tryLoad = (src, onSuccess, onFail) => {
-      const existing = document.querySelector(`script[src="${src}"]`);
-      if (existing) { existing.remove(); } // remove failed attempt if any
-      const s = document.createElement('script');
-      s.src = src;
-      s.onload = onSuccess;
-      s.onerror = onFail;
-      document.head.appendChild(s);
-    };
-
-    const attempt = (src, fallbackSrc) => {
-      tryLoad(src, () => {
-        if (typeof ZXingBrowser !== 'undefined') {
-          document.getElementById('scannerResult').textContent = 'Point camera at barcode…';
-          startZxingDetector(video); // retry now that it's loaded
-        } else if (fallbackSrc) {
-          attempt(fallbackSrc, null);
-        } else {
-          document.getElementById('scannerResult').textContent = '⚠ Scanner unavailable — type UPC manually';
-        }
-      }, () => {
-        if (fallbackSrc) {
-          attempt(fallbackSrc, null);
-        } else {
-          document.getElementById('scannerResult').textContent = '⚠ Scanner unavailable — type UPC manually';
-          document.getElementById('scannerSub').textContent = 'Check your connection and try again';
-        }
-      });
-    };
-
-    attempt(
-      'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.4/umd/index.min.js',
-      'https://unpkg.com/@zxing/browser@0.1.4/umd/index.min.js'
-    );
-    return;
-  }
-
-  try {
-    const hints = new Map();
-    const formats = [
-      ZXingBrowser.BarcodeFormat.EAN_13,
-      ZXingBrowser.BarcodeFormat.EAN_8,
-      ZXingBrowser.BarcodeFormat.UPC_A,
-      ZXingBrowser.BarcodeFormat.UPC_E,
-      ZXingBrowser.BarcodeFormat.CODE_128,
-      ZXingBrowser.BarcodeFormat.CODE_39,
-      ZXingBrowser.BarcodeFormat.QR_CODE,
-    ];
-    hints.set(ZXingBrowser.DecodeHintType.POSSIBLE_FORMATS, formats);
-    hints.set(ZXingBrowser.DecodeHintType.TRY_HARDER, true);
-
-    _scanReader = new ZXingBrowser.BrowserMultiFormatReader(hints);
-    _scanReader.decodeFromVideoElement(video, (result, err) => {
-      if (result && _scanActive) {
-        onScanSuccess(result.getText());
-      }
-    });
-  } catch(e) {
-    document.getElementById('scannerResult').textContent = '⚠ Scanner error — type UPC manually';
-    document.getElementById('scannerSub').textContent = e.message || '';
+    _html5Qr = null;
   }
 }
 
@@ -4758,16 +4703,12 @@ function onScanSuccess(value) {
   if (!_scanActive) return;
   _scanActive = false;
 
-  // Flash result
   const res = document.getElementById('scannerResult');
   res.innerHTML = `✓ <strong>${value}</strong>`;
   res.style.color = 'var(--accent)';
-
-  // Haptic feedback on mobile
   if (navigator.vibrate) navigator.vibrate(80);
 
   if (_scanTargetId === '__priceResearch__') {
-    // Route to price research overlay
     setTimeout(() => {
       closeScanner();
       document.getElementById('prUpcInput').value = value;
@@ -4775,37 +4716,30 @@ function onScanSuccess(value) {
       lookupPrices();
     }, 700);
   } else {
-    // Fill the target input
     const input = document.getElementById(_scanTargetId);
-    if (input) {
-      input.value = value;
-      input.dispatchEvent(new Event('input'));
-    }
-    // Auto-close after 800ms so user can see the result
+    if (input) { input.value = value; input.dispatchEvent(new Event('input')); }
     setTimeout(() => closeScanner(), 800);
   }
 }
 
-function switchCamera(deviceId) {
+async function switchCamera(deviceId) {
   _scanActive = true;
-  stopStream();
-  startCameraStream(deviceId).catch(e => {
+  await stopScan();
+  await startHtml5Scanner(deviceId).catch(e => {
     document.getElementById('scannerResult').textContent = '⚠ Could not switch camera';
   });
 }
 
-function stopStream() {
-  cancelAnimationFrame(_nativeLoop);
-  if (_scanReader) {
-    try { _scanReader.reset(); } catch {}
-    _scanReader = null;
+async function closeScanner() {
+  _scanActive = false;
+  await stopScan();
+  document.getElementById('scannerOv').classList.remove('on');
+  document.getElementById('scannerResult').style.color = 'var(--accent)';
+  document.getElementById('scannerResult').textContent = 'Point camera at barcode…';
+  document.getElementById('scannerCamSel').style.display = 'none';
+  if (_scanTargetId === '__priceResearch__') {
+    document.getElementById('prOv').classList.add('on');
   }
-  if (_scanStream) {
-    _scanStream.getTracks().forEach(t => t.stop());
-    _scanStream = null;
-  }
-  const video = document.getElementById('scannerVideo');
-  if (video) { video.srcObject = null; }
 }
 
 // ── PRICE RESEARCH ───────────────────────────────────────────────────────────
@@ -4847,26 +4781,9 @@ function prSwitchTab(mode) {
 
 // Open the scanner, and on scan success, populate the price research input
 function openPriceScanner() {
-  _scanTargetId = '__priceResearch__';
   // Hide the price research overlay so it doesn't cover the scanner
   document.getElementById('prOv').classList.remove('on');
-  document.getElementById('scannerOv').classList.add('on');
-  document.getElementById('scannerResult').textContent = 'Starting camera…';
-  document.getElementById('scannerSub').textContent = 'Scan product barcode to look up selling prices';
-  _scanActive = true;
-  navigator.mediaDevices.enumerateDevices().then(devices => {
-    const cams = devices.filter(d => d.kind === 'videoinput');
-    const sel  = document.getElementById('scannerCamSel');
-    if (cams.length > 1) {
-      sel.innerHTML = cams.map((c,i) => `<option value="${c.deviceId}">${c.label || 'Camera '+(i+1)}</option>`).join('');
-      const rear = cams.find(c => /back|rear|environment/i.test(c.label));
-      if (rear) sel.value = rear.deviceId;
-      sel.style.display = 'block';
-    } else { sel.style.display = 'none'; }
-    return startCameraStream(sel.value || undefined);
-  }).catch(() => {
-    document.getElementById('scannerResult').textContent = '⚠ Camera permission denied';
-  });
+  openScanner('__priceResearch__');
 }
 
 async function lookupPrices() {
@@ -5099,6 +5016,9 @@ function closeScanner() {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && document.getElementById('scannerOv').classList.contains('on')) {
     closeScanner();
+  }
+  if (e.key === 'Escape' && document.getElementById('prOv').classList.contains('on')) {
+    closePriceResearch();
   }
 });
 
