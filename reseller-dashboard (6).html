@@ -595,35 +595,55 @@ main { padding: 24px 32px; max-width: 1440px; margin: 0 auto; }
 /* DRAWER */
 .drawer-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.55); backdrop-filter:blur(4px); z-index:300; opacity:0; pointer-events:none; transition:opacity 0.25s; }
 .drawer-overlay.on { opacity:1; pointer-events:all; }
-.drawer { position:fixed; top:0; right:0; width:50vw; min-width:420px; max-width:900px; height:100vh; background:var(--surface2); border-left:1px solid var(--border); z-index:301; transform:translateX(100%); transition:transform 0.28s cubic-bezier(0.4,0,0.2,1); overflow-y:auto; display:flex; flex-direction:column; }
+.drawer { position:fixed; top:0; right:0; width:50vw; min-width:420px; max-width:900px; height:100vh; background:var(--surface2); border-left:1px solid var(--border); z-index:301; transform:translateX(100%); transition:transform 0.28s cubic-bezier(0.4,0,0.2,1); display:flex; flex-direction:column; overflow:hidden; }
 .drawer.on { transform:translateX(0); }
-.drawer-hd { display:flex; justify-content:space-between; align-items:flex-start; padding:22px 24px 16px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--surface2); z-index:10; }
-.drawer-name { font-family:'Syne',sans-serif; font-weight:800; font-size:18px; line-height:1.2; margin-bottom:5px; }
+.drawer-hd { display:flex; justify-content:space-between; align-items:flex-start; padding:14px 18px 12px; border-bottom:1px solid var(--border); flex-shrink:0; background:var(--surface2); }
+.drawer-name { font-family:'Syne',sans-serif; font-weight:800; font-size:16px; line-height:1.2; margin-bottom:3px; }
 .drawer-sku  { font-size:11px; color:var(--muted); }
 .drawer-x    { background:transparent; border:none; color:var(--muted); font-size:22px; cursor:pointer; padding:0 4px; transition:color 0.15s; flex-shrink:0; margin-top:-4px; }
 .drawer-x:hover { color:var(--text); }
-.drawer-bd { padding:20px 24px; flex:1; }
-.dsec      { margin-bottom:22px; }
-.dsec-ttl  { font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); margin-bottom:12px; padding-bottom:6px; border-bottom:1px solid var(--border); }
-.d-metrics { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:20px; }
-.d-met     { background:var(--surface); border:1px solid var(--border); padding:12px; }
-.dm-lbl    { font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:5px; }
-.dm-val    { font-family:'Syne',sans-serif; font-weight:700; font-size:16px; }
-.edit-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-.edit-grp  { display:flex; flex-direction:column; gap:5px; }
+
+/* Metrics row — always visible */
+.d-metrics { display:grid; grid-template-columns:repeat(6,1fr); gap:6px; padding:10px 18px; border-bottom:1px solid var(--border); flex-shrink:0; background:var(--surface); }
+.d-met     { background:var(--surface2); border:1px solid var(--border); padding:8px 10px; }
+.dm-lbl    { font-size:8px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:3px; }
+.dm-val    { font-family:'Syne',sans-serif; font-weight:700; font-size:13px; }
+
+/* Drawer tabs */
+.drawer-tabs { display:flex; border-bottom:1px solid var(--border); flex-shrink:0; background:var(--bg); }
+.drawer-tab  { flex:1; padding:9px 8px; background:transparent; border:none; color:var(--muted); font-family:'DM Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:0.8px; cursor:pointer; border-bottom:2px solid transparent; transition:color 0.15s,border-color 0.15s; -webkit-tap-highlight-color:transparent; }
+.drawer-tab:hover { color:var(--text); }
+.drawer-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+
+/* Tab panels — fill remaining height, scroll internally */
+.drawer-bd { flex:1; overflow:hidden; position:relative; }
+.drawer-tab-panel { position:absolute; inset:0; overflow-y:auto; padding:14px 18px; display:none; }
+.drawer-tab-panel.active { display:block; }
+
+/* Edit grid — compact */
+.edit-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+.edit-grp  { display:flex; flex-direction:column; gap:4px; }
 .edit-grp.full { grid-column:1/-1; }
-.edit-lbl  { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); }
-.edit-inp,.edit-sel,.edit-ta { background:var(--surface); border:1px solid var(--border); color:var(--text); padding:9px 12px; font-family:'DM Mono',monospace; font-size:12px; outline:none; transition:border-color 0.15s; width:100%; }
+.edit-lbl  { font-size:9px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); }
+.edit-inp,.edit-sel,.edit-ta { background:var(--surface); border:1px solid var(--border); color:var(--text); padding:7px 10px; font-family:'DM Mono',monospace; font-size:12px; outline:none; transition:border-color 0.15s; width:100%; }
 .edit-inp:focus,.edit-sel:focus,.edit-ta:focus { border-color:var(--accent); }
 .edit-sel option { background:var(--surface2); }
-.edit-ta { resize:vertical; min-height:70px; }
-.shi { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(42,42,56,0.5); font-size:12px; }
+.edit-ta { resize:none; height:54px; }
+
+/* Image + barcode compact row */
+.d-media-row { display:flex; gap:12px; margin-bottom:10px; align-items:flex-start; }
+.d-media-row .d-img-cell { flex:0 0 80px; }
+.d-media-row .d-bar-cell { flex:1; min-width:0; }
+
+.shi { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(42,42,56,0.5); font-size:12px; }
 .shi:last-child { border-bottom:none; }
 .shi-d { color:var(--muted); font-size:11px; }
 .shi-p { font-family:'Syne',sans-serif; font-weight:700; }
 .shi-p.pos { color:var(--good); }
 .shi-p.neg { color:var(--danger); }
-.drawer-ft { padding:16px 24px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:space-between; background:var(--surface2); position:sticky; bottom:0; }
+.dsec      { margin-bottom:14px; }
+.dsec-ttl  { font-size:9px; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); margin-bottom:8px; padding-bottom:5px; border-bottom:1px solid var(--border); }
+.drawer-ft { padding:12px 18px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:space-between; background:var(--surface2); flex-shrink:0; }
 
 /* MODALS */
 .overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.72); backdrop-filter:blur(6px); z-index:400; align-items:center; justify-content:center; }
@@ -1672,6 +1692,9 @@ textarea { resize:vertical; min-height:70px; }
     transform: translateY(100%);
   }
   .drawer.on { transform: translateY(0); }
+  .d-metrics { grid-template-columns: repeat(3,1fr); }
+  .drawer-tabs { overflow-x: auto; }
+  .drawer-tab { font-size: 9px; padding: 8px 6px; white-space: nowrap; }
 
   /* Drawer handle affordance */
   .drawer-hd::before {
@@ -2162,34 +2185,30 @@ textarea { resize:vertical; min-height:70px; }
     <div><div class="drawer-name" id="dName">Item</div><div class="drawer-sku" id="dSku"></div></div>
     <button class="drawer-x" onclick="closeDrawer()">×</button>
   </div>
+  <div class="d-metrics" id="dMets"></div>
+  <div class="drawer-tabs">
+    <button class="drawer-tab active" onclick="drawerTab('details',this)">Details</button>
+    <button class="drawer-tab" onclick="drawerTab('media',this)">Photo &amp; Barcode</button>
+    <button class="drawer-tab" onclick="drawerTab('shipping',this)">Shipping</button>
+    <button class="drawer-tab" onclick="drawerTab('history',this)">History</button>
+  </div>
   <div class="drawer-bd">
-    <div class="d-metrics" id="dMets"></div>
-    <div class="dsec" id="dImgSec">
-      <div class="dsec-ttl">Item Photo</div>
-      <div id="dImgWrap">
-        <!-- filled by JS -->
-      </div>
-    </div>
-    <div class="dsec" id="dBarcodeSec">
-      <div class="dsec-ttl">Barcode</div>
-      <div id="dBarcodeWrap"><!-- filled by JS --></div>
-    </div>
-    <div class="dsec">
-      <div class="dsec-ttl">Edit Details</div>
+
+    <!-- TAB: Details -->
+    <div class="drawer-tab-panel active" id="dtab-details">
       <div class="edit-grid">
         <div class="edit-grp full"><div class="edit-lbl">Item Name</div><input class="edit-inp" id="d_name" type="text"></div>
         <div class="edit-grp"><div class="edit-lbl">SKU</div><input class="edit-inp" id="d_sku" type="text"></div>
         <div class="edit-grp">
           <div class="edit-lbl">UPC / Barcode</div>
           <div class="upc-input-row">
-            <input class="edit-inp" id="d_upc" type="text" placeholder="Scan or type UPC…" style="font-family:'DM Mono',monospace;font-size:12px">
-            <button class="upc-scan-btn" onclick="openScanner('d_upc')" title="Scan with camera">📷</button>
+            <input class="edit-inp" id="d_upc" type="text" placeholder="Scan or type…" style="font-family:'DM Mono',monospace;font-size:12px">
+            <button class="upc-scan-btn" onclick="openScanner('d_upc')" title="Scan">📷</button>
           </div>
         </div>
         <div class="edit-grp"><div class="edit-lbl">Category</div><input class="edit-inp" id="d_cat" type="text" placeholder="e.g. Clothing" oninput="syncDrawerSubcat()"></div>
         <div class="edit-grp"><div class="edit-lbl">Subcategory</div><input class="edit-inp" id="d_subcat_txt" type="text" placeholder="e.g. Sneakers, Men's…" list="d_subcat_dl"><datalist id="d_subcat_dl"></datalist></div>
         <select id="d_subcat" style="display:none"></select>
-        <div class="edit-grp" id="d_subtype_grp" style="display:none"><div class="edit-lbl" id="d_subtype_lbl">Type</div><select class="edit-sel" id="d_subtype"><option value="">— None —</option></select></div>
         <div class="edit-grp full">
           <div class="edit-lbl">Platforms <span style="color:var(--muted);font-weight:400;font-size:9px">— select all that apply</span></div>
           <div class="plat-picker" id="d_plat_picker"></div>
@@ -2198,13 +2217,27 @@ textarea { resize:vertical; min-height:70px; }
         <div class="edit-grp"><div class="edit-lbl">List Price ($)</div><input class="edit-inp" id="d_price" type="number" step="0.01"></div>
         <div class="edit-grp"><div class="edit-lbl">Fees ($)</div><input class="edit-inp" id="d_fees" type="number" step="0.01"></div>
         <div class="edit-grp"><div class="edit-lbl">Shipping ($)</div><input class="edit-inp" id="d_ship" type="number" step="0.01"></div>
-        <div class="edit-grp"><div class="edit-lbl">Low Stock Alert (qty)</div><input class="edit-inp" id="d_alert" type="number" min="0"></div>
+        <div class="edit-grp"><div class="edit-lbl">Low Stock Alert</div><input class="edit-inp" id="d_alert" type="number" min="0"></div>
         <div class="edit-grp"><div class="edit-lbl">Restock URL</div><input class="edit-inp" id="d_url" type="text" placeholder="Source link"></div>
         <div class="edit-grp full"><div class="edit-lbl">Notes</div><textarea class="edit-ta" id="d_notes"></textarea></div>
       </div>
     </div>
-    <div class="dsec">
-      <div class="dsec-ttl" style="display:flex;align-items:center;justify-content:space-between">
+
+    <!-- TAB: Photo & Barcode -->
+    <div class="drawer-tab-panel" id="dtab-media">
+      <div class="dsec" id="dImgSec">
+        <div class="dsec-ttl">Item Photo</div>
+        <div id="dImgWrap"></div>
+      </div>
+      <div class="dsec" id="dBarcodeSec">
+        <div class="dsec-ttl">Barcode</div>
+        <div id="dBarcodeWrap"></div>
+      </div>
+    </div>
+
+    <!-- TAB: Shipping -->
+    <div class="drawer-tab-panel" id="dtab-shipping">
+      <div class="dsec-ttl" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <span>Package Dimensions</span>
         <div class="unit-toggle">
           <button class="utog-btn active" id="d_unit_in" onclick="setDimUnit('d','in')">in / lb</button>
@@ -2235,10 +2268,12 @@ textarea { resize:vertical; min-height:70px; }
       </div>
       <div id="d_pkg_suggestion"></div>
     </div>
-    <div class="dsec">
-      <div class="dsec-ttl">Sale History</div>
+
+    <!-- TAB: History -->
+    <div class="drawer-tab-panel" id="dtab-history">
       <div id="dHistory"></div>
     </div>
+
   </div>
   <div class="drawer-ft">
     <button class="btn-danger" onclick="delCurrent()">Delete Item</button>
@@ -3637,7 +3672,25 @@ function openDrawer(id) {
   document.getElementById('drawerOv').classList.add('on');
   document.getElementById('drawer').classList.add('on');
 }
-function closeDrawer(){document.getElementById('drawerOv').classList.remove('on');document.getElementById('drawer').classList.remove('on');activeDrawId=null;}
+function drawerTab(name, btn) {
+  document.querySelectorAll('.drawer-tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.drawer-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('dtab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+function closeDrawer(){
+  document.getElementById('drawerOv').classList.remove('on');
+  document.getElementById('drawer').classList.remove('on');
+  // Reset to Details tab for next open
+  document.querySelectorAll('.drawer-tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.drawer-tab').forEach(b => b.classList.remove('active'));
+  const defaultPanel = document.getElementById('dtab-details');
+  if (defaultPanel) defaultPanel.classList.add('active');
+  const defaultTab = document.querySelector('.drawer-tab');
+  if (defaultTab) defaultTab.classList.add('active');
+  activeDrawId=null;
+}
 function saveDrawer(){
   const item=inv.find(i=>i.id===activeDrawId); if(!item) return;
   item.name    =document.getElementById('d_name').value.trim()||item.name;
