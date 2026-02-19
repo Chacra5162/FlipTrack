@@ -894,11 +894,17 @@ textarea { resize:vertical; min-height:70px; }
   -webkit-transform: translateZ(0);
 }
 /* Normalize html5-qrcode injected elements */
-#scannerVideo { width: 100%; aspect-ratio: 4/3; display: block; }
-#scannerVideo video,
-#scannerVideo img { width: 100% !important; height: 100% !important; object-fit: cover !important; display: block !important; border-radius: 0 !important; }
-#scannerVideo > div { padding: 0 !important; border: none !important; background: transparent !important; }
-#scannerVideo canvas { display: none !important; }
+#scannerVideo { width: 100%; position: relative; background: #000; }
+#scannerVideo video { width: 100% !important; max-width: 100% !important; height: auto !important; display: block !important; border-radius: 0 !important; }
+/* Hide html5-qrcode's own header, buttons, and file upload UI */
+#scannerVideo > div > span,
+#scannerVideo > div > div > img,
+#scannerVideo button,
+#scannerVideo select,
+#scannerVideo input[type=file] { display: none !important; }
+/* Keep the scan region box visible but remove its border (we use our own .scanner-aim) */
+#scannerVideo > div > div { border: none !important; box-shadow: none !important; }
+#scannerVideo canvas { position: absolute; top: 0; left: 0; opacity: 0; pointer-events: none; }
 .scanner-aim {
   position: absolute;
   inset: 0;
@@ -4596,105 +4602,114 @@ function clearDimForm(ctx) {
 
 let _scanTargetId = null;
 let _scanActive   = false;
-let _html5Qr      = null;   // Html5Qrcode instance
-
-async function openScanner(targetInputId) {
-  _scanTargetId = targetInputId;
-  document.getElementById('scannerOv').classList.add('on');
-  document.getElementById('scannerResult').textContent = 'Starting camera…';
-  document.getElementById('scannerSub').textContent    = 'Hold steady — auto-detects UPC, EAN, QR, Code 128 & more';
-  _scanActive = true;
-
-  // Ensure html5-qrcode library is loaded
-  if (typeof Html5Qrcode === 'undefined') {
-    document.getElementById('scannerResult').textContent = '⏳ Loading scanner…';
-    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js')
-      .catch(() => loadScript('https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js'))
-      .catch(() => {
-        document.getElementById('scannerResult').textContent = '⚠ Scanner unavailable — type UPC manually';
-        document.getElementById('scannerSub').textContent = 'Check your internet connection';
-        return Promise.reject('load failed');
-      });
-  }
-
-  try {
-    // Populate camera list
-    const cameras = await Html5Qrcode.getCameras();
-    const sel = document.getElementById('scannerCamSel');
-    if (cameras.length > 1) {
-      sel.innerHTML = cameras.map(c => `<option value="${c.id}">${c.label || c.id}</option>`).join('');
-      // Prefer rear/back camera
-      const rear = cameras.find(c => /back|rear|environment/i.test(c.label));
-      if (rear) sel.value = rear.id;
-      sel.style.display = 'block';
-    } else {
-      sel.style.display = 'none';
-    }
-    const camId = sel.value || (cameras[0] && cameras[0].id) || null;
-    await startHtml5Scanner(camId);
-  } catch(e) {
-    if (e === 'load failed') return;
-    document.getElementById('scannerResult').textContent = '⚠ ' + (e.message || 'Camera error');
-  }
-}
+let _html5Qr      = null;
 
 function loadScript(src) {
   return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`) && typeof Html5Qrcode !== 'undefined') {
+      return resolve();
+    }
     const s = document.createElement('script');
-    s.src = src;
-    s.onload  = resolve;
-    s.onerror = reject;
+    s.src = src; s.onload = resolve; s.onerror = reject;
     document.head.appendChild(s);
   });
 }
 
-async function startHtml5Scanner(cameraId) {
+async function ensureScannerLib() {
+  if (typeof Html5Qrcode !== 'undefined') return true;
+  try {
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js');
+    if (typeof Html5Qrcode !== 'undefined') return true;
+  } catch {}
+  try {
+    await loadScript('https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js');
+    if (typeof Html5Qrcode !== 'undefined') return true;
+  } catch {}
+  return false;
+}
+
+async function openScanner(targetInputId) {
+  _scanTargetId = targetInputId;
+  _scanActive   = true;
+
+  document.getElementById('scannerOv').classList.add('on');
+  document.getElementById('scannerResult').textContent = 'Loading scanner…';
+  document.getElementById('scannerResult').style.color = 'var(--accent)';
+  document.getElementById('scannerSub').textContent    = 'Hold steady — auto-detects UPC, EAN, QR, Code 128 & more';
+  document.getElementById('scannerCamSel').style.display = 'none';
+
+  const loaded = await ensureScannerLib();
+  if (!loaded) {
+    document.getElementById('scannerResult').textContent = '⚠ Scanner library failed to load';
+    document.getElementById('scannerSub').textContent    = 'Check your internet connection and try again';
+    return;
+  }
+
+  await startHtml5Scanner();
+}
+
+async function startHtml5Scanner(deviceId) {
   await stopScan();
 
-  // html5-qrcode needs a clean container — clear any previous content
+  // Clear container — html5-qrcode needs a fresh empty div
   const container = document.getElementById('scannerVideo');
   container.innerHTML = '';
 
-  _html5Qr = new Html5Qrcode('scannerVideo', { verbose: false });
+  try {
+    _html5Qr = new Html5Qrcode('scannerVideo', { verbose: false });
 
-  const config = {
-    fps: 15,
-    qrbox: { width: Math.min(280, window.innerWidth * 0.65), height: 140 },
-    aspectRatio: 1.333,
-    supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
-    formatsToSupport: [
-      Html5QrcodeSupportedFormats.EAN_13,
-      Html5QrcodeSupportedFormats.EAN_8,
-      Html5QrcodeSupportedFormats.UPC_A,
-      Html5QrcodeSupportedFormats.UPC_E,
-      Html5QrcodeSupportedFormats.CODE_128,
-      Html5QrcodeSupportedFormats.CODE_39,
-      Html5QrcodeSupportedFormats.QR_CODE,
-      Html5QrcodeSupportedFormats.DATA_MATRIX,
-      Html5QrcodeSupportedFormats.ITF,
-    ]
-  };
+    // Populate camera picker if multiple cameras available
+    try {
+      const cameras = await Html5Qrcode.getCameras();
+      const sel = document.getElementById('scannerCamSel');
+      if (cameras && cameras.length > 1) {
+        sel.innerHTML = cameras.map((c, i) =>
+          `<option value="${c.id}">${c.label || ('Camera ' + (i + 1))}</option>`
+        ).join('');
+        if (!deviceId) {
+          const rear = cameras.find(c => /back|rear|environment/i.test(c.label || ''));
+          deviceId = (rear || cameras[cameras.length - 1]).id;
+        }
+        sel.value = deviceId;
+        sel.style.display = 'block';
+      }
+    } catch {}
 
-  const startOpts = cameraId
-    ? { deviceId: { exact: cameraId } }
-    : { facingMode: 'environment' };
+    const cameraSpec = deviceId
+      ? { deviceId: { exact: deviceId } }
+      : { facingMode: 'environment' };
 
-  await _html5Qr.start(
-    startOpts,
-    config,
-    (decodedText) => { if (_scanActive) onScanSuccess(decodedText); },
-    () => {} // ignore per-frame not-found errors
-  );
+    await _html5Qr.start(
+      cameraSpec,
+      { fps: 15, qrbox: { width: 260, height: 130 }, aspectRatio: 1.5 },
+      (text) => { if (_scanActive) onScanSuccess(text); },
+      () => {} // per-frame failure — ignore
+    );
 
-  document.getElementById('scannerResult').textContent = 'Point camera at barcode…';
+    document.getElementById('scannerResult').textContent = 'Point camera at barcode…';
+
+  } catch (e) {
+    const msg = (e && (e.message || String(e))) || '';
+    if (/permission|denied/i.test(msg)) {
+      document.getElementById('scannerResult').textContent = '⚠ Camera permission denied';
+      document.getElementById('scannerSub').textContent    = 'Allow camera access in browser settings';
+    } else {
+      document.getElementById('scannerResult').textContent = '⚠ Could not start camera';
+      document.getElementById('scannerSub').textContent    = msg.slice(0, 80) || 'Unknown error';
+    }
+  }
 }
 
 async function stopScan() {
   if (_html5Qr) {
     try {
-      await _html5Qr.stop();
-      _html5Qr.clear();
+      const state = _html5Qr.getState && _html5Qr.getState();
+      // State 2 = SCANNING, state 3 = PAUSED
+      if (!state || state === 2 || state === 3) {
+        await _html5Qr.stop();
+      }
     } catch {}
+    try { _html5Qr.clear(); } catch {}
     _html5Qr = null;
   }
 }
@@ -4704,39 +4719,46 @@ function onScanSuccess(value) {
   _scanActive = false;
 
   const res = document.getElementById('scannerResult');
-  res.innerHTML = `✓ <strong>${value}</strong>`;
+  res.innerHTML   = `✓ <strong>${value}</strong>`;
   res.style.color = 'var(--accent)';
   if (navigator.vibrate) navigator.vibrate(80);
 
   if (_scanTargetId === '__priceResearch__') {
-    setTimeout(() => {
-      closeScanner();
+    setTimeout(async () => {
+      await closeScanner();
       document.getElementById('prUpcInput').value = value;
       document.getElementById('prOv').classList.add('on');
       lookupPrices();
     }, 700);
   } else {
     const input = document.getElementById(_scanTargetId);
-    if (input) { input.value = value; input.dispatchEvent(new Event('input')); }
+    if (input) {
+      input.value = value;
+      input.dispatchEvent(new Event('input'));
+    }
     setTimeout(() => closeScanner(), 800);
   }
 }
 
 async function switchCamera(deviceId) {
   _scanActive = true;
-  await stopScan();
-  await startHtml5Scanner(deviceId).catch(e => {
-    document.getElementById('scannerResult').textContent = '⚠ Could not switch camera';
-  });
+  await startHtml5Scanner(deviceId);
 }
 
 async function closeScanner() {
   _scanActive = false;
   await stopScan();
+
+  // Clear the container so the old video doesn't flash next open
+  const container = document.getElementById('scannerVideo');
+  if (container) container.innerHTML = '';
+
   document.getElementById('scannerOv').classList.remove('on');
   document.getElementById('scannerResult').style.color = 'var(--accent)';
   document.getElementById('scannerResult').textContent = 'Point camera at barcode…';
+  document.getElementById('scannerSub').textContent    = 'Hold steady — auto-detects UPC, EAN, QR, Code 128 & more';
   document.getElementById('scannerCamSel').style.display = 'none';
+
   if (_scanTargetId === '__priceResearch__') {
     document.getElementById('prOv').classList.add('on');
   }
