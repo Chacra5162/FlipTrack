@@ -595,7 +595,7 @@ main { padding: 24px 32px; max-width: 1440px; margin: 0 auto; }
 /* DRAWER */
 .drawer-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.55); backdrop-filter:blur(4px); z-index:300; opacity:0; pointer-events:none; transition:opacity 0.25s; }
 .drawer-overlay.on { opacity:1; pointer-events:all; }
-.drawer { position:fixed; top:0; right:0; width:460px; max-width:96vw; height:100vh; background:var(--surface2); border-left:1px solid var(--border); z-index:301; transform:translateX(100%); transition:transform 0.28s cubic-bezier(0.4,0,0.2,1); overflow-y:auto; display:flex; flex-direction:column; }
+.drawer { position:fixed; top:0; right:0; width:50vw; min-width:420px; max-width:900px; height:100vh; background:var(--surface2); border-left:1px solid var(--border); z-index:301; transform:translateX(100%); transition:transform 0.28s cubic-bezier(0.4,0,0.2,1); overflow-y:auto; display:flex; flex-direction:column; }
 .drawer.on { transform:translateX(0); }
 .drawer-hd { display:flex; justify-content:space-between; align-items:flex-start; padding:22px 24px 16px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--surface2); z-index:10; }
 .drawer-name { font-family:'Syne',sans-serif; font-weight:800; font-size:18px; line-height:1.2; margin-bottom:5px; }
@@ -1663,7 +1663,9 @@ textarea { resize:vertical; min-height:70px; }
     right: 0;
     width: 100%;
     max-width: 100%;
-    height: 88vh;
+    min-width: unset;
+    height: 50vh;
+    min-height: 340px;
     border-left: none;
     border-top: 1px solid var(--border);
     border-radius: 16px 16px 0 0;
@@ -2185,7 +2187,8 @@ textarea { resize:vertical; min-height:70px; }
           </div>
         </div>
         <div class="edit-grp"><div class="edit-lbl">Category</div><input class="edit-inp" id="d_cat" type="text" placeholder="e.g. Clothing" oninput="syncDrawerSubcat()"></div>
-        <div class="edit-grp" id="d_subcat_grp" style="display:none"><div class="edit-lbl">Subcategory</div><select class="edit-sel" id="d_subcat" onchange="syncDrawerSubtype()"><option value="">— None —</option></select></div>
+        <div class="edit-grp"><div class="edit-lbl">Subcategory</div><input class="edit-inp" id="d_subcat_txt" type="text" placeholder="e.g. Sneakers, Men's…" list="d_subcat_dl"><datalist id="d_subcat_dl"></datalist></div>
+        <select id="d_subcat" style="display:none"></select>
         <div class="edit-grp" id="d_subtype_grp" style="display:none"><div class="edit-lbl" id="d_subtype_lbl">Type</div><select class="edit-sel" id="d_subtype"><option value="">— None —</option></select></div>
         <div class="edit-grp full">
           <div class="edit-lbl">Platforms <span style="color:var(--muted);font-weight:400;font-size:9px">— select all that apply</span></div>
@@ -2400,7 +2403,8 @@ textarea { resize:vertical; min-height:70px; }
           </div>
         </div>
         <div class="fgrp"><label>Category</label><input type="text" id="f_cat" placeholder="e.g. Clothing" oninput="syncAddSubcat()"></div>
-        <div class="fgrp" id="f_subcat_grp" style="display:none"><label>Subcategory</label><select id="f_subcat" onchange="syncAddSubtype()"><option value="">— None —</option></select></div>
+        <div class="fgrp"><label>Subcategory</label><input type="text" id="f_subcat_txt" placeholder="e.g. Sneakers, Men's…" list="f_subcat_dl"><datalist id="f_subcat_dl"></datalist></div>
+        <select id="f_subcat" style="display:none"></select>
         <div class="fgrp" id="f_subtype_grp" style="display:none"><label id="f_subtype_lbl">Type</label><select id="f_subtype"><option value="">— None —</option></select></div>
         <div class="fgrp full">
           <label>Platforms * <span style="color:var(--muted);font-weight:400;font-size:10px">— select all that apply</span></label>
@@ -3569,7 +3573,12 @@ function populateSubtypeSelect(selectId, subcategory, currentValue) {
 
 function syncDrawerSubcat() {
   const cat = document.getElementById('d_cat').value.trim();
-  populateSubcatSelect('d_subcat', cat, '');
+  // Populate datalist with known subcats for this category
+  const subs = SUBCATS[cat] || [];
+  const dl = document.getElementById('d_subcat_dl');
+  if (dl) dl.innerHTML = subs.map(s => `<option value="${s}">`).join('');
+  // Keep the hidden select in sync for legacy data reads
+  populateSubcatSelect('d_subcat', cat, document.getElementById('d_subcat_txt').value);
   populateSubtypeSelect('d_subtype', document.getElementById('d_subcat').value, '');
 }
 function syncDrawerSubtype() {
@@ -3577,7 +3586,10 @@ function syncDrawerSubtype() {
 }
 function syncAddSubcat() {
   const cat = document.getElementById('f_cat').value.trim();
-  populateSubcatSelect('f_subcat', cat, '');
+  const subs = SUBCATS[cat] || [];
+  const dl = document.getElementById('f_subcat_dl');
+  if (dl) dl.innerHTML = subs.map(s => `<option value="${s}">`).join('');
+  populateSubcatSelect('f_subcat', cat, document.getElementById('f_subcat_txt').value);
   populateSubtypeSelect('f_subtype', document.getElementById('f_subcat').value, '');
 }
 function syncAddSubtype() {
@@ -3604,6 +3616,12 @@ function openDrawer(id) {
     <div class="d-met"><div class="dm-lbl">Total Revenue</div><div class="dm-val">${fmt(totRev)}</div></div>`;
   const fields={d_name:'name',d_sku:'sku',d_upc:'upc',d_cat:'category',d_cost:'cost',d_price:'price',d_fees:'fees',d_ship:'ship',d_notes:'notes',d_url:'url',d_alert:'lowAlert'};
   for(const[eid,key]of Object.entries(fields)){const el=document.getElementById(eid);if(el)el.value=item[key]||'';}
+  // Populate subcategory text input and datalist suggestions
+  const subcatTxt = document.getElementById('d_subcat_txt');
+  if (subcatTxt) subcatTxt.value = item.subcategory || '';
+  const subs = SUBCATS[item.category||''] || [];
+  const dl = document.getElementById('d_subcat_dl');
+  if (dl) dl.innerHTML = subs.map(s => `<option value="${s}">`).join('');
   buildPlatPicker('d_plat_picker', getPlatforms(item));
   populateSubcatSelect('d_subcat', item.category||'', item.subcategory||'');
   populateSubtypeSelect('d_subtype', item.subcategory||'', item.subtype||'');
@@ -3624,7 +3642,7 @@ function saveDrawer(){
   item.sku     =document.getElementById('d_sku').value.trim();
   item.upc     =document.getElementById('d_upc').value.trim();
   item.category=document.getElementById('d_cat').value.trim();
-  item.subcategory=document.getElementById('d_subcat').value||'';
+  item.subcategory=(document.getElementById('d_subcat_txt').value||'').trim();
   item.subtype=document.getElementById('d_subtype').value||'';
   item.platforms=getSelectedPlats('d_plat_picker');
   item.platform =(item.platforms[0]||'Other'); // keep legacy field for compat
@@ -3642,7 +3660,7 @@ function delCurrent(){const item=inv.find(i=>i.id===activeDrawId);if(!confirm(`D
 
 // ADD MODAL
 function openAddModal(){document.getElementById('addOv').classList.add('on');}
-function closeAdd(){document.getElementById('addOv').classList.remove('on');['f_name','f_sku','f_upc','f_cat','f_cost','f_price','f_fees','f_ship','f_notes','f_alert'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});document.getElementById('f_qty').value='1';pendingAddImage=null;renderImgZone('fImgWrap','f');clearDimForm('f');buildPlatPicker('f_plat_picker',[]);prevProfit();}
+function closeAdd(){document.getElementById('addOv').classList.remove('on');['f_name','f_sku','f_upc','f_cat','f_subcat_txt','f_cost','f_price','f_fees','f_ship','f_notes','f_alert'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});document.getElementById('f_qty').value='1';pendingAddImage=null;renderImgZone('fImgWrap','f');clearDimForm('f');buildPlatPicker('f_plat_picker',[]);prevProfit();}
 function prevProfit(){
   const cost=parseFloat(document.getElementById('f_cost').value)||0;
   const price=parseFloat(document.getElementById('f_price').value)||0;
@@ -3663,7 +3681,7 @@ function addItem(){
   const cat=document.getElementById('f_cat').value.trim();
   const selPlats=getSelectedPlats('f_plat_picker');
   const platform=selPlats[0]||'Other';
-  inv.push({id:uid(),name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:document.getElementById('f_subcat').value||'',subtype:document.getElementById('f_subtype').value||'',platform,platforms:selPlats,cost:parseFloat(document.getElementById('f_cost').value)||0,price,qty:parseInt(document.getElementById('f_qty').value)||1,fees:parseFloat(document.getElementById('f_fees').value)||0,ship:parseFloat(document.getElementById('f_ship').value)||0,lowAlert:parseInt(document.getElementById('f_alert').value)||2,notes:document.getElementById('f_notes').value.trim(),image:pendingAddImage||null,...getDimsFromForm('f'),added:new Date().toISOString()});
+  inv.push({id:uid(),name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:(document.getElementById('f_subcat_txt').value||'').trim(),subtype:document.getElementById('f_subtype').value||'',platform,platforms:selPlats,cost:parseFloat(document.getElementById('f_cost').value)||0,price,qty:parseInt(document.getElementById('f_qty').value)||1,fees:parseFloat(document.getElementById('f_fees').value)||0,ship:parseFloat(document.getElementById('f_ship').value)||0,lowAlert:parseInt(document.getElementById('f_alert').value)||2,notes:document.getElementById('f_notes').value.trim(),image:pendingAddImage||null,...getDimsFromForm('f'),added:new Date().toISOString()});
   save(); closeAdd(); refresh(); toast('Item added ✓');
 }
 
