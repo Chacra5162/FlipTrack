@@ -24,7 +24,10 @@
   --danger: #ff4757;
   --warn: #ffb800;
   --good: #57ff9a;
+  --fs: 100;
 }
+
+html { font-size: calc(var(--fs) * 0.01rem); }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -86,6 +89,135 @@ header {
 .nav-tab.active { color: var(--accent); border-color: var(--accent); background: rgba(200,255,87,0.06); }
 
 .header-right { display: flex; align-items: center; gap: 10px; }
+
+/* ── FONT SIZE CONTROL ─────────────────────────── */
+.fs-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 5px 9px;
+  cursor: pointer;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: -0.5px;
+  transition: border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+  line-height: 1;
+}
+.fs-btn:hover { border-color: var(--accent); color: var(--accent); }
+.fs-popover {
+  position: fixed;
+  top: 54px;
+  right: 16px;
+  z-index: 9999;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  padding: 14px 18px 16px;
+  width: 230px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  display: none;
+}
+.fs-popover.on { display: block; }
+.fs-popover-title {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.fs-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.fs-label-sm { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; }
+.fs-label-lg { font-size: 16px; color: var(--muted); font-family: 'DM Mono', monospace; }
+input[type="range"].fs-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+input[type="range"].fs-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--accent);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+input[type="range"].fs-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+input[type="range"].fs-slider::-moz-range-thumb {
+  width: 16px; height: 16px;
+  background: var(--accent);
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+}
+.fs-presets {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+.fs-preset {
+  flex: 1;
+  padding: 5px 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  text-align: center;
+}
+.fs-preset:hover { border-color: var(--accent); color: var(--accent); }
+.fs-preset.active { border-color: var(--accent); color: var(--accent); background: rgba(200,255,87,0.06); }
+
+.fs-font-opt {
+  padding: 10px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s, color 0.15s;
+}
+.fs-font-opt:hover { border-color: var(--border2); color: var(--text); }
+.fs-font-opt.active { border-color: var(--accent); color: var(--accent); background: rgba(200,255,87,0.06); }
+
+/* OpenDyslexic loaded from CDN */
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/fonts/OpenDyslexic-Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/fonts/OpenDyslexic-Bold.otf') format('opentype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+body.font-dyslexic,
+body.font-dyslexic input,
+body.font-dyslexic textarea,
+body.font-dyslexic select,
+body.font-dyslexic button {
+  font-family: 'OpenDyslexic', sans-serif !important;
+  letter-spacing: 0.02em;
+  word-spacing: 0.1em;
+  line-height: 1.6;
+}
 .date-badge { font-size: 11px; color: var(--muted); letter-spacing: 0.5px; white-space: nowrap; }
 
 /* Sync status */
@@ -1921,11 +2053,47 @@ textarea { resize:vertical; min-height:70px; }
       <span class="sync-dot" id="syncDot"></span>
       <span class="sync-dot-lbl" id="syncDotLbl">Local only</span>
     </button>
+    <button class="fs-btn" onclick="toggleFsPopover()" title="Adjust text size" id="fsSizeBtn">Aᴬ</button>
     <button class="btn-secondary" onclick="openPriceResearch()" title="Look up prices by UPC barcode">🔍 Prices</button>
     <button class="btn-secondary" onclick="exportCSV()">↓ Export</button>
     <button class="btn-primary" id="headerAddBtn" onclick="openAddModal()">+ Add Item</button>
   </div>
 </header>
+
+<!-- FONT SIZE POPOVER -->
+<div class="fs-popover" id="fsPopover">
+  <div class="fs-popover-title">Accessibility</div>
+
+  <!-- Size slider -->
+  <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px">Text Size</div>
+  <div class="fs-row">
+    <span class="fs-label-sm">A</span>
+    <input type="range" class="fs-slider" id="fsSlider" min="80" max="130" value="100" step="5" oninput="applyFontSize(this.value)">
+    <span class="fs-label-lg">A</span>
+  </div>
+  <div class="fs-presets" style="margin-bottom:16px">
+    <button class="fs-preset" onclick="setFsPreset(80)">Small</button>
+    <button class="fs-preset active" onclick="setFsPreset(100)">Default</button>
+    <button class="fs-preset" onclick="setFsPreset(115)">Large</button>
+    <button class="fs-preset" onclick="setFsPreset(130)">XL</button>
+  </div>
+
+  <!-- Font toggle -->
+  <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px">Reading Font</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+    <button class="fs-font-opt active" id="fopt-default" onclick="setFont('default')">
+      <div style="font-family:'DM Mono',monospace;font-size:18px;line-height:1;margin-bottom:4px">Aa</div>
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px">Default</div>
+    </button>
+    <button class="fs-font-opt" id="fopt-dyslexic" onclick="setFont('dyslexic')">
+      <div style="font-family:'OpenDyslexic',sans-serif;font-size:18px;line-height:1;margin-bottom:4px">Aa</div>
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px">Easy Read</div>
+    </button>
+  </div>
+  <div id="fopt-hint" style="font-size:9px;color:var(--muted);margin-top:8px;line-height:1.5;display:none">
+    OpenDyslexic — weighted bottoms reduce letter-flipping for easier reading
+  </div>
+</div>
 
 <main>
 
@@ -2715,7 +2883,67 @@ textarea { resize:vertical; min-height:70px; }
 
 <script>
 // DATA
-// ── SOUND ENGINE ──────────────────────────────────────────────────────────────
+// ── FONT SIZE CONTROL ─────────────────────────────────────────────────────────
+
+(function initFontSize() {
+  const saved = parseInt(localStorage.getItem('ft_fs') || '100');
+  applyFontSize(saved, false);
+  const savedFont = localStorage.getItem('ft_font') || 'default';
+  if (savedFont !== 'default') setFont(savedFont, false);
+})();
+
+function applyFontSize(val, save = true) {
+  val = Math.min(130, Math.max(80, parseInt(val)));
+  document.documentElement.style.setProperty('--fs', val);
+  const slider = document.getElementById('fsSlider');
+  if (slider) slider.value = val;
+  // Update preset active states
+  document.querySelectorAll('.fs-preset').forEach(btn => {
+    btn.classList.toggle('active', parseInt(btn.getAttribute('data-val') || btn.textContent === 'Default' ? 100 : btn.textContent === 'Small' ? 80 : btn.textContent === 'Large' ? 115 : 130) === val);
+  });
+  // Update btn visual hint
+  const btn = document.getElementById('fsSizeBtn');
+  if (btn) btn.style.color = val !== 100 ? 'var(--accent)' : '';
+  if (save) localStorage.setItem('ft_fs', val);
+}
+
+function setFsPreset(val) {
+  applyFontSize(val);
+  // Update active states manually
+  document.querySelectorAll('.fs-preset').forEach(b => b.classList.remove('active'));
+  const map = {80:'Small',100:'Default',115:'Large',130:'XL'};
+  document.querySelectorAll('.fs-preset').forEach(b => { if (b.textContent === map[val]) b.classList.add('active'); });
+}
+
+function setFont(font, save = true) {
+  document.body.classList.toggle('font-dyslexic', font === 'dyslexic');
+  document.querySelectorAll('.fs-font-opt').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('fopt-' + font);
+  if (btn) btn.classList.add('active');
+  const hint = document.getElementById('fopt-hint');
+  if (hint) hint.style.display = font === 'dyslexic' ? '' : 'none';
+  if (save) localStorage.setItem('ft_font', font);
+}
+
+function toggleFsPopover() {
+  const p = document.getElementById('fsPopover');
+  p.classList.toggle('on');
+  if (p.classList.contains('on')) {
+    const val = parseInt(localStorage.getItem('ft_fs') || '100');
+    document.getElementById('fsSlider').value = val;
+  }
+}
+
+// Close popover on outside click
+document.addEventListener('click', e => {
+  const p = document.getElementById('fsPopover');
+  const btn = document.getElementById('fsSizeBtn');
+  if (p && p.classList.contains('on') && !p.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+    p.classList.remove('on');
+  }
+});
+
+
 const _sfx = (() => {
   let ctx = null;
   function ac() {
