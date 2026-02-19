@@ -7,7 +7,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.4/umd/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.4/umd/index.min.js" onerror="loadZxingFallback()"></script>
+<script>
+function loadZxingFallback() {
+  var s = document.createElement('script');
+  s.src = 'https://unpkg.com/@zxing/browser@0.1.4/umd/index.min.js';
+  document.head.appendChild(s);
+}
+</script>
 <style>
 :root {
   --bg: #0a0a0f;
@@ -877,7 +884,7 @@ textarea { resize:vertical; min-height:70px; }
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.92);
-  z-index: 9000;
+  z-index: 9500;
   align-items: center;
   justify-content: center;
   flex-direction: column;
@@ -890,12 +897,18 @@ textarea { resize:vertical; min-height:70px; }
   background: #000;
   border-radius: 8px;
   overflow: hidden;
+  /* Force GPU layer so iOS Safari renders video correctly inside fixed containers */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 .scanner-video {
   width: 100%;
   display: block;
   aspect-ratio: 4/3;
   object-fit: cover;
+  /* iOS Safari: prevent video from rendering below fixed ancestors */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 .scanner-aim {
   position: absolute;
@@ -4674,10 +4687,47 @@ function startNativeDetector(video) {
 
 function startZxingDetector(video) {
   if (typeof ZXingBrowser === 'undefined') {
-    document.getElementById('scannerResult').textContent = '⚠ Scanner library unavailable — type UPC manually';
-    document.getElementById('scannerSub').textContent = 'Try refreshing with an internet connection';
+    // Library not loaded yet — try loading it now
+    document.getElementById('scannerResult').textContent = '⏳ Loading scanner…';
+    document.getElementById('scannerSub').textContent = '';
+
+    const tryLoad = (src, onSuccess, onFail) => {
+      const existing = document.querySelector(`script[src="${src}"]`);
+      if (existing) { existing.remove(); } // remove failed attempt if any
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = onSuccess;
+      s.onerror = onFail;
+      document.head.appendChild(s);
+    };
+
+    const attempt = (src, fallbackSrc) => {
+      tryLoad(src, () => {
+        if (typeof ZXingBrowser !== 'undefined') {
+          document.getElementById('scannerResult').textContent = 'Point camera at barcode…';
+          startZxingDetector(video); // retry now that it's loaded
+        } else if (fallbackSrc) {
+          attempt(fallbackSrc, null);
+        } else {
+          document.getElementById('scannerResult').textContent = '⚠ Scanner unavailable — type UPC manually';
+        }
+      }, () => {
+        if (fallbackSrc) {
+          attempt(fallbackSrc, null);
+        } else {
+          document.getElementById('scannerResult').textContent = '⚠ Scanner unavailable — type UPC manually';
+          document.getElementById('scannerSub').textContent = 'Check your connection and try again';
+        }
+      });
+    };
+
+    attempt(
+      'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.4/umd/index.min.js',
+      'https://unpkg.com/@zxing/browser@0.1.4/umd/index.min.js'
+    );
     return;
   }
+
   try {
     const hints = new Map();
     const formats = [
@@ -4699,8 +4749,8 @@ function startZxingDetector(video) {
       }
     });
   } catch(e) {
-    document.getElementById('scannerResult').textContent = '⚠ Scanner library unavailable — type UPC manually';
-    document.getElementById('scannerSub').textContent = '';
+    document.getElementById('scannerResult').textContent = '⚠ Scanner error — type UPC manually';
+    document.getElementById('scannerSub').textContent = e.message || '';
   }
 }
 
@@ -4798,6 +4848,8 @@ function prSwitchTab(mode) {
 // Open the scanner, and on scan success, populate the price research input
 function openPriceScanner() {
   _scanTargetId = '__priceResearch__';
+  // Hide the price research overlay so it doesn't cover the scanner
+  document.getElementById('prOv').classList.remove('on');
   document.getElementById('scannerOv').classList.add('on');
   document.getElementById('scannerResult').textContent = 'Starting camera…';
   document.getElementById('scannerSub').textContent = 'Scan product barcode to look up selling prices';
@@ -5037,6 +5089,10 @@ function closeScanner() {
   document.getElementById('scannerResult').style.color = 'var(--accent)';
   document.getElementById('scannerResult').textContent = 'Point camera at barcode…';
   document.getElementById('scannerCamSel').style.display = 'none';
+  // If we were scanning for price research, reopen that overlay
+  if (_scanTargetId === '__priceResearch__') {
+    document.getElementById('prOv').classList.add('on');
+  }
 }
 
 // Close scanner on Escape
