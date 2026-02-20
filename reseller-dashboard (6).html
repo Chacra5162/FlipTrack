@@ -1810,13 +1810,13 @@ textarea { resize:vertical; min-height:70px; }
   /* Drawer becomes full-width bottom sheet */
   .drawer {
     top: auto;
-    bottom: calc(60px + env(safe-area-inset-bottom));
+    bottom: 0;
     left: 0;
     right: 0;
     width: 100%;
     max-width: 100%;
     min-width: unset;
-    height: 50vh;
+    height: calc(50vh + 60px + env(safe-area-inset-bottom));
     min-height: 340px;
     border-left: none;
     border-top: 1px solid var(--border);
@@ -1824,6 +1824,13 @@ textarea { resize:vertical; min-height:70px; }
     transform: translateY(100%);
   }
   .drawer.on { transform: translateY(0); }
+  /* Push drawer content up so it clears the bottom nav */
+  .drawer .drawer-ft {
+    bottom: calc(60px + env(safe-area-inset-bottom));
+  }
+  .drawer .drawer-tab-panel {
+    padding-bottom: calc(80px + 60px + env(safe-area-inset-bottom));
+  }
   .d-metrics { grid-template-columns: repeat(3,1fr); }
   .drawer-tabs { overflow-x: auto; }
   .drawer-tab { font-size: 9px; padding: 8px 6px; white-space: nowrap; }
@@ -1886,9 +1893,9 @@ textarea { resize:vertical; min-height:70px; }
   #view-sales .inv-table tbody td:nth-child(7)   { display: none; } /* Fees+Ship */
 
   .drawer {
-    height: calc(92vh - 60px - env(safe-area-inset-bottom));
+    height: calc(92vh + 60px + env(safe-area-inset-bottom));
     top: auto;
-    bottom: calc(60px + env(safe-area-inset-bottom));
+    bottom: 0;
     left: 0;
     right: 0;
     width: 100%;
@@ -1899,7 +1906,12 @@ textarea { resize:vertical; min-height:70px; }
     transform: translateY(100%);
   }
   .drawer.on { transform: translateY(0); }
-}
+  .drawer .drawer-ft {
+    bottom: calc(60px + env(safe-area-inset-bottom));
+  }
+  .drawer .drawer-tab-panel {
+    padding-bottom: calc(80px + 60px + env(safe-area-inset-bottom));
+  }
 
 /* Touch — ensure minimum 44px tap targets */
 @media (hover: none) and (pointer: coarse) {
