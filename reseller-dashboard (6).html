@@ -749,9 +749,9 @@ main { padding: 24px 32px; max-width: 1440px; margin: 0 auto; }
 
 /* Tab panels — fill remaining height, scroll internally */
 .drawer-bd { flex:1; overflow:hidden; position:relative; }
-.drawer-tab-panel { position:absolute; inset:0; overflow-y:auto; padding:14px 18px; display:none; }
+.drawer-tab-panel { position:absolute; inset:0; overflow-y:auto; padding:14px 18px 80px; display:none; }
 .drawer-tab-panel.active { display:block; }
-
+.drawer-ft { position:absolute; bottom:0; left:0; right:0; padding:12px 18px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:space-between; background:var(--surface2); z-index:10; }
 /* Edit grid — compact */
 .edit-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
 .edit-grp  { display:flex; flex-direction:column; gap:4px; }
@@ -2436,7 +2436,10 @@ textarea { resize:vertical; min-height:70px; }
 <div class="drawer" id="drawer">
   <div class="drawer-hd">
     <div><div class="drawer-name" id="dName">Item</div><div class="drawer-sku" id="dSku"></div></div>
-    <button class="drawer-x" onclick="closeDrawer()">×</button>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="btn-primary" onclick="saveDrawer()" style="font-size:11px;padding:6px 14px">Save</button>
+      <button class="drawer-x" onclick="closeDrawer()">×</button>
+    </div>
   </div>
   <div class="d-metrics" id="dMets"></div>
   <div class="drawer-tabs">
