@@ -818,19 +818,31 @@ textarea { resize:vertical; min-height:70px; }
 
 /* ── EXPENSES & REPORTS ──────────────────────────────────────────────────── */
 .exp-form-grid {
-  display: grid;
-  grid-template-columns: 160px 1fr 1fr 120px 120px;
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px;
-  padding: 14px 0 4px;
-  align-items: end;
+  padding: 14px 18px;
+  align-items: flex-end;
 }
-@media(max-width:900px) {
-  .exp-form-grid { grid-template-columns: 1fr 1fr; }
-  .exp-form-grid .fgrp:nth-child(3) { grid-column: span 2; }
+.exp-form-grid .fgrp {
+  flex: 1 1 160px;
+  min-width: 0;
+  margin: 0;
+}
+.exp-form-desc {
+  flex: 2 1 200px;
+  min-width: 0;
+}
+.exp-form-grid .fgrp input,
+.exp-form-grid .fgrp select {
+  min-width: 0;
+  width: 100%;
 }
 @media(max-width:540px) {
-  .exp-form-grid { grid-template-columns: 1fr; }
-  .exp-form-grid .fgrp:nth-child(3) { grid-column: span 1; }
+  .exp-form-grid .fgrp,
+  .exp-form-desc {
+    flex: 1 1 100%;
+  }
 }
 
 .exp-cat-badge {
@@ -2432,7 +2444,7 @@ textarea { resize:vertical; min-height:70px; }
           <option value="Other">Other</option>
         </select>
       </div>
-      <div class="fgrp" style="margin:0;grid-column:span 2">
+      <div class="fgrp exp-form-desc" style="margin:0">
         <label>Description</label>
         <input type="text" id="exp_desc" placeholder="e.g. Poly mailers 200-pack from Amazon">
       </div>
