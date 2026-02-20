@@ -2398,43 +2398,35 @@ textarea { resize:vertical; min-height:70px; }
       <div class="panel-title">Add Expense</div>
     </div>
     <div style="padding:16px 18px;display:flex;flex-direction:column;gap:10px">
-      <!-- Row 1: Date + Category -->
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <div class="fgrp" style="flex:1;min-width:120px;margin:0">
-          <label>Date</label>
-          <input type="date" id="exp_date" style="min-width:0;width:100%">
-        </div>
-        <div class="fgrp" style="flex:1;min-width:140px;margin:0">
-          <label>Category</label>
-          <select id="exp_cat" style="min-width:0;width:100%">
-            <option value="Shipping Supplies">Shipping Supplies</option>
-            <option value="Packaging Materials">Packaging Materials</option>
-            <option value="Platform Fees">Platform Fees</option>
-            <option value="Sourcing">Sourcing / Buying Trip</option>
-            <option value="Storage">Storage</option>
-            <option value="Printing">Printing &amp; Labels</option>
-            <option value="Software">Software &amp; Tools</option>
-            <option value="Marketing">Marketing &amp; Ads</option>
-            <option value="Returns">Returns &amp; Refunds</option>
-            <option value="Office Supplies">Office Supplies</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
+      <div class="fgrp" style="margin:0">
+        <label>Date</label>
+        <input type="date" id="exp_date" style="width:100%;box-sizing:border-box">
       </div>
-      <!-- Row 2: Description + Amount + Button -->
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
-        <div class="fgrp" style="flex:3;min-width:160px;margin:0">
-          <label>Description</label>
-          <input type="text" id="exp_desc" placeholder="e.g. Poly mailers 200-pack from Amazon" style="min-width:0;width:100%">
-        </div>
-        <div class="fgrp" style="flex:1;min-width:100px;margin:0">
-          <label>Amount ($)</label>
-          <input type="number" id="exp_amt" step="0.01" min="0" placeholder="0.00" style="min-width:0;width:100%">
-        </div>
-        <div style="flex:0 0 auto">
-          <button class="btn-primary" style="white-space:nowrap;height:38px" onclick="addExpense()">+ Add</button>
-        </div>
+      <div class="fgrp" style="margin:0">
+        <label>Category</label>
+        <select id="exp_cat" style="width:100%;box-sizing:border-box">
+          <option value="Shipping Supplies">Shipping Supplies</option>
+          <option value="Packaging Materials">Packaging Materials</option>
+          <option value="Platform Fees">Platform Fees</option>
+          <option value="Sourcing">Sourcing / Buying Trip</option>
+          <option value="Storage">Storage</option>
+          <option value="Printing">Printing &amp; Labels</option>
+          <option value="Software">Software &amp; Tools</option>
+          <option value="Marketing">Marketing &amp; Ads</option>
+          <option value="Returns">Returns &amp; Refunds</option>
+          <option value="Office Supplies">Office Supplies</option>
+          <option value="Other">Other</option>
+        </select>
       </div>
+      <div class="fgrp" style="margin:0">
+        <label>Description</label>
+        <input type="text" id="exp_desc" placeholder="e.g. Poly mailers 200-pack from Amazon" style="width:100%;box-sizing:border-box">
+      </div>
+      <div class="fgrp" style="margin:0">
+        <label>Amount ($)</label>
+        <input type="number" id="exp_amt" step="0.01" min="0" placeholder="0.00" style="width:100%;box-sizing:border-box">
+      </div>
+      <button class="btn-primary" style="width:100%" onclick="addExpense()">+ Add Expense</button>
     </div>
   </div>
 
