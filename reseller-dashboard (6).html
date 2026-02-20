@@ -794,6 +794,12 @@ main { padding: 24px 32px; max-width: 1440px; margin: 0 auto; }
 label { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); }
 input,select,textarea { background:var(--surface); border:1px solid var(--border); color:var(--text); padding:9px 12px; font-family:'DM Mono',monospace; font-size:12px; outline:none; transition:border-color 0.15s; width:100%; }
 input:focus,select:focus,textarea:focus { border-color:var(--accent); }
+/* iOS Safari date/number inputs ignore width:100% without this */
+input[type="date"], input[type="number"], input[type="text"], input[type="email"] {
+  -webkit-appearance: none;
+  appearance: none;
+  max-width: 100%;
+}
 select option { background:var(--surface2); }
 textarea { resize:vertical; min-height:70px; }
 
@@ -2393,14 +2399,15 @@ textarea { resize:vertical; min-height:70px; }
 <!-- VIEW: EXPENSES -->
 <div id="view-expenses" class="view">
   <!-- Add Expense Form -->
-  <div class="panel" style="animation:none;margin-bottom:14px">
+  <div class="panel" style="animation:none;margin-bottom:14px;overflow:hidden">
     <div class="panel-header">
       <div class="panel-title">Add Expense</div>
     </div>
-    <div style="padding:16px 18px;display:flex;flex-direction:column;gap:10px">
-      <div class="fgrp" style="margin:0">
+    <div style="padding:16px 18px;display:flex;flex-direction:column;gap:10px;max-width:100%;overflow:hidden">
+      <div class="fgrp" style="margin:0;max-width:100%;overflow:hidden">
         <label>Date</label>
-        <input type="date" id="exp_date" style="width:100%;box-sizing:border-box">
+        <input type="date" id="exp_date" style="width:100%;max-width:100%;box-sizing:border-box;display:block">
+      </div>
       </div>
       <div class="fgrp" style="margin:0">
         <label>Category</label>
