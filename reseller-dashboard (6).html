@@ -1807,30 +1807,27 @@ textarea { resize:vertical; min-height:70px; }
   /* Bulk bar wraps */
   .bulk-bar { flex-wrap: wrap; padding: 8px 14px; gap: 6px; }
 
-  /* Drawer becomes full-width bottom sheet */
+  /* Drawer becomes full-width bottom sheet — sits above the bottom nav */
   .drawer {
     top: auto;
-    bottom: 0;
+    bottom: calc(60px + env(safe-area-inset-bottom));
     left: 0;
     right: 0;
     width: 100%;
     max-width: 100%;
     min-width: unset;
-    height: calc(50vh + 60px + env(safe-area-inset-bottom));
+    height: 50vh;
     min-height: 340px;
     border-left: none;
     border-top: 1px solid var(--border);
     border-radius: 16px 16px 0 0;
-    transform: translateY(100%);
+    /* translateY(100%) alone leaves a strip — push extra past the bottom nav offset */
+    transform: translateY(calc(100% + 60px + env(safe-area-inset-bottom)));
   }
   .drawer.on { transform: translateY(0); }
-  /* Push drawer content up so it clears the bottom nav */
-  .drawer .drawer-ft {
-    bottom: calc(60px + env(safe-area-inset-bottom));
-  }
-  .drawer .drawer-tab-panel {
-    padding-bottom: calc(80px + 60px + env(safe-area-inset-bottom));
-  }
+  /* Footer sits at the bottom of the drawer (no extra offset needed — drawer is already above nav) */
+  .drawer .drawer-ft { bottom: 0; }
+  .drawer .drawer-tab-panel { padding-bottom: 80px; }
   .d-metrics { grid-template-columns: repeat(3,1fr); }
   .drawer-tabs { overflow-x: auto; }
   .drawer-tab { font-size: 9px; padding: 8px 6px; white-space: nowrap; }
