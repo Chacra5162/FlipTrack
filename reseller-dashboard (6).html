@@ -2819,15 +2819,15 @@ textarea { resize:vertical; min-height:70px; }
 </div>
 
 <!-- CROP MODAL -->
-<div class="overlay" id="cropOv">
+<div class="overlay" id="cropOv" style="overscroll-behavior:contain">
   <div class="modal" style="max-width:560px;width:95vw">
     <div class="modal-hd">
       <div class="modal-ttl">✂️ Crop Photo</div>
       <button class="modal-x" onclick="cropCancel()">×</button>
     </div>
     <div class="modal-bd" style="padding:0">
-      <div id="cropCanvasWrap" style="position:relative;background:#000;overflow:hidden;cursor:crosshair;touch-action:none;user-select:none">
-        <canvas id="cropCanvas" style="display:block;max-width:100%"></canvas>
+      <div id="cropCanvasWrap" style="position:relative;background:#000;overflow:hidden;user-select:none;-webkit-user-select:none">
+        <canvas id="cropCanvas" style="display:block;width:100%;height:auto;touch-action:none;-webkit-touch-callout:none"></canvas>
       </div>
       <div style="padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid var(--border)">
         <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;flex:1">Drag to select crop area · Handles to resize</div>
@@ -6137,7 +6137,7 @@ let _crop = {
   aspect: null,        // null = free, else { w, h }
 };
 
-const HANDLE_R = 7;   // handle radius in px
+const HANDLE_R = ('ontouchstart' in window || navigator.maxTouchPoints > 0) ? 14 : 7;
 
 function openCropModal(dataUrl, mimeType, ctx) {
   _crop.ctx = ctx;
@@ -6162,13 +6162,17 @@ function openCropModal(dataUrl, mimeType, ctx) {
     _crop.rect = { x: 0, y: 0, w: canvas.width, h: canvas.height };
     cropDraw();
 
-    // Bind events
+    // Bind events — use addEventListener with passive:false for iOS
     canvas.onmousedown  = cropMouseDown;
     canvas.onmousemove  = cropMouseMove;
     canvas.onmouseup    = cropMouseUp;
-    canvas.ontouchstart = cropTouchStart;
-    canvas.ontouchmove  = cropTouchMove;
-    canvas.ontouchend   = cropTouchEnd;
+    // Remove old touch listeners before adding new ones
+    canvas.removeEventListener('touchstart', cropTouchStart);
+    canvas.removeEventListener('touchmove',  cropTouchMove);
+    canvas.removeEventListener('touchend',   cropTouchEnd);
+    canvas.addEventListener('touchstart', cropTouchStart, { passive: false });
+    canvas.addEventListener('touchmove',  cropTouchMove,  { passive: false });
+    canvas.addEventListener('touchend',   cropTouchEnd,   { passive: false });
 
     document.getElementById('cropOv').classList.add('on');
   };
@@ -6261,28 +6265,46 @@ function cropApplyAspect(rect) {
 
 function cropMouseDown(e) {
   e.preventDefault();
-  const { offsetX: mx, offsetY: my } = e;
-  cropStartDrag(mx, my);
+  const canvas = document.getElementById('cropCanvas');
+  const r = canvas.getBoundingClientRect();
+  const sx = canvas.width / r.width;
+  const sy = canvas.height / r.height;
+  cropStartDrag((e.clientX - r.left) * sx, (e.clientY - r.top) * sy);
 }
 function cropMouseMove(e) {
+  if (!_crop.drag) return;
   e.preventDefault();
-  cropMoveDrag(e.offsetX, e.offsetY);
+  const canvas = document.getElementById('cropCanvas');
+  const r = canvas.getBoundingClientRect();
+  const sx = canvas.width / r.width;
+  const sy = canvas.height / r.height;
+  cropMoveDrag((e.clientX - r.left) * sx, (e.clientY - r.top) * sy);
 }
 function cropMouseUp(e) { cropEndDrag(); }
 
+// Global mouseup/touchend so dragging outside canvas still ends cleanly
+document.addEventListener('mouseup', () => { if (_crop.drag) cropEndDrag(); });
+
 function cropTouchStart(e) {
   e.preventDefault();
-  const r  = e.target.getBoundingClientRect();
-  const t  = e.touches[0];
-  cropStartDrag(t.clientX - r.left, t.clientY - r.top);
+  const canvas = document.getElementById('cropCanvas');
+  const r = canvas.getBoundingClientRect();
+  const sx = canvas.width / r.width;
+  const sy = canvas.height / r.height;
+  const t = e.touches[0];
+  cropStartDrag((t.clientX - r.left) * sx, (t.clientY - r.top) * sy);
 }
 function cropTouchMove(e) {
   e.preventDefault();
-  const r  = e.target.getBoundingClientRect();
-  const t  = e.touches[0];
-  cropMoveDrag(t.clientX - r.left, t.clientY - r.top);
+  if (!_crop.drag) return;
+  const canvas = document.getElementById('cropCanvas');
+  const r = canvas.getBoundingClientRect();
+  const sx = canvas.width / r.width;
+  const sy = canvas.height / r.height;
+  const t = e.touches[0];
+  cropMoveDrag((t.clientX - r.left) * sx, (t.clientY - r.top) * sy);
 }
-function cropTouchEnd(e) { cropEndDrag(); }
+function cropTouchEnd(e) { e.preventDefault(); cropEndDrag(); }
 
 function cropStartDrag(mx, my) {
   const hit = cropHitTest(mx, my);
