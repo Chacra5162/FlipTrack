@@ -854,44 +854,59 @@ textarea { resize:vertical; min-height:70px; }
   border-collapse: collapse;
   table-layout: fixed;
 }
-.exp-table th,
-.exp-table td {
-  padding: 10px 8px;
+.exp-table thead th {
+  padding: 8px 10px;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted);
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.exp-table tbody tr {
+  border-bottom: 1px solid rgba(42,42,56,0.6);
+  transition: background 0.1s;
+}
+.exp-table tbody tr:hover { background: rgba(200,255,87,0.025); }
+.exp-table tbody td {
+  padding: 10px 10px;
+  font-size: 12px;
+  vertical-align: middle;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* Column widths — fixed so they never fight each other */
+/* Fixed pixel widths — never flex based on content */
 .exp-table th:nth-child(1),
-.exp-table td:nth-child(1) { width: 88px;  } /* Date */
+.exp-table td:nth-child(1) { width: 90px;  }  /* Date */
 .exp-table th:nth-child(2),
-.exp-table td:nth-child(2) { width: 130px; } /* Category */
+.exp-table td:nth-child(2) { width: 130px; }  /* Category */
 .exp-table th:nth-child(3),
-.exp-table td:nth-child(3) { }              /* Description — takes remainder */
+.exp-table td:nth-child(3) { }                 /* Description — takes rest */
 .exp-table th:nth-child(4),
-.exp-table td:nth-child(4) { width: 80px; text-align: right; } /* Amount */
+.exp-table td:nth-child(4) { width: 82px; text-align: right; }  /* Amount */
 .exp-table th:nth-child(5),
-.exp-table td:nth-child(5) { width: 48px; text-align: right; } /* Delete */
+.exp-table td:nth-child(5) { width: 50px; text-align: right; }  /* Delete */
 
-/* On narrow screens collapse Description and hide Actions column;
-   merge delete into its own compact row or put it with Amount */
+/* Mobile: drop Description and standalone Delete cols */
 @media (max-width: 820px) {
   .exp-table th:nth-child(3),
-  .exp-table td:nth-child(3) { display: none; } /* hide Description */
+  .exp-table td:nth-child(3),
   .exp-table th:nth-child(5),
-  .exp-table td:nth-child(5) { display: none; } /* hide separate delete col */
-  /* Amount cell gets the delete button inline via JS — see renderExpenses */
+  .exp-table td:nth-child(5) { display: none; }
   .exp-table th:nth-child(2),
-  .exp-table td:nth-child(2) { width: 160px; }
+  .exp-table td:nth-child(2) { width: 170px; }
   .exp-table th:nth-child(4),
-  .exp-table td:nth-child(4) { width: auto; } /* Amount takes remaining space */
-  .exp-del-mobile { display: inline-flex; }
-  .exp-del-desktop { display: none; }
+  .exp-table td:nth-child(4) { width: auto; text-align: right; }
+  .exp-del-mobile  { display: inline-flex !important; }
+  .exp-del-desktop { display: none !important; }
   .exp-desc-mobile { font-size: 10px; color: var(--muted); }
 }
 @media (min-width: 821px) {
-  .exp-del-mobile { display: none; }
-  .exp-del-desktop { display: inline-flex; }
+  .exp-del-mobile  { display: none !important; }
+  .exp-del-desktop { display: inline-flex !important; }
   .exp-desc-mobile { display: none; }
 }
 
@@ -2454,7 +2469,7 @@ textarea { resize:vertical; min-height:70px; }
       </div>
     </div>
     <div style="overflow-x:auto">
-      <table class="inv-table exp-table" id="expTable">
+      <table class="exp-table" id="expTable">
         <thead><tr>
           <th style="width:110px">Date</th>
           <th style="width:140px">Category</th>
