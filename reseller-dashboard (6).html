@@ -2403,15 +2403,14 @@ textarea { resize:vertical; min-height:70px; }
     <div class="panel-header">
       <div class="panel-title">Add Expense</div>
     </div>
-    <div style="padding:16px 18px;display:flex;flex-direction:column;gap:10px;max-width:100%;overflow:hidden">
-      <div class="fgrp" style="margin:0;max-width:100%;overflow:hidden">
+    <div style="padding:16px 18px;display:flex;flex-direction:column;gap:10px;box-sizing:border-box;width:100%;overflow:hidden">
+      <div class="fgrp" style="margin:0;width:100%;overflow:hidden">
         <label>Date</label>
-        <input type="date" id="exp_date" style="width:100%;max-width:100%;box-sizing:border-box;display:block">
+        <input type="date" id="exp_date" style="display:block;width:100%;max-width:100%;box-sizing:border-box;-webkit-appearance:none;appearance:none">
       </div>
-      </div>
-      <div class="fgrp" style="margin:0">
+      <div class="fgrp" style="margin:0;width:100%;overflow:hidden">
         <label>Category</label>
-        <select id="exp_cat" style="width:100%;box-sizing:border-box">
+        <select id="exp_cat" style="display:block;width:100%;max-width:100%;box-sizing:border-box">
           <option value="Shipping Supplies">Shipping Supplies</option>
           <option value="Packaging Materials">Packaging Materials</option>
           <option value="Platform Fees">Platform Fees</option>
@@ -2425,15 +2424,15 @@ textarea { resize:vertical; min-height:70px; }
           <option value="Other">Other</option>
         </select>
       </div>
-      <div class="fgrp" style="margin:0">
+      <div class="fgrp" style="margin:0;width:100%;overflow:hidden">
         <label>Description</label>
-        <input type="text" id="exp_desc" placeholder="e.g. Poly mailers 200-pack from Amazon" style="width:100%;box-sizing:border-box">
+        <input type="text" id="exp_desc" placeholder="e.g. Poly mailers 200-pack from Amazon" style="display:block;width:100%;max-width:100%;box-sizing:border-box;-webkit-appearance:none;appearance:none">
       </div>
-      <div class="fgrp" style="margin:0">
+      <div class="fgrp" style="margin:0;width:100%;overflow:hidden">
         <label>Amount ($)</label>
-        <input type="number" id="exp_amt" step="0.01" min="0" placeholder="0.00" style="width:100%;box-sizing:border-box">
+        <input type="number" id="exp_amt" step="0.01" min="0" placeholder="0.00" style="display:block;width:100%;max-width:100%;box-sizing:border-box;-webkit-appearance:none;appearance:none">
       </div>
-      <button class="btn-primary" style="width:100%" onclick="addExpense()">+ Add Expense</button>
+      <button class="btn-primary" style="display:block;width:100%;box-sizing:border-box" onclick="addExpense()">+ Add Expense</button>
     </div>
   </div>
 
