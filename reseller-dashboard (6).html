@@ -2388,12 +2388,12 @@ textarea { resize:vertical; min-height:70px; }
       </div>
     </div>
     <div style="overflow-x:auto">
-      <table class="inv-table">
+      <table class="inv-table" id="expTable" style="table-layout:fixed;width:100%">
         <colgroup>
-          <col style="width:14%">
-          <col style="width:20%">
-          <col style="width:42%">
-          <col style="width:12%">
+          <col style="width:13%">
+          <col style="width:22%">
+          <col style="width:40%">
+          <col style="width:13%">
           <col style="width:12%">
         </colgroup>
         <thead><tr>
@@ -4655,10 +4655,10 @@ function renderExpenses() {
   tbody.innerHTML = filtered.map(e => {
     const cls = EXP_CAT_CLASS[e.category] || 'exp-other';
     return `<tr>
-      <td style="color:var(--muted);font-size:11px;white-space:nowrap">${ds(e.date)}</td>
-      <td><span class="exp-cat-badge ${cls}">${e.category}</span></td>
-      <td style="max-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${e.description.replace(/"/g,'&quot;')}">${e.description}</td>
-      <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:var(--danger);white-space:nowrap">${fmt(e.amount)}</td>
+      <td style="color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden">${ds(e.date)}</td>
+      <td style="overflow:hidden"><span class="exp-cat-badge ${cls}" style="display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom">${e.category}</span></td>
+      <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${e.description.replace(/"/g,'&quot;')}">${e.description}</td>
+      <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:var(--danger);white-space:nowrap;overflow:hidden">${fmt(e.amount)}</td>
       <td style="text-align:right"><button class="act-btn red" onclick="delExpense('${e.id}')">✕</button></td>
     </tr>`;
   }).join('');
