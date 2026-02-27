@@ -19,6 +19,8 @@ import { generateListingLink, copyListingText, generateListingText } from '../fe
 import { getTemplatesForCategory } from '../features/listing-templates.js';
 import { isEBayConnected, getEBayUsername, connectEBay, disconnectEBay, checkEBayStatus } from '../features/ebay-auth.js';
 import { pullEBayListings, pushItemToEBay, publishEBayListing, endEBayListing, isEBaySyncing, getLastEBaySyncTime } from '../features/ebay-sync.js';
+import { isEtsyConnected, getEtsyShopName, connectEtsy, disconnectEtsy } from '../features/etsy-auth.js';
+import { pullEtsyListings, pushItemToEtsy, deactivateEtsyListing, renewEtsyListing, isEtsySyncing, getLastEtsySyncTime } from '../features/etsy-sync.js';
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 
@@ -45,8 +47,9 @@ export function renderCrosslistDashboard() {
 
   let html = '';
 
-  // ── eBay CONNECTION PANEL ──
+  // ── CONNECTION PANELS ──
   html += _renderEBayPanel();
+  html += _renderEtsyPanel();
 
   // ── STATS STRIP ──
   html += `<div class="cl-stats-strip">
@@ -302,7 +305,20 @@ function renderMatrixTab(inStock) {
       </div>`;
     }
 
-    if (!plats.length && !isEBayConnected()) {
+    // Show "List on Etsy" button if Etsy connected but item not on Etsy
+    if (isEtsyConnected() && !plats.includes('Etsy')) {
+      html += `<div class="cl-plat-row" style="border-top:1px dashed var(--border)">
+        <div class="cl-plat-info" style="color:#f56400">
+          <span class="cl-plat-name">Etsy</span>
+          <span class="cl-plat-status" style="color:var(--muted)">Not listed</span>
+        </div>
+        <div class="cl-plat-actions">
+          <button class="btn-xs btn-etsy" onclick="clPushToEtsy('${item.id}')">List on Etsy</button>
+        </div>
+      </div>`;
+    }
+
+    if (!plats.length && !isEBayConnected() && !isEtsyConnected()) {
       html += `<div class="cl-plat-row" style="color:var(--muted);font-style:italic">No platforms — <span onclick="openDrawer('${item.id}')" style="color:var(--accent);cursor:pointer">add some</span></div>`;
     }
 
@@ -435,6 +451,99 @@ export function clDeleteTemplate(id) {
     toast('Template deleted');
     renderCrosslistDashboard();
   });
+}
+
+// ── Etsy INTEGRATION PANEL ────────────────────────────────────────────────
+
+function _renderEtsyPanel() {
+  const connected = isEtsyConnected();
+  const shopName = getEtsyShopName();
+  const syncing = isEtsySyncing();
+  const lastSync = getLastEtsySyncTime();
+  const lastSyncLabel = lastSync
+    ? new Date(lastSync).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : 'Never';
+
+  if (connected) {
+    return `<div class="etsy-panel etsy-connected">
+      <div class="etsy-panel-left">
+        <div class="etsy-panel-status">
+          <span class="etsy-dot etsy-dot-on"></span>
+          <strong>Etsy Connected</strong>
+          ${shopName ? `<span class="etsy-shop">(${escHtml(shopName)})</span>` : ''}
+        </div>
+        <div class="etsy-panel-meta">Last sync: ${escHtml(lastSyncLabel)}</div>
+      </div>
+      <div class="etsy-panel-actions">
+        <button class="btn-sm btn-etsy" onclick="clEtsySync()" ${syncing ? 'disabled' : ''}>
+          ${syncing ? '⟳ Syncing…' : '⟳ Sync Now'}
+        </button>
+        <button class="btn-sm btn-muted" onclick="clEtsyDisconnect()">Disconnect</button>
+      </div>
+    </div>`;
+  }
+
+  return `<div class="etsy-panel">
+    <div class="etsy-panel-left">
+      <div class="etsy-panel-status">
+        <span class="etsy-dot"></span>
+        <strong>Etsy</strong>
+        <span class="etsy-shop" style="color:var(--muted)">Not connected</span>
+      </div>
+      <div class="etsy-panel-meta">Connect your shop to sync listings, track sales, and manage inventory</div>
+    </div>
+    <div class="etsy-panel-actions">
+      <button class="btn-sm btn-etsy" onclick="clEtsyConnect()">Connect Etsy Shop</button>
+    </div>
+  </div>`;
+}
+
+// ── Etsy ACTION HANDLERS ─────────────────────────────────────────────────
+
+export function clEtsyConnect() {
+  connectEtsy();
+}
+
+export function clEtsyDisconnect() {
+  if (!confirm('Disconnect your Etsy shop? You can reconnect anytime.')) return;
+  disconnectEtsy();
+}
+
+export async function clEtsySync() {
+  toast('Syncing Etsy listings…');
+  renderCrosslistDashboard(); // Show syncing state
+  try {
+    const result = await pullEtsyListings();
+    toast(`Etsy sync complete — ${result.matched} matched, ${result.updated} updated`);
+  } catch (e) {
+    toast(`Etsy sync error: ${e.message}`, true);
+  }
+  renderCrosslistDashboard();
+}
+
+export async function clPushToEtsy(itemId) {
+  const result = await pushItemToEtsy(itemId);
+  if (result.success) {
+    renderCrosslistDashboard();
+  }
+}
+
+export async function clDeactivateEtsyListing(itemId) {
+  if (!confirm('Deactivate this Etsy listing?')) return;
+  const result = await deactivateEtsyListing(itemId);
+  if (result.success) {
+    refresh();
+    renderCrosslistDashboard();
+  }
+}
+
+export async function clRenewEtsyListing(itemId) {
+  if (!confirm('Renew this Etsy listing? ($0.20 fee applies)')) return;
+  const result = await renewEtsyListing(itemId);
+  if (result.success) {
+    refresh();
+    renderCrosslistDashboard();
+  }
 }
 
 // ── eBay INTEGRATION PANEL ───────────────────────────────────────────────

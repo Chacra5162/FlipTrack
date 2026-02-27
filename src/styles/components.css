@@ -1499,6 +1499,75 @@ textarea { resize:vertical; min-height:70px; }
   .ebay-panel-actions .btn-sm { flex: 1; text-align: center; }
 }
 
+/* ── ETSY INTEGRATION PANEL ────────────────────────────────────────────── */
+
+.etsy-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.etsy-panel.etsy-connected {
+  border-color: #f56400;
+  background: rgba(245, 100, 0, 0.05);
+}
+.etsy-panel-left { flex: 1; min-width: 0; }
+.etsy-panel-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-family: 'DM Mono', monospace;
+}
+.etsy-panel-meta {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.etsy-panel-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.etsy-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex-shrink: 0;
+}
+.etsy-dot.etsy-dot-on {
+  background: #f56400;
+  box-shadow: 0 0 6px rgba(245, 100, 0, 0.5);
+}
+.etsy-shop {
+  font-size: 11px;
+  color: var(--muted);
+}
+.btn-etsy {
+  background: #f56400 !important;
+  color: #fff !important;
+  border: none !important;
+}
+.btn-etsy:hover {
+  background: #e05800 !important;
+}
+.btn-etsy:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .etsy-panel { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .etsy-panel-actions { width: 100%; }
+  .etsy-panel-actions .btn-sm { flex: 1; text-align: center; }
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════ */
 /* PHASE 8: PRO RESELLER FEATURES                                            */
 /* ═══════════════════════════════════════════════════════════════════════════ */

@@ -135,10 +135,13 @@ import {
   renderCrosslistDashboard, clSwitchTab, clSetSearch, clSetPlatFilter, clSetStatusFilter,
   clRelistItem, clDelistItem, clCycleStatus, clOpenLink, clCopyListing,
   clBulkRelistExpired, clAddTemplate, clDeleteTemplate,
-  clEBayConnect, clEBayDisconnect, clEBaySync, clPushToEBay, clPublishOnEBay, clEndEBayListing
+  clEBayConnect, clEBayDisconnect, clEBaySync, clPushToEBay, clPublishOnEBay, clEndEBayListing,
+  clEtsyConnect, clEtsyDisconnect, clEtsySync, clPushToEtsy, clDeactivateEtsyListing, clRenewEtsyListing
 } from './views/crosslist-dashboard.js';
 import { initEBayAuth, handleEBayCallback, isEBayConnected } from './features/ebay-auth.js';
 import { initEBaySync, startEBaySyncInterval } from './features/ebay-sync.js';
+import { initEtsyAuth, handleEtsyCallback, isEtsyConnected } from './features/etsy-auth.js';
+import { initEtsySync, startEtsySyncInterval } from './features/etsy-sync.js';
 import {
   setDimUnit, updateDimWeight, suggestPackaging,
   loadDimsToForm, getDimsFromForm, clearDimForm
@@ -413,6 +416,13 @@ Object.assign(window, {
   clEBayConnect, clEBayDisconnect, clEBaySync,
   clPushToEBay, clPublishOnEBay, clEndEBayListing,
   handleEBayCallback,
+});
+
+// Etsy Integration
+Object.assign(window, {
+  clEtsyConnect, clEtsyDisconnect, clEtsySync,
+  clPushToEtsy, clDeactivateEtsyListing, clRenewEtsyListing,
+  handleEtsyCallback,
 });
 
 // Phase 2: Shipping
@@ -745,6 +755,7 @@ setDefaultExpDate();
     initOffers(),
     initPackingSlipSettings(),
     initEBaySync(),
+    initEtsySync(),
     initPhotoSettings(),
     initShipLabels(),
   ]);
@@ -756,6 +767,9 @@ setDefaultExpDate();
     initEBayAuth(_sbClient).then(() => {
       if (isEBayConnected()) startEBaySyncInterval();
     }).catch(e => console.warn('eBay init:', e.message));
+    initEtsyAuth(_sbClient).then(() => {
+      if (isEtsyConnected()) startEtsySyncInterval();
+    }).catch(e => console.warn('Etsy init:', e.message));
     initAIListing(_sbClient);
   }
 })();

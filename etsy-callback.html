@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlipTrack — Etsy Authorization</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #0a0a0f;
+      color: #e8e6e3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .card {
+      background: #16161d;
+      border: 1px solid #2a2a35;
+      border-radius: 12px;
+      padding: 40px 32px;
+      text-align: center;
+      max-width: 400px;
+      width: 100%;
+    }
+    .icon { font-size: 48px; margin-bottom: 16px; }
+    h1 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+    p { font-size: 14px; color: #8b8b99; line-height: 1.5; }
+    .spinner {
+      width: 32px; height: 32px; margin: 16px auto;
+      border: 3px solid #2a2a35;
+      border-top: 3px solid #f56400;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .success { color: #f56400; }
+    .error { color: #f87171; }
+    .btn {
+      display: inline-block; margin-top: 16px; padding: 10px 24px;
+      background: #f56400; color: #fff; font-weight: 600;
+      border: none; border-radius: 6px; cursor: pointer; font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card" id="card">
+    <div class="icon">🛍️</div>
+    <h1 id="title">Connecting to Etsy…</h1>
+    <div class="spinner" id="spinner"></div>
+    <p id="message">Processing authorization</p>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const state = params.get('state');
+    const error = params.get('error');
+    const errorDesc = params.get('error_description');
+
+    const title = document.getElementById('title');
+    const message = document.getElementById('message');
+    const spinner = document.getElementById('spinner');
+    const card = document.getElementById('card');
+
+    function showSuccess(msg) {
+      spinner.style.display = 'none';
+      title.textContent = 'Connected!';
+      title.className = 'success';
+      message.textContent = msg || 'Your Etsy shop is now linked to FlipTrack.';
+      card.innerHTML += '<p style="margin-top:12px;font-size:12px;color:#8b8b99">This window will close automatically…</p>';
+    }
+
+    function showError(msg) {
+      spinner.style.display = 'none';
+      title.textContent = 'Authorization Failed';
+      title.className = 'error';
+      message.textContent = msg;
+      card.innerHTML += '<button class="btn" onclick="window.close()">Close</button>';
+    }
+
+    if (error) {
+      showError(errorDesc || error || 'Etsy authorization was denied or cancelled.');
+    } else if (code) {
+      // Signal parent window
+      if (window.opener && typeof window.opener.handleEtsyCallback === 'function') {
+        try {
+          window.opener.handleEtsyCallback(code, state);
+          showSuccess();
+          setTimeout(() => window.close(), 2000);
+        } catch (e) {
+          showError('Could not communicate with FlipTrack: ' + e.message);
+        }
+      } else {
+        showError('FlipTrack window not found. Please close this and try again from FlipTrack.');
+      }
+    } else {
+      showError('No authorization code received. Please try connecting again.');
+    }
+  </script>
+</body>
+</html>
