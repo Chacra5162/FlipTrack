@@ -1,0 +1,602 @@
+/**
+ * Mobile Enhancements CSS
+ * Responsive design, touch optimization, and hardware-accelerated animations
+ */
+
+/* ============================================================================
+   MEDIA QUERIES & BREAKPOINTS
+   ============================================================================ */
+
+@media (max-width: 819px) {
+  /* ========== CARD-BASED LAYOUTS ========== */
+
+  .ship-card,
+  .haul-card,
+  .tax-card,
+  .buyer-card {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--surface);
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  }
+
+  .ship-card {
+    border-left: 4px solid var(--accent);
+  }
+
+  .haul-card {
+    border-left: 4px solid var(--accent2);
+  }
+
+  .tax-card {
+    border-left: 4px solid var(--accent3);
+  }
+
+  .buyer-card {
+    border-left: 4px solid var(--good);
+  }
+
+  /* Card content stacking */
+  .card-header,
+  .card-content,
+  .card-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .card-header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  /* ========== SWIPE ACTION ROWS ========== */
+
+  .swipe-row {
+    position: relative;
+    touch-action: pan-y;
+    user-select: none;
+    overflow: hidden;
+    border-radius: 0.5rem;
+  }
+
+  .swipe-row-content {
+    position: relative;
+    z-index: 1;
+    background: var(--surface);
+    padding: 1rem;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    will-change: transform;
+  }
+
+  /* Swipe-right green (sell action) */
+  .swipe-row.swipe-right::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    background: linear-gradient(90deg, var(--good) 0%, rgba(76, 175, 80, 0.8) 100%);
+    z-index: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0 1rem;
+  }
+
+  .swipe-row.swipe-right.active .swipe-row-content {
+    transform: translateX(60px);
+  }
+
+  /* Swipe-left blue (edit action) */
+  .swipe-row.swipe-left::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    background: linear-gradient(90deg, rgba(33, 150, 243, 0.8) 0%, var(--accent) 100%);
+    z-index: 0;
+  }
+
+  .swipe-row.swipe-left.active .swipe-row-content {
+    transform: translateX(-60px);
+  }
+
+  /* ========== TOUCH TARGETS ========== */
+
+  button,
+  a[role="button"],
+  input[type="button"],
+  input[type="submit"],
+  .touchable {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="number"],
+  input[type="date"],
+  select,
+  textarea {
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+    font-size: 16px;
+  }
+
+  /* ========== SAFE AREA INSETS ========== */
+
+  body {
+    padding-top: max(1rem, env(safe-area-inset-top));
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .bottom-sheet {
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+    border-top-left-radius: 1.25rem;
+    border-top-right-radius: 1.25rem;
+  }
+
+  /* ========== PULL-TO-REFRESH INDICATOR ========== */
+
+  .pull-to-refresh {
+    position: relative;
+    width: 100%;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .pull-to-refresh-icon {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--accent);
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 0.8s linear infinite;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .pull-to-refresh.active .pull-to-refresh-icon {
+    opacity: 1;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .pull-to-refresh-text {
+    margin-left: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--muted);
+  }
+
+  /* ========== BOTTOM SHEET TRANSITIONS ========== */
+
+  .bottom-sheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border-radius: 1.25rem 1.25rem 0 0;
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    will-change: transform;
+    z-index: 100;
+    max-height: 90vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .bottom-sheet.show {
+    transform: translateY(0);
+  }
+
+  .bottom-sheet-handle {
+    width: 40px;
+    height: 4px;
+    background: var(--muted);
+    border-radius: 2px;
+    margin: 1rem auto;
+    opacity: 0.5;
+  }
+
+  .bottom-sheet-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 99;
+  }
+
+  .bottom-sheet.show ~ .bottom-sheet-overlay {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* ========== SMOOTH SCROLL BEHAVIOR ========== */
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  .scrollable {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+  }
+
+  /* ========== GRID LAYOUTS FOR MOBILE ========== */
+
+  .grid-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .grid-full {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  /* ========== RESPONSIVE TYPOGRAPHY ========== */
+
+  h1 { font-size: 1.75rem; line-height: 1.2; }
+  h2 { font-size: 1.5rem; line-height: 1.2; }
+  h3 { font-size: 1.25rem; line-height: 1.3; }
+  p { font-size: 1rem; line-height: 1.5; }
+
+  /* ========== RESPONSIVE SPACING ========== */
+
+  .container { padding: 0 1rem; }
+  .section { margin: 1.5rem 0; }
+  .subsection { margin: 1rem 0; }
+}
+
+/* ============================================================================
+   TABLET LANDSCAPE OPTIMIZATIONS (1100px+)
+   ============================================================================ */
+
+@media (min-width: 1100px) {
+  .grid-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  .grid-3col {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+
+  .ship-card,
+  .haul-card,
+  .tax-card,
+  .buyer-card {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 1.5rem;
+    align-items: center;
+  }
+
+  .card-header {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
+  }
+
+  .bottom-sheet {
+    max-height: 80vh;
+  }
+}
+
+/* ============================================================================
+   VIEW-SPECIFIC RESPONSIVE RULES
+   ============================================================================ */
+
+/* Shipping View */
+@media (max-width: 819px) {
+  .shipping-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .shipping-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .shipping-label-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
+  }
+
+  .shipping-label-row strong {
+    min-width: 80px;
+    color: var(--muted);
+  }
+}
+
+/* Sourcing View */
+@media (max-width: 819px) {
+  .sourcing-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .source-item {
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--surface);
+  }
+
+  .source-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .source-stat-value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  .source-stat-label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+}
+
+/* Tax Center View */
+@media (max-width: 819px) {
+  .tax-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .tax-item {
+    padding: 1rem;
+    background: var(--surface2);
+    border-radius: 0.5rem;
+  }
+
+  .tax-amount {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0.5rem 0;
+  }
+
+  .tax-label {
+    font-size: 0.875rem;
+    color: var(--muted);
+  }
+
+  .tax-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .tax-breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tax-breakdown-row:last-child {
+    border-bottom: none;
+  }
+}
+
+/* Buyers View */
+@media (max-width: 819px) {
+  .buyers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .buyer-profile {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .buyer-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .buyer-info {
+    flex: 1;
+  }
+
+  .buyer-name {
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .buyer-status {
+    font-size: 0.875rem;
+    color: var(--muted);
+  }
+
+  .buyer-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.75rem;
+    padding-top: 0.75rem;
+    margin-top: 0.75rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .buyer-stat {
+    text-align: center;
+  }
+
+  .buyer-stat-value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  .buyer-stat-label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+}
+
+/* ============================================================================
+   REDUCED MOTION & ACCESSIBILITY
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .swipe-row-content {
+    transition: none;
+  }
+
+  .bottom-sheet {
+    transition: none;
+  }
+
+  .bottom-sheet-overlay {
+    transition: none;
+  }
+
+  .pull-to-refresh-icon {
+    animation: none;
+  }
+}
+
+/* ============================================================================
+   DARK MODE ENHANCEMENTS
+   ============================================================================ */
+
+@media (prefers-color-scheme: dark) {
+  .swipe-row.swipe-right::before {
+    background: linear-gradient(90deg, var(--good) 0%, rgba(76, 175, 80, 0.6) 100%);
+  }
+
+  .swipe-row.swipe-left::after {
+    background: linear-gradient(90deg, rgba(33, 150, 243, 0.6) 0%, var(--accent) 100%);
+  }
+
+  .bottom-sheet-overlay {
+    background: rgba(0, 0, 0, 0.7);
+  }
+}
+
+/* ============================================================================
+   ORIENTATION & NOTCH HANDLING
+   ============================================================================ */
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .bottom-sheet {
+    max-height: 95vh;
+  }
+
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
+
+  .grid-2col {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Notch/Dynamic Island handling */
+@supports (padding: max(0px)) {
+  body {
+    padding-top: max(1rem, env(safe-area-inset-top));
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
+  .header {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .bottom-sheet {
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* ============================================================================
+   FOCUS & INTERACTION STATES
+   ============================================================================ */
+
+@media (max-width: 819px) {
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .swipe-row:active .swipe-row-content {
+    opacity: 0.95;
+  }
+}

@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>FlipTrack — Reseller Dashboard</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0a0a0f">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="FlipTrack">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <meta name="description" content="FlipTrack — Reseller inventory, sales, and expense tracker">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"></noscript>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
+</head>
+<body>
+<div class="shell">
+
+<!-- HEADER -->
+<header>
+  <div class="logo">Flip<span>Track</span></div>
+  <div class="header-center">
+    <div class="nav-tab active" onclick="switchView('dashboard',this)" role="tab">Dashboard</div>
+    <div class="nav-tab" onclick="switchView('inventory',this)" role="tab">Inventory</div>
+    <div class="nav-tab" onclick="switchView('sales',this)" role="tab">Sales Log</div>
+    <div class="nav-tab" onclick="switchView('expenses',this)" role="tab">Expenses</div>
+    <div class="nav-tab" onclick="switchView('supplies',this)" role="tab">Supplies</div>
+    <div class="nav-tab" onclick="switchView('insights',this)" role="tab">Insights</div>
+    <div class="nav-tab" onclick="switchView('reports',this)" role="tab">Reports</div>
+    <div class="nav-tab" onclick="switchView('breakdown',this)" role="tab">Value Breakdown</div>
+  </div>
+  <div class="header-right">
+    <div class="date-badge" id="currentDate"></div>
+    <button class="sync-dot-btn" id="syncDotBtn" onclick="openAccountMenu()" title="Account">
+      <span class="sync-dot" id="syncDot"></span>
+      <span class="sync-dot-lbl" id="syncDotLbl">Signing in…</span>
+    </button>
+    <button class="fs-btn" onclick="toggleFsPopover()" title="Adjust text size" id="fsSizeBtn" aria-label="Font size settings">Aᴬ</button>
+    <button class="fs-btn" onclick="toggleTheme()" title="Toggle light/dark theme" id="themeBtn" aria-label="Toggle light or dark mode">☀</button>
+    <button class="btn-secondary" onclick="openPriceResearch()" title="Look up prices by UPC barcode" aria-label="Open price research">🔍 Prices</button>
+    <button class="btn-secondary" onclick="exportAll()" aria-label="Export all data as CSV">↓ Export All</button>
+    <button class="btn-secondary" onclick="document.getElementById('csvImportInput').click()" aria-label="Import CSV file">↑ Import</button>
+    <input type="file" id="csvImportInput" accept=".csv,.tsv" style="display:none" onchange="importCSV(this.files[0])">
+    <button class="btn-primary" id="headerIdBtn" onclick="openIdentify()" style="background:transparent;color:var(--accent);border:1px solid var(--accent);font-size:12px;padding:6px 12px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700" aria-label="Snap and identify item">📸 Identify</button>
+    <button class="btn-primary" id="headerBatchBtn" onclick="openBatchScan()" style="background:transparent;color:var(--accent3);border:1px solid var(--accent3);font-size:12px;padding:6px 12px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700" aria-label="Open batch scanner">⚡ Batch</button>
+    <button class="btn-primary" id="headerAddBtn" onclick="openAddModal()" aria-label="Add new inventory item">+ Add Item</button>
+  </div>
+</header>
+
+<!-- FONT SIZE POPOVER -->
+<div class="fs-popover" id="fsPopover">
+  <div class="fs-popover-title">Accessibility</div>
+
+  <!-- Size slider -->
+  <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px">Text Size</div>
+  <div class="fs-row">
+    <span class="fs-label-sm">A</span>
+    <input type="range" class="fs-slider" id="fsSlider" min="80" max="130" value="100" step="5" oninput="applyFontSize(this.value)">
+    <span class="fs-label-lg">A</span>
+  </div>
+  <div class="fs-presets" style="margin-bottom:16px">
+    <button class="fs-preset" onclick="setFsPreset(80)">Small</button>
+    <button class="fs-preset active" onclick="setFsPreset(100)">Default</button>
+    <button class="fs-preset" onclick="setFsPreset(115)">Large</button>
+    <button class="fs-preset" onclick="setFsPreset(130)">XL</button>
+  </div>
+
+  <!-- Font toggle -->
+  <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px">Reading Font</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+    <button class="fs-font-opt active" id="fopt-default" onclick="setFont('default')">
+      <div style="font-family:'DM Mono',monospace;font-size:18px;line-height:1;margin-bottom:4px">Aa</div>
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px">Default</div>
+    </button>
+    <button class="fs-font-opt" id="fopt-dyslexic" onclick="setFont('dyslexic')">
+      <div style="font-family:'OpenDyslexic',sans-serif;font-size:18px;line-height:1;margin-bottom:4px">Aa</div>
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px">Easy Read</div>
+    </button>
+  </div>
+  <div id="fopt-hint" style="font-size:9px;color:var(--muted);margin-top:8px;line-height:1.5;display:none">
+    OpenDyslexic — weighted bottoms reduce letter-flipping for easier reading
+  </div>
+</div>
+
+<main>
+
+<!-- STATS -->
+<div class="stats-grid">
+  <div class="stat-card c1" onclick="goToBreakdown()" style="cursor:pointer" title="View inventory breakdown by category"><div class="stat-label">Inventory Value</div><div class="stat-value" id="sInvVal">$0</div><div class="stat-sub" id="sInvCnt">0 units</div></div>
+  <div class="stat-card c2" title="Total revenue from all recorded sales"><div class="stat-label">Revenue</div><div class="stat-value" id="sRev">$0</div><div class="stat-sub" id="sRevCnt">0 sales</div></div>
+  <div class="stat-card c3" title="Revenue minus cost of goods, fees, and shipping"><div class="stat-label">Net Profit</div><div class="stat-value" id="sProfit">$0</div><div class="stat-sub" id="sMargin">avg —</div></div>
+  <div class="stat-card c4" title="Return on investment: profit divided by total cost"><div class="stat-label">ROI</div><div class="stat-value" id="sROI">—</div><div class="stat-sub" id="sCOGS">$0 cost basis</div></div>
+  <div class="stat-card c5" onclick="goToStockAlert()" style="cursor:pointer" title="View low & out of stock items"><div class="stat-label">Low Stock</div><div class="stat-value" id="sLow">0</div><div class="stat-sub" id="sOut">0 out of stock</div></div>
+  <div class="stat-card c3" title="Average time from listing to sale"><div class="stat-label">Avg Days to Sell</div><div class="stat-value" id="sAvgDays">—</div><div class="stat-sub" id="sAvgDaysSub">from list to sold</div></div>
+</div>
+
+<!-- VIEW: DASHBOARD -->
+<div id="view-dashboard" class="view active">
+  <div class="alerts-banner" id="alertBanner">
+    <div class="alert-title">⚠ Restock Alert</div>
+    <div class="alert-items" id="alertItems"></div>
+    <button class="alert-x" onclick="document.getElementById('alertBanner').classList.remove('on')">×</button>
+  </div>
+  <div id="priceAlerts" style="display:none"></div>
+  <div id="deathPileSection" style="display:none"></div>
+  <div class="dash-grid">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Recent Inventory</div>
+        <button class="btn-secondary" onclick="switchView('inventory',document.querySelectorAll('.nav-tab')[1])">View All →</button>
+      </div>
+      <div style="overflow-x:auto"><table class="inv-table"><thead><tr><th>Item</th><th>Platform</th><th>Stock</th><th>Margin</th></tr></thead><tbody id="dashBody"></tbody></table></div>
+    </div>
+    <div class="side-col">
+      <div class="panel" style="animation-delay:.28s">
+        <div class="panel-header"><div class="panel-title">Revenue by Platform</div></div>
+        <div id="platBreakdown"><div style="padding:18px;color:var(--muted);font-size:12px">No sales yet.</div></div>
+      </div>
+      <div class="panel" style="animation-delay:.32s">
+        <div class="panel-header">
+          <div class="panel-title">Recent Sales</div>
+          <span id="saleCnt" style="font-size:10px;color:var(--muted)">0 total</span>
+        </div>
+        <div id="salesLog"><div class="sale-item" style="justify-content:center;color:var(--muted);font-size:12px">No sales yet.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW: INVENTORY -->
+<div id="view-inventory" class="view">
+  <div id="stockFilterBanner" style="display:none;background:rgba(255,184,0,0.1);border-bottom:1px solid rgba(255,184,0,0.3);padding:10px 20px;display:none;align-items:center;gap:12px;">
+    <span style="font-size:13px">⚠</span>
+    <span id="stockFilterLabel" style="font-size:12px;color:var(--warn);font-family:'DM Mono',monospace;flex:1"></span>
+    <button onclick="clearStockFilt()" style="background:none;border:1px solid rgba(255,184,0,0.5);color:var(--warn);font-size:11px;padding:4px 10px;cursor:pointer;font-family:'DM Mono',monospace;letter-spacing:0.5px">✕ Clear Filter</button>
+  </div>
+  <div class="panel" style="animation:none">
+    <div class="inv-toolbar">
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input type="text" id="invSearch" placeholder="Search name, SKU, category…" oninput="_debouncedRenderInv()">
+      </div>
+      <button class="filter-toggle-btn" id="filterToggleBtn" onclick="toggleFilterPanel()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+        Filters
+        <i class="filter-toggle-chevron">▾</i>
+      </button>
+      <span id="activeFiltersBadge" style="display:none;font-size:9px;background:var(--accent);color:#0a0a0f;padding:2px 7px;font-family:'DM Mono',monospace;letter-spacing:0.5px;font-weight:700"></span>
+    </div>
+
+    <!-- Collapsible filter panel -->
+    <div class="filter-panel" id="filterPanel">
+    <div class="inv-toolbar" id="platToolbar" style="border-top:none;padding-top:0;background:var(--surface);border-bottom:1px solid var(--border)">
+      <span style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);white-space:nowrap">Platform</span>
+      <div id="platChips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1;overflow-x:auto;padding-bottom:2px"></div>
+    </div>
+    <div class="inv-toolbar" id="catToolbar" style="border-top:none;padding-top:0;background:var(--surface);border-bottom:1px solid var(--border)">
+      <span style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);white-space:nowrap">Category</span>
+      <div id="catChips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1"></div>
+    </div>
+    <div class="inv-toolbar" id="subcatToolbar" style="display:none;border-top:none;padding-top:0;background:var(--surface);border-bottom:1px solid var(--border);padding-left:36px">
+      <span id="subcatToolbarLabel" style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--accent3);white-space:nowrap">↳ Subcategory</span>
+      <div id="subcatChips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1"></div>
+    </div>
+    <div class="inv-toolbar" id="subsubcatToolbar" style="display:none;border-top:none;padding-top:0;background:var(--surface);border-bottom:1px solid var(--border);padding-left:60px">
+      <span id="subsubcatLabel" style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);white-space:nowrap">↳↳ Type</span>
+      <div id="subsubcatChips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1"></div>
+    </div>
+    </div>
+
+    <!-- Sort / actions bar (always visible) -->
+    <div class="inv-toolbar" style="border-top:none;padding-top:8px;padding-bottom:8px;background:var(--surface);border-bottom:1px solid var(--border)">
+      <select class="sort-select" id="sortSel" onchange="renderInv()">
+        <option value="added-desc">Newest First</option>
+        <option value="added-asc">Oldest First</option>
+        <option value="name-asc">Name A–Z</option>
+        <option value="margin-desc">Best Margin</option>
+        <option value="qty-asc">Low Stock First</option>
+        <option value="price-desc">Price High–Low</option>
+      </select>
+      <div class="toolbar-spacer"></div>
+      <button class="btn-secondary" onclick="printStickers(false)" style="font-size:11px;padding:5px 10px;white-space:nowrap">🏷 Print All</button>
+      <button class="btn-secondary" onclick="openTrashModal()" style="font-size:11px;padding:5px 10px;white-space:nowrap">🗑️ Trash</button>
+      <span id="invCnt" style="font-size:11px;color:var(--muted);white-space:nowrap"></span>
+    </div>
+    <div class="bulk-bar" id="bulkBar">
+      <span class="bulk-count" id="bulkCnt">0 selected</span>
+      <button class="btn-secondary" onclick="bulkSold()">Mark Sold</button>
+      <button class="btn-secondary" onclick="printStickers(true)">🏷 Print Stickers</button>
+      <button class="btn-danger"    onclick="bulkDel()">Delete</button>
+      <button class="btn-secondary" onclick="clearSel()">Clear</button>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="inv-table">
+        <thead><tr>
+          <th class="cb-col"><input type="checkbox" id="selAll" onchange="toggleAll(this)"></th>
+          <th style="width:28px"></th>
+          <th style="width:48px">Photo</th>
+          <th onclick="setSort('name-asc')">Item <span class="sort-arrow">↕</span></th>
+          <th onclick="setSort('platform')">Platform <span class="sort-arrow">↕</span></th>
+          <th>Stock</th>
+          <th onclick="setSort('cost')">Cost <span class="sort-arrow">↕</span></th>
+          <th onclick="setSort('price-desc')">Price <span class="sort-arrow">↕</span></th>
+          <th onclick="setSort('margin-desc')">Margin <span class="sort-arrow">↕</span></th>
+          <th style="text-align:right">Actions</th>
+        </tr></thead>
+        <tbody id="invBody"></tbody>
+      </table>
+      <div id="invPagination"></div>
+      <div id="invEmpty" class="empty-state" style="display:none">
+        <div class="empty-icon">📦</div>
+        <p>No items match your filters.<br>Try adjusting search or add new inventory.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW: SALES LOG -->
+<div id="view-sales" class="view">
+  <div class="panel" style="animation:none">
+    <div class="panel-header">
+      <div class="panel-title">All Sales</div>
+      <span id="salesTotalLbl" style="font-size:11px;color:var(--muted)"></span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="inv-table">
+        <thead><tr>
+          <th>Item</th><th>Platform</th><th>Date</th><th>Qty</th>
+          <th>Sold For</th><th>Unit Cost</th><th>Fees+Ship</th>
+          <th>Net Profit</th><th style="text-align:right">Actions</th>
+        </tr></thead>
+        <tbody id="salesBody"></tbody>
+      </table>
+      <div id="salesEmpty" class="empty-state" style="display:none">
+        <div class="empty-icon">💸</div>
+        <p>No sales recorded yet.<br>Mark items as sold from the Inventory view.</p>
+      </div>
+      <div id="salesPagination"></div>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW: SUPPLIES -->
+<div id="view-supplies" class="view">
+  <div class="panel" style="animation:none;margin-bottom:14px">
+    <div class="panel-header">
+      <div class="panel-title">Add Supply Item</div>
+    </div>
+    <div class="panel-body">
+      <div class="form-grid">
+        <div class="fgrp full"><label>Supply Name *</label><input type="text" id="sup_name" placeholder="e.g. 6×9 Poly Mailer, 8×8×6 Box, Bubble Wrap Roll…"></div>
+        <div class="fgrp"><label>Category</label>
+          <select id="sup_cat">
+            <option value="Boxes">Boxes</option>
+            <option value="Mailers">Mailers</option>
+            <option value="Bubble Wrap">Bubble Wrap / Padding</option>
+            <option value="Tape">Tape</option>
+            <option value="Labels">Labels</option>
+            <option value="Envelopes">Envelopes</option>
+            <option value="Tissue Paper">Tissue Paper / Filler</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="fgrp"><label>Quantity on Hand *</label><input type="number" id="sup_qty" placeholder="0" min="0"></div>
+        <div class="fgrp"><label>Unit Cost ($)</label><input type="number" id="sup_cost" placeholder="0.00" step="0.01"></div>
+        <div class="fgrp"><label>Low Stock Alert (qty)</label><input type="number" id="sup_alert" placeholder="5" min="0"></div>
+        <div class="fgrp"><label>Notes</label><input type="text" id="sup_notes" placeholder="e.g. Amazon ASIN, supplier…"></div>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn-primary" onclick="addSupply()">Add Supply</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="animation:none">
+    <div class="panel-header">
+      <div class="panel-title">Supplies Stock</div>
+      <span id="supLowBadge" style="display:none;font-size:11px;background:rgba(255,107,107,0.15);color:#ff6b6b;padding:3px 10px;font-family:'DM Mono',monospace">⚠ low stock</span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="inv-table">
+        <thead><tr>
+          <th>Name</th><th>Category</th><th>In Stock</th><th>Unit Cost</th><th>Alert At</th><th>Notes</th><th style="text-align:right">Actions</th>
+        </tr></thead>
+        <tbody id="supBody"></tbody>
+      </table>
+      <div id="supEmpty" class="empty-state" style="display:none">
+        <div class="empty-icon">📦</div>
+        <p>No supplies added yet.<br>Track boxes, mailers, tape and other packaging materials here.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW: VALUE BREAKDOWN -->
+<div id="view-breakdown" class="view">
+  <div id="breakdownContent"></div>
+</div>
+
+<!-- VIEW: EXPENSES -->
+<div id="view-expenses" class="view">
+  <!-- Add Expense Form -->
+  <div class="panel" style="animation:none;margin-bottom:14px;overflow:hidden">
+    <div class="panel-header">
+      <div class="panel-title">Add Expense</div>
+    </div>
+    <div style="padding:16px 18px;display:flex;flex-direction:column;gap:10px;box-sizing:border-box;width:100%;overflow:hidden">
+      <div class="fgrp" style="margin:0;width:100%;overflow:hidden">
+        <label>Date</label>
+        <input type="date" id="exp_date" style="display:block;width:100%;max-width:100%;box-sizing:border-box;-webkit-appearance:none;appearance:none">
+      </div>
+      <div class="fgrp" style="margin:0;width:100%;overflow:hidden">
+        <label>Category</label>
+        <select id="exp_cat" style="display:block;width:100%;max-width:100%;box-sizing:border-box">
+          <option value="Shipping Supplies">Shipping Supplies</option>
+          <option value="Packaging Materials">Packaging Materials</option>
+          <option value="Platform Fees">Platform Fees</option>
+          <option value="Sourcing">Sourcing / Buying Trip</option>
+          <option value="Storage">Storage</option>
+          <option value="Printing">Printing &amp; Labels</option>
+          <option value="Software">Software &amp; Tools</option>
+          <option value="Marketing">Marketing &amp; Ads</option>
+          <option value="Returns">Returns &amp; Refunds</option>
+          <option value="Office Supplies">Office Supplies</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="fgrp" style="margin:0;width:100%;overflow:hidden">
+        <label>Description</label>
+        <input type="text" id="exp_desc" placeholder="e.g. Poly mailers 200-pack from Amazon" style="display:block;width:100%;max-width:100%;box-sizing:border-box;-webkit-appearance:none;appearance:none">
+      </div>
+      <div class="fgrp" style="margin:0;width:100%;overflow:hidden">
+        <label>Amount ($)</label>
+        <input type="number" id="exp_amt" step="0.01" min="0" placeholder="0.00" style="display:block;width:100%;max-width:100%;box-sizing:border-box;-webkit-appearance:none;appearance:none">
+      </div>
+      <button class="btn-primary" style="display:block;width:100%;box-sizing:border-box" onclick="addExpense()">+ Add Expense</button>
+    </div>
+  </div>
+
+  <!-- Expense List -->
+  <div class="panel" style="animation:none">
+    <div class="panel-header">
+      <div class="panel-title">All Expenses</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="expCatFilt" onchange="renderExpenses()" style="font-size:11px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 8px">
+          <option value="all">All Categories</option>
+          <option value="Shipping Supplies">Shipping Supplies</option>
+          <option value="Packaging Materials">Packaging Materials</option>
+          <option value="Platform Fees">Platform Fees</option>
+          <option value="Sourcing">Sourcing</option>
+          <option value="Storage">Storage</option>
+          <option value="Printing">Printing &amp; Labels</option>
+          <option value="Software">Software &amp; Tools</option>
+          <option value="Marketing">Marketing</option>
+          <option value="Returns">Returns &amp; Refunds</option>
+          <option value="Office Supplies">Office Supplies</option>
+          <option value="Other">Other</option>
+        </select>
+        <span id="expTotalLbl" style="font-size:11px;color:var(--muted)"></span>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="exp-table" id="expTable">
+        <thead><tr>
+          <th style="width:110px">Date</th>
+          <th style="width:140px">Category</th>
+          <th>Description</th>
+          <th style="width:90px;text-align:right">Amount</th>
+          <th style="width:56px;text-align:right">Del</th>
+        </tr></thead>
+        <tbody id="expBody"></tbody>
+      </table>
+      <div id="expEmpty" class="empty-state" style="display:none">
+        <div class="empty-icon">🧾</div>
+        <p>No expenses yet.<br>Add shipping supplies, fees, and other costs above.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW: INSIGHTS -->
+<div id="view-insights" class="view">
+  <div id="insightsContent"></div>
+</div>
+
+<!-- VIEW: REPORTS -->
+<div id="view-reports" class="view">
+  <div id="reportsContent"></div>
+</div>
+
+<!-- VIEW: CROSSLIST -->
+<div id="view-crosslist" class="view">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:0 0 12px">
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px">Crosslist Manager</div>
+    <button class="btn-secondary" onclick="clBulkRelistExpired()" style="font-size:11px">♻ Relist All Expired</button>
+  </div>
+  <div id="crosslistContent"></div>
+</div>
+
+<!-- VIEW: SHIPPING -->
+<div id="view-shipping" class="view">
+  <div id="shippingContent"></div>
+</div>
+
+<!-- VIEW: SOURCING -->
+<div id="view-sourcing" class="view">
+  <div id="sourcingContent"></div>
+</div>
+
+<!-- VIEW: TAX CENTER -->
+<div id="view-tax" class="view">
+  <div id="taxContent"></div>
+</div>
+
+<!-- VIEW: BUYERS / CRM -->
+<div id="view-buyers" class="view">
+  <div id="buyersContent"></div>
+</div>
+
+<!-- VIEW: INVENTORY VALUE -->
+<div id="view-invvalue" class="view">
+  <div id="invValueContent"></div>
+</div>
+
+</main>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()" role="dialog" aria-modal="true" aria-label="Image Lightbox">
+  <button class="lightbox-close" onclick="closeLightbox()">×</button>
+  <img id="lightboxImg" src="" alt="">
+  <div class="lightbox-name" id="lightboxName"></div>
+</div>
+
+<!-- DRAWER -->
+<div class="drawer-overlay" id="drawerOv" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="Edit Item">
+  <div class="drawer-hd">
+    <div><div class="drawer-name" id="dName">Item</div><div class="drawer-sku" id="dSku"></div></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="btn-primary" onclick="saveDrawer()" style="font-size:11px;padding:6px 14px">Save</button>
+      <button class="drawer-x" onclick="closeDrawer()" aria-label="Close item editor">×</button>
+    </div>
+  </div>
+  <div class="d-metrics" id="dMets"></div>
+  <div class="drawer-tabs">
+    <button class="drawer-tab active" onclick="drawerTab('details',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">Details</button>
+    <button class="drawer-tab" onclick="drawerTab('media',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">Photo &amp; Barcode</button>
+    <button class="drawer-tab" onclick="drawerTab('shipping',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">Shipping</button>
+    <button class="drawer-tab" onclick="drawerTab('history',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">History</button>
+  </div>
+  <div class="drawer-bd">
+
+    <!-- TAB: Details -->
+    <div class="drawer-tab-panel active" id="dtab-details">
+      <div class="edit-grid">
+        <div class="edit-grp full"><div class="edit-lbl">Item Name</div><input class="edit-inp" id="d_name" type="text"></div>
+        <div class="edit-grp"><div class="edit-lbl">SKU</div><input class="edit-inp" id="d_sku" type="text"></div>
+        <div class="edit-grp">
+          <div class="edit-lbl">UPC / Barcode</div>
+          <div class="upc-input-row">
+            <input class="edit-inp" id="d_upc" type="text" placeholder="Scan or type…" style="font-family:'DM Mono',monospace;font-size:12px">
+            <button class="upc-scan-btn" onclick="openScanner('d_upc')" title="Scan">📷</button>
+          </div>
+        </div>
+        <div class="edit-grp"><div class="edit-lbl">Category</div><input class="edit-inp" id="d_cat" type="text" placeholder="e.g. Clothing" oninput="syncDrawerSubcat()"></div>
+        <div class="edit-grp"><div class="edit-lbl">Subcategory</div><input class="edit-inp" id="d_subcat_txt" type="text" placeholder="e.g. Sneakers, Men's…" list="d_subcat_dl"><datalist id="d_subcat_dl"></datalist></div>
+        <select id="d_subcat" style="display:none"></select>
+        <div class="edit-grp full">
+          <div class="edit-lbl">Platforms <span style="color:var(--muted);font-weight:400;font-size:9px">— select all that apply</span></div>
+          <div class="plat-picker" id="d_plat_picker"></div>
+        </div>
+        <div class="edit-grp full" id="d_listing_status_wrap" style="display:none">
+          <div class="edit-lbl">Listing Status <span style="color:var(--muted);font-weight:400;font-size:9px">— click to toggle</span></div>
+          <div id="d_listing_status" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+        </div>
+        <div class="edit-grp"><div class="edit-lbl">Cost ($)</div><input class="edit-inp" id="d_cost" type="number" step="0.01"></div>
+        <div class="edit-grp"><div class="edit-lbl">List Price ($)</div><input class="edit-inp" id="d_price" type="number" step="0.01"></div>
+        <div class="edit-grp"><div class="edit-lbl">Fees ($)</div><input class="edit-inp" id="d_fees" type="number" step="0.01"></div>
+        <div class="edit-grp"><div class="edit-lbl">Shipping ($)</div><input class="edit-inp" id="d_ship" type="number" step="0.01"></div>
+        <div class="edit-grp full" style="align-items:flex-start">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;margin-top:2px">
+            <input type="checkbox" id="d_bulk" onchange="toggleBulkFields('d')" style="width:15px;height:15px;accent-color:var(--accent);flex-shrink:0">
+            <span class="edit-lbl" style="margin:0">Bulk Item — multiple units</span>
+          </label>
+        </div>
+        <div class="edit-grp" id="d_alert_grp"><div class="edit-lbl">Low Stock Alert</div><input class="edit-inp" id="d_alert" type="number" min="0"></div>
+        <div class="edit-grp"><div class="edit-lbl">Restock URL</div><input class="edit-inp" id="d_url" type="text" placeholder="Source link"></div>
+        <div class="edit-grp"><div class="edit-lbl">Source</div><input class="edit-inp" id="d_source" type="text" placeholder="e.g. Goodwill" list="sourceList"></div>
+        <div class="edit-grp full">
+          <div class="edit-lbl">Condition</div>
+          <div id="d_cond_picker" style="display:flex;gap:6px;flex-wrap:wrap">
+            <button type="button" class="cond-tag" onclick="setCondTag('d','NWT',this)">NWT</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('d','NWOT',this)">NWOT</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('d','EUC',this)">EUC</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('d','GUC',this)">GUC</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('d','Fair',this)">Fair</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('d','Poor',this)">Poor</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('d','New/Sealed',this)">New/Sealed</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('d','Refurbished',this)">Refurbished</button>
+          </div>
+          <input type="hidden" id="d_condition" value="">
+        </div>
+        <!-- Book-specific fields (hidden unless category = Books) -->
+        <div class="book-fields" id="d_book_fields">
+          <div class="bf-header">📚 Book Details</div>
+          <div class="bf-grid">
+            <div class="edit-grp full">
+              <div class="edit-lbl">ISBN</div>
+              <div class="isbn-row">
+                <input class="edit-inp" type="text" id="d_isbn" placeholder="ISBN-10 or ISBN-13" oninput="this.value=this.value.replace(/[^0-9Xx-]/g,'')">
+                <button type="button" class="isbn-lookup-btn" id="d_isbn_btn" onclick="lookupISBN('d')">🔍 Lookup</button>
+              </div>
+            </div>
+            <div class="edit-grp"><div class="edit-lbl">Author</div><input class="edit-inp" type="text" id="d_author" placeholder="Author name"></div>
+            <div class="edit-grp"><div class="edit-lbl">Publisher</div><input class="edit-inp" type="text" id="d_publisher" placeholder="Publisher"></div>
+            <div class="edit-grp"><div class="edit-lbl">Edition</div><input class="edit-inp" type="text" id="d_edition" placeholder="e.g. 1st, 2nd, Revised"></div>
+            <div class="edit-grp"><div class="edit-lbl">Printing</div><input class="edit-inp" type="text" id="d_printing" placeholder="e.g. 1st, 3rd"></div>
+            <div class="edit-grp"><div class="edit-lbl">Year Published</div><input class="edit-inp" type="number" id="d_pub_year" placeholder="e.g. 1985" min="1400" max="2030"></div>
+            <div class="edit-grp">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding-top:18px">
+                <input type="checkbox" id="d_signed" style="width:16px;height:16px;accent-color:var(--accent3);flex-shrink:0">
+                <span style="font-size:11px;color:var(--muted)">Signed Copy</span>
+              </label>
+            </div>
+            <div class="edit-grp full">
+              <div class="edit-lbl">Amazon Sales Rank</div>
+              <input class="edit-inp" type="number" id="d_sales_rank" placeholder="e.g. 245000" min="1" oninput="updateRankDisplay('d')">
+              <div class="rank-display" id="d_rank_display"></div>
+            </div>
+            <div class="edit-grp full">
+              <div class="edit-lbl" style="display:flex;align-items:center;justify-content:space-between">
+                <span>FBA vs. Merchant Calculator</span>
+                <button type="button" style="font-size:10px;background:var(--accent3);color:#fff;border:none;padding:3px 10px;cursor:pointer;font-family:'DM Mono',monospace" onclick="calcFBA('d')">Calculate</button>
+              </div>
+              <div class="fba-calc-panel" id="d_fba_panel"></div>
+            </div>
+          </div>
+        </div>
+        <div class="edit-grp full"><div class="edit-lbl">Notes</div><textarea class="edit-ta" id="d_notes"></textarea></div>
+      </div>
+    </div>
+
+    <!-- TAB: Photo & Barcode -->
+    <div class="drawer-tab-panel" id="dtab-media">
+      <div class="dsec" id="dImgSec">
+        <div class="dsec-ttl">Item Photos <span style="color:var(--muted);font-weight:400;font-size:10px">(up to 3)</span></div>
+        <div id="dImgWrap" class="img-slots">
+          <div class="img-slot" id="dSlot0">
+            <img id="dSlotImg0" src="" alt="" style="display:none" onclick="openLightboxUrl(this.src)">
+            <span class="img-slot-badge" id="dSlotBadge0" style="display:none">MAIN</span>
+            <button type="button" class="img-slot-rm" id="dSlotRm0" style="display:none" onclick="imgSlotRemove(event,'d',0)">×</button>
+            <div class="img-slot-add" id="dSlotAdd0"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
+            <input type="file" id="dSlotInput0" accept="image/*" class="img-slot-input" onchange="imgSlotChange(event,'d',0)">
+          </div>
+          <div class="img-slot img-slot-locked" id="dSlot1">
+            <img id="dSlotImg1" src="" alt="" style="display:none" onclick="openLightboxUrl(this.src)">
+            <button type="button" class="img-slot-rm" id="dSlotRm1" style="display:none" onclick="imgSlotRemove(event,'d',1)">×</button>
+            <div class="img-slot-add" id="dSlotAdd1" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
+            <input type="file" id="dSlotInput1" accept="image/*" class="img-slot-input" style="pointer-events:none;opacity:0" onchange="imgSlotChange(event,'d',1)">
+          </div>
+          <div class="img-slot img-slot-locked" id="dSlot2">
+            <img id="dSlotImg2" src="" alt="" style="display:none" onclick="openLightboxUrl(this.src)">
+            <button type="button" class="img-slot-rm" id="dSlotRm2" style="display:none" onclick="imgSlotRemove(event,'d',2)">×</button>
+            <div class="img-slot-add" id="dSlotAdd2" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
+            <input type="file" id="dSlotInput2" accept="image/*" class="img-slot-input" style="pointer-events:none;opacity:0" onchange="imgSlotChange(event,'d',2)">
+          </div>
+        </div>
+      </div>
+      <div class="dsec" id="dBarcodeSec">
+        <div class="dsec-ttl">Barcode</div>
+        <div id="dBarcodeWrap"></div>
+      </div>
+    </div>
+
+    <!-- TAB: Shipping -->
+    <div class="drawer-tab-panel" id="dtab-shipping">
+      <div class="dsec-ttl" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <span>Package Dimensions</span>
+        <div class="unit-toggle">
+          <button class="utog-btn active" id="d_unit_in" onclick="setDimUnit('d','in')">in / lb</button>
+          <button class="utog-btn" id="d_unit_cm" onclick="setDimUnit('d','cm')">cm / kg</button>
+        </div>
+      </div>
+      <div class="dim-grid">
+        <div class="edit-grp">
+          <div class="edit-lbl">Weight</div>
+          <div class="dim-weight-row">
+            <input class="edit-inp" id="d_wt_maj" type="number" step="0.01" min="0" placeholder="0" oninput="updateDimWeight('d')">
+            <span class="dim-unit-lbl" id="d_wt_maj_lbl">lb</span>
+            <input class="edit-inp" id="d_wt_min" type="number" step="0.1" min="0" placeholder="0" oninput="updateDimWeight('d')">
+            <span class="dim-unit-lbl" id="d_wt_min_lbl">oz</span>
+          </div>
+        </div>
+        <div class="edit-grp" style="align-self:end">
+          <div class="edit-lbl">Dim. Weight <span id="d_dimwt_val" style="color:var(--accent);font-size:9px;margin-left:4px"></span></div>
+          <div class="dim-lxwxh">
+            <input class="edit-inp" id="d_len" type="number" step="0.1" min="0" placeholder="L" oninput="updateDimWeight('d')">
+            <span class="dim-sep">×</span>
+            <input class="edit-inp" id="d_wid" type="number" step="0.1" min="0" placeholder="W" oninput="updateDimWeight('d')">
+            <span class="dim-sep">×</span>
+            <input class="edit-inp" id="d_hgt" type="number" step="0.1" min="0" placeholder="H" oninput="updateDimWeight('d')">
+            <span class="dim-unit-lbl" id="d_dim_unit_lbl">in</span>
+          </div>
+        </div>
+      </div>
+      <div id="d_pkg_suggestion"></div>
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+        <div class="dsec-ttl" style="margin-bottom:10px">Ship This Item</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <a id="d_pirateship_link" href="https://ship.pirateship.com/ship" target="_blank" rel="noopener"
+            style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:rgba(87,200,255,0.08);border:1px solid rgba(87,200,255,0.25);color:var(--accent);font-family:'DM Mono',monospace;font-size:11px;text-decoration:none;cursor:pointer;transition:all 0.15s"
+            onmouseover="this.style.background='rgba(87,200,255,0.15)'" onmouseout="this.style.background='rgba(87,200,255,0.08)'">
+            🏴‍☠️ Ship with PirateShip
+          </a>
+          <a href="https://www.paypal.com/shipnow" target="_blank" rel="noopener"
+            style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:rgba(255,184,0,0.08);border:1px solid rgba(255,184,0,0.25);color:var(--warn);font-family:'DM Mono',monospace;font-size:11px;text-decoration:none;cursor:pointer;transition:all 0.15s"
+            onmouseover="this.style.background='rgba(255,184,0,0.15)'" onmouseout="this.style.background='rgba(255,184,0,0.08)'">
+            📦 PayPal Shipping
+          </a>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:8px;font-family:'DM Mono',monospace" id="d_ship_summary"></div>
+      </div>
+    </div>
+
+    <!-- TAB: History -->
+    <div class="drawer-tab-panel" id="dtab-history">
+      <div id="dHistory"></div>
+    </div>
+
+  </div>
+  <div class="drawer-ft">
+    <div style="display:flex;gap:8px">
+      <button class="btn-danger" onclick="delCurrent()">Delete</button>
+      <button class="btn-secondary" onclick="dupCurrent()" style="font-size:10px">⧉ Duplicate</button>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn-secondary" onclick="closeDrawer()">Cancel</button>
+      <button class="btn-primary"   onclick="saveDrawer()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- UPC SCANNER MODAL -->
+<div class="scanner-overlay" id="scannerOv" role="dialog" aria-modal="true" aria-label="Barcode Scanner">
+  <div class="scanner-header" id="scannerHeader">Scan Barcode / UPC</div>
+  <select class="scanner-cam-select" id="scannerCamSel" onchange="switchCamera(this.value)" style="display:none"></select>
+  <div class="scanner-box">
+    <video class="scanner-video" id="scannerVideo" autoplay muted playsinline webkit-playsinline></video>
+    <canvas id="scannerCanvas" style="display:none"></canvas>
+    <div class="scanner-aim">
+      <div class="scanner-aim-inner">
+        <div class="scanner-line"></div>
+      </div>
+    </div>
+    <div class="scanner-result" id="scannerResult">Point camera at barcode…</div>
+  </div>
+  <div class="scanner-sub" id="scannerSub">Hold steady — auto-detects UPC, EAN, QR, Code 128 &amp; more</div>
+  <button class="scanner-close-btn" id="scannerCancelBtn">✕ Cancel</button>
+</div>
+
+<!-- PRICE RESEARCH OVERLAY -->
+<div class="pr-overlay" id="prOv" role="dialog" aria-modal="true" aria-label="Price Research">
+  <div class="pr-topbar">
+    <div class="pr-title">Price <span>Research</span></div>
+    <button class="pr-close" onclick="closePriceResearch()">×</button>
+  </div>
+
+  <!-- Mode tabs -->
+  <div class="pr-tabs">
+    <button class="pr-tab active" id="prTabUpc" onclick="prSwitchTab('upc')">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="5"/><rect x="16" y="3" width="5" height="5"/><rect x="3" y="16" width="5" height="5"/><line x1="16" y1="16" x2="21" y2="16"/><line x1="21" y1="16" x2="21" y2="21"/><line x1="16" y1="21" x2="21" y2="21"/></svg>
+      Barcode / UPC
+    </button>
+    <button class="pr-tab" id="prTabKw" onclick="prSwitchTab('kw')">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Keyword Search
+    </button>
+  </div>
+
+  <!-- UPC panel -->
+  <div class="pr-input-bar" id="prPanelUpc">
+    <input type="text" id="prUpcInput" inputmode="numeric" pattern="[0-9]*"
+           placeholder="Scan or enter barcode…"
+           autocomplete="off" autocorrect="off" autocapitalize="none"
+           onkeydown="if(event.key==='Enter')lookupPrices()">
+    <button class="pr-scan-btn" onclick="openPriceScanner()">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="5" height="5"/><rect x="16" y="3" width="5" height="5"/><rect x="3" y="16" width="5" height="5"/><line x1="16" y1="16" x2="21" y2="16"/><line x1="21" y1="16" x2="21" y2="21"/><line x1="16" y1="21" x2="21" y2="21"/></svg>
+      Scan
+    </button>
+    <button class="pr-lookup-btn" id="prLookupBtn" onclick="lookupPrices()">Look Up →</button>
+  </div>
+
+  <!-- Keyword panel -->
+  <div class="pr-input-bar" id="prPanelKw" style="display:none">
+    <input type="text" id="prKwInput"
+           placeholder="e.g. Nike Air Force 1 size 10, vintage Levi's 501…"
+           autocomplete="off" autocorrect="off"
+           onkeydown="if(event.key==='Enter')lookupByKeyword()">
+    <button class="pr-lookup-btn" id="prKwBtn" onclick="lookupByKeyword()">Search →</button>
+  </div>
+
+
+  <div class="pr-body" id="prBody">
+    <div class="pr-status">
+      Scan a barcode, enter a UPC, or search by keyword to research comparable selling prices.
+    </div>
+  </div>
+</div>
+
+<!-- SYNC SETTINGS MODAL -->
+<!-- AI IDENTIFY OVERLAY -->
+<div class="id-overlay" id="idOv" role="dialog" aria-modal="true" aria-label="AI Identify">
+  <div class="id-topbar">
+    <div class="id-title">📸 Snap <span>& Identify</span></div>
+    <button class="id-close" onclick="closeIdentify()">×</button>
+  </div>
+  <div class="id-body">
+    <div class="id-capture-area" id="idCapture">
+      <div id="idPrompt">
+        <div style="font-size:36px;margin-bottom:12px;opacity:0.4">📷</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--text);margin-bottom:6px">Take a photo of any item</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.5;max-width:280px;margin:0 auto">AI will identify it, estimate resale value, and help you add it to inventory</div>
+        <div class="id-capture-btns">
+          <label class="id-capture-btn primary" style="position:relative;overflow:hidden">
+            <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            Take Photo
+            <input type="file" accept="image/*" capture="environment" id="idCameraInput" onchange="idHandleCapture(event)"
+                   style="position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0">
+          </label>
+          <label class="id-capture-btn" style="position:relative;overflow:hidden">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Choose Photo
+            <input type="file" accept="image/*" id="idGalleryInput" onchange="idHandleCapture(event)"
+                   style="position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0">
+          </label>
+        </div>
+      </div>
+      <div id="idPreview" style="display:none">
+        <img class="id-preview-img" id="idPreviewImg" alt="Captured item">
+        <div class="id-retake-bar">
+          <button class="id-retake-btn" onclick="idRetake()">↻ Retake</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="id-analyze-btn" id="idAnalyzeBtn" onclick="idAnalyze()" disabled>
+      ✨ Identify & Value This Item
+    </button>
+
+    <div id="idResults"></div>
+  </div>
+</div>
+<!-- AUTH MODAL — Login / Sign Up -->
+<div class="overlay" id="authOv" style="display:flex;padding-top:env(safe-area-inset-top)">
+  <div class="modal" style="max-width:400px;width:92vw">
+    <div class="modal-hd" style="border-bottom:none;padding-bottom:8px">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <div class="modal-ttl" style="font-size:20px">FlipTrack</div>
+        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">Reseller Dashboard</div>
+      </div>
+    </div>
+    <div class="modal-bd" style="padding:8px 24px 24px">
+      <!-- Tab switcher -->
+      <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px">
+        <button id="authTabLogin" onclick="switchAuthTab('login')"
+          style="flex:1;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--text);font-family:'Syne',sans-serif;font-weight:700;font-size:12px;padding:10px;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px">
+          Sign In
+        </button>
+        <button id="authTabSignup" onclick="switchAuthTab('signup')"
+          style="flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:'Syne',sans-serif;font-weight:700;font-size:12px;padding:10px;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px">
+          Create Account
+        </button>
+      </div>
+
+      <div id="authErr" style="display:none;margin-bottom:14px;padding:10px 14px;background:rgba(255,71,87,0.1);border:1px solid rgba(255,71,87,0.3);font-size:12px;font-family:'DM Mono',monospace;color:var(--danger)"></div>
+      <div id="authOk"  style="display:none;margin-bottom:14px;padding:10px 14px;background:rgba(87,255,154,0.08);border:1px solid rgba(87,255,154,0.3);font-size:12px;font-family:'DM Mono',monospace;color:var(--good)"></div>
+
+      <div class="fgrp" style="margin-bottom:12px">
+        <label>Email</label>
+        <input type="email" id="authEmail" placeholder="you@example.com"
+          autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false"
+          style="width:100%;box-sizing:border-box;-webkit-appearance:none"
+          onkeydown="if(event.key==='Enter')authSubmit()">
+      </div>
+      <div class="fgrp" style="margin-bottom:20px">
+        <label>Password</label>
+        <input type="password" id="authPass" placeholder="••••••••"
+          autocomplete="current-password"
+          style="width:100%;box-sizing:border-box;-webkit-appearance:none"
+          onkeydown="if(event.key==='Enter')authSubmit()">
+      </div>
+
+      <button class="btn-primary" onclick="authSubmit()" id="authSubmitBtn"
+        style="width:100%;font-size:14px;padding:12px">Sign In</button>
+
+      <div id="authForgotWrap" style="margin-top:12px;text-align:center">
+        <button onclick="authForgotPassword()"
+          style="background:none;border:none;color:var(--muted);font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;text-decoration:underline">
+          Forgot password?
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ACCOUNT MENU -->
+<div class="overlay" id="accountMenuOv" style="display:none;align-items:flex-start;justify-content:flex-end;padding:70px 16px 0">
+  <div style="background:var(--surface2);border:1px solid var(--border);min-width:220px;box-shadow:0 8px 32px rgba(0,0,0,0.4)">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--border)">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Signed in as</div>
+      <div id="accountMenuEmail" style="font-size:12px;font-family:'DM Mono',monospace;color:var(--text)"></div>
+    </div>
+    <button onclick="syncNow();closeAccountMenu()"
+      style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 16px;background:none;border:none;border-bottom:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;text-align:left">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+      Sync Now
+    </button>
+    <button onclick="toggleTheme();closeAccountMenu()"
+      style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 16px;background:none;border:none;border-bottom:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;text-align:left">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <span id="acctThemeLabel">Light Mode</span>
+    </button>
+    <button onclick="authSignOut()"
+      style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 16px;background:none;border:none;color:var(--danger);font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;text-align:left">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </button>
+    <button onclick="closeAccountMenu()"
+      style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 16px;background:none;border:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;text-align:left">
+      Cancel
+    </button>
+  </div>
+</div>
+
+<!-- ADD MODAL -->
+<div class="overlay" id="addOv" role="dialog" aria-modal="true" aria-label="Add New Item">
+  <div class="modal">
+    <div class="modal-hd"><div class="modal-ttl">Add Inventory Item</div><div style="display:flex;gap:8px;align-items:center"><button class="btn-secondary" onclick="prefillFromLast()" style="font-size:10px;padding:4px 10px" title="Copy source, category, platforms from your last item">⟲ Repeat Last</button><button class="modal-x" onclick="closeAdd()" aria-label="Close add item dialog">×</button></div></div>
+    <div class="modal-bd">
+      <div class="add-form-tabs" style="display:flex;gap:0;border-bottom:1px solid var(--border);margin:-20px -22px 16px;padding:0 22px">
+        <button class="add-form-tab active" onclick="addFormTab('basic',this)" style="flex:1;padding:9px 8px;background:transparent;border:none;color:var(--accent);font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;cursor:pointer;border-bottom:2px solid var(--accent)">Basic</button>
+        <button class="add-form-tab" onclick="addFormTab('pricing',this)" style="flex:1;padding:9px 8px;background:transparent;border:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;cursor:pointer;border-bottom:2px solid transparent">Pricing</button>
+        <button class="add-form-tab" onclick="addFormTab('details',this)" style="flex:1;padding:9px 8px;background:transparent;border:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;cursor:pointer;border-bottom:2px solid transparent">Details</button>
+      </div>
+      <div class="form-grid">
+        <div class="fgrp full"><label>Item Name *</label><input type="text" id="f_name" placeholder="e.g. Vintage Levi's 501 Jeans"></div>
+        <div class="fgrp"><label>SKU / ID</label><input type="text" id="f_sku" placeholder="auto if blank"></div>
+        <div class="fgrp">
+          <label>UPC / Barcode</label>
+          <div class="upc-input-row">
+            <input type="text" id="f_upc" placeholder="Scan or enter barcode…" style="font-family:'DM Mono',monospace;font-size:12px">
+            <button type="button" class="upc-scan-btn" onclick="openScanner('f_upc')" title="Scan with camera">📷</button>
+          </div>
+        </div>
+        <div class="fgrp"><label>Category</label><input type="text" id="f_cat" placeholder="e.g. Clothing" oninput="syncAddSubcat()"></div>
+        <div class="fgrp"><label>Source</label><input type="text" id="f_source" placeholder="e.g. Goodwill, Garage Sale" list="sourceList"></div>
+        <datalist id="sourceList">
+          <option value="Goodwill">
+          <option value="Salvation Army">
+          <option value="Thrift Store">
+          <option value="Garage Sale">
+          <option value="Estate Sale">
+          <option value="Flea Market">
+          <option value="Facebook Marketplace">
+          <option value="OfferUp">
+          <option value="Craigslist">
+          <option value="Wholesale">
+          <option value="Liquidation">
+          <option value="Retail Arbitrage">
+          <option value="Online Arbitrage">
+          <option value="Dumpster Dive">
+          <option value="Storage Unit">
+          <option value="Auction">
+          <option value="Personal Collection">
+          <option value="Other">
+        </datalist>
+        <div class="fgrp"><label>Subcategory</label><input type="text" id="f_subcat_txt" placeholder="e.g. Sneakers, Men's…" list="f_subcat_dl"><datalist id="f_subcat_dl"></datalist></div>
+        <select id="f_subcat" style="display:none"></select>
+        <div class="fgrp" id="f_subtype_grp" style="display:none"><label id="f_subtype_lbl">Type</label><select id="f_subtype"><option value="">— None —</option></select></div>
+        <div class="fgrp full">
+          <label>Platforms * <span style="color:var(--muted);font-weight:400;font-size:10px">— select all that apply</span></label>
+          <div class="plat-picker" id="f_plat_picker"></div>
+        </div>
+        <div class="fgrp full">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none">
+            <input type="checkbox" id="f_bulk" onchange="toggleBulkFields('f')" style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0">
+            <span style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">Bulk Item <span style="font-size:10px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400">— multiple units available</span></span>
+          </label>
+        </div>
+        <div id="f_bulk_fields" style="display:none;grid-column:1/-1;display:none">
+          <div class="form-grid" style="margin-top:0">
+            <div class="fgrp"><label>Quantity *</label><input type="number" id="f_qty" value="1" min="1"></div>
+            <div class="fgrp"><label>Low Stock Alert</label><input type="number" id="f_alert" placeholder="2" min="0"></div>
+          </div>
+        </div>
+        <input type="hidden" id="f_qty_single" value="1">
+        <div class="fgrp"><label>Cost ($) *</label><input type="number" id="f_cost" placeholder="0.00" step="0.01" oninput="prevProfit()"></div>
+        <div class="fgrp"><label>List Price ($) *</label><input type="number" id="f_price" placeholder="0.00" step="0.01" oninput="prevProfit()"></div>
+        <div class="fgrp"><label>Fees ($)</label><input type="number" id="f_fees" placeholder="0.00" step="0.01" oninput="prevProfit()"></div>
+        <div class="fgrp"><label>Shipping ($)</label><input type="number" id="f_ship" placeholder="0.00" step="0.01" oninput="prevProfit()"></div>
+        <div class="fgrp full">
+          <label>Condition</label>
+          <div id="f_cond_picker" style="display:flex;gap:6px;flex-wrap:wrap">
+            <button type="button" class="cond-tag" onclick="setCondTag('f','NWT',this)">NWT</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('f','NWOT',this)">NWOT</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('f','EUC',this)">EUC</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('f','GUC',this)">GUC</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('f','Fair',this)">Fair</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('f','Poor',this)">Poor</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('f','New/Sealed',this)">New/Sealed</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('f','Refurbished',this)">Refurbished</button>
+          </div>
+          <input type="hidden" id="f_condition" value="">
+        </div>
+        <!-- Book-specific fields (hidden unless category = Books) -->
+        <div class="book-fields" id="f_book_fields">
+          <div class="bf-header">📚 Book Details</div>
+          <div class="bf-grid">
+            <div class="fgrp full">
+              <label>ISBN</label>
+              <div class="isbn-row">
+                <input type="text" id="f_isbn" placeholder="ISBN-10 or ISBN-13" oninput="this.value=this.value.replace(/[^0-9Xx-]/g,'')">
+                <button type="button" class="isbn-lookup-btn" id="f_isbn_btn" onclick="lookupISBN('f')">🔍 Lookup</button>
+              </div>
+            </div>
+            <div class="fgrp"><label>Author</label><input type="text" id="f_author" placeholder="Author name"></div>
+            <div class="fgrp"><label>Publisher</label><input type="text" id="f_publisher" placeholder="Publisher"></div>
+            <div class="fgrp"><label>Edition</label><input type="text" id="f_edition" placeholder="e.g. 1st, 2nd, Revised"></div>
+            <div class="fgrp"><label>Printing</label><input type="text" id="f_printing" placeholder="e.g. 1st, 3rd"></div>
+            <div class="fgrp"><label>Year Published</label><input type="number" id="f_pub_year" placeholder="e.g. 1985" min="1400" max="2030"></div>
+            <div class="fgrp">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                <input type="checkbox" id="f_signed" style="width:16px;height:16px;accent-color:var(--accent3);flex-shrink:0">
+                <span>Signed Copy</span>
+              </label>
+            </div>
+            <div class="fgrp full">
+              <label>Amazon Sales Rank</label>
+              <input type="number" id="f_sales_rank" placeholder="e.g. 245000" min="1" oninput="updateRankDisplay('f')">
+              <div class="rank-display" id="f_rank_display"></div>
+            </div>
+            <div class="fgrp full">
+              <label style="display:flex;align-items:center;justify-content:space-between">
+                <span>FBA vs. Merchant Calculator</span>
+                <button type="button" style="font-size:10px;background:var(--accent3);color:#fff;border:none;padding:3px 10px;cursor:pointer;font-family:'DM Mono',monospace" onclick="calcFBA('f')">Calculate</button>
+              </label>
+              <div class="fba-calc-panel" id="f_fba_panel"></div>
+            </div>
+          </div>
+        </div>
+        <div class="fgrp full"><label>Notes</label><textarea id="f_notes" placeholder="Condition, sourcing, etc."></textarea></div>
+        <div class="fgrp full">
+          <label style="display:flex;align-items:center;justify-content:space-between">
+            <span>Package Dimensions</span>
+            <div class="unit-toggle">
+              <button type="button" class="utog-btn active" id="f_unit_in" onclick="setDimUnit('f','in')">in / lb</button>
+              <button type="button" class="utog-btn" id="f_unit_cm" onclick="setDimUnit('f','cm')">cm / kg</button>
+            </div>
+          </label>
+          <div class="dim-grid" style="margin-top:8px">
+            <div class="fgrp" style="margin:0">
+              <label>Weight</label>
+              <div class="dim-weight-row">
+                <input type="number" id="f_wt_maj" step="0.01" min="0" placeholder="0" oninput="updateDimWeight('f')">
+                <span class="dim-unit-lbl" id="f_wt_maj_lbl">lb</span>
+                <input type="number" id="f_wt_min" step="0.1" min="0" placeholder="0" oninput="updateDimWeight('f')">
+                <span class="dim-unit-lbl" id="f_wt_min_lbl">oz</span>
+              </div>
+            </div>
+            <div class="fgrp" style="margin:0">
+              <label>L × W × H <span id="f_dimwt_val" style="color:var(--accent);font-size:10px;margin-left:6px"></span></label>
+              <div class="dim-lxwxh">
+                <input type="number" id="f_len" step="0.1" min="0" placeholder="L" oninput="updateDimWeight('f')">
+                <span class="dim-sep">×</span>
+                <input type="number" id="f_wid" step="0.1" min="0" placeholder="W" oninput="updateDimWeight('f')">
+                <span class="dim-sep">×</span>
+                <input type="number" id="f_hgt" step="0.1" min="0" placeholder="H" oninput="updateDimWeight('f')">
+                <span class="dim-unit-lbl" id="f_dim_unit_lbl">in</span>
+              </div>
+            </div>
+          </div>
+          <div id="f_pkg_suggestion"></div>
+        </div>
+        <div class="fgrp full">
+          <label>Item Photos <span style="color:var(--muted);font-weight:400;font-size:10px">(up to 3)</span></label>
+          <div id="fImgWrap" class="img-slots">
+            <div class="img-slot" id="fSlot0">
+              <img id="fSlotImg0" src="" alt="" style="display:none" onclick="openLightboxUrl(this.src)">
+              <span class="img-slot-badge" id="fSlotBadge0" style="display:none">MAIN</span>
+              <button type="button" class="img-slot-rm" id="fSlotRm0" style="display:none" onclick="imgSlotRemove(event,'f',0)">×</button>
+              <div class="img-slot-add" id="fSlotAdd0"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
+              <input type="file" id="fSlotInput0" accept="image/*" class="img-slot-input" onchange="imgSlotChange(event,'f',0)">
+            </div>
+            <div class="img-slot img-slot-locked" id="fSlot1">
+              <img id="fSlotImg1" src="" alt="" style="display:none" onclick="openLightboxUrl(this.src)">
+              <button type="button" class="img-slot-rm" id="fSlotRm1" style="display:none" onclick="imgSlotRemove(event,'f',1)">×</button>
+              <div class="img-slot-add" id="fSlotAdd1" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
+              <input type="file" id="fSlotInput1" accept="image/*" class="img-slot-input" style="pointer-events:none;opacity:0" onchange="imgSlotChange(event,'f',1)">
+            </div>
+            <div class="img-slot img-slot-locked" id="fSlot2">
+              <img id="fSlotImg2" src="" alt="" style="display:none" onclick="openLightboxUrl(this.src)">
+              <button type="button" class="img-slot-rm" id="fSlotRm2" style="display:none" onclick="imgSlotRemove(event,'f',2)">×</button>
+              <div class="img-slot-add" id="fSlotAdd2" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
+              <input type="file" id="fSlotInput2" accept="image/*" class="img-slot-input" style="pointer-events:none;opacity:0" onchange="imgSlotChange(event,'f',2)">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="profit-prev">
+        <div class="pp-i"><div class="pp-lbl">Profit/Unit</div><div class="pp-val" id="pp_profit" style="color:var(--good)">—</div></div>
+        <div class="pp-i"><div class="pp-lbl">Margin</div><div class="pp-val" id="pp_margin" style="color:var(--accent)">—</div></div>
+        <div class="pp-i"><div class="pp-lbl">ROI</div><div class="pp-val" id="pp_roi" style="color:var(--accent3)">—</div></div>
+      </div>
+    </div>
+    <div class="modal-ft"><button class="btn-secondary" onclick="closeAdd()">Cancel</button><button class="btn-primary" onclick="addItem()">Save Item</button></div>
+  </div>
+</div>
+
+<!-- SOLD MODAL -->
+<div class="overlay" id="soldOv" role="dialog" aria-modal="true" aria-label="Record Sale">
+  <div class="modal">
+    <div class="modal-hd"><div class="modal-ttl">Record Sale</div><button class="modal-x" onclick="closeSold()">×</button></div>
+    <div class="modal-bd">
+      <div class="sold-info" id="soldInfo"></div>
+      <div class="form-grid">
+        <div class="fgrp">
+          <label>Sold Price ($) *</label>
+          <input type="number" id="s_price" placeholder="0.00" step="0.01" oninput="updateFeeEstimate()">
+        </div>
+        <div class="fgrp">
+          <label>Price Is</label>
+          <div style="display:flex;gap:0;margin-top:2px">
+            <button type="button" id="s_price_each" onclick="sPriceType('each')"
+              style="flex:1;padding:8px 6px;font-family:'DM Mono',monospace;font-size:11px;border:1px solid var(--accent);background:var(--accent);color:#0a0a0f;cursor:pointer;border-radius:0;font-weight:700">
+              Each
+            </button>
+            <button type="button" id="s_price_total" onclick="sPriceType('total')"
+              style="flex:1;padding:8px 6px;font-family:'DM Mono',monospace;font-size:11px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;border-radius:0">
+              Total
+            </button>
+          </div>
+          <div style="font-size:9px;color:var(--muted);margin-top:3px" id="s_price_hint">Price per individual unit</div>
+        </div>
+        <div class="fgrp"><label>Qty Sold *</label><input type="number" id="s_qty" value="1" min="1" oninput="updateSalePriceHint()"></div>
+        <div class="fgrp full"><label>Platform Sold On *</label>
+          <select id="s_platform" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:9px 12px;font-family:'DM Mono',monospace;font-size:12px;width:100%" onchange="updateFeeEstimate()">
+          </select>
+          <div id="s_fee_hint" style="font-size:10px;color:var(--muted);margin-top:4px;font-family:'DM Mono',monospace;display:none"></div>
+        </div>
+        <div class="fgrp"><label>Platform Fees ($)</label><input type="number" id="s_fees" placeholder="0.00" step="0.01"></div>
+        <div class="fgrp"><label>Shipping Cost ($)</label><input type="number" id="s_ship" placeholder="0.00" step="0.01"></div>
+        <div class="fgrp full"><label>Date Sold</label><input type="date" id="s_date"></div>
+        <div class="fgrp full"><label>Buyer Name / Handle <span style="color:var(--muted);font-weight:400">(optional)</span></label><input type="text" id="s_buyer" placeholder="e.g. john_resells"></div>
+      </div>
+    </div>
+    <div class="modal-ft"><button class="btn-secondary" onclick="closeSold()">Cancel</button><button class="btn-primary" onclick="recSale()">Record Sale</button></div>
+  </div>
+</div>
+
+<!-- CROP MODAL -->
+<div class="overlay" id="cropOv" style="overscroll-behavior:contain" role="dialog" aria-modal="true" aria-label="Crop Image">
+  <div class="modal" style="max-width:560px;width:95vw">
+    <div class="modal-hd">
+      <div class="modal-ttl">✂️ Crop Photo</div>
+      <button class="modal-x" onclick="cropCancel()">×</button>
+    </div>
+    <div class="modal-bd" style="padding:0">
+      <div id="cropCanvasWrap" style="position:relative;background:#000;overflow:hidden;user-select:none;-webkit-user-select:none">
+        <canvas id="cropCanvas" style="display:block;width:100%;height:auto;touch-action:none;-webkit-touch-callout:none"></canvas>
+      </div>
+      <div style="padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid var(--border)">
+        <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;flex:1">Drag to select crop area · Handles to resize</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-secondary" style="font-size:11px" onclick="cropReset()">Reset</button>
+          <button class="btn-secondary" style="font-size:11px" onclick="cropSetAspect(1,1)">1:1</button>
+          <button class="btn-secondary" style="font-size:11px" onclick="cropSetAspect(4,3)">4:3</button>
+          <button class="btn-secondary" style="font-size:11px" onclick="cropSetAspect(16,9)">16:9</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-secondary" onclick="cropCancel()">Cancel</button>
+      <button class="btn-primary" onclick="cropConfirm()">✂️ Crop &amp; Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- MATERIALS USED MODAL (shown after recording a sale) -->
+<div class="overlay" id="matsOv" role="dialog" aria-modal="true" aria-label="Materials Used">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-hd">
+      <div class="modal-ttl">📦 Materials Used</div>
+      <button class="modal-x" onclick="skipMaterials()">×</button>
+    </div>
+    <div class="modal-bd">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;font-family:'DM Mono',monospace">
+        Select packaging materials used for this sale to deduct from stock.
+      </div>
+      <div id="matsBody" style="display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto"></div>
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--muted)">
+        <a href="#" onclick="event.preventDefault();skipMaterials()" style="color:var(--muted)">Skip — no materials used</a>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-secondary" onclick="skipMaterials()">Skip</button>
+      <button class="btn-primary" onclick="confirmMaterials()">Deduct &amp; Done</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- BATCH SCAN OVERLAY -->
+<div class="batch-overlay" id="batchOv" role="dialog" aria-modal="true" aria-label="Batch Scan">
+  <div class="batch-topbar">
+    <div class="batch-title">⚡ Batch <span>Scan</span></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button style="background:none;border:1px solid var(--border);color:var(--text);padding:6px 12px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer" onclick="batchManualAdd()">+ Manual</button>
+      <button class="batch-close" onclick="closeBatchScan()">×</button>
+    </div>
+  </div>
+  <div class="batch-body">
+    <div class="batch-camera-wrap" id="batchCamWrap">
+      <video id="batchVideo" autoplay muted playsinline webkit-playsinline></video>
+      <div class="batch-scan-status" id="batchScanStatus">Starting camera…</div>
+    </div>
+    <div class="batch-source-bar">
+      <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;white-space:nowrap">Source:</span>
+      <input type="text" id="batchSource" placeholder="e.g. Goodwill, Garage Sale" list="sourceList">
+    </div>
+    <div class="batch-list" id="batchList">
+      <div class="batch-empty" id="batchEmpty">Scan barcodes to add items here<br>or tap + Manual to type them in</div>
+    </div>
+  </div>
+  <div class="batch-footer">
+    <div class="batch-count" id="batchCount">0 items</div>
+    <button class="batch-add-all" id="batchAddBtn" disabled onclick="batchAddAll()">Add All to Inventory</button>
+  </div>
+</div>
+
+<!-- OFFLINE BANNER -->
+
+<!-- TRASH MODAL -->
+<div class="overlay" id="trashOv" role="dialog" aria-modal="true" aria-label="Trash">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-hd">
+      <div class="modal-ttl">🗑️ Recently Deleted</div>
+      <button class="modal-x" onclick="closeTrashModal()">×</button>
+    </div>
+    <div class="modal-bd" style="max-height:400px;overflow-y:auto">
+      <div id="trashBody"></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-danger" onclick="emptyTrash()" style="font-size:11px">Empty Trash</button>
+      <button class="btn-secondary" onclick="closeTrashModal()">Close</button>
+    </div>
+  </div>
+</div>
+<div id="offlineBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:10000;background:var(--danger);color:#fff;text-align:center;padding:6px 16px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.5px">
+  ⚡ Offline — changes saved locally and will sync when you reconnect
+</div>
+
+<!-- More menu backdrop (closes popup on outside tap) -->
+<div class="bnav-more-backdrop" id="bnavMoreBackdrop" onclick="closeBnavMore()" style="display:none"></div>
+
+<!-- More menu popup -->
+<div class="bnav-more-popup" id="bnavMorePopup" style="display:none">
+  <button class="bnav-more-item" id="bn-more-sync" onclick="syncNow();closeBnavMore()">
+    <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+    Sync Now
+  </button>
+  <button class="bnav-more-item" onclick="openAccountMenu();closeBnavMore()">
+    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    Account
+  </button>
+  <button class="bnav-more-item" onclick="openPriceResearch();closeBnavMore()">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+    Price Research
+  </button>
+  <button class="bnav-more-item" onclick="openIdentify();closeBnavMore()">
+    <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+    Snap & Identify
+  </button>
+  <button class="bnav-more-item" onclick="openBatchScan();closeBnavMore()">
+    <svg viewBox="0 0 24 24"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+    Batch Scan
+  </button>
+  <button class="bnav-more-item" id="bn-more-expenses" onclick="switchView('expenses',document.querySelectorAll('.nav-tab')[3]);bnav('bn-more-expenses');closeBnavMore()">
+    <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+    Expenses
+  </button>
+  <button class="bnav-more-item" id="bn-more-supplies" onclick="switchView('supplies',document.querySelectorAll('.nav-tab')[4]);bnav('bn-more-supplies');closeBnavMore()">
+    <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+    Supplies
+  </button>
+  <button class="bnav-more-item" id="bn-more-insights" onclick="switchView('insights',document.querySelectorAll('.nav-tab')[5]);bnav('bn-more-insights');closeBnavMore()">
+    <svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+    Insights
+  </button>
+  <button class="bnav-more-item" id="bn-more-reports" onclick="switchView('reports',document.querySelectorAll('.nav-tab')[6]);bnav('bn-more-reports');closeBnavMore()">
+    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Reports
+  </button>
+  <button class="bnav-more-item" id="bn-more-breakdown" onclick="switchView('breakdown',document.querySelectorAll('.nav-tab')[7]);bnav('bn-more-breakdown');closeBnavMore()">
+    <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+    Breakdown
+  </button>
+        <button class="bnav-more-item" id="bn-more-crosslist"
+          onclick="switchView('crosslist',null);bnav('bn-more-crosslist');closeBnavMore()">
+          <span class="bnav-more-icon">🔗</span> Crosslist
+        </button>
+  <button class="bnav-more-item" id="bn-more-shipping"
+    onclick="switchView('shipping',null);bnav('bn-more-shipping');closeBnavMore()">
+    <svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+    Shipping
+  </button>
+  <button class="bnav-more-item" id="bn-more-sourcing"
+    onclick="switchView('sourcing',null);bnav('bn-more-sourcing');closeBnavMore()">
+    <svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+    Sourcing
+  </button>
+  <button class="bnav-more-item" id="bn-more-tax"
+    onclick="switchView('tax',null);bnav('bn-more-tax');closeBnavMore()">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    Tax Center
+  </button>
+  <button class="bnav-more-item" id="bn-more-buyers"
+    onclick="switchView('buyers',null);bnav('bn-more-buyers');closeBnavMore()">
+    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Buyers
+  </button>
+  <button class="bnav-more-item" onclick="exportAll();closeBnavMore()">
+    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Export All CSV
+  </button>
+  <button class="bnav-more-item" onclick="document.getElementById('csvImportInput').click();closeBnavMore()">
+    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    Import from CSV
+  </button>
+  <button class="bnav-more-item" onclick="toggleTheme();closeBnavMore()">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    <span id="mobileThemeLabel">Light Mode</span>
+  </button>
+</div>
+
+<!-- Bottom nav — visible on phones only (max 600px) -->
+<nav class="bottom-nav" id="bottomNav" style="display:none">
+  <button class="bnav-btn active" id="bn-dashboard" onclick="switchView('dashboard',document.querySelectorAll('.nav-tab')[0]);bnav('bn-dashboard')">
+    <span class="bnav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+    <span class="bnav-lbl">Dashboard</span>
+  </button>
+  <button class="bnav-btn" id="bn-inventory" onclick="switchView('inventory',document.querySelectorAll('.nav-tab')[1]);bnav('bn-inventory')">
+    <span class="bnav-icon"><svg viewBox="0 0 24 24"><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg></span>
+    <span class="bnav-lbl">Inventory</span>
+  </button>
+  <button class="bnav-fab" onclick="openAddModal()">+</button>
+  <button class="bnav-btn" id="bn-sales" onclick="switchView('sales',document.querySelectorAll('.nav-tab')[2]);bnav('bn-sales')">
+    <span class="bnav-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+    <span class="bnav-lbl">Sales</span>
+  </button>
+  <button class="bnav-btn" id="bn-more" onclick="toggleBnavMore(event)">
+    <span class="bnav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></span>
+    <span class="bnav-lbl">More</span>
+  </button>
+</nav>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

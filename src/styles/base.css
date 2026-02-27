@@ -1,0 +1,113 @@
+:root {
+  --bg: #0a0a0f;
+  --surface: #111118;
+  --surface2: #18181f;
+  --surface3: #1e1e28;
+  --border: #2a2a38;
+  --border2: #3a3a50;
+  --accent: #57c8ff;
+  --accent2: #ff6b35;
+  --accent3: #7b61ff;
+  --text: #e8e8f0;
+  --muted: #6b6b80;
+  --muted2: #9090a8;
+  --danger: #ff4757;
+  --warn: #ffb800;
+  --good: #57ff9a;
+  --fs: 100;
+}
+
+html { font-size: calc(var(--fs) * 0.01rem); }
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Mono', monospace;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(87,200,255,0.012) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(87,200,255,0.012) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.shell { position: relative; z-index: 1; }
+
+.date-badge { font-size: 11px; color: var(--muted); letter-spacing: 0.5px; white-space: nowrap; }
+
+.sync-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--border2); flex-shrink: 0;
+  transition: background 0.3s;
+}
+.sync-dot.connected  { background: var(--good); box-shadow: 0 0 6px rgba(87,255,154,0.5); }
+.sync-dot.syncing    { background: var(--warn); animation: pulse 1s infinite; }
+.sync-dot.error      { background: var(--danger); }
+.sync-dot-lbl { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--muted); white-space: nowrap; }
+
+/* OpenDyslexic loaded from CDN */
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/fonts/OpenDyslexic-Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/fonts/OpenDyslexic-Bold.otf') format('opentype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+body.font-dyslexic,
+body.font-dyslexic input,
+body.font-dyslexic textarea,
+body.font-dyslexic select,
+body.font-dyslexic button {
+  font-family: 'OpenDyslexic', sans-serif !important;
+  letter-spacing: 0.02em;
+  word-spacing: 0.1em;
+  line-height: 1.6;
+}
+
+/* ── LIGHT THEME ──────────────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg: #f4f4f8;
+  --surface: #ffffff;
+  --surface2: #f0f0f5;
+  --surface3: #e8e8ef;
+  --border: #d0d0dc;
+  --border2: #b8b8c8;
+  --accent: #1a8fcf;
+  --accent2: #d45a20;
+  --accent3: #5a40d9;
+  --text: #1a1a2e;
+  --muted: #555568;
+  --muted2: #50506a;
+  --danger: #d93545;
+  --warn: #c89500;
+  --good: #1a9955;
+}
+[data-theme="light"] body::before { background-image: none; }
+[data-theme="light"] .stat-card::after { opacity: 0.7; }
+[data-theme="light"] ::-webkit-scrollbar-track { background: var(--surface); }
+[data-theme="light"] ::-webkit-scrollbar-thumb { background: var(--border2); }
+[data-theme="light"] .overlay { background: rgba(0,0,0,0.35); backdrop-filter: blur(3px); }
+[data-theme="light"] .drawer { box-shadow: -4px 0 24px rgba(0,0,0,0.12); }
+[data-theme="light"] .toast { background: var(--text); color: var(--bg); }
+[data-theme="light"] .lightbox { background: rgba(255,255,255,0.92); }
+[data-theme="light"] .margin-badge.mb-high { background: rgba(26,153,85,0.12); color: var(--good); border-color: rgba(26,153,85,0.25); }
+[data-theme="light"] .margin-badge.mb-mid { background: rgba(200,149,0,0.12); color: var(--warn); border-color: rgba(200,149,0,0.25); }
+[data-theme="light"] .margin-badge.mb-low { background: rgba(217,53,69,0.12); color: var(--danger); border-color: rgba(217,53,69,0.25); }

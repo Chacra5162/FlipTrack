@@ -1,0 +1,215 @@
+FlipTrack Project Structure - Data Layer Extraction
+===================================================
+
+fliptrack/
+├── src/
+│   ├── config/
+│   │   └── constants.js              [8.3 KB] Configuration & constants
+│   │       • Supabase credentials
+│   │       • Platform definitions (30+ platforms)
+│   │       • Category hierarchies
+│   │       • Platform fees
+│   │       • Utility functions
+│   │
+│   ├── data/                         [EXTRACTED DATA LAYER]
+│   │   ├── store.js                 [7.5 KB] Central data store
+│   │   │   • Data arrays (inv, sales, expenses, supplies)
+│   │   │   • Inventory index for O(1) lookups
+│   │   │   • Caching system
+│   │   │   • Save/refresh functions
+│   │   │   • Trash system (soft delete, 7-day retention)
+│   │   │   • Undo system (20-item history)
+│   │   │
+│   │   ├── auth.js                  [8.5 KB] Authentication & accounts
+│   │   │   • User authentication (email/password)
+│   │   │   • Session management
+│   │   │   • Auth UI (login/signup tabs)
+│   │   │   • Account menu
+│   │   │   • Bootstrap on page load
+│   │   │   • Sign out with cleanup
+│   │   │
+│   │   ├── sync.js                  [11 KB]  Cloud synchronization
+│   │   │   • Bidirectional sync (push & pull)
+│   │   │   • Real-time subscriptions (WebSocket)
+│   │   │   • Fallback polling
+│   │   │   • Debounced auto-sync
+│   │   │   • Sync status indicator
+│   │   │   • Page visibility aware
+│   │   │
+│   │   ├── storage.js               [3.8 KB] Image storage management
+│   │   │   • Base64 to Storage upload
+│   │   │   • Image deletion
+│   │   │   • Migration from base64
+│   │   │   • JPEG compression
+│   │   │   • Public URL generation
+│   │   │
+│   │   └── README.md                [6.7 KB] Module documentation
+│   │       • API reference
+│   │       • Dependency diagram
+│   │       • Circular dependency handling
+│   │       • Usage examples
+│   │       • Migration notes
+│   │
+│   ├── features/                    [UI feature modules - TBD]
+│   ├── views/                       [Page views/screens - TBD]
+│   ├── modals/                      [Modal components - TBD]
+│   ├── utils/                       [Utilities - TBD]
+│   └── styles/                      [Stylesheets]
+│       ├── base.css
+│       ├── components.css
+│       ├── index.css
+│       ├── layout.css
+│       ├── mobile.css
+│       ├── modals.css
+│       └── tables.css
+│
+├── public/
+│   └── icons/                       [Icon assets]
+│
+├── package.json
+├── vite.config.js
+│
+└── EXTRACTION_SUMMARY.md           [Extraction details & reference]
+
+
+EXTRACTED MODULES SUMMARY
+=========================
+
+Module Dependencies:
+────────────────────
+config/constants.js
+    ↑
+    ├── store.js ──→ sync.js (lazy)
+    ├── auth.js ──→ sync.js (lazy)
+    │         └─→ storage.js
+    └── sync.js ──→ storage.js
+
+
+Data Arrays Exported from store.js:
+───────────────────────────────────
+• inv              Array of inventory items
+• sales            Array of sales records
+• expenses         Array of expense records
+• supplies         Array of supply items
+
+
+State Variables Exported from store.js:
+───────────────────────────────────────
+Filtering:
+  • platFilt       Set of platform filters
+  • catFilt        Set of category filters
+  • subcatFilt     Subcategory filter
+  • subsubcatFilt  Sub-subcategory filter
+  • stockFilt      Stock status filter
+
+Selection & UI:
+  • sel            Set of selected item IDs
+  • dragSrc        Drag source reference
+  • activeDrawId   Current draw/inventory item
+  • activeSoldId   Current sale record
+
+Pagination:
+  • _invPage       Current inventory page
+  • _invPageSize   Items per page (50)
+  • _salePage      Current sales page
+  • _salePageSize  Items per page (50)
+
+Caching:
+  • _cacheDirty    Cache invalidation flag
+  • _insightsCache Computed insights
+  • _breakdownCache Platform breakdown data
+  • _chipsBuiltForData Data-driven chips
+
+
+Key Functions by Module:
+────────────────────────
+
+store.js:
+  ✓ save()                    Save to localStorage, trigger sync
+  ✓ refresh()                 Mark cache dirty, trigger UI updates
+  ✓ rebuildInvIndex()         Build O(1) lookup index
+  ✓ getInvItem(id)            Fast inventory lookup
+  ✓ normCat(input)            Normalize category names
+  ✓ softDeleteItem(id)        Add to trash
+  ✓ restoreItem(idx)          Restore from trash
+  ✓ pushUndo(action, data)    Record undo entry
+  ✓ performUndo()             Execute undo
+
+auth.js:
+  ✓ initAuth()                Bootstrap auth on load
+  ✓ authSubmit()              Handle login/signup form
+  ✓ authSignOut()             Sign out, clear data
+  ✓ getAccountId()            Get current user ID
+  ✓ getCurrentUser()           Get user object
+  ✓ switchAuthTab(tab)        Toggle login/signup
+  ✓ setAuthMsg(msg, type)     Show auth message
+
+sync.js:
+  ✓ syncNow()                 Full sync (pull → push)
+  ✓ autoSync()                Debounced auto-sync
+  ✓ pushToCloud()             Push local → Supabase
+  ✓ pullFromCloud()           Pull Supabase → local
+  ✓ pullSupplies()            Pull supplies
+  ✓ startRealtime()           Enable WebSocket subscriptions
+  ✓ stopRealtime()            Disable subscriptions
+  ✓ setSyncStatus(state)      Update sync indicator
+
+storage.js:
+  ✓ uploadImageToStorage()    Base64 → upload → URL
+  ✓ deleteImageFromStorage()  Delete by URL
+  ✓ migrateImagesToStorage()  Batch base64 → Storage
+  ✓ isStorageUrl(s)           Check if URL vs base64
+
+constants.js:
+  ✓ SB_URL, SB_KEY            Supabase credentials
+  ✓ PLATFORMS                 Array of 30+ platforms
+  ✓ PLATFORM_FEES             Fee schedules
+  ✓ CATEGORY_TREE             Full category hierarchy
+  ✓ SUBCATS, SUBSUBCATS       Category lookups
+  ✓ uid()                     Generate unique IDs
+  ✓ fmt(n)                    Format as currency
+  ✓ pct(n)                    Format as percentage
+  ✓ ds(d)                     Format as date
+  ✓ debounce(fn, ms)          Debounce function
+
+
+INTEGRATION CHECKLIST
+=====================
+
+□ Set up Supabase credentials in constants.js
+□ Import and call initAuth() on page load
+□ Create UI layer module for rendering functions
+□ Wire refresh() callbacks:
+    □ updateStats()
+    □ updatePlatBreakdown()
+    □ updateSalesLog()
+    □ renderDash()
+    □ renderInv()
+□ Implement global toast() system
+□ Implement sound effects (_sfx.create())
+□ Add error boundaries around async operations
+□ Create test suite for each module
+□ Add JSDoc type annotations
+□ Implement offline detection & sync queuing
+
+
+FILE LOCATIONS
+==============
+
+Source HTML:     /sessions/magical-gallant-lovelace/mnt/New folder/index.html (465 KB)
+Target Modules:  /sessions/magical-gallant-lovelace/mnt/New folder/fliptrack/src/data/
+Config:          /sessions/magical-gallant-lovelace/mnt/New folder/fliptrack/src/config/
+Documentation:   /sessions/magical-gallant-lovelace/mnt/New folder/EXTRACTION_SUMMARY.md
+
+
+STATISTICS
+==========
+
+Modules:            5
+Total Code:         ~45.8 KB
+Total Lines:        ~1,200
+Data Arrays:        4
+Exported Functions: 50+
+State Variables:    15+
+Platforms:          30+
+Category Levels:    3 (category → subcat → subsubcat)
