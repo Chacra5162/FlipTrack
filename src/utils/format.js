@@ -13,6 +13,9 @@ export const ds = d => new Date(d).toLocaleDateString('en-US',{month:'short',day
 // HTML escape
 export const escHtml = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
 
+// HTML attribute escape (for values inside onclick="..." etc.)
+export const escAttr = s => String(s || '').replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
 // Debounce utility
 export const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 

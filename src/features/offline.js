@@ -11,6 +11,9 @@ function updateOnlineStatus() {
   if (!banner) return;
   if (navigator.onLine) {
     banner.style.display = 'none';
+    banner.setAttribute('aria-live', 'polite');
+    banner.setAttribute('role', 'status');
+    banner.textContent = '';
     document.body.style.paddingTop = '';
     if (_pendingSync && _currentUser) {
       _pendingSync = false;
@@ -19,6 +22,9 @@ function updateOnlineStatus() {
     }
   } else {
     banner.style.display = '';
+    banner.setAttribute('aria-live', 'assertive');
+    banner.setAttribute('role', 'alert');
+    banner.textContent = 'You are offline - data will sync when you reconnect';
     document.body.style.paddingTop = '28px';
     _pendingSync = true;
   }

@@ -788,8 +788,8 @@ setTimeout(_killSplash, 3000);
   // Platform pickers
   initPlatPickers();
 
-  // Boot auth (connects Supabase, starts realtime)
-  initAuth();
+  // Boot auth (connects Supabase, starts realtime) — MUST await to prevent race conditions
+  await initAuth();
 
   // Set up offline mutation queue auto-replay
   initOfflineQueue();

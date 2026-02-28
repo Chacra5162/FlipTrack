@@ -228,31 +228,28 @@ export async function pullFromCloud() {
   } catch (_) {}
 
   if (lastPull) {
-    // ── DELTA MERGE: merge remote changes into local arrays ──
-    if (remoteInv && remoteInv.length) {
-      for (const row of remoteInv) {
+    // ── DELTA MERGE with conflict resolution: compare updated_at timestamps ──
+    const mergeArray = (arr, remoteRows) => {
+      if (!remoteRows || !remoteRows.length) return;
+      for (const row of remoteRows) {
         if (!row.data) continue;
-        const idx = inv.findIndex(i => i.id === row.id);
-        if (idx !== -1) inv[idx] = row.data;
-        else inv.push(row.data);
+        const idx = arr.findIndex(i => i.id === row.id);
+        if (idx !== -1) {
+          // Conflict resolution: remote wins if it's newer (server updated_at vs local _localUpdatedAt)
+          const localTs = arr[idx]._localUpdatedAt || 0;
+          const remoteTs = row.updated_at ? new Date(row.updated_at).getTime() : Date.now();
+          if (remoteTs >= localTs) {
+            arr[idx] = row.data;
+          }
+          // else: local is newer, skip remote update (local will push on next sync)
+        } else {
+          arr.push(row.data);
+        }
       }
-    }
-    if (remoteSales && remoteSales.length) {
-      for (const row of remoteSales) {
-        if (!row.data) continue;
-        const idx = sales.findIndex(s => s.id === row.id);
-        if (idx !== -1) sales[idx] = row.data;
-        else sales.push(row.data);
-      }
-    }
-    if (remoteExp && remoteExp.length) {
-      for (const row of remoteExp) {
-        if (!row.data) continue;
-        const idx = expenses.findIndex(e => e.id === row.id);
-        if (idx !== -1) expenses[idx] = row.data;
-        else expenses.push(row.data);
-      }
-    }
+    };
+    mergeArray(inv, remoteInv);
+    mergeArray(sales, remoteSales);
+    mergeArray(expenses, remoteExp);
   } else {
     // ── FULL PULL: replace all local data ──
     if (remoteInv) { inv.length = 0; inv.push(...remoteInv.map(r => r.data).filter(Boolean)); }

@@ -190,3 +190,11 @@ header::after {
 
 /* ── Selection highlight ── */
 ::selection { background: rgba(87,200,255,0.2); color: var(--text); }
+
+/* Pause animations on hidden elements to prevent CPU waste */
+[style*="display: none"] .spinner,
+[style*="display:none"] .spinner,
+.hidden .spinner,
+[hidden] .spinner {
+  animation-play-state: paused !important;
+}

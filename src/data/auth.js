@@ -15,6 +15,24 @@ let _syncDebounce = null;
 let _authTab = 'login'; // 'login' | 'signup'
 let _sessionStarting = false;
 
+// Token refresh mutex — prevents concurrent refresh attempts from racing
+let _refreshPromise = null;
+
+export async function safeRefreshSession() {
+  if (_refreshPromise) return _refreshPromise;
+  _refreshPromise = (async () => {
+    try {
+      const { data, error } = await _sb.auth.refreshSession();
+      if (error) throw error;
+      if (data.session) _currentUser = data.session.user;
+      return data;
+    } finally {
+      _refreshPromise = null;
+    }
+  })();
+  return _refreshPromise;
+}
+
 export function getAccountId() {
   return _currentUser ? _currentUser.id : null;
 }
