@@ -60,7 +60,16 @@ async function getAuthHeaders() {
   // If no session or token expired/about to expire, force a refresh
   if (!session || (session.expires_at && session.expires_at * 1000 < Date.now() + 60000)) {
     const { data, error } = await _sb.auth.refreshSession();
-    if (!error && data.session) {
+    if (error) {
+      // Refresh token is dead (revoked/rotated on another device) — force re-login
+      console.warn('FlipTrack: refresh token failed, signing out:', error.message);
+      await _sb.auth.signOut();
+      toast('Session expired — please log in again', true);
+      // Trigger the auth UI to show login screen
+      if (typeof window.authSignOut === 'function') window.authSignOut();
+      throw new Error('Session expired');
+    }
+    if (data.session) {
       session = data.session;
     }
   }
