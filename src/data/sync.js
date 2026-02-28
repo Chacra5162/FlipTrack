@@ -15,6 +15,7 @@ import { isStorageUrl, migrateImagesToStorage } from './storage.js';
 import { setMeta, getMeta } from './idb.js';
 import { enqueue, setupOfflineReplay } from './offline-queue.js';
 import { toast } from '../utils/dom.js';
+import { recordSync } from '../features/sync-indicator.js';
 
 // ── SYNC STATUS ────────────────────────────────────────────────────────────
 export function setSyncStatus(state, msg) {
@@ -304,6 +305,7 @@ export async function syncNow() {
     await pullFromCloud();
     await pushAllToCloud(); // Full push on manual sync
     setSyncStatus('connected');
+    recordSync();
     refresh();
   } catch (e) {
     setSyncStatus('error', e.message);
@@ -328,6 +330,7 @@ export function autoSync() {
     try {
       await pushToCloud(); // Delta push — only dirty items
       setSyncStatus('connected');
+      recordSync();
     } catch (e) {
       setSyncStatus('error', e.message);
     }
@@ -388,6 +391,7 @@ function _onRealtimeChange(payload) {
       await pullFromCloud();
       refresh();
       setSyncStatus('connected');
+      recordSync();
     } catch (e) {
       setSyncStatus('error', e.message);
     }

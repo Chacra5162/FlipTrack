@@ -53,8 +53,10 @@
       <span class="sync-dot" id="syncDot"></span>
       <span class="sync-dot-lbl" id="syncDotLbl">Signing in…</span>
     </button>
+    <span id="syncTimestamp"></span>
     <button class="fs-btn" onclick="toggleFsPopover()" title="Adjust text size" id="fsSizeBtn" aria-label="Font size settings">Aᴬ</button>
     <button class="fs-btn" onclick="toggleTheme()" title="Toggle light/dark theme" id="themeBtn" aria-label="Toggle light or dark mode">☀</button>
+    <button class="fs-btn" id="notifBellBtn" onclick="toggleNotifCenter()" aria-label="Notifications">🔔<span id="notifBadge">0</span></button>
     <button class="btn-secondary" onclick="openPriceResearch()" title="Look up prices by UPC barcode" aria-label="Open price research">🔍 Prices</button>
     <button class="btn-secondary" onclick="exportAll()" aria-label="Export all data as CSV">↓ Export All</button>
     <button class="btn-secondary" onclick="document.getElementById('csvImportInput').click()" aria-label="Import CSV file">↑ Import</button>
@@ -100,16 +102,25 @@
   </div>
 </div>
 
+<!-- NOTIFICATION CENTER DROPDOWN -->
+<div id="notifDropdown">
+  <div class="notif-header">
+    <span>Notifications</span>
+    <button onclick="markAllRead()">Mark all read</button>
+  </div>
+  <div id="notifList"><div class="notif-empty">No notifications yet</div></div>
+</div>
+
 <main id="mainContent" role="main">
 
 <!-- STATS -->
 <div class="stats-grid">
-  <div class="stat-card c1" onclick="goToBreakdown()" style="cursor:pointer" title="View inventory breakdown by category"><div class="stat-label">Inventory Value</div><div class="stat-value" id="sInvVal">$0</div><div class="stat-sub" id="sInvCnt">0 units</div></div>
-  <div class="stat-card c2" title="Total revenue from all recorded sales"><div class="stat-label">Revenue</div><div class="stat-value" id="sRev">$0</div><div class="stat-sub" id="sRevCnt">0 sales</div></div>
-  <div class="stat-card c3" title="Revenue minus cost of goods, fees, and shipping"><div class="stat-label">Net Profit</div><div class="stat-value" id="sProfit">$0</div><div class="stat-sub" id="sMargin">avg —</div></div>
-  <div class="stat-card c4" title="Return on investment: profit divided by total cost"><div class="stat-label">ROI</div><div class="stat-value" id="sROI">—</div><div class="stat-sub" id="sCOGS">$0 cost basis</div></div>
-  <div class="stat-card c5" onclick="goToStockAlert()" style="cursor:pointer" title="View low & out of stock items"><div class="stat-label">Low Stock</div><div class="stat-value" id="sLow">0</div><div class="stat-sub" id="sOut">0 out of stock</div></div>
-  <div class="stat-card c3" title="Average time from listing to sale"><div class="stat-label">Avg Days to Sell</div><div class="stat-value" id="sAvgDays">—</div><div class="stat-sub" id="sAvgDaysSub">from list to sold</div></div>
+  <div class="stat-card c1" onclick="goToBreakdown()" style="cursor:pointer"><span class="stat-info-icon">?</span><div class="stat-tooltip">Total value of all in-stock items at list price. Click to see breakdown by category.</div><div class="stat-label">Inventory Value</div><div class="stat-value" id="sInvVal">$0</div><div class="stat-sub" id="sInvCnt">0 units</div></div>
+  <div class="stat-card c2"><span class="stat-info-icon">?</span><div class="stat-tooltip">Total revenue from all recorded sales across every platform.</div><div class="stat-label">Revenue</div><div class="stat-value" id="sRev">$0</div><div class="stat-sub" id="sRevCnt">0 sales</div></div>
+  <div class="stat-card c3"><span class="stat-info-icon">?</span><div class="stat-tooltip">Revenue minus cost of goods, platform fees, and shipping. Your actual take-home.</div><div class="stat-label">Net Profit</div><div class="stat-value" id="sProfit">$0</div><div class="stat-sub" id="sMargin">avg —</div></div>
+  <div class="stat-card c4"><span class="stat-info-icon">?</span><div class="stat-tooltip">Return on investment — profit divided by total cost basis. Higher = better use of capital.</div><div class="stat-label">ROI</div><div class="stat-value" id="sROI">—</div><div class="stat-sub" id="sCOGS">$0 cost basis</div></div>
+  <div class="stat-card c5" onclick="goToStockAlert()" style="cursor:pointer"><span class="stat-info-icon">?</span><div class="stat-tooltip">Items below minimum stock threshold. Click to view and restock.</div><div class="stat-label">Low Stock</div><div class="stat-value" id="sLow">0</div><div class="stat-sub" id="sOut">0 out of stock</div></div>
+  <div class="stat-card c3"><span class="stat-info-icon">?</span><div class="stat-tooltip">Average days from listing to first sale. Lower = faster turnover.</div><div class="stat-label">Avg Days to Sell</div><div class="stat-value" id="sAvgDays">—</div><div class="stat-sub" id="sAvgDaysSub">from list to sold</div></div>
 </div>
 
 <!-- VIEW: DASHBOARD -->
@@ -121,6 +132,14 @@
   </div>
   <div id="priceAlerts" style="display:none"></div>
   <div id="deathPileSection" style="display:none"></div>
+  <!-- KPI GOALS -->
+  <div class="panel" style="animation-delay:.12s">
+    <div class="panel-header">
+      <div class="panel-title">Monthly Goals</div>
+      <button class="btn-secondary" onclick="startTour()" style="font-size:10px;padding:4px 10px">? Tour</button>
+    </div>
+    <div id="kpiGoalsSection"></div>
+  </div>
   <div id="profitHeatmap" class="panel" style="display:none;animation-delay:.18s">
     <div class="panel-header"><div class="panel-title">Profit Calendar</div></div>
   </div>
@@ -147,9 +166,25 @@
       <div class="panel" style="animation-delay:.36s">
         <div class="panel-header">
           <div class="panel-title">Quick Export</div>
-          <button class="btn-secondary" onclick="toggleNotifications()" id="notifToggleBtn" style="font-size:10px;padding:4px 10px">🔔 Alerts</button>
+          <button class="btn-secondary" onclick="toggleNotifications()" id="notifToggleBtn" style="font-size:10px;padding:4px 10px">🔔 Push Alerts</button>
         </div>
         <div id="csvExportSection"></div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="pdf-btn" onclick="exportPLReport()">📊 P&L Report (PDF)</button>
+          <button class="pdf-btn" onclick="exportTaxReport()">🧾 Tax Summary (PDF)</button>
+        </div>
+      </div>
+      <!-- Feature Showcase -->
+      <div class="panel" style="animation-delay:.40s">
+        <div class="panel-header"><div class="panel-title">FlipTrack at a Glance</div></div>
+        <div class="feature-showcase" id="featureShowcase">
+          <div class="feature-card"><div class="feature-card-icon">📦</div><div class="feature-card-num" id="fsTotalItems">0</div><div class="feature-card-label">Items Tracked</div></div>
+          <div class="feature-card"><div class="feature-card-icon">🏪</div><div class="feature-card-num">7+</div><div class="feature-card-label">Platforms</div></div>
+          <div class="feature-card"><div class="feature-card-icon">📊</div><div class="feature-card-num">14</div><div class="feature-card-label">Dashboard Views</div></div>
+          <div class="feature-card"><div class="feature-card-icon">📱</div><div class="feature-card-num">PWA</div><div class="feature-card-label">Works Offline</div></div>
+          <div class="feature-card"><div class="feature-card-icon">🔄</div><div class="feature-card-num">Live</div><div class="feature-card-label">Cloud Sync</div></div>
+          <div class="feature-card"><div class="feature-card-icon">📸</div><div class="feature-card-num">AI</div><div class="feature-card-label">Item Identify</div></div>
+        </div>
       </div>
     </div>
   </div>

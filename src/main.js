@@ -226,6 +226,11 @@ import { animateStatCounters } from './features/animated-counters.js';
 import { mountProfitHeatmap } from './features/profit-heatmap.js';
 import { exportPlatformCSV, exportSalesCSV, exportTaxCSV, renderCSVExportPanel } from './features/csv-templates.js';
 import { toggleNotifications, startStockAlertChecks, getNotifStatus } from './features/push-notifications.js';
+import { startTour, endTour, maybeStartTour } from './features/onboarding-tour.js';
+import { renderKPIGoals, openKPIGoalEditor, closeKPIGoalEditor, saveKPIGoals } from './features/kpi-goals.js';
+import { toggleNotifCenter, closeNotifCenter, markAllRead, clearNotifications, addNotification, initNotificationCenter } from './features/notification-center.js';
+import { recordSync, startSyncIndicator } from './features/sync-indicator.js';
+import { exportPLReport, exportTaxReport } from './features/pdf-reports.js';
 import {
   initShipLabels, estimateRates, getCheapestRate, renderRateComparison,
   getPirateShipLink, getPayPalShipLink, getEBayShipLink,
@@ -485,6 +490,11 @@ Object.assign(window, {
   loadDemoData, clearDemoData,
   exportPlatformCSV, exportSalesCSV, exportTaxCSV,
   toggleNotifications,
+  // Stakeholder features
+  startTour, endTour,
+  openKPIGoalEditor, closeKPIGoalEditor, saveKPIGoals,
+  toggleNotifCenter, closeNotifCenter, markAllRead, clearNotifications,
+  exportPLReport, exportTaxReport,
 });
 
 // Phase 8: Pro Reseller Features
@@ -807,6 +817,11 @@ setTimeout(_killSplash, 3000);
 
   // Stock alert notifications (if enabled)
   startStockAlertChecks();
+
+  // Initialize notification center, sync indicator, and onboarding tour
+  initNotificationCenter();
+  startSyncIndicator();
+  maybeStartTour();
 
   // Initialize eBay OAuth + AI Listing (non-blocking)
   const _sbClient = (await import('./data/auth.js')).getSupabaseClient();

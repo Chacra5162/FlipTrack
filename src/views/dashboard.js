@@ -7,6 +7,7 @@ import { getDeathPileStats, getUrgencyLevel } from '../features/death-pile.js';
 import { animateStatCounters } from '../features/animated-counters.js';
 import { mountProfitHeatmap } from '../features/profit-heatmap.js';
 import { renderCSVExportPanel } from '../features/csv-templates.js';
+import { renderKPIGoals } from '../features/kpi-goals.js';
 
 export function updateStats() {
   const invVal = inv.reduce((a,i)=>a+(i.price||0)*(i.qty||0),0);
@@ -74,7 +75,7 @@ export function updatePlatBreakdown() {
     'Other':'#57c8ff'
   };
   const el=document.getElementById('platBreakdown');
-  if(!entries.length){el.innerHTML='<div style="padding:18px;color:var(--muted);font-size:12px">No sales yet.</div>';return;}
+  if(!entries.length){el.innerHTML='<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">Record your first sale to see revenue breakdown by platform</div><button class="empty-state-cta" onclick="switchView(\'sales\',document.querySelectorAll(\'.nav-tab\')[2])">Go to Sales →</button></div>';return;}
   el.innerHTML=entries.map(([n,v])=>`
     <div class="plat-row">
       <span class="plat-name">${n}</span>
@@ -86,7 +87,7 @@ export function updatePlatBreakdown() {
 export function updateSalesLog() {
   document.getElementById('saleCnt').textContent=sales.length+' total';
   const el=document.getElementById('salesLog');
-  if(!sales.length){el.innerHTML='<div class="sale-item" style="justify-content:center;color:var(--muted);font-size:12px">No sales yet.</div>';return;}
+  if(!sales.length){el.innerHTML='<div class="empty-state"><div class="empty-state-icon">💰</div><div class="empty-state-text">No sales recorded yet. Sell an item and log it here!</div><button class="empty-state-cta" onclick="openSoldModal()">Record a Sale →</button></div>';return;}
   const colors=['#57c8ff','#ff6b35','#7b61ff','#57ff9a','#ffb800'];
   el.innerHTML=[...sales].reverse().slice(0,8).map((s,i)=>{
     const it=inv.find(x=>x.id===s.itemId);
@@ -201,6 +202,14 @@ export function renderDash() {
   // Populate CSV export panel
   const csvEl = document.getElementById('csvExportSection');
   if (csvEl) csvEl.innerHTML = renderCSVExportPanel();
+
+  // KPI Goals
+  const kpiEl = document.getElementById('kpiGoalsSection');
+  if (kpiEl) kpiEl.innerHTML = renderKPIGoals();
+
+  // Feature showcase — update total items count
+  const fsEl = document.getElementById('fsTotalItems');
+  if (fsEl) fsEl.textContent = inv.length;
   const items=[...inv].sort((a,b)=>new Date(b.added)-new Date(a.added)).slice(0,6);
   const tbody=document.getElementById('dashBody');
   if(!items.length){tbody.innerHTML='<tr><td colspan="4" style="padding:20px;color:var(--muted);font-size:12px;text-align:center">No items yet.</td></tr>';return;}
