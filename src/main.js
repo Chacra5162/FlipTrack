@@ -642,15 +642,15 @@ function clearStockFilt() {
 // ══════════════════════════════════════════════════════════════════════════════
 
 function toggleTheme() {
-  const body = document.body;
-  body.classList.toggle('light');
-  const isLight = body.classList.contains('light');
+  const root = document.documentElement;
+  const isLight = root.getAttribute('data-theme') !== 'light';
+  root.setAttribute('data-theme', isLight ? 'light' : 'dark');
   localStorage.setItem('ft_theme', isLight ? 'light' : 'dark');
   updateThemeLabels();
 }
 
 function updateThemeLabels() {
-  const isLight = document.body.classList.contains('light');
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
   const btn = document.getElementById('themeBtn');
   if (btn) btn.textContent = isLight ? '🌙' : '☀';
 }
@@ -694,7 +694,7 @@ function setFont(font, doSave = true) {
 
 // Restore saved preferences
 const savedTheme = localStorage.getItem('ft_theme');
-if (savedTheme === 'light') document.body.classList.add('light');
+if (savedTheme === 'light') document.documentElement.setAttribute('data-theme', 'light');
 updateThemeLabels();
 
 const savedFs = localStorage.getItem('ft_fs');
