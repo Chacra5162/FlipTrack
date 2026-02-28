@@ -725,6 +725,10 @@ setDefaultExpDate();
   rebuildInvIndex();
   refresh();
 
+  // Dismiss splash screen
+  const splash = document.getElementById('splash');
+  if (splash) { splash.classList.add('hide'); setTimeout(() => splash.remove(), 500); }
+
   // Bottom nav visibility
   updateBnavVisibility();
   window.addEventListener('resize', updateBnavVisibility);
@@ -779,7 +783,7 @@ setDefaultExpDate();
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
+    navigator.serviceWorker.register('./sw.js')
       .catch(err => console.warn('SW registration failed:', err));
   });
 }

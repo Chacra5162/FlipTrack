@@ -4,13 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>FlipTrack — Reseller Dashboard</title>
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="./favicon.ico" sizes="any">
   <meta name="theme-color" content="#0a0a0f">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="FlipTrack">
-  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
   <meta name="description" content="FlipTrack — Reseller inventory, sales, and expense tracker">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,6 +20,17 @@
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
 </head>
 <body>
+<!-- SPLASH / LOADING SCREEN — removed by main.js on init -->
+<div id="splash" style="position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0a0a0f;gap:16px;transition:opacity .4s">
+  <div style="font-family:'Syne',system-ui,sans-serif;font-size:28px;font-weight:800;letter-spacing:-.5px;color:#fff">Flip<span style="color:#00c888">Track</span></div>
+  <div style="width:120px;height:3px;border-radius:2px;background:#181820;overflow:hidden">
+    <div style="width:40%;height:100%;background:#00c888;border-radius:2px;animation:splash-bar 1.2s ease-in-out infinite"></div>
+  </div>
+</div>
+<style>
+  @keyframes splash-bar{0%{transform:translateX(-100%)}50%{transform:translateX(150%)}100%{transform:translateX(-100%)}}
+  #splash.hide{opacity:0;pointer-events:none}
+</style>
 <div class="shell">
 
 <!-- HEADER -->
@@ -839,7 +851,7 @@
 </div>
 
 <!-- ADD MODAL -->
-<div class="overlay" id="addOv" role="dialog" aria-modal="true" aria-label="Add New Item">
+<div class="overlay" id="addOv" role="dialog" aria-modal="true" aria-label="Add New Item" onclick="if(event.target===this)closeAdd()">
   <div class="modal">
     <div class="modal-hd"><div class="modal-ttl">Add Inventory Item</div><div style="display:flex;gap:8px;align-items:center"><button class="btn-secondary" onclick="prefillFromLast()" style="font-size:10px;padding:4px 10px" title="Copy source, category, platforms from your last item">⟲ Repeat Last</button><button class="modal-x" onclick="closeAdd()" aria-label="Close add item dialog">×</button></div></div>
     <div class="modal-bd">
@@ -1023,7 +1035,7 @@
 </div>
 
 <!-- SOLD MODAL -->
-<div class="overlay" id="soldOv" role="dialog" aria-modal="true" aria-label="Record Sale">
+<div class="overlay" id="soldOv" role="dialog" aria-modal="true" aria-label="Record Sale" onclick="if(event.target===this)closeSold()">
   <div class="modal">
     <div class="modal-hd"><div class="modal-ttl">Record Sale</div><button class="modal-x" onclick="closeSold()">×</button></div>
     <div class="modal-bd">
@@ -1064,7 +1076,7 @@
 </div>
 
 <!-- CROP MODAL -->
-<div class="overlay" id="cropOv" style="overscroll-behavior:contain" role="dialog" aria-modal="true" aria-label="Crop Image">
+<div class="overlay" id="cropOv" style="overscroll-behavior:contain" role="dialog" aria-modal="true" aria-label="Crop Image" onclick="if(event.target===this)cropCancel()">
   <div class="modal" style="max-width:560px;width:95vw">
     <div class="modal-hd">
       <div class="modal-ttl">✂️ Crop Photo</div>
@@ -1092,7 +1104,7 @@
 </div>
 
 <!-- MATERIALS USED MODAL (shown after recording a sale) -->
-<div class="overlay" id="matsOv" role="dialog" aria-modal="true" aria-label="Materials Used">
+<div class="overlay" id="matsOv" role="dialog" aria-modal="true" aria-label="Materials Used" onclick="if(event.target===this)skipMaterials()">
   <div class="modal" style="max-width:500px">
     <div class="modal-hd">
       <div class="modal-ttl">📦 Materials Used</div>
@@ -1147,7 +1159,7 @@
 <!-- OFFLINE BANNER -->
 
 <!-- TRASH MODAL -->
-<div class="overlay" id="trashOv" role="dialog" aria-modal="true" aria-label="Trash">
+<div class="overlay" id="trashOv" role="dialog" aria-modal="true" aria-label="Trash" onclick="if(event.target===this)closeTrashModal()">
   <div class="modal" style="max-width:460px">
     <div class="modal-hd">
       <div class="modal-ttl">🗑️ Recently Deleted</div>
