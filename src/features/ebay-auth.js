@@ -33,7 +33,7 @@ let _sb = null;
 export async function initEBayAuth(supabaseClient) {
   _sb = supabaseClient;
   try {
-    // Load cached status from IDB
+    // Load cached status from IDB for instant UI
     const cached = await getMeta('ebay_auth');
     if (cached) {
       _connected = cached.connected || false;
@@ -42,8 +42,9 @@ export async function initEBayAuth(supabaseClient) {
       _connectedAt = cached.connectedAt || null;
     }
 
-    // Verify with server (non-blocking)
-    checkEBayStatus().catch(() => {});
+    // Always verify with server — await it so state is accurate before UI renders.
+    // On a new device with no cache, this is the only way to know the real status.
+    await checkEBayStatus();
   } catch (e) {
     console.warn('FlipTrack: eBay auth init error:', e.message);
   }
@@ -83,6 +84,7 @@ async function callEdgeFn(action, body = {}) {
  */
 export async function checkEBayStatus() {
   try {
+    const prevConnected = _connected;
     const data = await callEdgeFn('status');
     _connected = data.connected;
     _ebayUsername = data.ebay_username || null;
@@ -94,6 +96,11 @@ export async function checkEBayStatus() {
       ebayUsername: _ebayUsername,
       connectedAt: _connectedAt,
     });
+
+    // If connection state changed, refresh UI
+    if (prevConnected !== _connected && typeof window.renderCrosslistDashboard === 'function') {
+      window.renderCrosslistDashboard();
+    }
 
     return data;
   } catch (e) {
