@@ -1,7 +1,7 @@
 /* ── RESPONSIVE ─────────────────────────────────────── */
 
-/* Tablet landscape / small desktop */
-@media (max-width: 1100px) {
+/* Tablet landscape / small desktop (covers iPad landscape @ 1194px) */
+@media (max-width: 1220px) {
   .stats-grid  { grid-template-columns: repeat(3, 1fr); }
   .dash-grid   { grid-template-columns: 1fr; }
 }
@@ -295,8 +295,8 @@
   .header-center { display: none; }
 }
 
-/* iPad landscape / mobile landscape (820px–1100px): header has all tabs + buttons, needs to be compact */
-@media (min-width: 821px) and (max-width: 1100px) {
+/* iPad landscape / mobile landscape (820px–1220px): header has all tabs + buttons, needs to be compact */
+@media (min-width: 821px) and (max-width: 1220px) {
   header { padding: 10px 16px; padding-top: calc(10px + env(safe-area-inset-top)); gap: 8px; flex-wrap: nowrap; overflow: visible; }
   .logo  { font-size: 17px; white-space: nowrap; flex-shrink: 0; }
   .date-badge { display: none; }
