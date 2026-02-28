@@ -18,7 +18,13 @@ export function releaseFocus() {
 
 function _handleTrapKey(e) {
   if (!_focusTrapEl) return;
-  if (e.key === 'Escape') { releaseFocus(); closeDrawer(); closeAdd(); return; }
+  if (e.key === 'Escape') {
+    releaseFocus();
+    // Use window-exposed functions to avoid circular imports
+    if (typeof window.closeDrawer === 'function') window.closeDrawer();
+    if (typeof window.closeAdd === 'function') window.closeAdd();
+    return;
+  }
   if (e.key !== 'Tab') return;
   const focusables = _focusTrapEl.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])');
   if (!focusables.length) return;

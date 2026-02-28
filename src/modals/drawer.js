@@ -5,7 +5,7 @@
 
 import { SUBCATS, SUBSUBCATS } from '../config/categories.js';
 import { fmt, pct, ds, escHtml, uid } from '../utils/format.js';
-import { toast } from '../utils/dom.js';
+import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
 import { parseNum, validateNumericInput } from '../utils/validate.js';
 import {
