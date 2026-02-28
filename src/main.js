@@ -748,7 +748,7 @@ setTimeout(_killSplash, 3000);
   }
 
   // Build initial state
-  try { rebuildInvIndex(); refresh(); } catch(e) { console.warn('FlipTrack: render error:', e.message); }
+  try { rebuildInvIndex(); refresh(); renderDash(); } catch(e) { console.warn('FlipTrack: render error:', e.message); }
 
   // Dismiss splash screen (always — even if boot partially fails)
   _killSplash();

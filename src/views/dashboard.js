@@ -189,6 +189,11 @@ export function quickReprice(itemId, newPrice) {
 }
 
 export function renderDash() {
+  // Stats must render FIRST so animated counters have values to animate
+  updateStats();
+  updatePlatBreakdown();
+  updateSalesLog();
+
   renderPriceAlerts();
   renderDeathPile();
   mountProfitHeatmap();
