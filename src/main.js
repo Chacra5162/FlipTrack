@@ -715,6 +715,17 @@ document.getElementById('currentDate').textContent =
 // Init expense date
 setDefaultExpDate();
 
+// ── SPLASH SCREEN HELPER ──
+function _killSplash() {
+  const s = document.getElementById('splash');
+  if (!s) return;
+  s.style.opacity = '0';
+  s.style.pointerEvents = 'none';
+  setTimeout(() => s.remove(), 600);
+}
+// Safety net: dismiss splash after 3 seconds no matter what
+setTimeout(_killSplash, 3000);
+
 // ── ASYNC BOOT: Load data from IndexedDB, then render ──
 (async function boot() {
   try {
@@ -725,12 +736,10 @@ setDefaultExpDate();
   }
 
   // Build initial state
-  rebuildInvIndex();
-  refresh();
+  try { rebuildInvIndex(); refresh(); } catch(e) { console.warn('FlipTrack: render error:', e.message); }
 
-  // Dismiss splash screen
-  const splash = document.getElementById('splash');
-  if (splash) { splash.classList.add('hide'); setTimeout(() => splash.remove(), 500); }
+  // Dismiss splash screen (always — even if boot partially fails)
+  _killSplash();
 
   // First-run onboarding
   if (!localStorage.getItem('ft_welcomed')) {
