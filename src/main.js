@@ -493,7 +493,7 @@ Object.assign(window, {
   // Stakeholder features
   startTour, endTour,
   openKPIGoalEditor, closeKPIGoalEditor, saveKPIGoals,
-  toggleNotifCenter, closeNotifCenter, markAllRead, clearNotifications,
+  toggleNotifCenter, closeNotifCenter, markAllRead, clearNotifications, addNotification,
   exportPLReport, exportTaxReport,
 });
 
