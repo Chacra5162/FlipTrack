@@ -589,9 +589,9 @@ function clRelistFromDrawer(itemId, platform) {
 
 function switchView(name, el) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); t.setAttribute('tabindex', '-1'); });
   document.getElementById('view-' + name)?.classList.add('active');
-  if (el) el.classList.add('active');
+  if (el) { el.classList.add('active'); el.setAttribute('aria-selected', 'true'); el.setAttribute('tabindex', '0'); }
 
   if (name === 'inventory') renderInv();
   else if (name === 'sales') renderSalesView();
@@ -729,6 +729,17 @@ setDefaultExpDate();
   const splash = document.getElementById('splash');
   if (splash) { splash.classList.add('hide'); setTimeout(() => splash.remove(), 500); }
 
+  // First-run onboarding
+  if (!localStorage.getItem('ft_welcomed')) {
+    const wOv = document.getElementById('welcomeOv');
+    if (wOv) wOv.style.display = '';
+  }
+  window.dismissWelcome = function () {
+    localStorage.setItem('ft_welcomed', '1');
+    const wOv = document.getElementById('welcomeOv');
+    if (wOv) { wOv.style.opacity = '0'; setTimeout(() => wOv.remove(), 300); }
+  };
+
   // Bottom nav visibility
   updateBnavVisibility();
   window.addEventListener('resize', updateBnavVisibility);
@@ -787,3 +798,26 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.warn('SW registration failed:', err));
   });
 }
+
+// ── GLOBAL ERROR HANDLER ──────────────────────────────────────────────────
+(function () {
+  let lastErr = 0;
+  function showError(msg) {
+    // Throttle to avoid toast spam
+    if (Date.now() - lastErr < 3000) return;
+    lastErr = Date.now();
+    const t = document.getElementById('toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.className = 'toast err on';
+    setTimeout(() => t.classList.remove('on'), 4000);
+  }
+  window.addEventListener('error', (e) => {
+    console.error('FlipTrack global error:', e.error || e.message);
+    showError('Something went wrong — your data is safe.');
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    console.error('FlipTrack unhandled rejection:', e.reason);
+    showError('A background task failed — retrying automatically.');
+  });
+})();

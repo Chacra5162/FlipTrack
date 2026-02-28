@@ -31,21 +31,22 @@
   @keyframes splash-bar{0%{transform:translateX(-100%)}50%{transform:translateX(150%)}100%{transform:translateX(-100%)}}
   #splash.hide{opacity:0;pointer-events:none}
 </style>
+<a href="#mainContent" class="sr-only" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;z-index:100000;padding:8px 16px;background:var(--accent);color:#fff;font-size:14px;text-decoration:none;border-radius:4px" onfocus="this.style.cssText='position:fixed;left:8px;top:8px;z-index:100000;padding:8px 16px;background:var(--accent);color:#fff;font-size:14px;text-decoration:none;border-radius:4px'" onblur="this.style.cssText='position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden'">Skip to content</a>
 <div class="shell">
 
 <!-- HEADER -->
-<header>
-  <div class="logo">Flip<span>Track</span></div>
-  <div class="header-center">
-    <div class="nav-tab active" onclick="switchView('dashboard',this)" role="tab">Dashboard</div>
-    <div class="nav-tab" onclick="switchView('inventory',this)" role="tab">Inventory</div>
-    <div class="nav-tab" onclick="switchView('sales',this)" role="tab">Sales Log</div>
-    <div class="nav-tab" onclick="switchView('expenses',this)" role="tab">Expenses</div>
-    <div class="nav-tab" onclick="switchView('supplies',this)" role="tab">Supplies</div>
-    <div class="nav-tab" onclick="switchView('insights',this)" role="tab">Insights</div>
-    <div class="nav-tab" onclick="switchView('reports',this)" role="tab">Reports</div>
-    <div class="nav-tab" onclick="switchView('breakdown',this)" role="tab">Value Breakdown</div>
-  </div>
+<header role="banner">
+  <div class="logo" aria-label="FlipTrack">Flip<span>Track</span></div>
+  <nav class="header-center" role="tablist" aria-label="Main navigation">
+    <div class="nav-tab active" onclick="switchView('dashboard',this)" role="tab" tabindex="0" aria-selected="true">Dashboard</div>
+    <div class="nav-tab" onclick="switchView('inventory',this)" role="tab" tabindex="-1" aria-selected="false">Inventory</div>
+    <div class="nav-tab" onclick="switchView('sales',this)" role="tab" tabindex="-1" aria-selected="false">Sales Log</div>
+    <div class="nav-tab" onclick="switchView('expenses',this)" role="tab" tabindex="-1" aria-selected="false">Expenses</div>
+    <div class="nav-tab" onclick="switchView('supplies',this)" role="tab" tabindex="-1" aria-selected="false">Supplies</div>
+    <div class="nav-tab" onclick="switchView('insights',this)" role="tab" tabindex="-1" aria-selected="false">Insights</div>
+    <div class="nav-tab" onclick="switchView('reports',this)" role="tab" tabindex="-1" aria-selected="false">Reports</div>
+    <div class="nav-tab" onclick="switchView('breakdown',this)" role="tab" tabindex="-1" aria-selected="false">Value Breakdown</div>
+  </nav>
   <div class="header-right">
     <div class="date-badge" id="currentDate"></div>
     <button class="sync-dot-btn" id="syncDotBtn" onclick="openAccountMenu()" title="Account">
@@ -99,7 +100,7 @@
   </div>
 </div>
 
-<main>
+<main id="mainContent" role="main">
 
 <!-- STATS -->
 <div class="stats-grid">
@@ -1262,7 +1263,7 @@
 </div>
 
 <!-- Bottom nav — visible on phones only (max 600px) -->
-<nav class="bottom-nav" id="bottomNav" style="display:none">
+<nav class="bottom-nav" id="bottomNav" style="display:none" aria-label="Bottom navigation">
   <button class="bnav-btn active" id="bn-dashboard" onclick="switchView('dashboard',document.querySelectorAll('.nav-tab')[0]);bnav('bn-dashboard')">
     <span class="bnav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
     <span class="bnav-lbl">Dashboard</span>
@@ -1271,7 +1272,7 @@
     <span class="bnav-icon"><svg viewBox="0 0 24 24"><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg></span>
     <span class="bnav-lbl">Inventory</span>
   </button>
-  <button class="bnav-fab" onclick="openAddModal()">+</button>
+  <button class="bnav-fab" onclick="openAddModal()" aria-label="Add new inventory item">+</button>
   <button class="bnav-btn" id="bn-sales" onclick="switchView('sales',document.querySelectorAll('.nav-tab')[2]);bnav('bn-sales')">
     <span class="bnav-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
     <span class="bnav-lbl">Sales</span>
@@ -1281,6 +1282,42 @@
     <span class="bnav-lbl">More</span>
   </button>
 </nav>
+
+<!-- ONBOARDING WELCOME MODAL -->
+<div class="overlay" id="welcomeOv" role="dialog" aria-modal="true" aria-label="Welcome to FlipTrack" onclick="if(event.target===this)dismissWelcome()" style="display:none">
+  <div class="modal" style="max-width:480px;text-align:center">
+    <div class="modal-bd" style="padding:32px 24px 16px">
+      <div style="font-family:'Syne',system-ui,sans-serif;font-size:32px;font-weight:800;letter-spacing:-.5px;margin-bottom:4px">Flip<span style="color:var(--accent)">Track</span></div>
+      <div style="color:var(--muted);font-size:13px;margin-bottom:24px">Your reselling command center</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;text-align:left;margin-bottom:24px">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:18px;margin-bottom:4px">📦</div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:2px">Inventory</div>
+          <div style="font-size:11px;color:var(--muted)">Track items, costs, photos & condition</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:18px;margin-bottom:4px">💰</div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:2px">Sales & Profit</div>
+          <div style="font-size:11px;color:var(--muted)">Record sales with auto-calculated ROI</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:18px;margin-bottom:4px">📊</div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:2px">Reports</div>
+          <div style="font-size:11px;color:var(--muted)">Revenue, margins & trends at a glance</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:18px;margin-bottom:4px">🔄</div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:2px">Cloud Sync</div>
+          <div style="font-size:11px;color:var(--muted)">Supabase-backed real-time sync</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:20px">Works offline · Dark &amp; light themes · Dyslexia-friendly fonts · Barcode scanner</div>
+    </div>
+    <div class="modal-ft" style="justify-content:center;padding-bottom:24px">
+      <button class="btn-primary" onclick="dismissWelcome()" style="min-width:180px;font-size:14px;padding:12px 24px">Get Started</button>
+    </div>
+  </div>
+</div>
 
 <script type="module" src="./src/main.js"></script>
 </body>
