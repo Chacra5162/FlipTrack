@@ -4,14 +4,10 @@
  * listing titles and descriptions for marketplace platforms.
  */
 
-import { SB_URL } from '../config/constants.js';
 import { getInvItem, markDirty, save } from '../data/store.js';
 import { toast } from '../utils/dom.js';
 import { escHtml, fmt } from '../utils/format.js';
 import { getPlatforms } from './platforms.js';
-
-// ── CONFIG ────────────────────────────────────────────────────────────────
-const PROXY_URL = `${SB_URL}/functions/v1/anthropic-proxy`;
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 let _sb = null;
@@ -26,26 +22,8 @@ export function initAIListing(supabaseClient) {
 }
 
 /**
- * Get auth headers for the proxy call.
- */
-async function _getHeaders() {
-  if (!_sb) throw new Error('Not authenticated');
-  const { data: { session } } = await _sb.auth.getSession();
-  if (!session) throw new Error('Session expired — please log in');
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${session.access_token}`,
-  };
-}
-
-/**
  * Generate an optimized listing title and description using AI.
- * @param {Object} item - Inventory item
- * @param {Object} [opts]
- * @param {string} [opts.platform] - Target platform for optimization
- * @param {string} [opts.tone='professional'] - Tone: professional, casual, urgent, luxury
- * @param {boolean} [opts.includeKeywords=true] - Include SEO keywords
- * @returns {Promise<{ title: string, description: string, keywords: string[], seoTips: string[] }>}
+ * Uses _sb.functions.invoke which automatically sends apikey + auth headers.
  */
 export async function generateListing(item, opts = {}) {
   if (_generating) throw new Error('Already generating — please wait');
@@ -59,24 +37,19 @@ export async function generateListing(item, opts = {}) {
 
     const prompt = _buildPrompt(item, platform, tone, opts.includeKeywords !== false);
 
-    const headers = await _getHeaders();
-    const resp = await fetch(PROXY_URL, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
+    const { data, error } = await _sb.functions.invoke('anthropic-proxy', {
+      body: {
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
         messages: [{ role: 'user', content: prompt }],
-      }),
+      },
     });
 
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      throw new Error(err.error || `AI request failed: ${resp.status}`);
-    }
+    if (error) throw new Error(error.message || 'AI request failed');
+    if (data?.error) throw new Error(data.error);
 
-    const data = await resp.json();
-    const text = data.content?.[0]?.text || '';
+    const text = data?.content?.[0]?.text || '';
+    if (!text) throw new Error('Empty AI response');
 
     return _parseResponse(text);
   } finally {
