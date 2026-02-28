@@ -108,7 +108,12 @@ export async function checkEBayStatus() {
     return data;
   } catch (e) {
     console.warn('eBay status check failed:', e.message);
-    return { connected: _connected };
+    _statusVerified = true; // mark verified even on error so UI doesn't loop
+    // Re-render UI to clear "Checking…" state
+    if (typeof window.renderCrosslistDashboard === 'function') {
+      window.renderCrosslistDashboard();
+    }
+    return { connected: _connected, error: e.message };
   }
 }
 
