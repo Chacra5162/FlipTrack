@@ -5,7 +5,7 @@
  * through the Supabase Edge Function `ebay-auth`.
  */
 
-import { SB_URL } from '../config/constants.js';
+import { SB_URL, SB_KEY } from '../config/constants.js';
 import { getMeta, setMeta } from '../data/idb.js';
 import { toast } from '../utils/dom.js';
 
@@ -58,6 +58,7 @@ async function getAuthHeaders() {
   return {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${session.access_token}`,
+    'apikey': SB_KEY,
   };
 }
 

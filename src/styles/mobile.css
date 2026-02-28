@@ -297,25 +297,40 @@
 
 /* iPad landscape / mobile landscape (820px–1220px): header has all tabs + buttons, needs to be compact */
 @media (min-width: 821px) and (max-width: 1220px) {
-  header { padding: 10px 16px; padding-top: calc(10px + env(safe-area-inset-top)); gap: 8px; flex-wrap: nowrap; overflow: visible; }
+  header {
+    padding: 10px 16px;
+    padding-top: calc(10px + env(safe-area-inset-top));
+    gap: 6px;
+    flex-wrap: nowrap;
+    overflow: hidden;       /* prevent any horizontal overflow */
+  }
   .logo  { font-size: 17px; white-space: nowrap; flex-shrink: 0; }
   .date-badge { display: none; }
-  .btn-secondary { display: none; } /* hide Export to save space */
+  .btn-secondary { display: none; }
   .header-center {
+    flex: 1;
+    min-width: 0;
     flex-wrap: nowrap;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;          /* Firefox */
-    -ms-overflow-style: none;       /* IE/Edge */
-    min-width: 0;                   /* allow flex shrinking */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    gap: 2px;
   }
-  .header-center::-webkit-scrollbar { display: none; } /* Chrome/Safari */
-  .nav-tab { font-size: 10px; padding: 5px 8px; white-space: nowrap; flex-shrink: 0; }
-  .header-right { gap: 8px; flex-shrink: 0; }
+  .header-center::-webkit-scrollbar { display: none; }
+  .nav-tab { font-size: 10px; padding: 5px 6px; white-space: nowrap; flex-shrink: 0; }
+  .header-right {
+    gap: 6px;
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+  }
   .sync-dot-btn { padding: 4px 8px; }
-  .sync-dot-lbl { display: none; } /* hide "Synced 2:34 PM" text, keep dot only */
+  .sync-dot-lbl { display: none; }
+  #syncTimestamp { display: none; }
+  /* Hide Identify + Batch on tablet landscape — accessible from Crosslist view */
+  #headerIdBtn { display: none; }
+  #headerBatchBtn { display: none; }
   #headerAddBtn { font-size: 11px; padding: 6px 12px; white-space: nowrap; }
-  #headerIdBtn { font-size: 11px; padding: 6px 10px; white-space: nowrap; }
 }
 
 @media (max-width: 480px) {
