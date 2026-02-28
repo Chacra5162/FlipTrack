@@ -35,6 +35,7 @@ jobs:
 
       - name: Copy static files to dist
         run: |
+          cp CNAME dist/ 2>/dev/null || true
           cp ebay-callback.html dist/ 2>/dev/null || true
           cp etsy-callback.html dist/ 2>/dev/null || true
 
