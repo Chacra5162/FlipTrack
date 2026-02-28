@@ -37,17 +37,70 @@ let _salesDateTo = '';
 // ── SOLD MODAL ────────────────────────────────────────────────────────────────
 
 export function openSoldModal(id) {
+  // If no ID provided, show an item picker first
+  if (!id) {
+    const inStock = inv.filter(i => i.qty > 0 && !i._del);
+    if (!inStock.length) { toast('No items in stock to sell', true); return; }
+    // Build item picker in the soldInfo area
+    activeSoldId = null;
+    const infoEl = document.getElementById('soldInfo');
+    infoEl.innerHTML = `
+      <div class="fgrp full" style="margin-bottom:8px">
+        <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">Select Item to Sell</label>
+        <select id="s_item_picker" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:9px 12px;font-family:'DM Mono',monospace;font-size:12px;width:100%" onchange="onSoldItemPick(this.value)">
+          <option value="">── Choose an item ──</option>
+          ${inStock.map(i => `<option value="${i.id}">${escHtml(i.name)} (${i.qty} in stock — ${fmt(i.price)})</option>`).join('')}
+        </select>
+      </div>`;
+    // Reset form fields
+    document.getElementById('s_price').value = '';
+    document.getElementById('s_qty').value = '1';
+    document.getElementById('s_fees').value = '';
+    document.getElementById('s_ship').value = '';
+    document.getElementById('s_date').value = new Date().toISOString().split('T')[0];
+    const sel = document.getElementById('s_platform');
+    sel.innerHTML = `<option value="" disabled selected>── Select platform ──</option>` +
+      PLATFORMS.map(p => `<option value="${p}">${escHtml(p)}</option>`).join('');
+    sPriceType('each');
+    updateFeeEstimate();
+    document.getElementById('soldOv').classList.add('on');
+    return;
+  }
+
   activeSoldId = id;
   const item = inv.find(i => i.id === id);
   if (!item) { toast('Item not found', true); return; }
+  _populateSoldModal(item);
+  document.getElementById('soldOv').classList.add('on');
+}
+
+/** Called when user picks an item from the dropdown in the no-ID sold modal */
+export function onSoldItemPick(id) {
+  if (!id) return;
+  activeSoldId = id;
+  const item = inv.find(i => i.id === id);
+  if (!item) return;
+  _populateSoldModal(item);
+}
+
+function _populateSoldModal(item) {
   const { pu, m } = calc(item);
-  document.getElementById('soldInfo').innerHTML = `
+  const infoEl = document.getElementById('soldInfo');
+  // Keep the picker if it exists, append item details below it
+  const pickerEl = document.getElementById('s_item_picker');
+  const pickerHtml = pickerEl ? pickerEl.parentElement.outerHTML : '';
+  infoEl.innerHTML = pickerHtml + `
     <div class="sir"><span class="k">Item</span><span>${escHtml(item.name)}</span></div>
     <div class="sir"><span class="k">Platforms</span><span>${getPlatforms(item).join(', ') || '—'}</span></div>
     <div class="sir"><span class="k">Cost</span><span>${fmt(item.cost)}</span></div>
     <div class="sir"><span class="k">List Price</span><span>${fmt(item.price)}</span></div>
     <div class="sir"><span class="k">Expected Profit</span><span style="color:var(--good)">${fmt(pu)} (${pct(m)})</span></div>
     <div class="sir"><span class="k">In Stock</span><span>${item.qty} units</span></div>`;
+  // Update the picker selection if it exists
+  if (pickerEl) {
+    const newPicker = document.getElementById('s_item_picker');
+    if (newPicker) newPicker.value = item.id;
+  }
   document.getElementById('s_price').value = item.price || '';
   document.getElementById('s_qty').value = '1';
   document.getElementById('s_fees').value = item.fees || '';
@@ -65,7 +118,6 @@ export function openSoldModal(id) {
   if (itemPlats.length) sel.value = itemPlats[0];
   sPriceType('each');
   updateFeeEstimate();
-  document.getElementById('soldOv').classList.add('on');
 }
 
 // ── PRICE TYPE SELECTOR ───────────────────────────────────────────────────────

@@ -64,7 +64,7 @@ import {
   setStockFilt, clearStockFilter
 } from './views/inventory.js';
 import {
-  openSoldModal, closeSold, sPriceType,
+  openSoldModal, closeSold, sPriceType, onSoldItemPick,
   updateSalePriceHint, updateFeeEstimate,
   recSale, renderSalesView,
   setSalesSearch, setSalesDateFrom, setSalesDateTo, clearSalesFilters
@@ -359,7 +359,7 @@ Object.assign(window, {
 
 // Sold / Sales
 Object.assign(window, {
-  openSoldModal, closeSold, sPriceType,
+  openSoldModal, closeSold, sPriceType, onSoldItemPick,
   updateSalePriceHint, updateFeeEstimate,
   recSale, renderSalesView, delSale,
   setSalesSearch, setSalesDateFrom, setSalesDateTo, clearSalesFilters
