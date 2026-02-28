@@ -221,6 +221,11 @@ import {
   initAIListing, generateListing, generateAndApply, renderAIListingPanel, copyAIListing, isGenerating
 } from './features/ai-listing.js';
 import { getInventoryValueData, renderInventoryValueDashboard } from './features/inventory-value.js';
+import { initDemoTrigger, loadDemoData, clearDemoData } from './features/demo-data.js';
+import { animateStatCounters } from './features/animated-counters.js';
+import { mountProfitHeatmap } from './features/profit-heatmap.js';
+import { exportPlatformCSV, exportSalesCSV, exportTaxCSV, renderCSVExportPanel } from './features/csv-templates.js';
+import { toggleNotifications, startStockAlertChecks, getNotifStatus } from './features/push-notifications.js';
 import {
   initShipLabels, estimateRates, getCheapestRate, renderRateComparison,
   getPirateShipLink, getPayPalShipLink, getEBayShipLink,
@@ -473,6 +478,13 @@ Object.assign(window, {
   calcSellThroughRate, calcInventoryTurnRate, calcCashFlowProjection,
   calcSeasonalTrends, calcPlatformComparison, calcVelocityByCategory,
   calcProfitByDayOfWeek, calcBestListingDay, calcRevenueForecasts, calcBreakEvenAnalysis
+});
+
+// Pre-Demo & Post-Launch Features
+Object.assign(window, {
+  loadDemoData, clearDemoData,
+  exportPlatformCSV, exportSalesCSV, exportTaxCSV,
+  toggleNotifications,
 });
 
 // Phase 8: Pro Reseller Features
@@ -789,6 +801,12 @@ setTimeout(_killSplash, 3000);
     initShipLabels(),
   ]);
   initShippingModals();
+
+  // Demo data trigger (triple-tap logo)
+  initDemoTrigger();
+
+  // Stock alert notifications (if enabled)
+  startStockAlertChecks();
 
   // Initialize eBay OAuth + AI Listing (non-blocking)
   const _sbClient = (await import('./data/auth.js')).getSupabaseClient();

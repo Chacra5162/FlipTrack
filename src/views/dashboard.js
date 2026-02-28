@@ -4,6 +4,9 @@ import { getPlatforms, renderPlatTags } from '../features/platforms.js';
 import { toast } from '../utils/dom.js';
 import { openDrawer } from '../modals/drawer.js';
 import { getDeathPileStats, getUrgencyLevel } from '../features/death-pile.js';
+import { animateStatCounters } from '../features/animated-counters.js';
+import { mountProfitHeatmap } from '../features/profit-heatmap.js';
+import { renderCSVExportPanel } from '../features/csv-templates.js';
 
 export function updateStats() {
   const invVal = inv.reduce((a,i)=>a+(i.price||0)*(i.qty||0),0);
@@ -47,6 +50,9 @@ export function updateStats() {
   const bn=document.getElementById('alertBanner');
   if(all.length){document.getElementById('alertItems').textContent=all.map(i=>`${i.name} (${i.qty} left)`).join(' · ');bn.classList.add('on');}
   else bn.classList.remove('on');
+
+  // Animate stat counters on first render
+  requestAnimationFrame(() => animateStatCounters());
 }
 
 export function updatePlatBreakdown() {
@@ -185,6 +191,11 @@ export function quickReprice(itemId, newPrice) {
 export function renderDash() {
   renderPriceAlerts();
   renderDeathPile();
+  mountProfitHeatmap();
+
+  // Populate CSV export panel
+  const csvEl = document.getElementById('csvExportSection');
+  if (csvEl) csvEl.innerHTML = renderCSVExportPanel();
   const items=[...inv].sort((a,b)=>new Date(b.added)-new Date(a.added)).slice(0,6);
   const tbody=document.getElementById('dashBody');
   if(!items.length){tbody.innerHTML='<tr><td colspan="4" style="padding:20px;color:var(--muted);font-size:12px;text-align:center">No items yet.</td></tr>';return;}

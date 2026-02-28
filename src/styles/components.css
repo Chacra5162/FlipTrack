@@ -1750,3 +1750,176 @@ textarea { resize:vertical; min-height:70px; }
   .iv-cards { grid-template-columns: 1fr 1fr; }
   .sl-rate-row { flex-wrap: wrap; gap: 4px; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   PROFIT HEATMAP (GitHub-style contribution grid)
+   ═══════════════════════════════════════════════════════════════ */
+.heatmap-wrap {
+  padding: 16px;
+}
+.heatmap-grid {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.heatmap-days {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-right: 4px;
+}
+.hm-day-lbl {
+  font-size: 8px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  height: 11px;
+  line-height: 11px;
+  width: 22px;
+  text-align: right;
+}
+.hm-week {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.hm-cell {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  background: var(--border);
+  cursor: default;
+}
+.hm-cell.empty {
+  background: transparent;
+}
+.hm-cell:hover {
+  outline: 1px solid var(--muted);
+  outline-offset: -1px;
+}
+.hm-months {
+  display: flex;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 9px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+}
+.hm-legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  gap: 8px;
+}
+.hm-stat {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+}
+.hm-scale {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+}
+.hm-scale .hm-cell {
+  width: 10px;
+  height: 10px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CSV EXPORT PANEL
+   ═══════════════════════════════════════════════════════════════ */
+.csv-export-panel {
+  padding: 16px;
+}
+.csv-export-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.csv-export-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.csv-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 12px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.csv-btn:hover { border-color: var(--accent); background: rgba(87,200,255,0.04); }
+.csv-btn-secondary { color: var(--muted); }
+.csv-btn-secondary:hover { color: var(--text); }
+.csv-export-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 10px 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VERSION FOOTER
+   ═══════════════════════════════════════════════════════════════ */
+.ft-footer {
+  text-align: center;
+  padding: 24px 16px 16px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+  opacity: 0.6;
+  border-top: 1px solid var(--border);
+  margin-top: 32px;
+}
+.ft-footer a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.ft-footer a:hover {
+  text-decoration: underline;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NOTIFICATION TOGGLE
+   ═══════════════════════════════════════════════════════════════ */
+.notif-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+.notif-toggle-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 6px 12px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.notif-toggle-btn.enabled {
+  border-color: var(--good);
+  color: var(--good);
+  background: rgba(0,200,136,0.06);
+}
+.notif-toggle-btn:hover { border-color: var(--accent); }
+
+@media (max-width: 600px) {
+  .csv-export-grid { grid-template-columns: 1fr; }
+  .hm-legend { flex-direction: column; align-items: flex-start; }
+}

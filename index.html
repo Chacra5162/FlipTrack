@@ -121,6 +121,9 @@
   </div>
   <div id="priceAlerts" style="display:none"></div>
   <div id="deathPileSection" style="display:none"></div>
+  <div id="profitHeatmap" class="panel" style="display:none;animation-delay:.18s">
+    <div class="panel-header"><div class="panel-title">Profit Calendar</div></div>
+  </div>
   <div class="dash-grid">
     <div class="panel">
       <div class="panel-header">
@@ -140,6 +143,13 @@
           <span id="saleCnt" style="font-size:10px;color:var(--muted)">0 total</span>
         </div>
         <div id="salesLog"><div class="sale-item" style="justify-content:center;color:var(--muted);font-size:12px">No sales yet.</div></div>
+      </div>
+      <div class="panel" style="animation-delay:.36s">
+        <div class="panel-header">
+          <div class="panel-title">Quick Export</div>
+          <button class="btn-secondary" onclick="toggleNotifications()" id="notifToggleBtn" style="font-size:10px;padding:4px 10px">🔔 Alerts</button>
+        </div>
+        <div id="csvExportSection"></div>
       </div>
     </div>
   </div>
@@ -439,6 +449,9 @@
 <div id="view-invvalue" class="view">
   <div id="invValueContent"></div>
 </div>
+
+<!-- VERSION FOOTER -->
+<div class="ft-footer">FlipTrack v1.0 · Powered by <a href="https://supabase.com" target="_blank" rel="noopener">Supabase</a></div>
 
 </main>
 </div>
