@@ -2,7 +2,7 @@
    Lightweight cache-first SW for offline support and PWA install.
    ──────────────────────────────────────────────────────────────────────── */
 
-const CACHE_NAME = 'fliptrack-v1';
+const CACHE_NAME = 'fliptrack-v2';
 const PRECACHE = [
   './',
   './index.html',
