@@ -17,7 +17,7 @@ import {
 } from '../features/crosslist.js';
 import { generateListingLink, copyListingText, generateListingText } from '../features/deep-links.js';
 import { getTemplatesForCategory } from '../features/listing-templates.js';
-import { isEBayConnected, getEBayUsername, connectEBay, disconnectEBay, checkEBayStatus } from '../features/ebay-auth.js';
+import { isEBayConnected, isEBayStatusVerified, getEBayUsername, connectEBay, disconnectEBay, checkEBayStatus } from '../features/ebay-auth.js';
 import { pullEBayListings, pushItemToEBay, publishEBayListing, endEBayListing, isEBaySyncing, getLastEBaySyncTime } from '../features/ebay-sync.js';
 import { isEtsyConnected, getEtsyShopName, connectEtsy, disconnectEtsy } from '../features/etsy-auth.js';
 import { pullEtsyListings, pushItemToEtsy, deactivateEtsyListing, renewEtsyListing, isEtsySyncing, getLastEtsySyncTime } from '../features/etsy-sync.js';
@@ -556,6 +556,21 @@ function _renderEBayPanel() {
   const lastSyncLabel = lastSync
     ? new Date(lastSync).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
     : 'Never';
+
+  // If status hasn't been verified from server yet, show loading and trigger check
+  if (!connected && !isEBayStatusVerified()) {
+    checkEBayStatus(); // non-blocking — will re-render dashboard when done
+    return `<div class="ebay-panel">
+      <div class="ebay-panel-left">
+        <div class="ebay-panel-status">
+          <span class="ebay-dot"></span>
+          <strong>eBay</strong>
+          <span class="ebay-user" style="color:var(--muted)">Checking connection…</span>
+        </div>
+        <div class="ebay-panel-meta">Verifying eBay account status</div>
+      </div>
+    </div>`;
+  }
 
   if (connected) {
     return `<div class="ebay-panel ebay-connected">

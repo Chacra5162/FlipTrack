@@ -19,6 +19,7 @@ let _ebayUsername = null;
 let _connectedAt = null;
 let _authPopup = null;
 let _csrfState = null;
+let _statusVerified = false; // true once server status check completes
 
 // Reference to Supabase client — set by init
 let _sb = null;
@@ -96,6 +97,8 @@ export async function checkEBayStatus() {
       ebayUsername: _ebayUsername,
       connectedAt: _connectedAt,
     });
+
+    _statusVerified = true;
 
     // If connection state changed, refresh UI
     if (prevConnected !== _connected && typeof window.renderCrosslistDashboard === 'function') {
@@ -245,6 +248,7 @@ export async function disconnectEBay() {
 // ── GETTERS ────────────────────────────────────────────────────────────────
 
 export function isEBayConnected() { return _connected; }
+export function isEBayStatusVerified() { return _statusVerified; }
 export function getEBayUsername() { return _ebayUsername; }
 export function getEBayIsSandbox() { return _isSandbox; }
 export function getEBayConnectedAt() { return _connectedAt; }
