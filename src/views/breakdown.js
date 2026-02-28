@@ -1,8 +1,9 @@
 // ── BREAKDOWN VIEW ────────────────────────────────────────────────────────
 
-import { inv, catFilt, subcatFilt, subsubcatFilt, stockFilt } from '../data/store.js';
+import { inv } from '../data/store.js';
 import { fmt, pct, escHtml } from '../utils/format.js';
 import { calc, margCls } from '../data/store.js';
+import { setCatFilt as invSetCatFilt, setSubcatFilt as invSetSubcatFilt, setSubsubcatFilt as invSetSubsubcatFilt, setStockFilt as invSetStockFilt, openFilterPanel } from './inventory.js';
 
 let _breakdownCache = '';
 let _cacheDirty = true;
@@ -187,24 +188,27 @@ function toggleBdSubs(id) {
 }
 
 function filterToCat(cat) {
-  catFilt = new Set([cat]);
-  subcatFilt = 'all';
-  subsubcatFilt = 'all';
-  stockFilt = 'all';
+  // Use inventory.js filter functions to set state properly
+  invSetCatFilt('all', null);         // clear first
+  invSetCatFilt(cat, null);           // set the category
+  invSetSubcatFilt('all', null);
+  invSetSubsubcatFilt('all', null);
+  invSetStockFilt('all');
   const invTab = document.querySelectorAll('.nav-tab')[1];
-  switchView('inventory', invTab);
-  bnav('bn-inventory');
+  if (window.switchView) window.switchView('inventory', invTab);
+  if (window.bnav) window.bnav('bn-inventory');
   openFilterPanel();
 }
 
 function filterToSubcat(cat, sub) {
-  catFilt = new Set([cat]);
-  subcatFilt = sub;
-  subsubcatFilt = 'all';
-  stockFilt = 'all';
+  invSetCatFilt('all', null);         // clear first
+  invSetCatFilt(cat, null);           // set the category
+  invSetSubcatFilt(sub, null);
+  invSetSubsubcatFilt('all', null);
+  invSetStockFilt('all');
   const invTab = document.querySelectorAll('.nav-tab')[1];
-  switchView('inventory', invTab);
-  bnav('bn-inventory');
+  if (window.switchView) window.switchView('inventory', invTab);
+  if (window.bnav) window.bnav('bn-inventory');
   openFilterPanel();
 }
 

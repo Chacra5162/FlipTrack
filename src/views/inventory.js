@@ -192,7 +192,7 @@ export function setSubcatFilt(s,el){
   subcatFilt=s;
   subsubcatFilt='all';
   document.querySelectorAll('#subcatChips .subcat-chip').forEach(x=>x.classList.remove('active'));
-  el.classList.add('active');
+  if (el) el.classList.add('active');
   renderInv();
 }
 
@@ -211,7 +211,7 @@ export function setSubsubcatFilt(s,el){
   _invPage=0;
   subsubcatFilt=s;
   document.querySelectorAll('#subsubcatChips .subsubcat-chip').forEach(x=>x.classList.remove('active'));
-  el.classList.add('active');
+  if (el) el.classList.add('active');
   renderInv();
 }
 

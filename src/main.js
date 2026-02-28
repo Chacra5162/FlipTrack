@@ -23,7 +23,7 @@ import {
   inv, sales, expenses, supplies,
   save, refresh, initStore,
   rebuildInvIndex, getInvItem,
-  sel, platFilt, catFilt,
+  sel, platFilt, catFilt, activeDrawId,
   _invPage, _invPageSize,
   _salePage, _salePageSize,
   _cacheDirty, _insightsCache, _breakdownCache, _chipsBuiltForData,
@@ -300,6 +300,9 @@ const printStickers = _lw(lazyBarcodes, 'printStickers');
 // ══════════════════════════════════════════════════════════════════════════════
 // EXPOSE TO WINDOW — needed for inline HTML event handlers (onclick etc.)
 // ══════════════════════════════════════════════════════════════════════════════
+
+// Expose activeDrawId as a live getter (ES module let binding changes)
+Object.defineProperty(window, 'activeDrawId', { get() { return activeDrawId; }, configurable: true });
 
 // Theme & font size
 Object.assign(window, {

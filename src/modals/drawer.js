@@ -9,7 +9,7 @@ import { toast } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
 import { parseNum, validateNumericInput } from '../utils/validate.js';
 import {
-  inv, sales, save, refresh, calc, sc, mkc, markDirty
+  inv, sales, activeDrawId, setActiveDrawId, save, refresh, calc, sc, mkc, markDirty
 } from '../data/store.js';
 import {
   toggleBookFields,
@@ -92,7 +92,7 @@ export function syncAddSubtype() {
 }
 
 export function openDrawer(id) {
-  activeDrawId=id;
+  setActiveDrawId(id);
   const item=inv.find(i=>i.id===id); if(!item) return;
   document.getElementById('dName').textContent=item.name;
   document.getElementById('dSku').textContent=item.sku?`SKU: ${item.sku}`:'No SKU';
@@ -165,7 +165,7 @@ export function closeDrawer(){
   if (defaultPanel) defaultPanel.classList.add('active');
   const defaultTab = document.querySelector('.drawer-tab');
   if (defaultTab) defaultTab.classList.add('active');
-  activeDrawId=null;
+  setActiveDrawId(null);
 }
 
 export function renderListingStatus(item) {

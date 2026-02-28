@@ -78,12 +78,18 @@ export let _chipsBuiltForData = null;
 
 // ── UI STATE VARIABLES ────────────────────────────────────────────────────
 export let activeDrawId = null;
+export function setActiveDrawId(id) { activeDrawId = id; }
 export let activeSoldId = null;
+export function setActiveSoldId(id) { activeSoldId = id; }
 export let platFilt = new Set();
 export let catFilt = new Set();
+export function setCatFilt(v) { catFilt = v; }
 export let subcatFilt = 'all';
+export function setSubcatFilt(v) { subcatFilt = v; }
 export let subsubcatFilt = 'all';
+export function setSubsubcatFilt(v) { subsubcatFilt = v; }
 export let stockFilt = 'all';
+export function setStockFilt(v) { stockFilt = v; }
 export let sel = new Set();
 export let dragSrc = null;
 export let _invPage = 0;
