@@ -1,4 +1,6 @@
 // ── PLATFORMS ───────────────────────────────────────────────────────────────
+import { PLATFORM_GROUPS, platCls } from '../config/platforms.js';
+import { escHtml } from '../utils/format.js';
 
 export function getPlatforms(item) {
   if (Array.isArray(item.platforms) && item.platforms.length) return item.platforms;
