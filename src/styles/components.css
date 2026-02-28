@@ -1962,6 +1962,16 @@ textarea { resize:vertical; min-height:70px; }
 .empty-state-cta:hover { background: rgba(0,200,136,0.08); }
 
 /* ── ONBOARDING TOUR ──────────────────────────────────────────────────── */
+/* Tour trigger button — always visible, never hidden by .btn-secondary rules */
+.tour-trigger-btn {
+  font-size: 10px; padding: 4px 10px;
+  background: transparent; border: 1px solid var(--border);
+  color: var(--muted); cursor: pointer;
+  font-family: 'DM Mono', monospace; letter-spacing: 0.5px;
+  transition: all 0.15s;
+}
+.tour-trigger-btn:hover { border-color: var(--accent); color: var(--accent); }
+
 #tourOverlay { position: fixed; inset: 0; z-index: 99998; display: none; }
 #tourOverlay.on { display: block; }
 .tour-backdrop {
