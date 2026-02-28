@@ -8,6 +8,7 @@
 import { SB_URL, SB_KEY } from '../config/constants.js';
 import { getMeta, setMeta } from '../data/idb.js';
 import { toast } from '../utils/dom.js';
+import { getSupabaseClient } from '../data/auth.js';
 
 // ── CONFIG ─────────────────────────────────────────────────────────────────
 const EDGE_FN = `${SB_URL}/functions/v1/ebay-auth`;
@@ -54,6 +55,8 @@ export async function initEBayAuth(supabaseClient) {
 // ── HELPER: Get auth headers for Edge Function calls ───────────────────────
 
 async function getAuthHeaders() {
+  // Self-heal: if _sb wasn't set by initEBayAuth, grab it from auth module
+  if (!_sb) _sb = getSupabaseClient();
   if (!_sb) throw new Error('Not authenticated');
   let { data: { session } } = await _sb.auth.getSession();
 
@@ -102,10 +105,13 @@ async function callEdgeFn(action, body = {}) {
  * Updates local state + IDB cache.
  */
 export async function checkEBayStatus() {
-  // Wait for Supabase client to be initialized (set by initEBayAuth)
+  // Self-heal: grab client from auth module if not set
+  if (!_sb) _sb = getSupabaseClient();
   if (!_sb) {
     // Retry up to 5 seconds waiting for init
-    for (let i = 0; i < 50 && !_sb; i++) {
+    for (let i = 0; i < 50; i++) {
+      _sb = getSupabaseClient();
+      if (_sb) break;
       await new Promise(r => setTimeout(r, 100));
     }
     if (!_sb) {
