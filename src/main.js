@@ -757,6 +757,8 @@ setTimeout(_killSplash, 3000);
     console.warn('FlipTrack: Store init error:', e.message);
   }
 
+  try {
+
   // Build initial state
   try { rebuildInvIndex(); refresh(); renderDash(); } catch(e) { console.warn('FlipTrack: render error:', e.message); }
 
@@ -834,6 +836,10 @@ setTimeout(_killSplash, 3000);
     }).catch(e => console.warn('Etsy init:', e.message));
     initAIListing(_sbClient);
   }
+
+  } catch (bootErr) {
+    console.warn('FlipTrack: boot error:', bootErr.message || bootErr);
+  }
 })();
 
 // PWA Service Worker
@@ -862,6 +868,14 @@ if ('serviceWorker' in navigator) {
     showError('Something went wrong — your data is safe.');
   });
   window.addEventListener('unhandledrejection', (e) => {
+    const msg = String(e.reason?.message || e.reason || '');
+    // Suppress known harmless rejections (auth 401s, SW registration, network offline)
+    const harmless = /401|not authenticated|session expired|sw.*regist|service.worker|networkerror|failed to fetch|load failed/i;
+    if (harmless.test(msg)) {
+      e.preventDefault();          // Silence the browser's own console error
+      console.warn('FlipTrack (suppressed):', msg);
+      return;
+    }
     console.error('FlipTrack unhandled rejection:', e.reason);
     showError('A background task failed — retrying automatically.');
   });
