@@ -656,7 +656,9 @@ function updateThemeLabels() {
 }
 
 function applyFontSize(val, doSave = true) {
+  const scale = parseInt(val) / 100;
   document.documentElement.style.setProperty('--fs', val);
+  document.documentElement.style.zoom = scale;
   document.getElementById('fsSlider').value = val;
   document.querySelectorAll('.fs-preset').forEach(b => {
     b.classList.toggle('active', parseInt(b.textContent === 'Small' ? 80 : b.textContent === 'Default' ? 100 : b.textContent === 'Large' ? 115 : 130) === parseInt(val));
