@@ -55,7 +55,16 @@ export async function initEBayAuth(supabaseClient) {
 
 async function getAuthHeaders() {
   if (!_sb) throw new Error('Not authenticated');
-  const { data: { session } } = await _sb.auth.getSession();
+  let { data: { session } } = await _sb.auth.getSession();
+
+  // If no session or token expired/about to expire, force a refresh
+  if (!session || (session.expires_at && session.expires_at * 1000 < Date.now() + 60000)) {
+    const { data, error } = await _sb.auth.refreshSession();
+    if (!error && data.session) {
+      session = data.session;
+    }
+  }
+
   if (!session) throw new Error('Session expired — please log in again');
   return {
     'Content-Type': 'application/json',
@@ -84,6 +93,22 @@ async function callEdgeFn(action, body = {}) {
  * Updates local state + IDB cache.
  */
 export async function checkEBayStatus() {
+  // Wait for Supabase client to be initialized (set by initEBayAuth)
+  if (!_sb) {
+    // Retry up to 5 seconds waiting for init
+    for (let i = 0; i < 50 && !_sb; i++) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+    if (!_sb) {
+      console.warn('eBay status check: Supabase client not initialized');
+      _statusVerified = true;
+      if (typeof window.renderCrosslistDashboard === 'function') {
+        window.renderCrosslistDashboard();
+      }
+      return { connected: false, error: 'Not initialized' };
+    }
+  }
+
   try {
     const prevConnected = _connected;
     const data = await callEdgeFn('status');

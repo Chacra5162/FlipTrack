@@ -2,7 +2,7 @@
 import { SB_URL } from '../config/constants.js';
 import { fmt, escHtml } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
-import { getAccountId } from '../data/auth.js';
+import { getAccountId, getSupabaseClient, getCurrentUser } from '../data/auth.js';
 import { refreshImgSlots } from '../features/images.js';
 import { buildPlatPicker } from '../features/platforms.js';
 
@@ -61,6 +61,8 @@ export function idRetake() {
 
 export async function idAnalyze() {
   if (!_idImageData) return;
+  const _sb = getSupabaseClient();
+  const _currentUser = getCurrentUser();
   if (!_sb || !_currentUser) {
     toast('Please sign in to use Identify', true);
     return;
