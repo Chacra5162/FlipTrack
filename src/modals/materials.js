@@ -1,5 +1,7 @@
 // Materials modal - supplies/materials management for sales
-// Dependencies: Global state (supplies), utilities (toast), data persistence (saveSupplies, renderSupplies, checkSupplyAlerts)
+import { supplies } from '../data/store.js';
+import { saveSupplies, renderSupplies, checkSupplyAlerts } from '../views/supplies.js';
+import { toast } from '../utils/dom.js';
 
 let _pendingSaleCallback = null;
 

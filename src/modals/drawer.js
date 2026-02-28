@@ -4,7 +4,13 @@
 // Other modals: book-mode functions, trash functions
 
 import { SUBCATS, SUBSUBCATS } from '../config/categories.js';
+import { fmt, pct, ds, escHtml, uid } from '../utils/format.js';
+import { toast } from '../utils/dom.js';
+import { _sfx } from '../utils/sfx.js';
 import { parseNum, validateNumericInput } from '../utils/validate.js';
+import {
+  inv, sales, save, refresh, calc, sc, mkc, markDirty
+} from '../data/store.js';
 import {
   toggleBookFields,
   isBookCat,
@@ -16,6 +22,10 @@ import { getDaysUntilExpiry, STATUS_LABELS, STATUS_COLORS, LISTING_STATUSES, mar
 import { generateListingLink, copyListingText } from '../features/deep-links.js';
 import { pushDeleteToCloud } from '../data/sync.js';
 import { logPriceChange } from '../features/price-history.js';
+import { getPlatforms, buildPlatPicker, getSelectedPlats } from '../features/platforms.js';
+import { loadDimsToForm, getDimsFromForm, suggestPackaging } from '../features/dimensions.js';
+import { renderDrawerBarcode } from '../features/barcodes.js';
+import { toggleBulkFields } from './add-item.js';
 
 export function populateSubcatSelect(selectId, category, currentValue) {
   const subs = SUBCATS[category] || [];
@@ -117,7 +127,7 @@ export function openDrawer(id) {
   // Book mode
   toggleBookFields('d');
   if (isBookCat(item.category)) loadBookFields('d', item);
-  renderDrawerImg(item.id);
+  if (window.renderDrawerImg) window.renderDrawerImg(item.id);
   renderDrawerBarcode(item);
   loadDimsToForm('d', item);
   suggestPackaging('d');

@@ -3,9 +3,9 @@
 // DOM elements, form helpers (buildPlatPicker, getSelectedPlats, clearDimForm, getDimsFromForm, refreshImgSlots)
 // Other modals: book-mode functions
 
-import { inv, activeDrawId, save, refresh } from '../data/store.js';
-import { uid } from '../utils/format.js';
-import { toast } from '../utils/dom.js';
+import { inv, activeDrawId, save, refresh, normCat } from '../data/store.js';
+import { uid, fmt, pct, escHtml } from '../utils/format.js';
+import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
 import { autoSync } from '../data/sync.js';
 import { parseNum, validateNumericInput } from '../utils/validate.js';
@@ -16,8 +16,16 @@ import {
   clearBookFields,
   swapConditionTags
 } from './book-mode.js';
+import { getPlatforms, buildPlatPicker, getSelectedPlats } from '../features/platforms.js';
+import { refreshImgSlots } from '../features/images.js';
+import { clearDimForm, getDimsFromForm } from '../features/dimensions.js';
+import { uploadImageToStorage } from '../data/storage.js';
+import { getSupabaseClient } from '../data/auth.js';
+import { getCurrentUser } from '../data/auth.js';
 
-import { openDrawer, closeDrawer, loadCondTag } from './drawer.js';
+import { openDrawer, closeDrawer, loadCondTag, syncAddSubcat } from './drawer.js';
+
+let pendingAddImages = [];
 
 export function dupCurrent() {
   const item = inv.find(i => i.id === activeDrawId);
@@ -232,7 +240,7 @@ export function addItem(){
   save(); closeAdd(); refresh(); _sfx.create(); toast('Item added ✓');
 
   // Upload images to Storage in background, replace base64 with URLs
-  if (imagesToUpload.length && _sb && _currentUser) {
+  if (imagesToUpload.length && getSupabaseClient() && getCurrentUser()) {
     const newItem = inv.find(i => i.id === newId);
     if (newItem) {
       Promise.all(imagesToUpload.map((b64, idx) =>
@@ -244,7 +252,7 @@ export function addItem(){
         newItem.images = results;
         newItem.image  = results[0] || null;
         save();
-        renderInv();
+        if (window.renderInv) window.renderInv();
       });
     }
   }

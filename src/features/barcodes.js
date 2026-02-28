@@ -1,4 +1,9 @@
 // ── BARCODES ────────────────────────────────────────────────────────────────
+import { inv, sel, platFilt, catFilt, subcatFilt, subsubcatFilt } from '../data/store.js';
+import { getPlatforms } from '../features/platforms.js';
+import { getItemImages } from '../features/images.js';
+import { toast } from '../utils/dom.js';
+import { escHtml } from '../utils/format.js';
 
 export function makeBarcodeValue(item) {
   // Use SKU if available, otherwise pad item id to look like a barcode

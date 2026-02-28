@@ -1,4 +1,9 @@
 // ── SUPPLIES ──────────────────────────────────────────────────────────────────
+import { supplies } from '../data/store.js';
+import { uid, fmt } from '../utils/format.js';
+import { toast } from '../utils/dom.js';
+import { getSupabaseClient } from '../data/auth.js';
+import { getCurrentUser } from '../data/auth.js';
 
 function saveSupplies() {
   localStorage.setItem('ft_supplies', JSON.stringify(supplies));
@@ -6,6 +11,8 @@ function saveSupplies() {
 }
 
 async function syncSupplies() {
+  const _sb = getSupabaseClient();
+  const _currentUser = getCurrentUser();
   if (!_sb || !_currentUser) return;
   try {
     const acctId = _currentUser.id;
@@ -15,11 +22,16 @@ async function syncSupplies() {
 }
 
 async function pullSupplies() {
+  const _sb = getSupabaseClient();
+  const _currentUser = getCurrentUser();
   if (!_sb || !_currentUser) return;
   try {
     const acctId = _currentUser.id;
     const { data } = await _sb.from('ft_supplies').select('data').eq('account_id', acctId);
-    if (data && data.length) supplies = data.map(r => r.data).filter(Boolean);
+    if (data && data.length) {
+      supplies.length = 0;
+      supplies.push(...data.map(r => r.data).filter(Boolean));
+    }
     saveLocalSupplies();
   } catch {}
 }
@@ -69,7 +81,8 @@ function setSupplyQty(id, val) {
 }
 
 function delSupply(id) {
-  supplies = supplies.filter(s => s.id !== id);
+  const idx = supplies.findIndex(s => s.id === id);
+  if (idx !== -1) supplies.splice(idx, 1);
   saveSupplies();
   renderSupplies();
   toast('Removed ✓');

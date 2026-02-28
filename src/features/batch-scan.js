@@ -1,4 +1,9 @@
 // ── BATCH SCAN MODE ───────────────────────────────────────────────────────
+import { inv, save, refresh } from '../data/store.js';
+import { uid, escHtml } from '../utils/format.js';
+import { toast } from '../utils/dom.js';
+import { _sfx } from '../utils/sfx.js';
+import { autoSync } from '../data/sync.js';
 
 let _batchStream = null;
 let _batchActive = false;

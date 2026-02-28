@@ -573,7 +573,8 @@ export async function delSale(id){
   if(!confirm('Remove this sale? Stock will be restored.'))return;
   const s=sales.find(x=>x.id===id);
   if(s){const it=getInvItem(s.itemId);if(it)it.qty+=(s.qty||0);}
-  sales=sales.filter(x=>x.id!==id);
+  const idx = sales.findIndex(x => x.id === id);
+  if (idx !== -1) sales.splice(idx, 1);
   save(); refresh(); renderSalesView(); toast('Sale removed, stock restored');
   // Delete from cloud first, then let autoSync push the updated inventory
   await pushDeleteToCloud('ft_sales',[id]);

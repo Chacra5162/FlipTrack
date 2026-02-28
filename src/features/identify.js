@@ -1,4 +1,10 @@
 // ── AI SNAP & IDENTIFY ──────────────────────────────────────────────────────
+import { SB_URL } from '../config/constants.js';
+import { fmt, escHtml } from '../utils/format.js';
+import { toast } from '../utils/dom.js';
+import { getAccountId } from '../data/auth.js';
+import { refreshImgSlots } from '../features/images.js';
+import { buildPlatPicker } from '../features/platforms.js';
 
 let _idImageData = null;   // base64 image (no prefix)
 let _idMediaType = 'image/jpeg';
@@ -194,9 +200,9 @@ export function idAddToInventory() {
 
   // Switch to inventory view and open Add modal
   const invTab = document.querySelectorAll('.nav-tab')[1];
-  switchView('inventory', invTab);
+  if (window.switchView) window.switchView('inventory', invTab);
 
-  openAddModal();
+  if (window.openAddModal) window.openAddModal();
 
   // Pre-fill form fields from identification
   setTimeout(() => {
@@ -216,11 +222,14 @@ export function idAddToInventory() {
     // If we have the photo, set it as the item image
     if (_idImageData) {
       const dataUrl = 'data:' + _idMediaType + ';base64,' + _idImageData;
-      pendingAddImages = [dataUrl];
-      refreshImgSlots('f', pendingAddImages);
+      if (window.pendingAddImages) {
+        window.pendingAddImages.length = 0;
+        window.pendingAddImages.push(dataUrl);
+      }
+      refreshImgSlots('f', [dataUrl]);
     }
 
-    prevProfit();
+    if (window.prevProfit) window.prevProfit();
     toast('Pre-filled from AI identification ✓');
   }, 150);
 }

@@ -1,4 +1,8 @@
 // ── PRICE RESEARCH ───────────────────────────────────────────────────────────
+import { SB_URL } from '../config/constants.js';
+import { fmt, escHtml } from '../utils/format.js';
+import { toast } from '../utils/dom.js';
+import { getAccountId } from '../data/auth.js';
 
 export function openPriceResearch(prefillUpc) {
   document.getElementById('prOv').classList.add('on');
