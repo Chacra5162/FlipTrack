@@ -107,19 +107,12 @@ header::after {
 }
 
 /* ── Inventory table — row hover left accent bar ── */
-.inv-table tbody tr { position: relative; }
-.inv-table tbody tr::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 2px;
-  background: var(--accent);
-  transform: scaleY(0);
-  transform-origin: center;
-  transition: transform 0.18s ease;
+/* NOTE: ::before on <tr> creates an anonymous table-cell in Chrome,
+   breaking column alignment with table-layout:fixed. Use box-shadow instead. */
+.inv-table tbody tr:hover {
+  background: rgba(87,200,255,0.03);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
-.inv-table tbody tr:hover::before { transform: scaleY(1); }
-.inv-table tbody tr:hover { background: rgba(87,200,255,0.03); }
 
 /* ── Primary button — shimmer sweep on hover + glow ── */
 .btn-primary { position: relative; overflow: hidden; }
