@@ -1,4 +1,4 @@
-import { inv, sales, expenses, getInvItem, save, refresh } from '../data/store.js';
+import { inv, sales, expenses, getInvItem, save, refresh, markDirty } from '../data/store.js';
 import { fmt, ds, escHtml } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { pushDeleteToCloud, autoSync } from '../data/sync.js';
@@ -572,7 +572,7 @@ export function goToAddExpense() {
 export async function delSale(id){
   if(!confirm('Remove this sale? Stock will be restored.'))return;
   const s=sales.find(x=>x.id===id);
-  if(s){const it=getInvItem(s.itemId);if(it)it.qty+=(s.qty||0);}
+  if(s){const it=getInvItem(s.itemId);if(it){it.qty+=(s.qty||0);markDirty('inv',it.id);}}
   const idx = sales.findIndex(x => x.id === id);
   if (idx !== -1) sales.splice(idx, 1);
   save(); refresh(); renderInv(); renderSalesView(); toast('Sale removed, stock restored');
