@@ -87,6 +87,12 @@ export async function authSubmit() {
     return;
   }
 
+  // Guard: Supabase client must be initialized
+  if (!_sb) {
+    setAuthMsg('App is still loading — please wait a moment and try again.', 'err');
+    return;
+  }
+
   if (btnEl) {
     btnEl.textContent = '…';
     btnEl.disabled = true;
@@ -95,21 +101,22 @@ export async function authSubmit() {
 
   try {
     if (_authTab === 'login') {
+      // Clear any stale session before fresh login attempt
+      try { await _sb.auth.signOut({ scope: 'local' }); } catch (_) { /* ignore */ }
       const { error } = await _sb.auth.signInWithPassword({ email, password: pass });
       if (error) throw error;
+      // Success — onAuthStateChange will fire SIGNED_IN and call _startSession
     } else {
       const { error } = await _sb.auth.signUp({ email, password: pass });
       if (error) throw error;
       setAuthMsg('Account created! Check your email to confirm, then sign in.', 'ok');
       switchAuthTab('login');
-      if (btnEl) {
-        btnEl.textContent = 'Sign In';
-        btnEl.disabled = false;
-      }
       return;
     }
   } catch(e) {
-    setAuthMsg(e.message, 'err');
+    setAuthMsg(e.message || 'Sign in failed — please try again.', 'err');
+  } finally {
+    // Always re-enable button (hideAuthModal will cover it on success)
     if (btnEl) {
       btnEl.textContent = _authTab === 'login' ? 'Sign In' : 'Create Account';
       btnEl.disabled = false;
@@ -235,10 +242,20 @@ export async function initAuth() {
   });
 
   // Page load — check for existing session once, independently of onAuthStateChange
-  const { data: { session } } = await _sb.auth.getSession();
-  if (session?.user) {
-    await _startSession(session.user);
-  } else {
+  try {
+    const { data: { session }, error } = await _sb.auth.getSession();
+    if (error) {
+      // Stale/invalid refresh token — clear local auth state and show login
+      console.warn('FlipTrack: session restore failed:', error.message);
+      try { await _sb.auth.signOut({ scope: 'local' }); } catch (_) { /* ignore */ }
+      showAuthModal();
+    } else if (session?.user) {
+      await _startSession(session.user);
+    } else {
+      showAuthModal();
+    }
+  } catch (e) {
+    console.warn('FlipTrack: initAuth error:', e.message);
     showAuthModal();
   }
 }
