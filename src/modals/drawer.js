@@ -9,7 +9,7 @@ import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
 import { parseNum, validateNumericInput } from '../utils/validate.js';
 import {
-  inv, sales, activeDrawId, setActiveDrawId, save, refresh, calc, sc, mkc, markDirty
+  inv, sales, activeDrawId, setActiveDrawId, save, refresh, calc, sc, mkc, markDirty, normCat
 } from '../data/store.js';
 import {
   toggleBookFields,
