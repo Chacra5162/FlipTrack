@@ -333,7 +333,7 @@ export function startPriceEdit(span, id) {
   const inp=document.createElement('input');
   inp.className='price-inp'; inp.type='number'; inp.step='0.01'; inp.value=item.price||0;
   span.replaceWith(inp); inp.focus(); inp.select();
-  const commit=()=>{const v=parseFloat(inp.value);if(!isNaN(v)&&v>=0){item.price=v;save();refresh();toast('Price updated ✓');}else renderInv();};
+  const commit=()=>{const v=parseFloat(inp.value);if(!isNaN(v)&&v>=0){item.price=v;save();refresh();renderInv();toast('Price updated ✓');}else renderInv();};
   inp.addEventListener('blur',commit);
   inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();inp.blur();}if(e.key==='Escape'){inp.removeEventListener('blur',commit);renderInv();}});
 }
@@ -343,7 +343,7 @@ export function startPriceEdit(span, id) {
 export function adjStock(id, d) {
   const item=inv.find(i=>i.id===id); if(!item) return;
   item.qty=Math.max(0,(item.qty||0)+d);
-  save(); refresh();
+  save(); refresh(); renderInv();
   if(item.qty===0) toast('⚠ Out of stock!',true);
   else if(item.bulk&&item.qty<=(item.lowAlert||2)) toast(`⚠ Low: ${item.qty} left`,true);
 }
