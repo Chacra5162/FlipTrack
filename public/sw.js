@@ -2,7 +2,7 @@
    Cache-first PWA with LRU eviction and network-first HTML.
    ──────────────────────────────────────────────────────────────────────── */
 
-const CACHE_NAME = 'fliptrack-v3';
+const CACHE_NAME = 'fliptrack-v4';
 const MAX_CACHE_ENTRIES = 100;
 const PRECACHE = [
   './',

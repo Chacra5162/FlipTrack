@@ -212,42 +212,55 @@ export function idAddToInventory() {
 
   if (window.openAddModal) window.openAddModal();
 
-  // Pre-fill form fields from identification
+  // Pre-fill form fields from identification (with error handling)
   setTimeout(() => {
-    const nameEl = document.getElementById('f_name');
-    if (nameEl && r.name) nameEl.value = r.name;
+    try {
+      const nameEl = document.getElementById('f_name');
+      if (nameEl && r.name) nameEl.value = r.name;
 
-    const catEl = document.getElementById('f_cat');
-    if (catEl && r.category) { catEl.value = r.category; syncAddSubcat(); }
-
-    const subcatTxt = document.getElementById('f_subcat_txt');
-    if (subcatTxt && r.subcategory) subcatTxt.value = r.subcategory;
-
-    const priceEl = document.getElementById('f_price');
-    if (priceEl && r.estimatedMid) priceEl.value = r.estimatedMid;
-
-    // If we have the photo, set it as the item image
-    if (imgData) {
-      const dataUrl = 'data:' + imgType + ';base64,' + imgData;
-      if (window.pendingAddImages) {
-        window.pendingAddImages.length = 0;
-        window.pendingAddImages.push(dataUrl);
+      const catEl = document.getElementById('f_cat');
+      if (catEl && r.category) {
+        catEl.value = r.category;
+        if (window.syncAddSubcat) window.syncAddSubcat();
       }
-      refreshImgSlots('f', [dataUrl]);
-    }
 
-    if (window.prevProfit) window.prevProfit();
-    toast('Pre-filled from AI identification ✓');
-  }, 150);
+      const subcatTxt = document.getElementById('f_subcat_txt');
+      if (subcatTxt && r.subcategory) subcatTxt.value = r.subcategory;
+
+      const priceEl = document.getElementById('f_price');
+      if (priceEl && r.estimatedMid) priceEl.value = r.estimatedMid;
+
+      // If we have the photo, set it as the item image
+      if (imgData) {
+        const dataUrl = 'data:' + imgType + ';base64,' + imgData;
+        refreshImgSlots('f', [dataUrl]);
+      }
+
+      if (window.prevProfit) window.prevProfit();
+      toast('Pre-filled from AI identification ✓');
+    } catch (err) {
+      console.error('FlipTrack: idAddToInventory prefill error:', err);
+      toast('Item added — some fields may need manual entry');
+    }
+  }, 200);
 }
 
 export function idSearchPrices() {
   if (!_idResult) return;
+
+  // Save reference BEFORE closeIdentify() clears it
+  const searchTerms = _idResult.searchTerms || _idResult.name || '';
+
   closeIdentify();
-  openPriceResearch();
-  // Switch to keyword tab and pre-fill
-  prSwitchTab('kw');
-  const kwInput = document.getElementById('prKwInput');
-  if (kwInput) kwInput.value = _idResult.searchTerms || _idResult.name;
-  lookupByKeyword();
+
+  try {
+    if (window.openPriceResearch) window.openPriceResearch();
+    if (window.prSwitchTab) window.prSwitchTab('kw');
+    const kwInput = document.getElementById('prKwInput');
+    if (kwInput) kwInput.value = searchTerms;
+    if (window.lookupByKeyword) window.lookupByKeyword();
+  } catch (err) {
+    console.error('FlipTrack: idSearchPrices error:', err);
+    toast('Could not open price research');
+  }
 }
