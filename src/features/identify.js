@@ -198,6 +198,12 @@ export function idRenderResults(r) {
 
 export function idAddToInventory() {
   if (!_idResult) return;
+
+  // Save references BEFORE closeIdentify() clears them
+  const r = _idResult;
+  const imgData = _idImageData;
+  const imgType = _idMediaType;
+
   closeIdentify();
 
   // Switch to inventory view and open Add modal
@@ -208,7 +214,6 @@ export function idAddToInventory() {
 
   // Pre-fill form fields from identification
   setTimeout(() => {
-    const r = _idResult;
     const nameEl = document.getElementById('f_name');
     if (nameEl && r.name) nameEl.value = r.name;
 
@@ -222,8 +227,8 @@ export function idAddToInventory() {
     if (priceEl && r.estimatedMid) priceEl.value = r.estimatedMid;
 
     // If we have the photo, set it as the item image
-    if (_idImageData) {
-      const dataUrl = 'data:' + _idMediaType + ';base64,' + _idImageData;
+    if (imgData) {
+      const dataUrl = 'data:' + imgType + ';base64,' + imgData;
       if (window.pendingAddImages) {
         window.pendingAddImages.length = 0;
         window.pendingAddImages.push(dataUrl);
