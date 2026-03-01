@@ -1,4 +1,4 @@
-import { inv, sales, getInvItem, calc, sc, margCls, mkc, save, refresh } from '../data/store.js';
+import { inv, sales, getInvItem, calc, sc, margCls, mkc, save, refresh, markDirty } from '../data/store.js';
 import { fmt, pct, ds, escHtml } from '../utils/format.js';
 import { getPlatforms, renderPlatTags } from '../features/platforms.js';
 import { toast } from '../utils/dom.js';
@@ -184,6 +184,7 @@ export function quickReprice(itemId, newPrice) {
   if (!item) return;
   const oldPrice = item.price;
   item.price = newPrice;
+  markDirty('inv', item.id);
   save();
   refresh();
   toast(`${item.name} repriced: ${fmt(oldPrice)} → ${fmt(newPrice)} ✓`);

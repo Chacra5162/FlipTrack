@@ -292,6 +292,7 @@ export function saveDrawer(){
   if (item.price !== oldPrice && item.price > 0) {
     logPriceChange(item.id, item.price, 'manual');
   }
+  markDirty('inv', item.id);
   save(); closeDrawer(); refresh(); _sfx.edit(); toast('Changes saved ✓');
 }
 

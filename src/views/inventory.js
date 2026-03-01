@@ -10,6 +10,7 @@ import {
   getInvItem,
   save,
   refresh,
+  markDirty,
   softDeleteItem,
   calc,
   sc,
@@ -333,7 +334,7 @@ export function startPriceEdit(span, id) {
   const inp=document.createElement('input');
   inp.className='price-inp'; inp.type='number'; inp.step='0.01'; inp.value=item.price||0;
   span.replaceWith(inp); inp.focus(); inp.select();
-  const commit=()=>{const v=parseFloat(inp.value);if(!isNaN(v)&&v>=0){item.price=v;save();refresh();renderInv();toast('Price updated ✓');}else renderInv();};
+  const commit=()=>{const v=parseFloat(inp.value);if(!isNaN(v)&&v>=0){item.price=v;markDirty('inv',item.id);save();refresh();renderInv();toast('Price updated ✓');}else renderInv();};
   inp.addEventListener('blur',commit);
   inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();inp.blur();}if(e.key==='Escape'){inp.removeEventListener('blur',commit);renderInv();}});
 }
@@ -343,6 +344,7 @@ export function startPriceEdit(span, id) {
 export function adjStock(id, d) {
   const item=inv.find(i=>i.id===id); if(!item) return;
   item.qty=Math.max(0,(item.qty||0)+d);
+  markDirty('inv',item.id);
   save(); refresh(); renderInv();
   if(item.qty===0) toast('⚠ Out of stock!',true);
   else if(item.bulk&&item.qty<=(item.lowAlert||2)) toast(`⚠ Low: ${item.qty} left`,true);
@@ -370,4 +372,4 @@ export function syncBulk(){const b=document.getElementById('bulkBar');b.classLis
 
 export async function bulkDel(){if(!sel.size)return;if(!confirm(`Delete ${sel.size} item(s)?`))return;const ids=[...sel];ids.forEach(id=>softDeleteItem(id));sel.clear();save();refresh();toast(ids.length+' item(s) deleted — check 🗑️ to restore');await pushDeleteToCloud('ft_inventory',ids);autoSync();}
 
-export function bulkSold(){if(!sel.size)return;const ok=[...sel].filter(id=>{const it=getInvItem(id);return it&&it.qty>0;});if(!ok.length){toast('No sellable items selected',true);return;}if(!confirm(`Record sale for ${ok.length} item(s) at list price?`))return;const today=new Date().toISOString().split('T')[0];for(const id of ok){const it=getInvItem(id);sales.push({id:uid(),itemId:id,price:it.price,listPrice:it.price||0,qty:1,fees:it.fees||0,ship:it.ship||0,date:today});it.qty=Math.max(0,(it.qty||0)-1);}sel.clear();save();refresh();toast(`${ok.length} sale(s) recorded ✓`);}
+export function bulkSold(){if(!sel.size)return;const ok=[...sel].filter(id=>{const it=getInvItem(id);return it&&it.qty>0;});if(!ok.length){toast('No sellable items selected',true);return;}if(!confirm(`Record sale for ${ok.length} item(s) at list price?`))return;const today=new Date().toISOString().split('T')[0];for(const id of ok){const it=getInvItem(id);const saleId=uid();sales.push({id:saleId,itemId:id,price:it.price,listPrice:it.price||0,qty:1,fees:it.fees||0,ship:it.ship||0,date:today});markDirty('sales',saleId);it.qty=Math.max(0,(it.qty||0)-1);markDirty('inv',id);}sel.clear();save();refresh();toast(`${ok.length} sale(s) recorded ✓`);}

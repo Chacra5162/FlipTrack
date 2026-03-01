@@ -1,4 +1,4 @@
-import { inv, sales, expenses, getInvItem, save, refresh, markDirty } from '../data/store.js';
+import { inv, sales, expenses, getInvItem, save, refresh, markDirty, softDeleteItem, sel } from '../data/store.js';
 import { fmt, ds, escHtml } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { pushDeleteToCloud, autoSync, pushToCloud } from '../data/sync.js';
