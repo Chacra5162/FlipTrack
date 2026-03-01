@@ -1,5 +1,5 @@
 /**
- * notification-center.js — In-app notification bell & dropdown
+ * notification-center.js â In-app notification bell & dropdown
  * Tracks: low stock alerts, sync events, price changes, stale inventory
  */
 
@@ -81,12 +81,12 @@ function timeAgo(iso) {
 
 function iconFor(type) {
   switch (type) {
-    case 'stock': return '📦';
-    case 'sync': return '🔄';
-    case 'price': return '💲';
-    case 'sale': return '🎉';
-    case 'info': return 'ℹ️';
-    default: return '🔔';
+    case 'stock': return 'ð¦';
+    case 'sync': return 'ð';
+    case 'price': return 'ð²';
+    case 'sale': return 'ð';
+    case 'info': return 'â¹ï¸';
+    default: return 'ð';
   }
 }
 
@@ -151,8 +151,77 @@ export function generateStockAlerts() {
     addNotification('stock', 'Low Stock Warning', `${lowStock.length} item${lowStock.length > 1 ? 's are' : ' is'} running low`);
   }
   if (stale.length) {
-    addNotification('price', 'Stale Inventory', `${stale.length} item${stale.length > 1 ? 's' : ''} listed 60+ days with no sales — consider repricing`);
+    addNotification('price', 'Stale Inventory', `${stale.length} item${stale.length > 1 ? 's' : ''} listed 60+ days with no sales â consider repricing`);
   }
+
+  // ââ SMART NOTIFICATION: Repricing suggestions âââââââââââââââââââââââââ
+  const reprice30 = inv.filter(i => {
+    if ((i.qty || 0) <= 0) return false;
+    const days = Math.floor((now - new Date(i.added || now).getTime()) / 86400000);
+    return days >= 30 && days < 60 && !sales.some(s => s.itemId === i.id);
+  });
+  if (reprice30.length) {
+    addNotification('price', 'Reprice Suggestion',
+      `${reprice30.length} item${reprice30.length > 1 ? 's' : ''} listed 30+ days without a sale â lower price by 10-15%?`);
+  }
+
+  // ââ SMART NOTIFICATION: Expiring listings (eBay 30-day GTC) âââââââââââ
+  const expiring = inv.filter(i => {
+    if ((i.qty || 0) <= 0) return false;
+    const pld = i.platformListingDates;
+    if (!pld) return false;
+    return Object.entries(pld).some(([plat, dateStr]) => {
+      const listed = new Date(dateStr).getTime();
+      const daysSinceListed = Math.floor((now - listed) / 86400000);
+      return daysSinceListed >= 27 && daysSinceListed <= 30; // Expiring in 0-3 days
+    });
+  });
+  if (expiring.length) {
+    addNotification('info', 'Listings Expiring Soon',
+      `${expiring.length} listing${expiring.length > 1 ? 's' : ''} expiring in the next 3 days â relist or renew`);
+  }
+
+  // ââ SMART NOTIFICATION: High-margin items sitting unlisted ââââââââââââ
+  const unlistedHighMargin = inv.filter(i => {
+    if ((i.qty || 0) <= 0) return false;
+    const plats = i.platforms || [];
+    if (plats.length > 0 && !plats.every(p => p === 'Unlisted')) return false;
+    const { m } = { m: i.price ? (i.price - (i.cost || 0)) / i.price : 0 };
+    return m >= 0.5 && (i.price || 0) >= 20;
+  });
+  if (unlistedHighMargin.length) {
+    addNotification('info', 'Unlisted High-Margin Items',
+      `${unlistedHighMargin.length} item${unlistedHighMargin.length > 1 ? 's have' : ' has'} 50%+ margin but ${unlistedHighMargin.length > 1 ? 'aren\'t' : 'isn\'t'} listed on any platform`);
+  }
+}
+
+/** Calculate sales velocity by category â returns sorted array */
+export function getSalesVelocity() {
+  const catMap = {};
+  // Build category stats
+  for (const item of inv) {
+    const cat = item.category || 'Uncategorized';
+    if (!catMap[cat]) catMap[cat] = { cat, items: 0, sold: 0, totalDays: 0, revenue: 0, profit: 0 };
+    catMap[cat].items++;
+  }
+  for (const sale of sales) {
+    const item = inv.find(i => i.id === sale.itemId);
+    const cat = item?.category || 'Uncategorized';
+    if (!catMap[cat]) catMap[cat] = { cat, items: 0, sold: 0, totalDays: 0, revenue: 0, profit: 0 };
+    catMap[cat].sold++;
+    catMap[cat].revenue += sale.price || 0;
+    catMap[cat].profit += (sale.price || 0) - (sale.fees || 0) - (sale.ship || 0) - (item?.cost || 0);
+    if (item?.added && sale.date) {
+      const daysSold = Math.max(1, Math.floor((new Date(sale.date).getTime() - new Date(item.added).getTime()) / 86400000));
+      catMap[cat].totalDays += daysSold;
+    }
+  }
+  // Calculate averages
+  return Object.values(catMap).map(c => ({
+    ...c,
+    avgDaysToSell: c.sold > 0 ? Math.round(c.totalDays / c.sold) : null,
+    sellThrough: c.items > 0 ? Math.round((c.sold / (c.items + c.sold)) * 100) : 0,
+  })).sort((a, b) => (a.avgDaysToSell || 999) - (b.avgDaysToSell || 999));
 }
 
 export function initNotificationCenter() {
@@ -167,3 +236,4 @@ export function initNotificationCenter() {
     }
   });
 }
+
