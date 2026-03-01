@@ -74,6 +74,35 @@
 .cb-col input[type=checkbox] { accent-color:var(--accent); width:14px; height:14px; cursor:pointer; }
 .drag-handle { color:var(--border2); cursor:grab; font-size:16px; padding:0 4px; transition:color 0.15s; }
 .drag-handle:hover { color:var(--muted); }
+
+/* ── Inventory table column sizing (desktop) ─────────────────────────────── */
+#view-inventory .inv-table { table-layout:fixed; }
+#view-inventory .inv-table thead th:nth-child(1),
+#view-inventory .inv-table tbody td:nth-child(1) { width:36px; }      /* Checkbox */
+#view-inventory .inv-table thead th:nth-child(2),
+#view-inventory .inv-table tbody td:nth-child(2) { width:32px; }      /* Drag */
+#view-inventory .inv-table thead th:nth-child(3),
+#view-inventory .inv-table tbody td:nth-child(3) { width:52px; }      /* Photo */
+/* th4 (Item) takes remaining space automatically */
+#view-inventory .inv-table thead th:nth-child(5),
+#view-inventory .inv-table tbody td:nth-child(5) { width:100px; }     /* Platform */
+#view-inventory .inv-table thead th:nth-child(6),
+#view-inventory .inv-table tbody td:nth-child(6) { width:120px; }     /* Stock */
+#view-inventory .inv-table thead th:nth-child(7),
+#view-inventory .inv-table tbody td:nth-child(7) { width:80px; text-align:right; }  /* Cost */
+#view-inventory .inv-table thead th:nth-child(8),
+#view-inventory .inv-table tbody td:nth-child(8) { width:80px; text-align:right; }  /* Price */
+#view-inventory .inv-table thead th:nth-child(9),
+#view-inventory .inv-table tbody td:nth-child(9) { width:80px; text-align:center; } /* Margin */
+#view-inventory .inv-table thead th:nth-child(10),
+#view-inventory .inv-table tbody td:nth-child(10) { width:140px; text-align:right; }/* Actions */
+
+/* Ensure item name column handles overflow with fixed layout */
+#view-inventory .inv-table tbody td:nth-child(4) { overflow:hidden; }
+#view-inventory .item-name {
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;
+}
+#view-inventory .item-meta { flex-wrap:wrap; overflow:hidden; }
 .item-name { font-family:'Syne',sans-serif; font-weight:600; font-size:13px; cursor:pointer; transition:color 0.15s; }
 .item-name:hover { color:var(--accent); }
 .item-meta { display:flex; gap:6px; align-items:center; margin-top:3px; flex-wrap:wrap; }
