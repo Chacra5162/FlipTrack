@@ -331,6 +331,11 @@ Object.assign(window, {
   setReportMode, shiftPeriod, goToAddExpense
 });
 
+// Breakdown view
+Object.assign(window, {
+  renderBreakdown, toggleBdSubs, filterToCat, filterToSubcat
+});
+
 // Auth
 Object.assign(window, {
   switchAuthTab, authSubmit, authForgotPassword, authSignOut,
@@ -353,7 +358,7 @@ Object.assign(window, {
 Object.assign(window, {
   openDrawer, closeDrawer, drawerTab, saveDrawer, delCurrent, delItem,
   syncDrawerSubcat, syncDrawerSubtype, syncAddSubcat, syncAddSubtype,
-  setCondTag, toggleBulkFields
+  setCondTag, toggleBulkFields, toggleListingStatus, togglePlatChip
 });
 
 // Add item
@@ -381,7 +386,7 @@ Object.assign(window, {
 
 // Modals
 Object.assign(window, {
-  openTrashModal, closeTrashModal, emptyTrash,
+  openTrashModal, closeTrashModal, emptyTrash, restoreItem,
   openMaterialsModal, confirmMaterials, skipMaterials,
   performUndo
 });
