@@ -1,7 +1,7 @@
 import { inv, sales, expenses, getInvItem, save, refresh, markDirty } from '../data/store.js';
 import { fmt, ds, escHtml } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
-import { pushDeleteToCloud, autoSync } from '../data/sync.js';
+import { pushDeleteToCloud, autoSync, pushToCloud } from '../data/sync.js';
 import { setDefaultExpDate } from './expenses.js';
 
 let reportMode   = 'monthly'; // 'weekly' | 'monthly'
@@ -576,9 +576,10 @@ export async function delSale(id){
   const idx = sales.findIndex(x => x.id === id);
   if (idx !== -1) sales.splice(idx, 1);
   save(); refresh(); renderInv(); renderSalesView(); toast('Sale removed, stock restored');
-  // Delete from cloud first, then let autoSync push the updated inventory
+  // Delete sale from cloud, then immediately push the restored inventory
+  // (don't rely on debounced autoSync — user may refresh before it fires)
   await pushDeleteToCloud('ft_sales',[id]);
-  autoSync();
+  try { await pushToCloud(); } catch(e) { console.warn('FlipTrack: inv push after sale delete failed:', e.message); }
 }
 
 // DELETE ITEM

@@ -46,11 +46,26 @@ export function clearDirtyTracking() {
   _deletedIds.ft_expenses.clear();
 }
 
-/** Mark an item as dirty (changed) for delta sync */
+/** Mark an item as dirty (changed) for delta sync.
+ *  Also stamps _localUpdatedAt so pullFromCloud conflict resolution
+ *  can tell the local copy is newer than the cloud copy. */
 export function markDirty(table, id) {
-  if (table === 'inv') _dirtyInv.add(id);
-  else if (table === 'sales') _dirtySales.add(id);
-  else if (table === 'expenses') _dirtyExp.add(id);
+  const now = Date.now();
+  if (table === 'inv') {
+    _dirtyInv.add(id);
+    const item = inv.find(i => i.id === id);
+    if (item) item._localUpdatedAt = now;
+  }
+  else if (table === 'sales') {
+    _dirtySales.add(id);
+    const s = sales.find(x => x.id === id);
+    if (s) s._localUpdatedAt = now;
+  }
+  else if (table === 'expenses') {
+    _dirtyExp.add(id);
+    const e = expenses.find(x => x.id === id);
+    if (e) e._localUpdatedAt = now;
+  }
   else if (table === 'supplies') _dirtySupplies.add(id);
 }
 
