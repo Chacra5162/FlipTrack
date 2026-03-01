@@ -16,7 +16,7 @@ async function loadJsPDF() {
   return new Promise((resolve, reject) => {
     if (window.jspdf) { _jsPDF = window.jspdf; resolve(_jsPDF); return; }
     const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js';
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
     script.onload = () => { _jsPDF = window.jspdf; resolve(_jsPDF); };
     script.onerror = () => reject(new Error('Failed to load jsPDF'));
     document.head.appendChild(script);
@@ -53,7 +53,8 @@ function addFooter(doc, pageNum) {
 // ── P&L STATEMENT ────────────────────────────────────────────────────────
 export async function exportPLReport(dateFrom, dateTo) {
   toast('Generating P&L report…');
-  const { jsPDF } = await loadJsPDF();
+  let jsPDF;
+  try { ({ jsPDF } = await loadJsPDF()); } catch (e) { toast('Failed to load PDF library — check your connection.', true); return; }
   const doc = new jsPDF();
 
   const from = dateFrom ? new Date(dateFrom) : new Date(new Date().getFullYear(), 0, 1);
@@ -219,7 +220,8 @@ export async function exportPLReport(dateFrom, dateTo) {
 // ── TAX SUMMARY REPORT ──────────────────────────────────────────────────
 export async function exportTaxReport(year) {
   toast('Generating tax summary…');
-  const { jsPDF } = await loadJsPDF();
+  let jsPDF;
+  try { ({ jsPDF } = await loadJsPDF()); } catch (e) { toast('Failed to load PDF library — check your connection.', true); return; }
   const doc = new jsPDF();
   const yr = year || new Date().getFullYear();
 

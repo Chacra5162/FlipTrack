@@ -325,6 +325,12 @@ Object.assign(window, {
   bnav, toggleBnavMore, closeBnavMore
 });
 
+// Reports view
+Object.assign(window, {
+  renderReports, showPLReport, renderPLStatement,
+  setReportMode, shiftPeriod, goToAddExpense
+});
+
 // Auth
 Object.assign(window, {
   switchAuthTab, authSubmit, authForgotPassword, authSignOut,
