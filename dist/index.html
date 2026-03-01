@@ -22,9 +22,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"></noscript>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
-  <script type="module" crossorigin src="./assets/index-CfuzhzxS.js"></script>
+  <script type="module" crossorigin src="./assets/index-B8mOTu8c.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/vendor-supabase-jY4wIOEF.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-BI1gyELy.css">
+  <link rel="stylesheet" crossorigin href="./assets/index-DtpNtekW.css">
 </head>
 <body>
 <!-- SPLASH / LOADING SCREEN — removed by main.js on init -->
@@ -575,6 +575,15 @@
           </div>
           <input type="hidden" id="d_condition" value="">
         </div>
+        <!-- Smoke Exposure slider -->
+        <div class="edit-grp full">
+          <div class="edit-lbl">Smoke Exposure</div>
+          <div class="smoke-slider-wrap">
+            <span class="smoke-lbl smoke-lbl-free" id="d_smoke_lbl_free">Smoke Free</span>
+            <input type="range" id="d_smoke" class="smoke-slider" min="0" max="2" value="1" oninput="updateSmokeSlider('d')">
+            <span class="smoke-lbl smoke-lbl-exp" id="d_smoke_lbl_exp">Smoke Exposure</span>
+          </div>
+        </div>
         <!-- Book-specific fields (hidden unless category = Books) -->
         <div class="book-fields" id="d_book_fields">
           <div class="bf-header">📚 Book Details</div>
@@ -986,6 +995,15 @@
             <button type="button" class="cond-tag" onclick="setCondTag('f','Refurbished',this)">Refurbished</button>
           </div>
           <input type="hidden" id="f_condition" value="">
+        </div>
+        <!-- Smoke Exposure slider -->
+        <div class="fgrp full">
+          <label>Smoke Exposure</label>
+          <div class="smoke-slider-wrap">
+            <span class="smoke-lbl smoke-lbl-free" id="f_smoke_lbl_free">Smoke Free</span>
+            <input type="range" id="f_smoke" class="smoke-slider" min="0" max="2" value="1" oninput="updateSmokeSlider('f')">
+            <span class="smoke-lbl smoke-lbl-exp" id="f_smoke_lbl_exp">Smoke Exposure</span>
+          </div>
         </div>
         <!-- Book-specific fields (hidden unless category = Books) -->
         <div class="book-fields" id="f_book_fields">

@@ -25,7 +25,7 @@ import { logPriceChange } from '../features/price-history.js';
 import { getPlatforms, buildPlatPicker, getSelectedPlats } from '../features/platforms.js';
 import { loadDimsToForm, getDimsFromForm, suggestPackaging } from '../features/dimensions.js';
 import { renderDrawerBarcode } from '../features/barcodes.js';
-import { toggleBulkFields } from './add-item.js';
+import { toggleBulkFields, getSmokeValue, loadSmokeSlider } from './add-item.js';
 
 export function populateSubcatSelect(selectId, category, currentValue) {
   const subs = SUBCATS[category] || [];
@@ -122,6 +122,7 @@ export function openDrawer(id) {
   buildPlatPicker('d_plat_picker', getPlatforms(item));
   renderListingStatus(item);
   loadCondTag('d', item.condition || '');
+  loadSmokeSlider('d', item.smoke || null);
   populateSubcatSelect('d_subcat', item.category||'', item.subcategory||'');
   populateSubtypeSelect('d_subtype', item.subcategory||'', item.subtype||'');
   // Book mode
@@ -288,6 +289,7 @@ export function saveDrawer(){
   item.notes   =document.getElementById('d_notes').value.trim();
   Object.assign(item, getDimsFromForm('d'));
   if (isBookCat(item.category)) Object.assign(item, getBookFields('d'));
+  item.smoke = getSmokeValue('d');
   // Log price change if price was manually adjusted
   if (item.price !== oldPrice && item.price > 0) {
     logPriceChange(item.id, item.price, 'manual');

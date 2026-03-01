@@ -27,6 +27,47 @@ import { openDrawer, closeDrawer, loadCondTag, syncAddSubcat } from './drawer.js
 
 let pendingAddImages = [];
 
+// ── SMOKE EXPOSURE 3-POSITION SLIDER ─────────────────────────────────────────
+export function updateSmokeSlider(pfx) {
+  const slider = document.getElementById(pfx + '_smoke');
+  if (!slider) return;
+  const v = parseInt(slider.value, 10);
+  const lblFree = document.getElementById(pfx + '_smoke_lbl_free');
+  const lblExp  = document.getElementById(pfx + '_smoke_lbl_exp');
+
+  // Reset classes
+  slider.classList.remove('pos-free', 'pos-exp');
+  if (lblFree) lblFree.classList.remove('on-free');
+  if (lblExp)  lblExp.classList.remove('on-exp');
+
+  if (v === 0) {
+    slider.classList.add('pos-free');
+    if (lblFree) lblFree.classList.add('on-free');
+  } else if (v === 2) {
+    slider.classList.add('pos-exp');
+    if (lblExp) lblExp.classList.add('on-exp');
+  }
+  // v === 1 is neutral — no highlights
+}
+
+export function getSmokeValue(pfx) {
+  const slider = document.getElementById(pfx + '_smoke');
+  if (!slider) return null;
+  const v = parseInt(slider.value, 10);
+  if (v === 0) return 'smoke-free';
+  if (v === 2) return 'smoke-exposure';
+  return null; // neutral = unknown, don't store
+}
+
+export function loadSmokeSlider(pfx, val) {
+  const slider = document.getElementById(pfx + '_smoke');
+  if (!slider) return;
+  if (val === 'smoke-free') slider.value = '0';
+  else if (val === 'smoke-exposure') slider.value = '2';
+  else slider.value = '1'; // neutral default
+  updateSmokeSlider(pfx);
+}
+
 export function dupCurrent() {
   const item = inv.find(i => i.id === activeDrawId);
   if (!item) return;
@@ -115,7 +156,7 @@ export function closeAdd(){
   document.querySelectorAll('#f_cond_picker .cond-tag').forEach(b => b.classList.remove('active'));
   clearBookFields('f');
   swapConditionTags('f', false);
-  pendingAddImages=[];refreshImgSlots('f',[]);clearDimForm('f');buildPlatPicker('f_plat_picker',[]);prevProfit();
+  pendingAddImages=[];refreshImgSlots('f',[]);clearDimForm('f');buildPlatPicker('f_plat_picker',[]);prevProfit();loadSmokeSlider('f',null);
 }
 
 export function toggleBulkFields(pfx) {
@@ -163,6 +204,8 @@ export function prefillFromLast() {
   if (plats.length) buildPlatPicker('f_plat_picker', plats);
   // Book mode prefill
   toggleBookFields('f');
+  // Smoke exposure prefill
+  if (last.smoke) loadSmokeSlider('f', last.smoke);
 
   toast('Prefilled from: ' + last.name);
 }
@@ -236,7 +279,8 @@ export function addItem(){
   const platform=selPlats[0]||'Other';
   const newId = uid();
   const imagesToUpload = pendingAddImages.slice(); // capture before closeAdd clears them
-  inv.push({id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:(document.getElementById('f_subcat_txt').value||'').trim(),subtype:document.getElementById('f_subtype').value||'',platform,platforms:selPlats,cost:isNaN(cost)?0:cost,price,qty,bulk:isBulk,fees:isNaN(fees)?0:fees,ship:isNaN(ship)?0:ship,lowAlert,notes:document.getElementById('f_notes').value.trim(),source:document.getElementById('f_source').value.trim(),condition:document.getElementById('f_condition').value.trim(),images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),...(isBookCat(cat) ? getBookFields('f') : {}),added:new Date().toISOString()});
+  const smokeVal = getSmokeValue('f');
+  inv.push({id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:(document.getElementById('f_subcat_txt').value||'').trim(),subtype:document.getElementById('f_subtype').value||'',platform,platforms:selPlats,cost:isNaN(cost)?0:cost,price,qty,bulk:isBulk,fees:isNaN(fees)?0:fees,ship:isNaN(ship)?0:ship,lowAlert,notes:document.getElementById('f_notes').value.trim(),source:document.getElementById('f_source').value.trim(),condition:document.getElementById('f_condition').value.trim(),smoke:smokeVal,images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),...(isBookCat(cat) ? getBookFields('f') : {}),added:new Date().toISOString()});
   save(); closeAdd(); refresh(); _sfx.create(); toast('Item added ✓');
 
   // Upload images to Storage in background, replace base64 with URLs
