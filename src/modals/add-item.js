@@ -3,7 +3,7 @@
 // DOM elements, form helpers (buildPlatPicker, getSelectedPlats, clearDimForm, getDimsFromForm, refreshImgSlots)
 // Other modals: book-mode functions
 
-import { inv, activeDrawId, save, refresh, normCat } from '../data/store.js';
+import { inv, activeDrawId, save, refresh, normCat, markDirty } from '../data/store.js';
 import { uid, fmt, pct, escHtml } from '../utils/format.js';
 import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
@@ -90,6 +90,7 @@ export function dupItem(id) {
     platformStatus: {},
   };
   inv.push(clone);
+  markDirty('inv', clone.id);
   save(); refresh(); _sfx.create();
   toast('Duplicated: ' + clone.name + ' ✓');
   autoSync();
@@ -101,8 +102,8 @@ export function addFormTab(tab, btn) {
 
   // Basic fields: name, sku, upc, category, source, subcategory, subtype, platforms, bulk, quantity, alert
   const basicIds = ['f_name','f_sku','f_upc','f_cat','f_source','f_subcat_txt','f_subtype','f_plat_picker','f_bulk','f_qty','f_alert'].map(id=>document.getElementById(id));
-  // Pricing fields: cost, price, fees, ship, condition, profit preview
-  const pricingIds = ['f_cost','f_price','f_fees','f_ship','f_condition'].map(id=>document.getElementById(id));
+  // Pricing fields: cost, price, fees, ship, condition, smoke exposure, profit preview
+  const pricingIds = ['f_cost','f_price','f_fees','f_ship','f_condition','f_smoke'].map(id=>document.getElementById(id));
   // Details fields: notes, dimensions, photos, book fields
   const detailIds = ['f_notes','f_book_fields','fImgWrap'].map(id=>document.getElementById(id));
 
@@ -281,6 +282,7 @@ export function addItem(){
   const imagesToUpload = pendingAddImages.slice(); // capture before closeAdd clears them
   const smokeVal = getSmokeValue('f');
   inv.push({id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:(document.getElementById('f_subcat_txt').value||'').trim(),subtype:document.getElementById('f_subtype').value||'',platform,platforms:selPlats,cost:isNaN(cost)?0:cost,price,qty,bulk:isBulk,fees:isNaN(fees)?0:fees,ship:isNaN(ship)?0:ship,lowAlert,notes:document.getElementById('f_notes').value.trim(),source:document.getElementById('f_source').value.trim(),condition:document.getElementById('f_condition').value.trim(),smoke:smokeVal,images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),...(isBookCat(cat) ? getBookFields('f') : {}),added:new Date().toISOString()});
+  markDirty('inv', newId);
   save(); closeAdd(); refresh(); _sfx.create(); toast('Item added ✓');
 
   // Upload images to Storage in background, replace base64 with URLs
@@ -295,6 +297,7 @@ export function addItem(){
       )).then(results => {
         newItem.images = results;
         newItem.image  = results[0] || null;
+        markDirty('inv', newItem.id);
         save();
         if (window.renderInv) window.renderInv();
       });
