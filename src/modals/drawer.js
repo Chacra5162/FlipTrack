@@ -23,6 +23,7 @@ import { generateListingLink, copyListingText } from '../features/deep-links.js'
 import { pushDeleteToCloud } from '../data/sync.js';
 import { logPriceChange } from '../features/price-history.js';
 import { getPlatforms, buildPlatPicker, getSelectedPlats } from '../features/platforms.js';
+import { PLATFORM_FEES, calcPlatformFee } from '../config/platforms.js';
 import { loadDimsToForm, getDimsFromForm, suggestPackaging } from '../features/dimensions.js';
 import { renderDrawerBarcode } from '../features/barcodes.js';
 import { toggleBulkFields, getSmokeValue, loadSmokeSlider } from './add-item.js';
@@ -34,10 +35,10 @@ export function populateSubcatSelect(selectId, category, currentValue) {
   const grpId = selectId === 'd_subcat' ? 'd_subcat_grp' : 'f_subcat_grp';
   const grp = document.getElementById(grpId);
   if (subs.length) {
-    sel.innerHTML = '<option value="">— None —</option>' + subs.map(s=>`<option value="${s}" ${s===currentValue?'selected':''}>${s}</option>`).join('');
+    sel.innerHTML = '<option value="">â None â</option>' + subs.map(s=>`<option value="${s}" ${s===currentValue?'selected':''}>${s}</option>`).join('');
     if (grp) grp.style.display = '';
   } else {
-    sel.innerHTML = '<option value="">— None —</option>';
+    sel.innerHTML = '<option value="">â None â</option>';
     if (grp) grp.style.display = 'none';
   }
 }
@@ -53,10 +54,10 @@ export function populateSubtypeSelect(selectId, subcategory, currentValue) {
   if (lblEl) lblEl.textContent = label;
   const grp = document.getElementById(grpId);
   if (types.length) {
-    sel.innerHTML = '<option value="">— None —</option>' + types.map(t=>`<option value="${t}" ${t===currentValue?'selected':''}>${t}</option>`).join('');
+    sel.innerHTML = '<option value="">â None â</option>' + types.map(t=>`<option value="${t}" ${t===currentValue?'selected':''}>${t}</option>`).join('');
     if (grp) grp.style.display = '';
   } else {
-    sel.innerHTML = '<option value="">— None —</option>';
+    sel.innerHTML = '<option value="">â None â</option>';
     if (grp) grp.style.display = 'none';
   }
 }
@@ -121,6 +122,7 @@ export function openDrawer(id) {
   if (dBulk) { dBulk.checked = !!item.bulk; toggleBulkFields('d'); }
   buildPlatPicker('d_plat_picker', getPlatforms(item));
   renderListingStatus(item);
+  renderFeeCalc(item);
   loadCondTag('d', item.condition || '');
   loadSmokeSlider('d', item.smoke || null);
   populateSubcatSelect('d_subcat', item.category||'', item.subcategory||'');
@@ -137,12 +139,12 @@ export function openDrawer(id) {
   if (shipSummary) {
     const dims = [];
     if (item.weight) dims.push(`${item.weight} ${item.dimUnit === 'cm' ? 'kg' : 'lb'}`);
-    if (item.dimL && item.dimW && item.dimH) dims.push(`${item.dimL}×${item.dimW}×${item.dimH} ${item.dimUnit || 'in'}`);
-    shipSummary.textContent = dims.length ? `Package: ${dims.join(' · ')}` : 'Add dimensions above to see package info';
+    if (item.dimL && item.dimW && item.dimH) dims.push(`${item.dimL}Ã${item.dimW}Ã${item.dimH} ${item.dimUnit || 'in'}`);
+    shipSummary.textContent = dims.length ? `Package: ${dims.join(' Â· ')}` : 'Add dimensions above to see package info';
   }
   const sh=document.getElementById('dHistory');
   if(!iSales.length){sh.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px 0">No sales for this item yet.</div>';}
-  else{sh.innerHTML=[...iSales].reverse().map(s=>{const pr=(s.price||0)*(s.qty||0)-(item.cost||0)*(s.qty||0)-(s.fees||0)-(s.ship||0);return `<div class="shi"><div><div style="font-size:12px">${fmt(s.price)} × ${s.qty}</div><div class="shi-d">${ds(s.date)}</div></div><div class="shi-p ${pr>=0?'pos':'neg'}">${fmt(pr)}</div></div>`;}).join('');}
+  else{sh.innerHTML=[...iSales].reverse().map(s=>{const pr=(s.price||0)*(s.qty||0)-(item.cost||0)*(s.qty||0)-(s.fees||0)-(s.ship||0);return `<div class="shi"><div><div style="font-size:12px">${fmt(s.price)} Ã ${s.qty}</div><div class="shi-d">${ds(s.date)}</div></div><div class="shi-p ${pr>=0?'pos':'neg'}">${fmt(pr)}</div></div>`;}).join('');}
   document.getElementById('drawerOv').classList.add('on');
   document.getElementById('drawer').classList.add('on');
   setTimeout(() => trapFocus('#drawer'), 100);
@@ -167,6 +169,29 @@ export function closeDrawer(){
   const defaultTab = document.querySelector('.drawer-tab');
   if (defaultTab) defaultTab.classList.add('active');
   setActiveDrawId(null);
+}
+
+/** Render per-platform fee breakdown in the drawer */
+export function renderFeeCalc(item) {
+  const el = document.getElementById('d_fee_calc');
+  if (!el) return;
+  const plats = getPlatforms(item);
+  const price = item.price || 0;
+  if (!plats.length || !price) {
+    el.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:4px 0">Add platforms and a price to see fee estimates</div>';
+    return;
+  }
+  el.innerHTML = plats.filter(p => PLATFORM_FEES[p]).map(p => {
+    const fee = calcPlatformFee(p, price);
+    const net = price - fee - (item.cost || 0) - (item.ship || 0);
+    const feeLabel = PLATFORM_FEES[p]?.label || '';
+    return `<div class="fee-row">
+      <span class="fee-plat">${p}</span>
+      <span class="fee-detail">${feeLabel}</span>
+      <span class="fee-amt" style="color:var(--accent2)">-${fmt(fee)}</span>
+      <span class="fee-net ${net >= 0 ? 'pos' : 'neg'}">Net: ${fmt(net)}</span>
+    </div>`;
+  }).join('');
 }
 
 export function renderListingStatus(item) {
@@ -203,8 +228,8 @@ export function renderListingStatus(item) {
         ${listedLabel}
         <div class="ls-badge-actions">
           ${isExpiredOrDelisted ? `<button class="btn-xs btn-accent" onclick="clRelistFromDrawer('${item.id}','${escHtml(p)}')">Relist</button>` : ''}
-          <button class="btn-xs" onclick="clOpenLink('${escHtml(p)}','${item.id}')" title="Open on ${escHtml(p)}">↗</button>
-          <button class="btn-xs" onclick="clCopyListing('${item.id}')" title="Copy listing text">📋</button>
+          <button class="btn-xs" onclick="clOpenLink('${escHtml(p)}','${item.id}')" title="Open on ${escHtml(p)}">â</button>
+          <button class="btn-xs" onclick="clCopyListing('${item.id}')" title="Copy listing text">ð</button>
         </div>
       </div>
     </div>`;
@@ -295,7 +320,7 @@ export function saveDrawer(){
     logPriceChange(item.id, item.price, 'manual');
   }
   markDirty('inv', item.id);
-  save(); closeDrawer(); refresh(); _sfx.edit(); toast('Changes saved ✓');
+  save(); closeDrawer(); refresh(); _sfx.edit(); toast('Changes saved â');
 }
 
 export async function delCurrent(){
@@ -306,7 +331,7 @@ export async function delCurrent(){
   save();
   closeDrawer();
   refresh();
-  toast('Item deleted — tap Undo to restore',false,4000);
+  toast('Item deleted â tap Undo to restore',false,4000);
   await pushDeleteToCloud('ft_inventory',[id]);
   autoSync();
 }
@@ -314,7 +339,7 @@ export async function delCurrent(){
 export function setCondTag(prefix, value, btn) {
   const hiddenInput = document.getElementById(prefix + '_condition');
   const picker = document.getElementById(prefix + '_cond_picker');
-  // Toggle — clicking active tag deselects it
+  // Toggle â clicking active tag deselects it
   if (hiddenInput.value === value) {
     hiddenInput.value = '';
     btn.classList.remove('active');
@@ -334,3 +359,4 @@ export function loadCondTag(prefix, value) {
     b.classList.toggle('active', b.textContent.trim() === value);
   });
 }
+
