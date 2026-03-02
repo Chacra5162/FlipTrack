@@ -158,13 +158,26 @@ export async function initStore() {
   rebuildInvIndex();
 }
 
+/** Safe JSON parse — returns fallback on corrupt data */
+function _safeParseLS(key, fallback = []) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : fallback;
+  } catch (e) {
+    console.warn(`FlipTrack: corrupt localStorage key "${key}", using fallback:`, e.message);
+    return fallback;
+  }
+}
+
 /** One-time migration from localStorage → IndexedDB */
 async function _migrateFromLocalStorage() {
-  const lsInv = JSON.parse(localStorage.getItem('ft3_inv') || '[]');
-  const lsSales = JSON.parse(localStorage.getItem('ft3_sal') || '[]');
-  const lsExp = JSON.parse(localStorage.getItem('ft3_exp') || '[]');
-  const lsSup = JSON.parse(localStorage.getItem('ft_supplies') || '[]');
-  const lsTrash = JSON.parse(localStorage.getItem('ft_trash') || '[]');
+  const lsInv = _safeParseLS('ft3_inv');
+  const lsSales = _safeParseLS('ft3_sal');
+  const lsExp = _safeParseLS('ft3_exp');
+  const lsSup = _safeParseLS('ft_supplies');
+  const lsTrash = _safeParseLS('ft_trash');
 
   if (lsInv.length || lsSales.length || lsExp.length || lsSup.length) {
     await Promise.all([
@@ -181,15 +194,15 @@ async function _migrateFromLocalStorage() {
 /** Fallback: load from localStorage */
 function _loadFromLocalStorage() {
   inv.length = 0;
-  inv.push(...JSON.parse(localStorage.getItem('ft3_inv') || '[]'));
+  inv.push(..._safeParseLS('ft3_inv'));
   sales.length = 0;
-  sales.push(...JSON.parse(localStorage.getItem('ft3_sal') || '[]'));
+  sales.push(..._safeParseLS('ft3_sal'));
   expenses.length = 0;
-  expenses.push(...JSON.parse(localStorage.getItem('ft3_exp') || '[]'));
+  expenses.push(..._safeParseLS('ft3_exp'));
   supplies.length = 0;
-  supplies.push(...JSON.parse(localStorage.getItem('ft_supplies') || '[]'));
+  supplies.push(..._safeParseLS('ft_supplies'));
   _trash.length = 0;
-  _trash.push(...JSON.parse(localStorage.getItem('ft_trash') || '[]'));
+  _trash.push(..._safeParseLS('ft_trash'));
 }
 
 
@@ -320,7 +333,7 @@ export function saveTrash() {
   _trash = _trash.filter(t => t.deletedAt > cutoff).slice(-30);
   // Persist trash to IDB and localStorage
   if (_idbReady) putAll('trash', _trash).catch(e => console.warn('FlipTrack: trash IDB save failed:', e.message));
-  try { localStorage.setItem('ft_trash', JSON.stringify(_trash)); } catch {}
+  try { localStorage.setItem('ft_trash', JSON.stringify(_trash)); } catch (e) { console.warn('FlipTrack: trash localStorage save failed:', e.message); }
 }
 
 export function softDeleteItem(id) {
@@ -397,12 +410,12 @@ export function performUndo() {
 // ── SUPPLIES ───────────────────────────────────────────────────────────────
 export function saveSupplies() {
   if (_idbReady) putAll('supplies', supplies).catch(e => console.warn('FlipTrack: supplies IDB save failed:', e.message));
-  localStorage.setItem('ft_supplies', JSON.stringify(supplies));
+  try { localStorage.setItem('ft_supplies', JSON.stringify(supplies)); } catch (e) { console.warn('FlipTrack: supplies localStorage save failed:', e.message); }
 }
 
 export function saveLocalSupplies() {
   if (_idbReady) putAll('supplies', supplies).catch(e => console.warn('FlipTrack: supplies IDB local save failed:', e.message));
-  localStorage.setItem('ft_supplies', JSON.stringify(supplies));
+  try { localStorage.setItem('ft_supplies', JSON.stringify(supplies)); } catch (e) { console.warn('FlipTrack: supplies localStorage save failed:', e.message); }
 }
 
 

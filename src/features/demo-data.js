@@ -124,10 +124,15 @@ export function loadDemoData() {
 export function clearDemoData() {
   // Remove items with FT- demo SKU prefix
   const demoIds = new Set(inv.filter(i => (i.sku || '').startsWith('FT-')).map(i => i.id));
+  const keepInv = inv.filter(i => !demoIds.has(i.id));
+  const keepSales = sales.filter(s => !demoIds.has(s.itemId));
+  const keepExp = expenses.filter(e => !(e.notes || '').includes('[demo]'));
   inv.length = 0;
-  inv.push(...inv.filter(i => !demoIds.has(i.id)));
+  inv.push(...keepInv);
   sales.length = 0;
-  sales.push(...sales.filter(s => !demoIds.has(s.itemId)));
+  sales.push(...keepSales);
+  expenses.length = 0;
+  expenses.push(...keepExp);
   save();
   rebuildInvIndex();
   refresh();

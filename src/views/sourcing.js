@@ -29,7 +29,7 @@ export async function initHauls() {
     if (!_hauls) _hauls = [];
   } catch (e) {
     console.warn('FlipTrack: Hauls IDB load failed, using localStorage:', e.message);
-    _hauls = JSON.parse(localStorage.getItem('ft_hauls') || '[]');
+    try { _hauls = JSON.parse(localStorage.getItem('ft_hauls') || '[]'); } catch (_) { _hauls = []; }
   }
 }
 

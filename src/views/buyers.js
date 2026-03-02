@@ -41,7 +41,7 @@ function getBuyerTier(buyerId) {
 
 export async function initBuyers() {
   const data = await getMeta('buyers');
-  _buyers = data ? JSON.parse(data) : [];
+  try { _buyers = data ? JSON.parse(data) : []; } catch (e) { console.warn('FlipTrack: corrupt buyers data:', e.message); _buyers = []; }
 }
 
 // ── GET / SET ─────────────────────────────────────────────────────────────────

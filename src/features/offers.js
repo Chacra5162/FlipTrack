@@ -19,7 +19,7 @@ let _offers = [];
 
 export async function initOffers() {
   const data = await getMeta('offers');
-  _offers = data ? JSON.parse(data) : [];
+  try { _offers = data ? JSON.parse(data) : []; } catch (e) { console.warn('FlipTrack: corrupt offers data:', e.message); _offers = []; }
 }
 
 // ── SAVE ──────────────────────────────────────────────────────────────────────
