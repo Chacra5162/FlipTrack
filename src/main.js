@@ -30,7 +30,8 @@ import {
   _trash, saveTrash, pushUndo, showUndoToast, performUndo,
   softDeleteItem, restoreItem, calc, sc, mkc, margCls,
   markDirty, markDeleted,
-  _debouncedRenderInv
+  _debouncedRenderInv,
+  normalizeAllCategories
 } from './data/store.js';
 import {
   initAuth, authSubmit, authForgotPassword, authSignOut,
@@ -61,7 +62,8 @@ import {
   toggleSel, toggleAll, clearSel, syncBulk,
   bulkDel, bulkSold,
   toggleFilterPanel, openFilterPanel, updateFiltersBadge,
-  setStockFilt, clearStockFilter
+  setStockFilt, clearStockFilter,
+  setSmokeFilt, setConditionFilt, daysListed
 } from './views/inventory.js';
 import {
   openSoldModal, closeSold, sPriceType, onSoldItemPick,
@@ -127,7 +129,9 @@ import { updateOnlineStatus } from './features/offline.js';
 import {
   initListingDates, checkExpiredListings, autoDlistOnSale,
   getCrosslistStats, getExpiredListings, getExpiringListings,
-  markPlatformStatus, relistItem, setListingDate
+  markPlatformStatus, relistItem, setListingDate,
+  enableAutoRelist, disableAutoRelist, isAutoRelistEnabled, runAutoRelist,
+  bulkPriceAdjust, bulkRelistPlatform
 } from './features/crosslist.js';
 import { generateListingLink, copyListingText } from './features/deep-links.js';
 import { initTemplates } from './features/listing-templates.js';
@@ -155,7 +159,8 @@ import {
   shipToggleSel, shipToggleAll, shipClearSel,
   shipMarkShipped, shipConfirmShipped, shipCancelMark,
   shipBatchMark, shipConfirmBatchMark, shipCancelBatchMark,
-  shipPrintSlip, shipPrintBatchSlips, shipExportLog
+  shipPrintSlip, shipPrintBatchSlips, shipExportLog,
+  shipCheckTracking, shipLogReturn, shipToggleReturnForm
 } from './views/shipping.js';
 import {
   printPackingSlip, printBatchSlips,
@@ -174,7 +179,8 @@ import { getHaulROI, getHaulItems, splitCost, getSourceStats, getBestSources } f
 
 // ── Phase 4: Tax & Bookkeeping ───────────────────────────────────────────────
 import {
-  renderTaxCenter, taxSetYear, taxSetQuarter, taxToggleScheduleC, taxExportCSV
+  renderTaxCenter, taxSetYear, taxSetQuarter, taxToggleScheduleC, taxExportCSV,
+  taxToggleYearComparison
 } from './views/tax-center.js';
 import {
   initMileageLog, mileAddEntry, mileDeleteEntry,
@@ -228,7 +234,7 @@ import { exportPlatformCSV, exportSalesCSV, exportTaxCSV, renderCSVExportPanel }
 import { toggleNotifications, startStockAlertChecks, getNotifStatus } from './features/push-notifications.js';
 import { startTour, endTour, maybeStartTour } from './features/onboarding-tour.js';
 import { renderKPIGoals, openKPIGoalEditor, closeKPIGoalEditor, saveKPIGoals } from './features/kpi-goals.js';
-import { toggleNotifCenter, closeNotifCenter, markAllRead, clearNotifications, addNotification, initNotificationCenter } from './features/notification-center.js';
+import { toggleNotifCenter, closeNotifCenter, markAllRead, clearNotifications, addNotification, initNotificationCenter, getSalesVelocity } from './features/notification-center.js';
 import { recordSync, startSyncIndicator } from './features/sync-indicator.js';
 import { exportPLReport, exportTaxReport } from './features/pdf-reports.js';
 import {
@@ -351,7 +357,8 @@ Object.assign(window, {
   toggleSel, toggleAll, clearSel, clearStockFilt,
   bulkDel, bulkSold,
   toggleFilterPanel,
-  _debouncedRenderInv
+  _debouncedRenderInv,
+  setSmokeFilt, setConditionFilt, daysListed
 });
 
 // Drawer & editing
@@ -430,9 +437,12 @@ Object.assign(window, { markDirty, markDeleted });
 Object.assign(window, {
   renderCrosslistDashboard, clSwitchTab, clSetSearch, clSetPlatFilter, clSetStatusFilter,
   clRelistItem, clDelistItem, clCycleStatus, clOpenLink, clCopyListing,
-  clBulkRelistExpired, clAddTemplate, clDeleteTemplate,
+  clBulkRelistExpired, clAddTemplate, clDeleteTemplate, clSaveTemplate,
   markPlatformStatus, relistItem, copyListingText,
-  clRelistFromDrawer
+  clRelistFromDrawer,
+  clToggleAutoRelist, clRunAutoRelist, clBulkPrice,
+  enableAutoRelist, disableAutoRelist, isAutoRelistEnabled, runAutoRelist,
+  bulkPriceAdjust, bulkRelistPlatform
 });
 
 // eBay Integration
@@ -457,6 +467,7 @@ Object.assign(window, {
   shipMarkShipped, shipConfirmShipped, shipCancelMark,
   shipBatchMark, shipConfirmBatchMark, shipCancelBatchMark,
   shipPrintSlip, shipPrintBatchSlips, shipExportLog,
+  shipCheckTracking, shipLogReturn, shipToggleReturnForm,
   printPackingSlip, openPackingSlipSettings, closePackingSlipSettings, savePackingSlipSettings,
   estimateShippingRate, suggestPackage, getCarrierOptions
 });
@@ -471,6 +482,7 @@ Object.assign(window, {
 // Phase 4: Tax
 Object.assign(window, {
   renderTaxCenter, taxSetYear, taxSetQuarter, taxToggleScheduleC, taxExportCSV,
+  taxToggleYearComparison,
   mileAddEntry, mileDeleteEntry
 });
 
@@ -478,13 +490,13 @@ Object.assign(window, {
 Object.assign(window, {
   renderPriceHistoryChart, renderPriceHistoryTable,
   renderRepricingSuggestions, renderRepricingRulesManager,
-  rpAddRule, rpDeleteRule, rpToggleRule, rpApplyAll, rpApplySingle
+  rpAddRule, rpDeleteRule, rpToggleRule, rpApplyAll, rpApplySingle, rpAddRuleFromForm
 });
 
 // Phase 6: CRM
 Object.assign(window, {
   renderBuyersView, buyerAdd, buyerDelete, buyerExpand,
-  buyerSetSearch, buyerSetSort, buyerLinkSale,
+  buyerSetSearch, buyerSetSort, buyerLinkSale, buyerAddComm,
   renderOffersPanel, offerAdd, offerAddConfirm,
   offerAccept, offerReject, offerCounter, offerDelete, renderItemOffers
 });
@@ -505,6 +517,7 @@ Object.assign(window, {
   startTour, endTour,
   openKPIGoalEditor, closeKPIGoalEditor, saveKPIGoals,
   toggleNotifCenter, closeNotifCenter, markAllRead, clearNotifications, addNotification,
+  getSalesVelocity,
   exportPLReport, exportTaxReport,
 });
 
@@ -769,6 +782,9 @@ setTimeout(_killSplash, 3000);
   }
 
   try {
+
+  // Normalize category names to prevent duplicates (e.g., "Men's Clothing" vs "Men's clothing")
+  try { const n = normalizeAllCategories(); if (n > 0) { save(); console.log(`FlipTrack: Normalized ${n} category names`); } } catch(e) {}
 
   // Build initial state
   try { rebuildInvIndex(); refresh(); renderDash(); } catch(e) { console.warn('FlipTrack: render error:', e.message); }

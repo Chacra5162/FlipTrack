@@ -92,7 +92,7 @@ export function dupItem(id) {
   inv.push(clone);
   markDirty('inv', clone.id);
   save(); refresh(); _sfx.create();
-  toast('Duplicated: ' + clone.name + ' ✓');
+  toast('Duplicated: ' + clone.name + ' \u2713');
   autoSync();
 }
 
@@ -180,19 +180,17 @@ export function prevProfit(){
   const fees=parseFloat(document.getElementById('f_fees').value)||0;
   const ship=parseFloat(document.getElementById('f_ship').value)||0;
   const pr=price-cost-fees-ship, m=price?pr/price:null, roi=cost?pr/cost:null;
-  document.getElementById('pp_profit').textContent=price||cost?fmt(pr):'—';
-  document.getElementById('pp_margin').textContent=m!=null?pct(m):'—';
-  document.getElementById('pp_roi').textContent=roi!=null?pct(roi):'—';
+  document.getElementById('pp_profit').textContent=price||cost?fmt(pr):'\u2014';
+  document.getElementById('pp_margin').textContent=m!=null?pct(m):'\u2014';
+  document.getElementById('pp_roi').textContent=roi!=null?pct(roi):'\u2014';
   document.getElementById('pp_profit').style.color=pr>=0?'var(--good)':'var(--danger)';
 }
 
 export function prefillFromLast() {
-  // Find the most recently added item
   const sorted = [...inv].sort((a, b) => new Date(b.added || 0) - new Date(a.added || 0));
   const last = sorted[0];
   if (!last) { toast('No items to copy from', true); return; }
 
-  // Prefill source, category, subcategory, platforms, condition — NOT name/sku/upc/price/cost
   const fSource = document.getElementById('f_source');
   if (fSource && last.source) fSource.value = last.source;
   const fCat = document.getElementById('f_cat');
@@ -200,12 +198,9 @@ export function prefillFromLast() {
   const fSubcat = document.getElementById('f_subcat_txt');
   if (fSubcat && last.subcategory) fSubcat.value = last.subcategory;
   if (last.condition) loadCondTag('f', last.condition);
-  // Rebuild platform picker with last item's platforms
   const plats = getPlatforms(last);
   if (plats.length) buildPlatPicker('f_plat_picker', plats);
-  // Book mode prefill
   toggleBookFields('f');
-  // Smoke exposure prefill
   if (last.smoke) loadSmokeSlider('f', last.smoke);
 
   toast('Prefilled from: ' + last.name);
@@ -215,7 +210,6 @@ export function addItem(){
   const name=document.getElementById('f_name').value.trim();
   if(!name){toast('Name required',true);return;}
 
-  // Validate numeric fields
   const costEl = document.getElementById('f_cost');
   const cost = parseNum(costEl.value, { fieldName: 'Cost' });
   if (isNaN(cost) && costEl.value.trim() !== '') {
@@ -260,16 +254,12 @@ export function addItem(){
   const skuRand = Math.random().toString(36).slice(2,5).toUpperCase();
   const autoSku = skuCat + '-' + skuDate + '-' + skuRand;
 
-  // Check for duplicate UPC
   const upc = (document.getElementById('f_upc').value || '').trim();
   if (upc) {
     const existing = inv.find(i => i.upc === upc);
     if (existing) {
-      const proceed = confirm(
-        `An item with UPC "${upc}" already exists:\n\n"${existing.name}" (Qty: ${existing.qty})\n\nAdd as a new item anyway, or cancel to update the existing one?`
-      );
+      const proceed = confirm(`An item with UPC "${upc}" already exists:\n\n"${existing.name}" (Qty: ${existing.qty})\n\nAdd as a new item anyway, or cancel to update the existing one?`);
       if (!proceed) {
-        // Open the existing item's drawer instead
         if (typeof window.openDrawer === 'function') window.openDrawer(existing.id);
         return;
       }
@@ -279,20 +269,19 @@ export function addItem(){
   const selPlats=getSelectedPlats('f_plat_picker');
   const platform=selPlats[0]||'Other';
   const newId = uid();
-  const imagesToUpload = pendingAddImages.slice(); // capture before closeAdd clears them
+  const imagesToUpload = pendingAddImages.slice();
   const smokeVal = getSmokeValue('f');
   inv.push({id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:(document.getElementById('f_subcat_txt').value||'').trim(),subtype:document.getElementById('f_subtype').value||'',platform,platforms:selPlats,cost:isNaN(cost)?0:cost,price,qty,bulk:isBulk,fees:isNaN(fees)?0:fees,ship:isNaN(ship)?0:ship,lowAlert,notes:document.getElementById('f_notes').value.trim(),source:document.getElementById('f_source').value.trim(),condition:document.getElementById('f_condition').value.trim(),smoke:smokeVal,images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),...(isBookCat(cat) ? getBookFields('f') : {}),added:new Date().toISOString()});
   markDirty('inv', newId);
   save(); closeAdd(); refresh(); _sfx.create(); toast('Item added ✓');
 
-  // Upload images to Storage in background, replace base64 with URLs
   if (imagesToUpload.length && getSupabaseClient() && getCurrentUser()) {
     const newItem = inv.find(i => i.id === newId);
     if (newItem) {
       Promise.all(imagesToUpload.map((b64, idx) =>
         uploadImageToStorage(b64, newId, idx).catch(e => {
           console.warn('FlipTrack: upload failed for slot', idx, e.message);
-          return b64; // keep base64 on failure
+          return b64;
         })
       )).then(results => {
         newItem.images = results;

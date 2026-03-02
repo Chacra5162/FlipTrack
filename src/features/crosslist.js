@@ -311,3 +311,122 @@ export function initListingDates() {
   }
   if (patched > 0) save();
 }
+
+// ── AUTO-RELIST SCHEDULER ────────────────────────────────────────────────
+
+let _autoRelistInterval = null;
+let _autoRelistEnabled = false;
+
+/**
+ * Enable auto-relisting: periodically check for expired listings and relist them.
+ * @param {number} intervalMs - Check interval in ms (default 1 hour)
+ */
+export function enableAutoRelist(intervalMs = 3600000) {
+  if (_autoRelistInterval) clearInterval(_autoRelistInterval);
+  _autoRelistEnabled = true;
+  _autoRelistInterval = setInterval(() => runAutoRelist(), intervalMs);
+  // Run immediately on enable
+  runAutoRelist();
+}
+
+export function disableAutoRelist() {
+  _autoRelistEnabled = false;
+  if (_autoRelistInterval) { clearInterval(_autoRelistInterval); _autoRelistInterval = null; }
+}
+
+export function isAutoRelistEnabled() { return _autoRelistEnabled; }
+
+/**
+ * Run auto-relist: find all expired renewable listings and relist them.
+ * @returns {number} Number of items relisted
+ */
+export function runAutoRelist() {
+  const expired = getExpiredListings(inv);
+  let count = 0;
+  for (const { item, platform } of expired) {
+    const rule = PLATFORM_EXPIRY_RULES[platform];
+    if (!rule || !rule.renewable) continue; // Only auto-relist renewable platforms
+    relistItem(item.id, platform);
+    count++;
+  }
+  if (count > 0) {
+    save();
+    refresh();
+    toast(`Auto-relisted ${count} expired listing${count > 1 ? 's' : ''}`);
+  }
+  return count;
+}
+
+/**
+ * Get auto-relist candidates (expired + renewable).
+ */
+export function getAutoRelistCandidates() {
+  const expired = getExpiredListings(inv);
+  return expired.filter(({ platform }) => {
+    const rule = PLATFORM_EXPIRY_RULES[platform];
+    return rule && rule.renewable;
+  });
+}
+
+/**
+ * Bulk relist all expired renewable listings for a specific platform.
+ */
+export function bulkRelistPlatform(platform) {
+  const expired = getExpiredListings(inv).filter(e => e.platform === platform);
+  let count = 0;
+  for (const { item } of expired) {
+    relistItem(item.id, platform);
+    count++;
+  }
+  if (count > 0) {
+    save();
+    refresh();
+    toast(`Relisted ${count} ${platform} listing${count > 1 ? 's' : ''}`);
+  }
+  return count;
+}
+
+/**
+ * Bulk price adjustment for items matching criteria.
+ * @param {Object} opts - { category?, platform?, adjustType: 'percent'|'fixed', adjustValue: number }
+ * @returns {number} Number of items adjusted
+ */
+export function bulkPriceAdjust(opts) {
+  const { category, platform, adjustType, adjustValue, minDaysListed } = opts;
+  const now = Date.now();
+  let count = 0;
+
+  for (const item of inv) {
+    if ((item.qty || 0) <= 0) continue;
+    if (category && (item.category || '').toLowerCase() !== category.toLowerCase()) continue;
+    if (platform) {
+      const plats = getPlatforms(item);
+      if (!plats.includes(platform)) continue;
+    }
+    if (minDaysListed) {
+      const days = Math.floor((now - new Date(item.added || now).getTime()) / 86400000);
+      if (days < minDaysListed) continue;
+    }
+
+    let newPrice = item.price || 0;
+    if (adjustType === 'percent') {
+      newPrice = newPrice * (1 + adjustValue / 100);
+    } else {
+      newPrice = newPrice + adjustValue;
+    }
+    newPrice = Math.max(0.01, Math.round(newPrice * 100) / 100);
+
+    if (newPrice !== item.price) {
+      item.price = newPrice;
+      markDirty('inv', item.id);
+      count++;
+    }
+  }
+
+  if (count > 0) {
+    save();
+    refresh();
+    toast(`Adjusted prices on ${count} item${count > 1 ? 's' : ''}`);
+  }
+  return count;
+}

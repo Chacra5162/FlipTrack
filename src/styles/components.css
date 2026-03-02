@@ -297,8 +297,7 @@ textarea { resize:vertical; min-height:70px; }
 .stepper-btn:hover { border-color:var(--accent); color:var(--accent); }
 .stepper-val { font-family:'Syne',sans-serif; font-weight:700; font-size:13px; min-width:26px; text-align:center; }
 .sv-ok  { color:var(--good); }
-.sv-warn{ color:var(--warn); }
-.sv-low { color:var(--danger); }
+.sv-warn{ color:var(--warn); }.sv-low { color:var(--danger); }
 .mini-bar { width:46px; height:3px; background:var(--border); border-radius:2px; overflow:hidden; }
 .mb-fill  { height:100%; border-radius:2px; }
 .mf-ok  { background:var(--good); }
@@ -597,7 +596,6 @@ textarea { resize:vertical; min-height:70px; }
   vertical-align: middle;
   margin-left: 2px;
 }
-
 /* ── PLATFORM MULTI-PICKER ── */
 .plat-picker {
   display: flex;
@@ -897,8 +895,7 @@ textarea { resize:vertical; min-height:70px; }
 .book-fields { display: none; grid-column: 1 / -1; }
 .book-fields.on { display: block; }
 .book-fields .bf-header {
-  font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700;
-  color: var(--accent3); text-transform: uppercase; letter-spacing: 1.5px;
+  font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700;  color: var(--accent3); text-transform: uppercase; letter-spacing: 1.5px;
   margin: 12px 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border);
   display: flex; align-items: center; gap: 6px;
 }
@@ -1197,8 +1194,7 @@ textarea { resize:vertical; min-height:70px; }
   padding: 10px 12px;
   cursor: pointer;
   border-bottom: 1px solid var(--border);
-}
-.cl-matrix-header:hover { background: var(--surface2); }
+                               }.cl-matrix-header:hover { background: var(--surface2); }
 .cl-matrix-name {
   font-family: 'Syne', sans-serif;
   font-weight: 600;
@@ -1497,8 +1493,7 @@ textarea { resize:vertical; min-height:70px; }
   margin-bottom: 12px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
-}
+  border-radius: 8px;}
 .ebay-panel.ebay-connected {
   border-color: var(--good);
   background: rgba(74, 222, 128, 0.05);
@@ -1797,8 +1792,7 @@ textarea { resize:vertical; min-height:70px; }
 
 /* ═══════════════════════════════════════════════════════════════
    PROFIT HEATMAP (GitHub-style contribution grid)
-   ═══════════════════════════════════════════════════════════════ */
-.heatmap-wrap {
+   ═══════════════════════════════════════════════════════════════ */.heatmap-wrap {
   padding: 16px;
 }
 .heatmap-grid {
@@ -2097,8 +2091,7 @@ textarea { resize:vertical; min-height:70px; }
 }
 .kpi-bar-nums { color: var(--muted); }
 .kpi-bar-track {
-  height: 8px; background: var(--surface); border: 1px solid var(--border);
-  overflow: hidden;
+  height: 8px; background: var(--surface); border: 1px solid var(--border);  overflow: hidden;
 }
 .kpi-bar-fill {
   height: 100%; transition: width 0.6s ease;
@@ -2252,4 +2245,96 @@ textarea { resize:vertical; min-height:70px; }
   .kpi-modal { width: 95vw; padding: 16px; }
   #notifDropdown { width: calc(100vw - 20px); right: 10px; }
   .feature-showcase { grid-template-columns: repeat(2, 1fr); }
+  }
+
+/* ── DAYS LISTED BADGE ─────────────────────────────────────────────────── */
+.days-col { text-align: center; white-space: nowrap; }
+.days-badge {
+  display: inline-block; padding: 2px 7px; font-size: 10px;
+  font-family: 'DM Mono', monospace; font-weight: 600;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--fg); border-radius: 3px;
+}
+.days-badge.aging { background: rgba(255,183,77,0.15); border-color: rgba(255,183,77,0.4); color: #ffb74d; }
+.days-badge.stale { background: rgba(239,83,80,0.15); border-color: rgba(239,83,80,0.4); color: #ef5350; }
+
+/* ── PHOTO COUNT BADGE ─────────────────────────────────────────────────── */
+.photos-col { text-align: center; white-space: nowrap; }
+.photo-count-badge {
+  display: inline-block; padding: 2px 6px; font-size: 10px;
+  font-family: 'DM Mono', monospace;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--fg); border-radius: 3px;
+}
+.photo-count-badge.empty { color: var(--muted); opacity: 0.5; }
+
+/* ── FEE CALCULATOR (drawer) ───────────────────────────────────────────── */
+.fee-calc-section {
+  margin-top: 12px; padding: 10px 12px;
+  background: var(--surface); border: 1px solid var(--border);
+}
+.fee-calc-title {
+  font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px;
+  color: var(--muted); margin-bottom: 8px; font-family: 'DM Mono', monospace;
+}
+.fee-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 11px; font-family: 'DM Mono', monospace;
+}
+.fee-row:last-child { border-bottom: none; }
+.fee-plat { font-weight: 700; color: var(--fg); min-width: 80px; }
+.fee-detail { color: var(--muted); font-size: 9px; flex: 1; }
+.fee-amt { font-weight: 600; min-width: 55px; text-align: right; }
+.fee-net { font-weight: 700; min-width: 70px; text-align: right; }
+.fee-net.pos { color: var(--accent); }
+.fee-net.neg { color: #ef5350; }
+
+/* ── SYNC PENDING & OFFLINE INDICATOR ──────────────────────────────────── */
+#syncPendingBadge {
+  display: none; font-size: 9px; font-family: 'DM Mono', monospace;
+  padding: 2px 7px; background: rgba(255,183,77,0.15); border: 1px solid rgba(255,183,77,0.3);
+  color: #ffb74d; border-radius: 3px; margin-left: 6px; vertical-align: middle;
+}
+#offlineIndicator {
+  display: none; font-size: 9px; font-family: 'DM Mono', monospace;
+  padding: 2px 7px; background: rgba(239,83,80,0.15); border: 1px solid rgba(239,83,80,0.3);
+  color: #ef5350; border-radius: 3px; margin-left: 4px; vertical-align: middle;
+}
+
+/* ── SMOKE & CONDITION FILTER TOOLBARS ─────────────────────────────────── */
+#smokeToolbar, #conditionToolbar {
+  display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0;
+}
+#smokeToolbar:empty, #conditionToolbar:empty { display: none; }
+.smoke-chip, .cond-chip {
+  padding: 3px 10px; font-size: 10px; font-family: 'DM Mono', monospace;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--muted); cursor: pointer; transition: all 0.15s;
+  border-radius: 3px; user-select: none;
+}
+.smoke-chip.active, .cond-chip.active {
+  background: rgba(0,230,118,0.12); border-color: var(--accent); color: var(--accent);
+}
+.smoke-chip:hover, .cond-chip:hover { border-color: var(--accent); }
+
+/* ── SALES VELOCITY TABLE ──────────────────────────────────────────────── */
+.velocity-table {
+  width: 100%; font-size: 11px; font-family: 'DM Mono', monospace;
+  border-collapse: collapse;
+}
+.velocity-table th {
+  text-align: left; font-size: 9px; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--muted); padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.velocity-table td { padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+.velocity-fast { color: var(--accent); }
+.velocity-slow { color: #ef5350; }
+
+/* ── HIDE DAYS & PHOTOS COLS ON NARROW SCREENS ─────────────────────────── */
+@media (max-width: 820px) {
+  .days-col, .photos-col { display: none; }
+  .fee-row { flex-wrap: wrap; gap: 4px; }
+  .fee-plat { min-width: 60px; }
 }

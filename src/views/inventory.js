@@ -23,9 +23,17 @@ let dragSrc = null;
 let subcatFilt = 'all';
 let subsubcatFilt = 'all';
 let stockFilt = 'all';
+let smokeFilt = 'all';       // 'all' | 'smoke-free' | 'smoke-exposure' | 'unset'
+let conditionFilt = 'all';   // 'all' | 'NWT' | 'NWOT' | 'EUC' | etc.
 let _invPage = 0;
 let _invPageSize = 50;
 let _chipsBuiltForData = null;
+
+/** Calculate days since item was listed */
+export function daysListed(item) {
+  if (!item.added) return 0;
+  return Math.floor((Date.now() - new Date(item.added).getTime()) / 86400000);
+}
 
 import { fmt, pct, escHtml, debounce, uid } from '../utils/format.js';
 import { PLATFORMS, PLATFORM_GROUPS, platCls } from '../config/platforms.js';
@@ -43,7 +51,9 @@ export function updateFiltersBadge() {
   if (!badge) return;
   const count = platFilt.size + catFilt.size
     + (subcatFilt !== 'all' ? 1 : 0)
-    + (subsubcatFilt !== 'all' ? 1 : 0);
+    + (subsubcatFilt !== 'all' ? 1 : 0)
+    + (smokeFilt !== 'all' ? 1 : 0)
+    + (conditionFilt !== 'all' ? 1 : 0);
   if (count) {
     badge.textContent = count + ' active';
     badge.style.display = 'inline';
@@ -137,6 +147,33 @@ export function buildChips(forceRebuild) {
     subsubBar.style.display='none';
     subsubcatFilt='all';
   }
+
+  // Smoke exposure filter chips
+  const smokeBar = document.getElementById('smokeToolbar');
+  if (smokeBar) {
+    const smokeOpts = ['all','smoke-free','smoke-exposure','unset'];
+    const smokeLabels = { all:'All', 'smoke-free':'🟢 Smoke-Free', 'smoke-exposure':'🔴 Smoke Exp.', unset:'⚪ Unset' };
+    document.getElementById('smokeChips').innerHTML = smokeOpts.map(s =>
+      `<span class="filter-chip ${smokeFilt===s?'active':''}" role="button" tabindex="0" onclick="setSmokeFilt('${s}')">${smokeLabels[s]}</span>`
+    ).join('');
+    smokeBar.style.display = 'flex';
+  }
+
+  // Condition filter chips
+  const condBar = document.getElementById('conditionToolbar');
+  if (condBar) {
+    const usedConds = [...new Set(inv.map(i=>i.condition||'').filter(Boolean))].sort();
+    if (usedConds.length) {
+      document.getElementById('conditionChips').innerHTML =
+        ['all',...usedConds].map(c =>
+          `<span class="filter-chip ${conditionFilt===c?'active':''}" role="button" tabindex="0" onclick="setConditionFilt('${c==='all'?'all':c.replace(/'/g,"\\'")}')">${c==='all'?'All Conditions':c}</span>`
+        ).join('');
+      condBar.style.display = 'flex';
+    } else {
+      condBar.style.display = 'none';
+    }
+  }
+
   updateFiltersBadge();
 }
 
@@ -208,6 +245,20 @@ export function clearStockFilter() {
   renderInv();
 }
 
+// ── SMOKE & CONDITION FILTER SETTERS ───────────────────────────────────────
+
+export function setSmokeFilt(val) {
+  _invPage = 0;
+  smokeFilt = val || 'all';
+  renderInv();
+}
+
+export function setConditionFilt(val) {
+  _invPage = 0;
+  conditionFilt = val || 'all';
+  renderInv();
+}
+
 export function setSubsubcatFilt(s,el){
   _invPage=0;
   subsubcatFilt=s;
@@ -231,6 +282,10 @@ export function sortItems(items){
     if(v==='price-desc') return (b.price||0)-(a.price||0);
     if(v==='cost')       return (a.cost||0)-(b.cost||0);
     if(v==='platform')   return (getPlatforms(a)[0]||'').localeCompare(getPlatforms(b)[0]||'');
+    if(v==='days-desc')  return daysListed(b)-daysListed(a);
+    if(v==='days-asc')   return daysListed(a)-daysListed(b);
+    if(v==='profit-desc')return calc(b).pu-calc(a).pu;
+    if(v==='profit-asc') return calc(a).pu-calc(b).pu;
     return 0;
   });
 }
@@ -247,7 +302,9 @@ export function renderInv() {
     const ms=subcatFilt==='all'||(i.subcategory||'')===subcatFilt;
     const mss=subsubcatFilt==='all'||(i.subtype||'')===subsubcatFilt;
     const mst=stockFilt==='all'||(stockFilt==='low'&&(i.qty===0||(i.bulk&&i.qty<=(i.lowAlert||2))));
-    return mq&&mp&&mc&&ms&&mss&&mst;
+    const msk=smokeFilt==='all'||(smokeFilt==='unset'?!i.smoke:i.smoke===smokeFilt);
+    const mco=conditionFilt==='all'||(i.condition||'')=== conditionFilt;
+    return mq&&mp&&mc&&ms&&mss&&mst&&msk&&mco;
   });
 
   // Stock filter banner
@@ -304,6 +361,8 @@ export function renderInv() {
       <td style="color:var(--muted)">${fmt(cost)}</td>
       <td><span class="price-disp" title="Click to edit inline" onclick="startPriceEdit(this,'${item.id}')">${fmt(price)}</span></td>
       <td><span class="margin-badge ${margCls(m)}">${pct(m)}</span></td>
+      <td class="days-col"><span class="days-badge${daysListed(item)>=60?' stale':daysListed(item)>=30?' aging':''}" title="Listed ${daysListed(item)} days">${daysListed(item)}d</span></td>
+      <td class="photos-col">${(()=>{const imgs=getItemImages(item);const cnt=imgs.length;return cnt?`<span class="photo-count-badge" title="${cnt} photo${cnt>1?'s':''}">${cnt} 📷</span>`:`<span class="photo-count-badge empty" title="No photos">0</span>`;})()}</td>
       <td><div class="td-acts">
         ${item.qty>0?`<button class="act-btn" onclick="openSoldModal('${item.id}')">Sold ›</button>`:`<span class="out-badge">Out</span>`}
         <button class="act-btn" onclick="openDrawer('${item.id}')">Edit</button>

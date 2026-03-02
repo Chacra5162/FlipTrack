@@ -200,6 +200,38 @@ export function getCategoryPriceTrends(invData, salesData) {
 }
 
 /**
+ * Render an SVG sparkline for price history
+ * @param {string} itemId
+ * @param {Object} opts - { width: 120, height: 30 }
+ * @returns {string} SVG HTML
+ */
+export function renderPriceSparkline(itemId, opts = {}) {
+  const hist = getPriceHistory(itemId);
+  if (hist.length < 2) return '';
+
+  const w = opts.width || 120;
+  const h = opts.height || 30;
+  const recent = hist.slice(-15);
+  const prices = recent.map(r => r.price);
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  const range = max - min || 1;
+
+  const points = prices.map((p, i) => {
+    const x = (i / (prices.length - 1)) * w;
+    const y = h - ((p - min) / range) * (h - 4) - 2;
+    return `${x},${y}`;
+  }).join(' ');
+
+  const trend = prices[prices.length - 1] >= prices[0] ? 'var(--good)' : 'var(--danger)';
+
+  return `<svg width="${w}" height="${h}" style="display:block">
+    <polyline points="${points}" fill="none" stroke="${trend}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${(prices.length - 1) / (prices.length - 1) * w}" cy="${h - ((prices[prices.length - 1] - min) / range) * (h - 4) - 2}" r="2" fill="${trend}"/>
+  </svg>`;
+}
+
+/**
  * Render price history table for an item's drawer
  * Used in item detail views
  * @param {string} itemId - The item ID

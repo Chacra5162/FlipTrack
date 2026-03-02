@@ -23,6 +23,7 @@ import { generateListingLink, copyListingText } from '../features/deep-links.js'
 import { pushDeleteToCloud } from '../data/sync.js';
 import { logPriceChange } from '../features/price-history.js';
 import { getPlatforms, buildPlatPicker, getSelectedPlats } from '../features/platforms.js';
+import { PLATFORM_FEES, calcPlatformFee } from '../config/platforms.js';
 import { loadDimsToForm, getDimsFromForm, suggestPackaging } from '../features/dimensions.js';
 import { renderDrawerBarcode } from '../features/barcodes.js';
 import { toggleBulkFields, getSmokeValue, loadSmokeSlider } from './add-item.js';
@@ -121,6 +122,7 @@ export function openDrawer(id) {
   if (dBulk) { dBulk.checked = !!item.bulk; toggleBulkFields('d'); }
   buildPlatPicker('d_plat_picker', getPlatforms(item));
   renderListingStatus(item);
+  renderFeeCalc(item);
   loadCondTag('d', item.condition || '');
   loadSmokeSlider('d', item.smoke || null);
   populateSubcatSelect('d_subcat', item.category||'', item.subcategory||'');
@@ -167,6 +169,29 @@ export function closeDrawer(){
   const defaultTab = document.querySelector('.drawer-tab');
   if (defaultTab) defaultTab.classList.add('active');
   setActiveDrawId(null);
+}
+
+/** Render per-platform fee breakdown in the drawer */
+export function renderFeeCalc(item) {
+  const el = document.getElementById('d_fee_calc');
+  if (!el) return;
+  const plats = getPlatforms(item);
+  const price = item.price || 0;
+  if (!plats.length || !price) {
+    el.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:4px 0">Add platforms and a price to see fee estimates</div>';
+    return;
+  }
+  el.innerHTML = plats.filter(p => PLATFORM_FEES[p]).map(p => {
+    const fee = calcPlatformFee(p, price);
+    const net = price - fee - (item.cost || 0) - (item.ship || 0);
+    const feeLabel = PLATFORM_FEES[p]?.label || '';
+    return `<div class="fee-row">
+      <span class="fee-plat">${p}</span>
+      <span class="fee-detail">${feeLabel}</span>
+      <span class="fee-amt" style="color:var(--accent2)">-${fmt(fee)}</span>
+      <span class="fee-net ${net >= 0 ? 'pos' : 'neg'}">Net: ${fmt(net)}</span>
+    </div>`;
+  }).join('');
 }
 
 export function renderListingStatus(item) {

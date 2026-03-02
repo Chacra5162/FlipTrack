@@ -8,6 +8,7 @@ import { inv, sales, save, refresh, getInvItem, markDirty } from '../data/store.
 import { fmt, ds, uid, escHtml } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { renderPagination } from '../utils/pagination.js';
+import { getMeta, setMeta } from '../data/idb.js';
 import { getPlatforms } from '../features/platforms.js';
 import { estimateShippingRate, suggestPackage, getCarrierOptions } from '../features/shipping-rates.js';
 import { printPackingSlip, printBatchSlips, setSellerInfo } from '../features/packing-slip.js';
@@ -22,6 +23,23 @@ let _shipDateTo = '';
 let _shipPage = 0;
 const _shipPageSize = 50;
 let _shipSelection = new Set();
+let _returns = [];
+let _showReturnForm = false;
+
+// ── RETURNS ─────────────────────────────────────────────────────────────────────
+
+async function _loadReturns() {
+  try {
+    const data = await getMeta('returns');
+    _returns = data ? JSON.parse(data) : [];
+  } catch (e) {
+    _returns = [];
+  }
+}
+
+function _saveReturns() {
+  setMeta('returns', JSON.stringify(_returns)).catch(() => {});
+}
 
 // ── FILTERS ────────────────────────────────────────────────────────────────────
 
@@ -128,6 +146,73 @@ function _getFilteredSales() {
   });
 }
 
+// ── TRACKING VALIDATION ────────────────────────────────────────────────────────
+
+function validateTracking(carrier, tracking) {
+  if (!tracking) return true; // Optional
+  const t = tracking.trim();
+  if (carrier === 'USPS' && !/^[0-9]{20,22}$|^[A-Z]{2}[0-9]{9}[A-Z]{2}$/.test(t)) return false;
+  if (carrier === 'UPS' && !/^1Z[A-Z0-9]{16}$/.test(t.toUpperCase())) return false;
+  if (carrier === 'FedEx' && !/^[0-9]{12,22}$/.test(t)) return false;
+  return true;
+}
+
+export function shipCheckTracking() {
+  const carrier = document.getElementById('shipCarrier')?.value || '';
+  const tracking = document.getElementById('shipTracking')?.value || '';
+  const indicator = document.getElementById('shipTrackingIndicator');
+
+  if (!indicator) return;
+  if (!tracking.trim()) {
+    indicator.style.display = 'none';
+    return;
+  }
+
+  const isValid = validateTracking(carrier, tracking);
+  indicator.style.display = 'block';
+  indicator.style.color = isValid ? 'var(--good)' : 'var(--danger)';
+  indicator.textContent = isValid ? '✓ Valid' : '✗ Invalid format';
+}
+
+// ── RETURNS MANAGEMENT ──────────────────────────────────────────────────────────
+
+export async function shipLogReturn() {
+  const saleId = document.getElementById('return_sale')?.value;
+  const reason = document.getElementById('return_reason')?.value || '';
+  const refundAmt = parseFloat(document.getElementById('return_refund')?.value) || 0;
+  const notes = (document.getElementById('return_notes')?.value || '').trim();
+
+  if (!saleId) { toast('Select a sale', true); return; }
+
+  _returns.push({
+    id: uid(),
+    saleId,
+    reason,
+    refundAmount: refundAmt,
+    notes,
+    date: Date.now(),
+  });
+  _saveReturns();
+  toast('Return logged');
+
+  // Clear form
+  const retSale = document.getElementById('return_sale');
+  const retReason = document.getElementById('return_reason');
+  const retRefund = document.getElementById('return_refund');
+  const retNotes = document.getElementById('return_notes');
+  if (retSale) retSale.value = '';
+  if (retReason) retReason.value = '';
+  if (retRefund) retRefund.value = '';
+  if (retNotes) retNotes.value = '';
+
+  renderShippingView();
+}
+
+export function shipToggleReturnForm() {
+  _showReturnForm = !_showReturnForm;
+  renderShippingView();
+}
+
 // ── MARKING SHIPPED ────────────────────────────────────────────────────────────
 
 export function shipMarkShipped(saleId) {
@@ -148,12 +233,13 @@ export function shipConfirmShipped(saleId) {
   const sale = sales.find(s => s.id === saleId);
   if (!sale) { toast('Sale not found', true); return; }
 
-  const carrier = document.getElementById('shipCarrier').value.trim();
-  const tracking = document.getElementById('shipTracking').value.trim();
-  const costStr = document.getElementById('shipCost').value.trim();
+  const carrier = (document.getElementById('shipCarrier')?.value || '').trim();
+  const tracking = (document.getElementById('shipTracking')?.value || '').trim();
+  const costStr = (document.getElementById('shipCost')?.value || '').trim();
 
   if (!carrier) { toast('Select carrier', true); return; }
   if (!tracking) { toast('Enter tracking number', true); return; }
+  if (!validateTracking(carrier, tracking)) { toast('Invalid tracking number format', true); return; }
 
   const cost = parseFloat(costStr) || 0;
 
@@ -184,7 +270,7 @@ export function shipBatchMark() {
 }
 
 export function shipConfirmBatchMark() {
-  const carrier = document.getElementById('shipBatchCarrier').value.trim();
+  const carrier = (document.getElementById('shipBatchCarrier')?.value || '').trim();
   if (!carrier) { toast('Select carrier', true); return; }
 
   let marked = 0;
@@ -261,7 +347,9 @@ export function shipExportLog() {
 
 // ── RENDER ─────────────────────────────────────────────────────────────────────
 
-export function renderShippingView() {
+export async function renderShippingView() {
+  await _loadReturns();
+
   const container = document.getElementById('view-shipping');
   if (!container) return;
 
@@ -424,6 +512,92 @@ export function renderShippingView() {
 
       <!-- Pagination -->
       <div id="shipPagination" style="padding:14px"></div>
+
+      <!-- RETURNS MANAGEMENT -->
+      <div style="margin-top:20px;border-top:2px solid var(--border);padding-top:20px">
+        <div style="padding:12px;background:var(--surface);border-radius:6px;border:1px solid var(--border);margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${_showReturnForm ? '12px' : '0'}">
+            <h3 class="panel-title" style="margin:0">Returns Management</h3>
+            <button onclick="shipToggleReturnForm()" class="btn-secondary" style="padding:6px 12px;font-size:10px">${_showReturnForm ? 'Hide' : 'Log Return'}</button>
+          </div>
+
+          ${_showReturnForm ? `
+            <div style="display:grid;gap:10px;padding:12px;background:rgba(var(--surface-rgb),0.5);border-radius:4px;border:1px solid var(--border)">
+              <div class="fgrp">
+                <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Sale ID</label>
+                <select id="return_sale" style="padding:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;width:100%">
+                  <option value="">— Select Sale —</option>
+                  ${sales.slice().reverse().slice(0, 20).map(s => {
+                    const item = getInvItem(s.itemId);
+                    return `<option value="${s.id}">${item?.name || 'Item'} - ${s.buyerName || 'Buyer'}</option>`;
+                  }).join('')}
+                </select>
+              </div>
+              <div class="fgrp">
+                <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Reason</label>
+                <select id="return_reason" style="padding:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;width:100%">
+                  <option value="">— Select Reason —</option>
+                  <option>Defective</option>
+                  <option>Wrong Item</option>
+                  <option>Buyer Remorse</option>
+                  <option>Damaged in Shipping</option>
+                  <option>Other</option>
+                </select>
+              </div>
+              <div class="fgrp">
+                <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Refund Amount ($)</label>
+                <input id="return_refund" type="number" placeholder="0.00" step="0.01" style="padding:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;width:100%" />
+              </div>
+              <div class="fgrp">
+                <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Notes</label>
+                <textarea id="return_notes" placeholder="Return notes..." style="padding:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;width:100%;resize:vertical" rows="2"></textarea>
+              </div>
+              <button onclick="shipLogReturn()" class="btn-primary" style="padding:8px 12px;font-weight:600;font-family:'Syne',sans-serif;font-size:11px">Log Return</button>
+            </div>
+          ` : ''}
+        </div>
+
+        ${(() => {
+          const totalReturns = _returns.length;
+          const totalRefunded = _returns.reduce((sum, r) => sum + (r.refundAmount || 0), 0);
+          const recentReturns = _returns.slice().reverse().slice(0, 5);
+
+          return `
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px">
+              <div style="padding:10px;background:var(--surface);border-radius:4px;border:1px solid var(--border)">
+                <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Total Returns</div>
+                <div style="font-size:18px;font-weight:700;color:var(--warn);font-family:'Syne',sans-serif">${totalReturns}</div>
+              </div>
+              <div style="padding:10px;background:var(--surface);border-radius:4px;border:1px solid var(--border)">
+                <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Total Refunded</div>
+                <div style="font-size:18px;font-weight:700;color:var(--danger);font-family:'Syne',sans-serif">${fmt(totalRefunded)}</div>
+              </div>
+            </div>
+
+            ${recentReturns.length ? `
+              <div style="padding:12px;background:var(--surface);border-radius:4px;border:1px solid var(--border)">
+                <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:8px">Recent Returns</div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  ${recentReturns.map(ret => {
+                    const retSale = sales.find(s => s.id === ret.saleId);
+                    const retItem = retSale ? getInvItem(retSale.itemId) : null;
+                    return `
+                      <div style="padding:8px;background:rgba(var(--surface-rgb),0.5);border-radius:3px;border-left:3px solid var(--danger);font-size:10px;font-family:'DM Mono',monospace">
+                        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                          <span style="color:var(--text);font-weight:600">${retItem?.name || 'Unknown Item'}</span>
+                          <span style="color:var(--danger)">${fmt(ret.refundAmount)}</span>
+                        </div>
+                        <div style="color:var(--muted);font-size:9px">${ret.reason} • ${ds(ret.date)}</div>
+                        ${ret.notes ? `<div style="color:var(--muted);font-size:9px;margin-top:4px">${escHtml(ret.notes)}</div>` : ''}
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+            ` : ''}
+          `;
+        })()}
+      </div>
     </div>
   `;
 
@@ -463,7 +637,10 @@ export function initShippingModals() {
           </div>
           <div class="fgrp">
             <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Tracking Number</label>
-            <input id="shipTracking" type="text" placeholder="e.g., 9400111899223456789012" style="padding:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;width:100%" />
+            <div style="display:flex;gap:6px;align-items:flex-start">
+              <input id="shipTracking" type="text" placeholder="e.g., 9400111899223456789012" style="padding:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;flex:1" oninput="shipCheckTracking()" />
+              <div id="shipTrackingIndicator" style="display:none;padding:8px;border-radius:4px;font-size:10px;font-weight:600;min-width:60px;text-align:center;white-space:nowrap"></div>
+            </div>
           </div>
           <div class="fgrp">
             <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Actual Shipping Cost ($)</label>

@@ -18,7 +18,24 @@ let _buyerPage = 0;
 const _buyerPageSize = 50;
 let _expandedBuyerId = null;
 
-// Buyer schema: { id, name, handles: { eBay: '', Poshmark: '', ... }, email, phone, notes, createdAt }
+// Buyer schema: { id, name, handles: { eBay: '', Poshmark: '', ... }, email, phone, notes, createdAt, comms: [] }
+
+// Buyer tiers based on total spending
+const BUYER_TIERS = [
+  { name: 'New', minSpent: 0, color: 'var(--muted)', icon: '👤' },
+  { name: 'Regular', minSpent: 50, color: 'var(--accent)', icon: '⭐' },
+  { name: 'VIP', minSpent: 200, color: 'var(--accent2)', icon: '💎' },
+  { name: 'Elite', minSpent: 500, color: 'var(--good)', icon: '👑' },
+];
+
+function getBuyerTier(buyerId) {
+  const spent = sales.filter(s => s.buyerId === buyerId).reduce((t, s) => t + (s.price || 0), 0);
+  let tier = BUYER_TIERS[0];
+  for (const t of BUYER_TIERS) {
+    if (spent >= t.minSpent) tier = t;
+  }
+  return { ...tier, spent };
+}
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 
@@ -149,10 +166,31 @@ export function buyerLinkSale(buyerId, saleId) {
   toast('Sale linked to buyer');
 }
 
+// ── ADD COMMUNICATION LOG ─────────────────────────────────────────────────────
+
+export function buyerAddComm(buyerId) {
+  const typeEl = document.getElementById('comm_type_' + buyerId);
+  const contentEl = document.getElementById('comm_content_' + buyerId);
+
+  const type = typeEl?.value || 'note';
+  const content = (contentEl?.value || '').trim();
+  if (!content) { toast('Enter a message', true); return; }
+
+  const buyer = _getBuyer(buyerId);
+  if (!buyer) return;
+  if (!buyer.comms) buyer.comms = [];
+  buyer.comms.push({ type, content, date: Date.now() });
+  _saveBuyers();
+
+  if (contentEl) contentEl.value = '';
+  toast('Note added');
+  renderBuyersView();
+}
+
 // ── RENDER ────────────────────────────────────────────────────────────────────
 
 export function renderBuyersView() {
-  const container = document.getElementById('buyersView');
+  const container = document.getElementById('buyersContent');
   if (!container) return;
 
   // Calculate stats
@@ -179,7 +217,7 @@ export function renderBuyersView() {
       b.name.toLowerCase().includes(search) ||
       b.email.toLowerCase().includes(search) ||
       b.phone.includes(search) ||
-      Object.values(b.handles).some(h => h.toLowerCase().includes(search))
+      (b.handles && Object.values(b.handles).some(h => h.toLowerCase().includes(search)))
     );
   });
 
@@ -265,6 +303,7 @@ export function renderBuyersView() {
               const lastSale = sales.filter(s => s.buyerId === buyer.id).sort((a, b) => (b.date || 0) - (a.date || 0))[0];
               const isExpanded = _expandedBuyerId === buyer.id;
               const buySales = sales.filter(s => s.buyerId === buyer.id).sort((a, b) => (b.date || 0) - (a.date || 0));
+              const tier = getBuyerTier(buyer.id);
 
               return `
                 <div style="border:1px solid var(--border);border-radius:4px;margin-bottom:8px;overflow:hidden">
@@ -274,7 +313,10 @@ export function renderBuyersView() {
                     onclick="buyerExpand('${buyer.id}')"
                   >
                     <div>
-                      <div style="font-weight:600;color:var(--text)">${escHtml(buyer.name)}</div>
+                      <div style="display:flex;align-items:center;gap:8px">
+                        <span style="font-weight:600;color:var(--text)">${escHtml(buyer.name)}</span>
+                        <span style="font-size:9px;padding:2px 6px;background:${tier.color}20;color:${tier.color};border-radius:2px">${tier.icon} ${tier.name}</span>
+                      </div>
                       <div style="font-size:11px;color:var(--muted);margin-top:2px">
                         ${buyer.email ? escHtml(buyer.email) + ' · ' : ''}
                         ${Object.entries(buyer.handles)
@@ -296,6 +338,7 @@ export function renderBuyersView() {
                     <div style="border-top:1px solid var(--border);padding:12px;background:var(--surface)">
                       ${buyer.notes ? `<div style="padding:8px;background:var(--surface2);border-radius:2px;margin-bottom:8px"><strong>Notes:</strong> ${escHtml(buyer.notes)}</div>` : ''}
                       <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600">Last Purchase: ${lastSale ? ds(lastSale.date || Date.now()) : '—'}</div>
+                      ${count >= 3 ? `<div style="font-size:10px;color:var(--accent2);margin-bottom:8px">💡 Repeat buyer — consider offering ${count >= 5 ? '15%' : '10%'} loyalty discount</div>` : ''}
 
                       ${
                         buySales.length > 0
@@ -321,6 +364,31 @@ export function renderBuyersView() {
                       `
                           : '<div style="font-size:11px;color:var(--muted)">No purchases linked</div>'
                       }
+
+                      <!-- Communication Log -->
+                      <div style="margin-top:12px">
+                        <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:6px">Communication Log</div>
+                        <div style="display:flex;gap:6px;margin-bottom:8px">
+                          <select id="comm_type_${buyer.id}" class="fgrp" style="width:100px">
+                            <option value="note">📝 Note</option>
+                            <option value="message">💬 Message</option>
+                            <option value="email">📧 Email</option>
+                            <option value="call">📞 Call</option>
+                          </select>
+                          <input id="comm_content_${buyer.id}" placeholder="Add note..." class="fgrp" style="flex:1">
+                          <button onclick="buyerAddComm('${buyer.id}')" class="btn-primary" style="height:32px;font-size:11px;padding:0 12px">Add</button>
+                        </div>
+                        ${(buyer.comms || []).slice().reverse().slice(0, 10).map(c => `
+                          <div style="padding:6px 8px;background:var(--surface2);border-radius:2px;margin-bottom:4px;border-left:3px solid ${
+                            c.type === 'message' ? 'var(--accent)' : c.type === 'email' ? 'var(--accent2)' : c.type === 'call' ? 'var(--good)' : 'var(--muted)'
+                          }">
+                            <div style="font-size:10px;color:var(--muted)">${
+                              c.type === 'note' ? '📝' : c.type === 'message' ? '💬' : c.type === 'email' ? '📧' : '📞'
+                            } ${ds(c.date)}</div>
+                            <div style="font-size:11px;color:var(--text);margin-top:2px">${escHtml(c.content)}</div>
+                          </div>
+                        `).join('')}
+                      </div>
 
                       <button onclick="buyerDelete('${buyer.id}')" class="btn-danger" style="margin-top:8px;width:100%;height:32px;font-size:11px">Delete Buyer</button>
                     </div>

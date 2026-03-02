@@ -263,7 +263,7 @@ export function renderRepricingSuggestions() {
       </div>
       <div style="text-align:center">
         <div style="font-size:12px;color:var(--good);font-weight:500">${fmt(s.suggestedPrice)}</div>
-        <div style="font-size:10px;color:var(--muted)">${pct((s.suggestedPrice - s.currentPrice) / s.currentPrice)}</div>
+        <div style="font-size:10px;color:var(--muted)">${pct(s.currentPrice ? (s.suggestedPrice - s.currentPrice) / s.currentPrice : 0)}</div>
       </div>
       <button class="btn-primary" style="font-size:11px;padding:6px 10px" onclick="rpApplySingle('${s.item.id}', ${s.suggestedPrice})">Apply</button>
     </div>
@@ -323,7 +323,18 @@ export function renderRepricingRulesManager() {
         ${ruleRows}
       </div>
       <div style="padding:10px;background:var(--surface2);border-top:1px solid var(--border)">
-        <button class="btn-secondary" style="width:100%;font-size:12px;padding:8px" onclick="alert('Add new rule feature coming soon')">+ Add New Rule</button>
+        <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:8px">Add New Rule</div>
+        <div class="form-grid" style="gap:6px">
+          <input id="rp_rule_name" placeholder="Rule name" class="fgrp" style="grid-column:1/-1">
+          <input id="rp_rule_days" type="number" placeholder="Days listed" class="fgrp" value="30">
+          <select id="rp_rule_action" class="fgrp">
+            <option value="percent_drop">% Drop</option>
+            <option value="fixed_drop">$ Drop</option>
+            <option value="percent_raise">% Raise</option>
+          </select>
+          <input id="rp_rule_value" type="number" placeholder="Value" step="1" class="fgrp" value="10">
+          <button onclick="rpAddRuleFromForm()" class="btn-primary" style="grid-column:1/-1;height:32px;font-size:11px">+ Add Rule</button>
+        </div>
       </div>
     </div>
   `;
@@ -376,4 +387,26 @@ export function rpApplySingle(itemId, suggestedPrice) {
   save();
   refresh();
   toast('Price updated');
+}
+
+export function rpAddRuleFromForm() {
+  const name = (document.getElementById('rp_rule_name')?.value || '').trim();
+  const daysListed = parseInt(document.getElementById('rp_rule_days')?.value) || 30;
+  const actionType = document.getElementById('rp_rule_action')?.value || 'percent_drop';
+  const actionValue = parseFloat(document.getElementById('rp_rule_value')?.value) || 10;
+
+  if (!name) { toast('Rule name required', true); return; }
+
+  addRepricingRule({
+    name,
+    condition: { daysListed, noSalesDays: 0, priceAbove: 0, priceBelow: 9999 },
+    action: { type: actionType, value: actionValue },
+  });
+
+  // Clear form
+  const nameEl = document.getElementById('rp_rule_name');
+  if (nameEl) nameEl.value = '';
+
+  toast('Rule added');
+  refresh();
 }

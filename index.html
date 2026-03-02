@@ -58,7 +58,7 @@
       <span class="sync-dot" id="syncDot"></span>
       <span class="sync-dot-lbl" id="syncDotLbl">Signing in…</span>
     </button>
-    <span id="syncTimestamp"></span>
+    <span id="syncTimestamp"></span><span id="syncPendingBadge"></span><span id="offlineIndicator">Offline</span>
     <button class="fs-btn" onclick="toggleFsPopover()" title="Adjust text size" id="fsSizeBtn" aria-label="Font size settings">Aᴬ</button>
     <button class="fs-btn" onclick="toggleTheme()" title="Toggle light/dark theme" id="themeBtn" aria-label="Toggle light or dark mode">☀</button>
     <button class="fs-btn" id="notifBellBtn" onclick="toggleNotifCenter()" aria-label="Notifications">🔔<span id="notifBadge">0</span></button>
@@ -234,6 +234,16 @@
       <span id="subsubcatLabel" style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);white-space:nowrap">↳↳ Type</span>
       <div id="subsubcatChips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1"></div>
     </div>
+    <!-- Smoke filter -->
+    <div class="inv-toolbar" id="smokeToolbar" style="display:none;border-top:none;padding-top:0;background:var(--surface);border-bottom:1px solid var(--border)">
+      <span style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);white-space:nowrap">🚬 Smoke</span>
+      <div id="smokeChips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1"></div>
+    </div>
+    <!-- Condition filter -->
+    <div class="inv-toolbar" id="conditionToolbar" style="display:none;border-top:none;padding-top:0;background:var(--surface);border-bottom:1px solid var(--border)">
+      <span style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);white-space:nowrap">📋 Condition</span>
+      <div id="conditionChips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1"></div>
+    </div>
     </div>
 
     <!-- Sort / actions bar (always visible) -->
@@ -243,6 +253,10 @@
         <option value="added-asc">Oldest First</option>
         <option value="name-asc">Name A–Z</option>
         <option value="margin-desc">Best Margin</option>
+        <option value="profit-desc">Highest Profit</option>
+        <option value="profit-asc">Lowest Profit</option>
+        <option value="days-desc">Longest Listed</option>
+        <option value="days-asc">Newest Listed</option>
         <option value="qty-asc">Low Stock First</option>
         <option value="price-desc">Price High–Low</option>
       </select>
@@ -270,6 +284,8 @@
           <th onclick="setSort('cost')">Cost <span class="sort-arrow">↕</span></th>
           <th onclick="setSort('price-desc')">Price <span class="sort-arrow">↕</span></th>
           <th onclick="setSort('margin-desc')">Margin <span class="sort-arrow">↕</span></th>
+          <th onclick="setSort('days-desc')" class="days-col">Days <span class="sort-arrow">↕</span></th>
+          <th class="photos-col">📷</th>
           <th>Actions</th>
         </tr></thead>
         <tbody id="invBody"></tbody>
@@ -496,6 +512,9 @@
 </main>
 </div>
 
+<!-- MODALS ROOT (injected by shipping, etc.) -->
+<div id="modals-root"></div>
+
 <!-- LIGHTBOX -->
 <div class="lightbox" id="lightbox" onclick="closeLightbox()" role="dialog" aria-modal="true" aria-label="Image Lightbox">
   <button class="lightbox-close" onclick="closeLightbox()">×</button>
@@ -618,6 +637,11 @@
           </div>
         </div>
         <div class="edit-grp full"><div class="edit-lbl">Notes</div><textarea class="edit-ta" id="d_notes"></textarea></div>
+      </div>
+      <!-- Fee Calculator -->
+      <div class="fee-calc-section">
+        <div class="fee-calc-title">Platform Fee Estimates</div>
+        <div id="d_fee_calc"></div>
       </div>
     </div>
 

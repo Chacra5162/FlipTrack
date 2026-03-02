@@ -1,4 +1,4 @@
-/* ── RESPONSIVE ─────────────────────────────────────── */
+/* ── RESPONSIVE ─────────────────────────────────────────── */
 
 /* Tablet landscape / small desktop (covers iPad landscape @ 1194px) */
 @media (max-width: 1220px) {
@@ -139,7 +139,6 @@
   #view-sales .inv-table thead th:nth-child(7),
   #view-sales .inv-table tbody td:nth-child(7) { display: none; }
 }
-
 /* Phone */
 @media (max-width: 480px) {
   header { padding: 10px 12px; padding-top: calc(10px + env(safe-area-inset-top)); }
@@ -228,7 +227,6 @@
   .nav-tab       { min-height: 40px; display: flex; align-items: center; }
   input, select, textarea { font-size: 16px !important; } /* prevent iOS zoom */
 }
-
 /* ── BOTTOM NAV (tablet portrait + mobile) ── */
 .bottom-nav {
   display: none;
@@ -406,7 +404,7 @@
   .bnav-btn { padding: 6px 4px; }
 }
 
-/* ── FONT SIZE CONTROL ─────────────────────────── */
+/* ── FONT SIZE CONTROL ───────────────────────── */
 .fs-popover {
   position: fixed;
   top: 54px;

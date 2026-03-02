@@ -13,6 +13,58 @@ import { getMileageSummary, getMileageLog, initMileageLog, renderMileageSection 
 let _taxYear = new Date().getFullYear();
 let _selectedQuarter = null; // null = all, 1-4 = specific quarter
 let _showScheduleC = false;
+let _showYearComparison = false;
+
+// ── TAX CALCULATIONS ───────────────────────────────────────────────────────
+
+const SE_TAX_RATE = 0.153; // 15.3% (12.4% Social Security + 2.9% Medicare)
+const INCOME_TAX_BRACKETS_2025 = [
+  { min: 0, max: 11925, rate: 0.10 },
+  { min: 11925, max: 48475, rate: 0.12 },
+  { min: 48475, max: 103350, rate: 0.22 },
+  { min: 103350, max: 197300, rate: 0.24 },
+  { min: 197300, max: 250525, rate: 0.32 },
+  { min: 250525, max: 626350, rate: 0.35 },
+  { min: 626350, max: Infinity, rate: 0.37 },
+];
+
+function calcSETax(netIncome) {
+  if (netIncome <= 0) return 0;
+  const seIncome = netIncome * 0.9235;
+  return Math.round(seIncome * SE_TAX_RATE * 100) / 100;
+}
+
+function calcIncomeTax(netIncome) {
+  if (netIncome <= 0) return 0;
+  const seTax = calcSETax(netIncome);
+  const taxableIncome = Math.max(0, netIncome - seTax / 2 - 15000);
+  let tax = 0;
+  for (const bracket of INCOME_TAX_BRACKETS_2025) {
+    if (taxableIncome <= bracket.min) break;
+    const taxable = Math.min(taxableIncome, bracket.max) - bracket.min;
+    tax += taxable * bracket.rate;
+  }
+  return Math.round(tax * 100) / 100;
+}
+
+function calcEstimatedQuarterlyTax(annualNetIncome) {
+  const seTax = calcSETax(annualNetIncome);
+  const incomeTax = calcIncomeTax(annualNetIncome);
+  const totalAnnual = seTax + incomeTax;
+  return {
+    seTax,
+    incomeTax,
+    totalAnnual,
+    quarterly: Math.round(totalAnnual / 4 * 100) / 100,
+  };
+}
+
+const QUARTERLY_DUE_DATES = {
+  Q1: { label: 'Q1 (Jan–Mar)', due: 'April 15' },
+  Q2: { label: 'Q2 (Apr–Jun)', due: 'June 15' },
+  Q3: { label: 'Q3 (Jul–Sep)', due: 'September 15' },
+  Q4: { label: 'Q4 (Oct–Dec)', due: 'January 15 (next year)' },
+};
 
 export function taxSetYear(year) {
   _taxYear = Number(year);
@@ -26,6 +78,11 @@ export function taxSetQuarter(q) {
 
 export function taxToggleScheduleC() {
   _showScheduleC = !_showScheduleC;
+  renderTaxCenter();
+}
+
+export function taxToggleYearComparison() {
+  _showYearComparison = !_showYearComparison;
   renderTaxCenter();
 }
 
@@ -89,7 +146,7 @@ function calculatePeriodMetrics(startDate, endDate) {
   }
 
   const netProfit = grossProfit - totalExpenses;
-  const estimatedTax = netProfit * 0.25;
+  const taxCalc = calcEstimatedQuarterlyTax(netProfit);
 
   return {
     revenue,
@@ -100,7 +157,10 @@ function calculatePeriodMetrics(startDate, endDate) {
     totalExpenses,
     expensesByCategory,
     netProfit,
-    estimatedTax,
+    estimatedTax: taxCalc.totalAnnual,
+    estimatedTaxQuarterly: taxCalc.quarterly,
+    seTax: taxCalc.seTax,
+    incomeTax: taxCalc.incomeTax,
     saleCount: periodSales.length,
     itemCount: itemCount.size,
   };
@@ -124,7 +184,7 @@ function renderQuarterBreakdown() {
         <td style="padding:10px;font-family:'DM Mono',monospace;color:var(--good)">${fmt(m.grossProfit)}</td>
         <td style="padding:10px;font-family:'DM Mono',monospace;color:var(--danger)">${fmt(m.totalExpenses)}</td>
         <td style="padding:10px;font-family:'DM Mono',monospace;font-weight:600;color:${m.netProfit >= 0 ? 'var(--good)' : 'var(--danger)'}">${fmt(m.netProfit)}</td>
-        <td style="padding:10px;font-family:'DM Mono',monospace;color:var(--warn)">${fmt(m.estimatedTax)}</td>
+        <td style="padding:10px;font-family:'DM Mono',monospace;color:var(--warn);font-weight:600">${fmt(m.estimatedTaxQuarterly)}</td>
       </tr>
     `;
   }).join('');
@@ -140,7 +200,7 @@ function renderQuarterBreakdown() {
             <th style="padding:10px;text-align:right;font-weight:700">Gross Profit</th>
             <th style="padding:10px;text-align:right;font-weight:700">Expenses</th>
             <th style="padding:10px;text-align:right;font-weight:700">Net Profit</th>
-            <th style="padding:10px;text-align:right;font-weight:700">Est. Tax (25%)</th>
+            <th style="padding:10px;text-align:right;font-weight:700">Qtr Tax Due</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -288,9 +348,12 @@ export async function renderTaxCenter() {
         <div style="font-size:11px;color:var(--muted);margin-top:4px">margin: ${yearMetrics.revenue ? ((yearMetrics.netProfit / yearMetrics.revenue) * 100).toFixed(1) : 0}%</div>
       </div>
       <div class="stat-card" style="padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;border-color:var(--warn)">
-        <div style="font-size:10px;font-weight:600;color:var(--muted);margin-bottom:4px">Est. Tax (25%)</div>
+        <div style="font-size:10px;font-weight:600;color:var(--muted);margin-bottom:4px">Est. Tax Liability</div>
         <div style="font-size:20px;font-weight:700;color:var(--warn);font-family:'DM Mono',monospace">${fmt(yearMetrics.estimatedTax)}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px">quarterly avg: ${fmt(yearMetrics.estimatedTax / 4)}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">
+          <div>SE: ${fmt(yearMetrics.seTax)}</div>
+          <div>Income: ${fmt(yearMetrics.incomeTax)}</div>
+        </div>
       </div>
     </div>
   `;
@@ -304,7 +367,45 @@ export async function renderTaxCenter() {
         <option value="2026" ${_taxYear === 2026 ? 'selected' : ''}>Tax Year 2026</option>
       </select>
       <button onclick="taxToggleScheduleC()" class="btn-secondary" style="padding:6px 12px;background:${_showScheduleC ? 'var(--accent2)' : 'var(--surface2)'};border:1px solid var(--border);color:white;border-radius:3px;cursor:pointer;font-weight:600;font-family:Syne,sans-serif;font-size:12px">${_showScheduleC ? 'Hide' : 'Show'} Schedule C</button>
+      <button onclick="taxToggleYearComparison()" class="btn-secondary" style="padding:6px 12px;background:${_showYearComparison ? 'var(--accent2)' : 'var(--surface2)'};border:1px solid var(--border);color:white;border-radius:3px;cursor:pointer;font-weight:600;font-family:Syne,sans-serif;font-size:12px">${_showYearComparison ? 'Hide' : 'Show'} Year Comparison</button>
       <button onclick="taxExportCSV()" class="btn-primary" style="padding:6px 12px;background:var(--accent);color:white;border:none;border-radius:3px;cursor:pointer;font-weight:600;font-family:Syne,sans-serif;font-size:12px">Export CSV</button>
+    </div>
+  `;
+
+  // Build quarterly payment schedule
+  const paymentSchedule = `
+    <div class="panel" style="margin-bottom:20px;padding:12px;background:rgba(244,174,0,0.05);border-color:var(--warn)">
+      <div class="panel-title" style="margin-bottom:12px">Estimated Quarterly Tax Payments (${_taxYear})</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
+        ${[1, 2, 3, 4].map(q => {
+          const { start, end } = getQuarterDates(_taxYear, q);
+          const m = calculatePeriodMetrics(start, end);
+          const qInfo = QUARTERLY_DUE_DATES['Q' + q];
+          return `
+            <div style="padding:12px;background:var(--surface);border-radius:4px;border:1px solid var(--border)">
+              <div style="font-weight:700;color:var(--text);margin-bottom:8px">${qInfo.label}</div>
+              <div style="display:grid;gap:6px;font-size:11px;font-family:'DM Mono',monospace">
+                <div style="display:flex;justify-content:space-between;padding:6px;background:rgba(var(--surface-rgb),0.5);border-radius:2px">
+                  <span style="color:var(--muted)">Payment Due:</span>
+                  <span style="color:var(--warn);font-weight:600">${qInfo.due}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:6px;background:rgba(var(--surface-rgb),0.5);border-radius:2px">
+                  <span style="color:var(--muted)">SE Tax:</span>
+                  <span style="color:var(--accent)">${fmt(m.seTax)}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:6px;background:rgba(var(--surface-rgb),0.5);border-radius:2px">
+                  <span style="color:var(--muted)">Income Tax:</span>
+                  <span style="color:var(--accent)">${fmt(m.incomeTax)}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:8px;background:var(--warn);border-radius:2px;color:white;font-weight:700">
+                  <span>Total Due:</span>
+                  <span>${fmt(m.estimatedTaxQuarterly)}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
     </div>
   `;
 
@@ -346,6 +447,73 @@ export async function renderTaxCenter() {
     `;
   }
 
+  // Build year-over-year comparison
+  let yearComparison = '';
+  if (_showYearComparison && _taxYear > 2023) {
+    const prevYear = _taxYear - 1;
+    const prevYearStart = new Date(prevYear, 0, 1);
+    const prevYearEnd = new Date(prevYear, 11, 31, 23, 59, 59);
+    const prevYearMetrics = calculatePeriodMetrics(prevYearStart, prevYearEnd);
+
+    const revenueGrowth = prevYearMetrics.revenue > 0 ? ((yearMetrics.revenue - prevYearMetrics.revenue) / prevYearMetrics.revenue) * 100 : 0;
+    const profitGrowth = prevYearMetrics.netProfit > 0 ? ((yearMetrics.netProfit - prevYearMetrics.netProfit) / prevYearMetrics.netProfit) * 100 : (yearMetrics.netProfit > 0 ? 100 : 0);
+    const expenseGrowth = prevYearMetrics.totalExpenses > 0 ? ((yearMetrics.totalExpenses - prevYearMetrics.totalExpenses) / prevYearMetrics.totalExpenses) * 100 : 0;
+    const taxGrowth = prevYearMetrics.estimatedTax > 0 ? ((yearMetrics.estimatedTax - prevYearMetrics.estimatedTax) / prevYearMetrics.estimatedTax) * 100 : 0;
+
+    const arrow = (val) => val > 0 ? '▲' : val < 0 ? '▼' : '→';
+    const color = (val) => val > 0 ? 'var(--good)' : val < 0 ? 'var(--danger)' : 'var(--muted)';
+
+    yearComparison = `
+      <div class="panel" style="margin-bottom:20px;padding:12px">
+        <div class="panel-title" style="margin-bottom:12px">${_taxYear} vs ${prevYear} Comparison</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;font-size:11px;font-family:'DM Mono',monospace">
+            <thead>
+              <tr style="background:var(--surface);border-bottom:1px solid var(--border)">
+                <th style="padding:10px;text-align:left;color:var(--muted)">Metric</th>
+                <th style="padding:10px;text-align:right;color:var(--muted)">${prevYear}</th>
+                <th style="padding:10px;text-align:right;color:var(--muted)">${_taxYear}</th>
+                <th style="padding:10px;text-align:right;color:var(--muted)">Change</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom:1px solid var(--border)">
+                <td style="padding:10px;font-weight:600">Revenue</td>
+                <td style="padding:10px;text-align:right;color:var(--accent)">${fmt(prevYearMetrics.revenue)}</td>
+                <td style="padding:10px;text-align:right;color:var(--accent)">${fmt(yearMetrics.revenue)}</td>
+                <td style="padding:10px;text-align:right;color:${color(revenueGrowth)};font-weight:600">${arrow(revenueGrowth)} ${Math.abs(revenueGrowth).toFixed(1)}%</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border)">
+                <td style="padding:10px;font-weight:600">Gross Profit</td>
+                <td style="padding:10px;text-align:right;color:var(--good)">${fmt(prevYearMetrics.grossProfit)}</td>
+                <td style="padding:10px;text-align:right;color:var(--good)">${fmt(yearMetrics.grossProfit)}</td>
+                <td style="padding:10px;text-align:right;color:${color(revenueGrowth)};font-weight:600">${arrow(revenueGrowth)} ${Math.abs((prevYearMetrics.grossProfit > 0 ? ((yearMetrics.grossProfit - prevYearMetrics.grossProfit) / prevYearMetrics.grossProfit) * 100 : 0)).toFixed(1)}%</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border)">
+                <td style="padding:10px;font-weight:600">Expenses</td>
+                <td style="padding:10px;text-align:right;color:var(--danger)">${fmt(prevYearMetrics.totalExpenses)}</td>
+                <td style="padding:10px;text-align:right;color:var(--danger)">${fmt(yearMetrics.totalExpenses)}</td>
+                <td style="padding:10px;text-align:right;color:${color(-expenseGrowth)};font-weight:600">${arrow(-expenseGrowth)} ${Math.abs(expenseGrowth).toFixed(1)}%</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border)">
+                <td style="padding:10px;font-weight:600">Net Profit</td>
+                <td style="padding:10px;text-align:right;color:${prevYearMetrics.netProfit >= 0 ? 'var(--good)' : 'var(--danger)'}">${fmt(prevYearMetrics.netProfit)}</td>
+                <td style="padding:10px;text-align:right;color:${yearMetrics.netProfit >= 0 ? 'var(--good)' : 'var(--danger)'}">${fmt(yearMetrics.netProfit)}</td>
+                <td style="padding:10px;text-align:right;color:${color(profitGrowth)};font-weight:600">${arrow(profitGrowth)} ${Math.abs(profitGrowth).toFixed(1)}%</td>
+              </tr>
+              <tr>
+                <td style="padding:10px;font-weight:600">Tax Liability</td>
+                <td style="padding:10px;text-align:right;color:var(--warn)">${fmt(prevYearMetrics.estimatedTax)}</td>
+                <td style="padding:10px;text-align:right;color:var(--warn)">${fmt(yearMetrics.estimatedTax)}</td>
+                <td style="padding:10px;text-align:right;color:${color(taxGrowth)};font-weight:600">${arrow(taxGrowth)} ${Math.abs(taxGrowth).toFixed(1)}%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
   // Build mileage section
   const mileageSection = renderMileageSection();
 
@@ -353,8 +521,10 @@ export async function renderTaxCenter() {
     <div style="padding:16px 12px">
       ${statsStrip}
       ${controls}
+      ${paymentSchedule}
       ${quarterlySection}
       ${quarterDetail}
+      ${_showYearComparison ? yearComparison : ''}
       ${mileageSection}
     </div>
   `;
