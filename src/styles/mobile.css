@@ -1,1313 +1,429 @@
 /* ── RESPONSIVE ─────────────────────────────────────────── */
 
-
-
 /* Tablet landscape / small desktop (covers iPad landscape @ 1194px) */
-
 @media (max-width: 1220px) {
-
   .stats-grid  { grid-template-columns: repeat(3, 1fr); }
-
   .dash-grid   { grid-template-columns: 1fr; }
-
 }
-
-
 
 /* iPad portrait: 768px */
-
 @media (max-width: 820px) {
-
   /* Header */
-
   header { padding: 12px 16px; padding-top: calc(12px + env(safe-area-inset-top)); gap: 10px; }
-
   .logo  { font-size: 18px; }
-
   .nav-tab { font-size: 11px; padding: 6px 12px; }
-
   .date-badge { display: none; }
-
   .btn-secondary { display: none; }
-
   #headerBatchBtn { display: none; }
-
-
 
   /* Main */
-
   main { padding: 14px 16px; }
 
-
-
   /* Stats — 2x3 grid on iPad portrait */
-
   .stats-grid {
-
     grid-template-columns: repeat(2, 1fr);
-
     gap: 10px;
-
     margin-bottom: 16px;
-
   }
-
   .stat-value { font-size: 24px; }
-
   .stat-card  { padding: 14px 16px; }
 
-
-
   /* Dashboard panels stack */
-
   .dash-grid { grid-template-columns: 1fr; gap: 14px; }
 
-
-
   /* Inventory toolbar — stack rows more compactly */
-
   .inv-toolbar { padding: 10px 14px; gap: 8px; }
-
   .search-wrap input { width: 100%; }
-
   .sort-select { font-size: 11px; padding: 5px 8px; }
 
-
-
   /* Inventory table — hide drag handle(2), Cost(7), Margin(9) */
-
   #view-inventory .inv-table thead th:nth-child(2),
-
   #view-inventory .inv-table tbody td:nth-child(2),
-
   #view-inventory .inv-table thead th:nth-child(7),
-
   #view-inventory .inv-table tbody td:nth-child(7),
-
   #view-inventory .inv-table thead th:nth-child(9),
-
   #view-inventory .inv-table tbody td:nth-child(9) { display: none; }
 
-
-
   /* Tighter table cells on tablet */
-
   .inv-table tbody td { padding: 10px 8px; font-size: 11px; }
-
   .inv-table thead th { padding: 9px 8px; }
-
   .item-name { font-size: 12px; }
 
-
-
   /* Clamp item names to 2 lines max */
-
   .item-name {
-
     display: -webkit-box;
-
     -webkit-line-clamp: 2;
-
     -webkit-box-orient: vertical;
-
     overflow: hidden;
-
     text-overflow: ellipsis;
-
   }
-
-
 
   /* Compact item metadata */
-
   .item-meta { gap: 4px; margin-top: 2px; }
-
   .item-sku { font-size: 9px; }
 
-
-
   /* Hide barcode badges on tablet */
-
   .item-meta .barcode-badge { display: none; }
-
-
 
   /* Smaller thumbnails */
-
   .item-thumb, .item-thumb-placeholder { width: 40px; height: 40px; }
 
-
-
   /* Compact stepper */
-
   .stepper-btn { width: 28px; height: 28px; font-size: 16px; }
-
   .stepper-val { font-size: 13px; min-width: 26px; }
 
-
-
   /* Action buttons — compact */
-
   .act-btn { padding: 5px 8px; font-size: 10px; }
-
   .td-acts { gap: 4px; }
 
-
-
   /* Scrollable table wrapper */
-
   #view-inventory .inv-table { table-layout: auto; }
 
-
-
   /* Bulk bar wraps */
-
   .bulk-bar { flex-wrap: wrap; padding: 8px 14px; gap: 6px; }
 
-
-
   /* Drawer becomes full-width bottom sheet */
-
   .drawer {
-
     top: auto;
-
     bottom: 0;
-
     left: 0;
-
     right: 0;
-
     width: 100%;
-
     max-width: 100%;
-
     min-width: unset;
-
     height: 50vh;
-
     min-height: 340px;
-
     border-left: none;
-
     border-top: 1px solid var(--border);
-
     border-radius: 16px 16px 0 0;
-
     transform: translateY(100%);
-
   }
-
   .drawer.on { transform: translateY(0); }
-
   .drawer .drawer-ft { bottom: 0; }
-
   .drawer .drawer-tab-panel { padding-bottom: 80px; }
-
   .drawer-tabs { overflow-x: auto; }
-
   .drawer-tab { font-size: 9px; padding: 8px 6px; white-space: nowrap; }
 
-
-
   /* Drawer handle affordance */
-
   .drawer-hd::before {
-
     content: '';
-
     display: block;
-
     width: 36px;
-
     height: 4px;
-
     background: var(--border2);
-
     border-radius: 2px;
-
     margin: 0 auto 14px;
-
     position: absolute;
-
     top: 10px;
-
     left: 50%;
-
     transform: translateX(-50%);
-
   }
-
   .drawer-hd { padding-top: 28px; position: relative; }
 
-
-
   /* Drawer metrics — 2 cols on portrait */
-
   .d-metrics { grid-template-columns: 1fr 1fr; }
 
-
-
   /* Modals — near full screen */
-
   .modal { width: 96vw; max-height: 88vh; }
-
   .form-grid { grid-template-columns: 1fr; }
-
   .fgrp.full { grid-column: 1; }
-
   .profit-prev { grid-template-columns: repeat(3, 1fr); }
 
-
-
   /* Edit drawer grid — single col */
-
   .edit-grid { grid-template-columns: 1fr; }
-
   .edit-grp.full { grid-column: 1; }
 
-
-
   /* Sales table — hide less essential cols */
-
   #view-sales .inv-table thead th:nth-child(6),
-
   #view-sales .inv-table tbody td:nth-child(6),
-
   #view-sales .inv-table thead th:nth-child(7),
-
   #view-sales .inv-table tbody td:nth-child(7) { display: none; }
-
 }
-
 /* Phone */
-
 @media (max-width: 480px) {
-
   header { padding: 10px 12px; padding-top: calc(10px + env(safe-area-inset-top)); }
-
   .header-center { display: none; }
-
   main { padding: 10px 10px; }
 
-
-
   .stats-grid {
-
     grid-template-columns: 1fr 1fr;
-
     gap: 8px;
-
   }
-
   .stat-value { font-size: 20px; }
-
   .stat-label { font-size: 9px; }
-
   .stat-card  { padding: 10px 12px; }
 
-
-
   /* Inventory table phone — hide Checkbox(1), Photo(3), Platform(5), Price(8)
-
      (Drag(2), Cost(7), Margin(9) already hidden from 820px rule)
-
      Remaining: Item(4), Stock(6), Actions(10) */
-
   #view-inventory .inv-table thead th:nth-child(1),
-
   #view-inventory .inv-table tbody td:nth-child(1),
-
   #view-inventory .inv-table thead th:nth-child(3),
-
   #view-inventory .inv-table tbody td:nth-child(3),
-
   #view-inventory .inv-table thead th:nth-child(5),
-
   #view-inventory .inv-table tbody td:nth-child(5),
-
   #view-inventory .inv-table thead th:nth-child(8),
-
   #view-inventory .inv-table tbody td:nth-child(8) { display: none; }
 
-
-
   /* Tighter table cells on phone */
-
   .inv-table tbody td { padding: 8px 6px; }
-
   .inv-table thead th { padding: 8px 6px; font-size: 9px; }
-
   .item-name { font-size: 12px; -webkit-line-clamp: 2; }
 
-
-
   /* Compact item meta — single line, hide subcategory tags */
-
   .item-meta { gap: 3px; }
-
   .item-meta .cat-tag:nth-child(n+2) { display: none; }
-
   .item-meta .barcode-badge { display: none; }
 
-
-
   /* Smaller stock stepper on phone */
-
   .stepper-btn { width: 26px; height: 26px; font-size: 14px; }
-
   .stepper-val { font-size: 12px; min-width: 22px; }
-
   .stock-bar { display: none; }
 
-
-
   /* Actions — icon-only, minimal */
-
   .act-btn { padding: 4px 6px; font-size: 10px; }
-
   .td-acts { gap: 3px; flex-wrap: nowrap; }
 
-
-
   /* Sales log — hide more columns on phone */
-
   #view-sales .inv-table thead th:nth-child(4),
-
   #view-sales .inv-table tbody td:nth-child(4),
-
   #view-sales .inv-table thead th:nth-child(5),
-
   #view-sales .inv-table tbody td:nth-child(5) { display: none; }
 
-
-
   /* Drawer — near full screen on phone */
-
   .drawer {
-
     height: calc(92vh + 60px + env(safe-area-inset-bottom));
-
     top: auto;
-
     bottom: 0;
-
     left: 0;
-
     right: 0;
-
     width: 100%;
-
     min-width: 0;
-
     max-width: 100%;
-
     border-left: none;
-
     border-top: 1px solid var(--border);
-
     transform: translateY(100%);
-
   }
-
   .drawer.on { transform: translateY(0); }
-
   .drawer .drawer-ft {
-
     bottom: calc(60px + env(safe-area-inset-bottom));
-
   }
-
   .drawer .drawer-tab-panel {
-
     padding-bottom: calc(80px + 60px + env(safe-area-inset-bottom));
-
   }
-
-
 
   /* Compact dashboard panels */
-
   .panel-header { padding: 10px 14px; }
-
   .panel-title { font-size: 12px; }
-
 }
-
-
 
 /* Touch — ensure minimum 44px tap targets */
-
 @media (hover: none) and (pointer: coarse) {
-
   .filter-chip   { padding: 8px 12px; font-size: 11px; min-height: 36px; }
-
   .act-btn       { min-height: 36px; }
-
   .btn-primary   { min-height: 40px; padding: 10px 20px; }
-
   .btn-secondary { min-height: 36px; }
-
   .btn-danger    { min-height: 36px; }
-
   .nav-tab       { min-height: 40px; display: flex; align-items: center; }
-
   input, select, textarea { font-size: 16px !important; } /* prevent iOS zoom */
-
 }
-
 /* ── BOTTOM NAV (tablet portrait + mobile) ── */
-
 .bottom-nav {
-
   display: none;
-
   position: fixed;
-
   bottom: 0; left: 0; right: 0;
-
   height: calc(60px + env(safe-area-inset-bottom));
-
   padding-bottom: env(safe-area-inset-bottom);
-
   background: rgba(10,10,15,0.95);
-
   backdrop-filter: blur(16px);
-
   border-top: 1px solid var(--border);
-
   z-index: 150;
-
   grid-template-columns: repeat(5, 1fr);
-
   align-items: center;
-
 }
-
-
 
 .bnav-btn {
-
   display: flex;
-
   flex-direction: column;
-
   align-items: center;
-
   justify-content: center;
-
   gap: 4px;
-
   background: transparent;
-
   border: none;
-
   color: var(--muted);
-
   cursor: pointer;
-
   padding: 8px 4px;
-
   width: 100%;
-
   height: 100%;
-
   transition: color 0.15s;
-
   -webkit-tap-highlight-color: transparent;
-
 }
-
 .bnav-btn.active { color: var(--accent); }
-
 .bnav-btn:hover  { color: var(--text); }
-
 .bnav-icon {
-
   display: flex;
-
   align-items: center;
-
   justify-content: center;
-
   width: 22px;
-
   height: 22px;
-
   flex-shrink: 0;
-
 }
-
 .bnav-icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
-
 .bnav-lbl  { font-family: 'DM Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; }
 
-
-
 .bnav-fab {
-
   display: flex;
-
   align-items: center;
-
   justify-content: center;
-
   width: 50px;
-
   height: 50px;
-
   background: var(--accent);
-
   color: #0a0a0f;
-
   border: none;
-
   border-radius: 50%;
-
   cursor: pointer;
-
   font-size: 26px;
-
   line-height: 1;
-
   font-weight: 300;
-
   box-shadow: 0 4px 20px rgba(87,200,255,0.35);
-
   transition: transform 0.15s, background 0.15s;
-
   -webkit-tap-highlight-color: transparent;
-
   justify-self: center;
-
   margin-bottom: 4px;
-
 }
-
 .bnav-fab:hover  { transform: scale(1.08); background: #70d4ff; }
-
 .bnav-fab:active { transform: scale(0.95); }
 
-
-
 /* More menu popup */
-
 .bnav-more-popup {
-
   display: none;
-
   position: fixed;
-
   bottom: calc(60px + env(safe-area-inset-bottom) + 8px);
-
   right: 8px;
-
   background: var(--surface2);
-
   border: 1px solid var(--border);
-
   min-width: 180px;
-
   z-index: 500;
-
   box-shadow: 0 -4px 24px rgba(0,0,0,0.4);
-
   animation: slideIn 0.18s ease;
-
 }
-
 .bnav-more-popup.open { display: block; }
-
 .bnav-more-item {
-
   display: flex;
-
   align-items: center;
-
   gap: 12px;
-
   padding: 13px 16px;
-
   border: none;
-
   background: transparent;
-
   color: var(--muted);
-
   font-family: 'DM Mono', monospace;
-
   font-size: 11px;
-
   text-transform: uppercase;
-
   letter-spacing: 0.8px;
-
   cursor: pointer;
-
   width: 100%;
-
   text-align: left;
-
   border-bottom: 1px solid var(--border);
-
   transition: color 0.15s, background 0.15s;
-
   -webkit-tap-highlight-color: transparent;
-
 }
-
 .bnav-more-item:last-child { border-bottom: none; }
-
 .bnav-more-item:hover,
-
 .bnav-more-item.active { color: var(--accent); background: rgba(87,200,255,0.05); }
-
 .bnav-more-item svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
 
-
-
 /* Backdrop to close More menu */
-
 .bnav-more-backdrop {
-
   display: none;
-
   position: fixed;
-
   inset: 0;
-
   z-index: 499;
-
 }
-
 .bnav-more-backdrop.open { display: block; }
 
-
-
 /* Bottom nav only for phones — explicitly hide everything on larger screens */
-
 @media (min-width: 821px) {
-
   .bottom-nav,
-
   .bnav-more-popup,
-
   .bnav-more-backdrop { display: none !important; }
-
 }
-
-
 
 @media (max-width: 820px) {
-
   .bottom-nav { display: grid; }
-
   main { padding-bottom: calc(74px + env(safe-area-inset-bottom)); }
-
   /* Hide header action buttons — bottom nav + FAB replace them */
-
   #headerAddBtn { display: none; }
-
   #headerIdBtn { display: none; }
-
   #headerBatchBtn { display: none; }
-
 }
-
-
 
 /* Tablet (600px–820px): hide header center tabs */
-
 @media (max-width: 820px) {
-
   .header-center { display: none; }
-
 }
-
-
 
 /* iPad landscape / mobile landscape (820px–1220px): header has all tabs + buttons, needs to be compact */
-
 @media (min-width: 821px) and (max-width: 1220px) {
-
   header {
-
     padding: 10px 16px;
-
     padding-top: calc(10px + env(safe-area-inset-top));
-
     gap: 6px;
-
     flex-wrap: nowrap;
-
     overflow: hidden;       /* prevent any horizontal overflow */
-
   }
-
   .logo  { font-size: 17px; white-space: nowrap; flex-shrink: 0; }
-
   .date-badge { display: none; }
-
   .btn-secondary { display: none; }
-
   .header-center {
-
     flex: 1;
-
     min-width: 0;
-
     flex-wrap: nowrap;
-
     overflow-x: auto;
-
     -webkit-overflow-scrolling: touch;
-
     scrollbar-width: none;
-
     -ms-overflow-style: none;
-
     gap: 2px;
-
   }
-
   .header-center::-webkit-scrollbar { display: none; }
-
   .nav-tab { font-size: 10px; padding: 5px 6px; white-space: nowrap; flex-shrink: 0; }
-
   .header-right {
-
     gap: 6px;
-
     flex-shrink: 0;
-
     flex-wrap: nowrap;
-
   }
-
   .sync-dot-btn { padding: 4px 8px; }
-
   .sync-dot-lbl { display: none; }
-
   #syncTimestamp { display: none; }
-
   /* Hide Identify + Batch on tablet landscape — accessible from Crosslist view */
-
   #headerIdBtn { display: none; }
-
   #headerBatchBtn { display: none; }
-
   #headerAddBtn { font-size: 11px; padding: 6px 12px; white-space: nowrap; }
-
 }
-
-
 
 @media (max-width: 480px) {
-
   .bnav-btn { padding: 6px 4px; }
-
 }
-
-
 
 /* ── FONT SIZE CONTROL ───────────────────────── */
-
 .fs-popover {
-
   position: fixed;
-
   top: 54px;
-
   right: 16px;
-
   z-index: 9999;
-
   background: var(--surface2);
-
   border: 1px solid var(--border);
-
   padding: 14px 18px 16px;
-
   width: 230px;
-
   box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-
   display: none;
-
 }
-
 .fs-popover.on { display: block; }
 
-
-
 @media (max-width: 520px) {
-
   .dim-grid { grid-template-columns: 1fr; }
-
 }
-
-
 
 /* ── SMOKE SLIDER MOBILE ──────────────────────── */
-
-@media (max-width: 820px) {
-
-  .smoke-slider-wrap { gap: 8px; padding: 4px 0; }
-
-  .smoke-slider {
-
-    height: 10px; border-radius: 5px;
-
-    max-width: none;
-
-  }
-
-  .smoke-slider::-moz-range-track { height: 10px; border-radius: 5px; }
-
-  .smoke-slider::-webkit-slider-thumb { width: 28px; height: 28px; }
-
-  .smoke-slider::-moz-range-thumb { width: 28px; height: 28px; }
-
-  .smoke-lbl { font-size: 11px; }
-
-}
-
-@media (max-width: 480px) {
-
-  .smoke-slider::-webkit-slider-thumb { width: 32px; height: 32px; }
-
-  .smoke-slider::-moz-range-thumb { width: 32px; height: 32px; }
-
-  .smoke-lbl { font-size: 10px; }
-
-}
-
-/* ── RESPONSIVE ─────────────────────────────────────────── */
-
-/* Tablet landscape / small desktop (covers iPad landscape @ 1194px) */
-@media (max-width: 1220px) {
-  .stats-grid  { grid-template-columns: repeat(3, 1fr); }
-  .dash-grid   { grid-template-columns: 1fr; }
-}
-
-/* iPad portrait: 768px */
-@media (max-width: 820px) {
-  /* Header */
-  header { padding: 12px 16px; padding-top: calc(12px + env(safe-area-inset-top)); gap: 10px; }
-  .logo  { font-size: 18px; }
-  .nav-tab { font-size: 11px; padding: 6px 12px; }
-  .date-badge { display: none; }
-  .btn-secondary { display: none; }
-  #headerBatchBtn { display: none; }
-
-  /* Main */
-  main { padding: 14px 16px; }
-
-  /* Stats — 2x3 grid on iPad portrait */
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    margin-bottom: 16px;
-  }
-  .stat-value { font-size: 24px; }
-  .stat-card  { padding: 14px 16px; }
-
-  /* Dashboard panels stack */
-  .dash-grid { grid-template-columns: 1fr; gap: 14px; }
-
-  /* Inventory toolbar — stack rows more compactly */
-  .inv-toolbar { padding: 10px 14px; gap: 8px; }
-  .search-wrap input { width: 100%; }
-  .sort-select { font-size: 11px; padding: 5px 8px; }
-
-  /* Inventory table — hide drag handle(2), Cost(7), Margin(9) */
-  #view-inventory .inv-table thead th:nth-child(2),
-  #view-inventory .inv-table tbody td:nth-child(2),
-  #view-inventory .inv-table thead th:nth-child(7),
-  #view-inventory .inv-table tbody td:nth-child(7),
-  #view-inventory .inv-table thead th:nth-child(9),
-  #view-inventory .inv-table tbody td:nth-child(9) { display: none; }
-
-  /* Tighter table cells on tablet */
-  .inv-table tbody td { padding: 10px 8px; font-size: 11px; }
-  .inv-table thead th { padding: 9px 8px; }
-  .item-name { font-size: 12px; }
-
-  /* Clamp item names to 2 lines max */
-  .item-name {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* Compact item metadata */
-  .item-meta { gap: 4px; margin-top: 2px; }
-  .item-sku { font-size: 9px; }
-
-  /* Hide barcode badges on tablet */
-  .item-meta .barcode-badge { display: none; }
-
-  /* Smaller thumbnails */
-  .item-thumb, .item-thumb-placeholder { width: 40px; height: 40px; }
-
-  /* Compact stepper */
-  .stepper-btn { width: 28px; height: 28px; font-size: 16px; }
-  .stepper-val { font-size: 13px; min-width: 26px; }
-
-  /* Action buttons — compact */
-  .act-btn { padding: 5px 8px; font-size: 10px; }
-  .td-acts { gap: 4px; }
-
-  /* Scrollable table wrapper */
-  #view-inventory .inv-table { table-layout: auto; }
-
-  /* Bulk bar wraps */
-  .bulk-bar { flex-wrap: wrap; padding: 8px 14px; gap: 6px; }
-
-  /* Drawer becomes full-width bottom sheet */
-  .drawer {
-    top: auto;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    max-width: 100%;
-    min-width: unset;
-    height: 50vh;
-    min-height: 340px;
-    border-left: none;
-    border-top: 1px solid var(--border);
-    border-radius: 16px 16px 0 0;
-    transform: translateY(100%);
-  }
-  .drawer.on { transform: translateY(0); }
-  .drawer .drawer-ft { bottom: 0; }
-  .drawer .drawer-tab-panel { padding-bottom: 80px; }
-  .drawer-tabs { overflow-x: auto; }
-  .drawer-tab { font-size: 9px; padding: 8px 6px; white-space: nowrap; }
-
-  /* Drawer handle affordance */
-  .drawer-hd::before {
-    content: '';
-    display: block;
-    width: 36px;
-    height: 4px;
-    background: var(--border2);
-    border-radius: 2px;
-    margin: 0 auto 14px;
-    position: absolute;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-  .drawer-hd { padding-top: 28px; position: relative; }
-
-  /* Drawer metrics — 2 cols on portrait */
-  .d-metrics { grid-template-columns: 1fr 1fr; }
-
-  /* Modals — near full screen */
-  .modal { width: 96vw; max-height: 88vh; }
-  .form-grid { grid-template-columns: 1fr; }
-  .fgrp.full { grid-column: 1; }
-  .profit-prev { grid-template-columns: repeat(3, 1fr); }
-
-  /* Edit drawer grid — single col */
-  .edit-grid { grid-template-columns: 1fr; }
-  .edit-grp.full { grid-column: 1; }
-
-  /* Sales table — hide less essential cols */
-  #view-sales .inv-table thead th:nth-child(6),
-  #view-sales .inv-table tbody td:nth-child(6),
-  #view-sales .inv-table thead th:nth-child(7),
-  #view-sales .inv-table tbody td:nth-child(7) { display: none; }
-}
-/* Phone */
-@media (max-width: 480px) {
-  header { padding: 10px 12px; padding-top: calc(10px + env(safe-area-inset-top)); }
-  .header-center { display: none; }
-  main { padding: 10px 10px; }
-
-  .stats-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-  .stat-value { font-size: 20px; }
-  .stat-label { font-size: 9px; }
-  .stat-card  { padding: 10px 12px; }
-
-  /* Inventory table phone — hide Checkbox(1), Photo(3), Platform(5), Price(8)
-     (Drag(2), Cost(7), Margin(9) already hidden from 820px rule)
-     Remaining: Item(4), Stock(6), Actions(10) */
-  #view-inventory .inv-table thead th:nth-child(1),
-  #view-inventory .inv-table tbody td:nth-child(1),
-  #view-inventory .inv-table thead th:nth-child(3),
-  #view-inventory .inv-table tbody td:nth-child(3),
-  #view-inventory .inv-table thead th:nth-child(5),
-  #view-inventory .inv-table tbody td:nth-child(5),
-  #view-inventory .inv-table thead th:nth-child(8),
-  #view-inventory .inv-table tbody td:nth-child(8) { display: none; }
-
-  /* Tighter table cells on phone */
-  .inv-table tbody td { padding: 8px 6px; }
-  .inv-table thead th { padding: 8px 6px; font-size: 9px; }
-  .item-name { font-size: 12px; -webkit-line-clamp: 2; }
-
-  /* Compact item meta — single line, hide subcategory tags */
-  .item-meta { gap: 3px; }
-  .item-meta .cat-tag:nth-child(n+2) { display: none; }
-  .item-meta .barcode-badge { display: none; }
-
-  /* Smaller stock stepper on phone */
-  .stepper-btn { width: 26px; height: 26px; font-size: 14px; }
-  .stepper-val { font-size: 12px; min-width: 22px; }
-  .stock-bar { display: none; }
-
-  /* Actions — icon-only, minimal */
-  .act-btn { padding: 4px 6px; font-size: 10px; }
-  .td-acts { gap: 3px; flex-wrap: nowrap; }
-
-  /* Sales log — hide more columns on phone */
-  #view-sales .inv-table thead th:nth-child(4),
-  #view-sales .inv-table tbody td:nth-child(4),
-  #view-sales .inv-table thead th:nth-child(5),
-  #view-sales .inv-table tbody td:nth-child(5) { display: none; }
-
-  /* Drawer — near full screen on phone */
-  .drawer {
-    height: calc(92vh + 60px + env(safe-area-inset-bottom));
-    top: auto;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
-    border-left: none;
-    border-top: 1px solid var(--border);
-    transform: translateY(100%);
-  }
-  .drawer.on { transform: translateY(0); }
-  .drawer .drawer-ft {
-    bottom: calc(60px + env(safe-area-inset-bottom));
-  }
-  .drawer .drawer-tab-panel {
-    padding-bottom: calc(80px + 60px + env(safe-area-inset-bottom));
-  }
-
-  /* Compact dashboard panels */
-  .panel-header { padding: 10px 14px; }
-  .panel-title { font-size: 12px; }
-}
-
-/* Touch — ensure minimum 44px tap targets */
-@media (hover: none) and (pointer: coarse) {
-  .filter-chip   { padding: 8px 12px; font-size: 11px; min-height: 36px; }
-  .act-btn       { min-height: 36px; }
-  .btn-primary   { min-height: 40px; padding: 10px 20px; }
-  .btn-secondary { min-height: 36px; }
-  .btn-danger    { min-height: 36px; }
-  .nav-tab       { min-height: 40px; display: flex; align-items: center; }
-  input, select, textarea { font-size: 16px !important; } /* prevent iOS zoom */
-}
-/* ── BOTTOM NAV (tablet portrait + mobile) ── */
-.bottom-nav {
-  display: none;
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  height: calc(60px + env(safe-area-inset-bottom));
-  padding-bottom: env(safe-area-inset-bottom);
-  background: rgba(10,10,15,0.95);
-  backdrop-filter: blur(16px);
-  border-top: 1px solid var(--border);
-  z-index: 150;
-  grid-template-columns: repeat(5, 1fr);
-  align-items: center;
-}
-
-.bnav-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  background: transparent;
-  border: none;
-  color: var(--muted);
-  cursor: pointer;
-  padding: 8px 4px;
-  width: 100%;
-  height: 100%;
-  transition: color 0.15s;
-  -webkit-tap-highlight-color: transparent;
-}
-.bnav-btn.active { color: var(--accent); }
-.bnav-btn:hover  { color: var(--text); }
-.bnav-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  flex-shrink: 0;
-}
-.bnav-icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
-.bnav-lbl  { font-family: 'DM Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; }
-
-.bnav-fab {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 50px;
-  height: 50px;
-  background: var(--accent);
-  color: #0a0a0f;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 26px;
-  line-height: 1;
-  font-weight: 300;
-  box-shadow: 0 4px 20px rgba(87,200,255,0.35);
-  transition: transform 0.15s, background 0.15s;
-  -webkit-tap-highlight-color: transparent;
-  justify-self: center;
-  margin-bottom: 4px;
-}
-.bnav-fab:hover  { transform: scale(1.08); background: #70d4ff; }
-.bnav-fab:active { transform: scale(0.95); }
-
-/* More menu popup */
-.bnav-more-popup {
-  display: none;
-  position: fixed;
-  bottom: calc(60px + env(safe-area-inset-bottom) + 8px);
-  right: 8px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  min-width: 180px;
-  z-index: 500;
-  box-shadow: 0 -4px 24px rgba(0,0,0,0.4);
-  animation: slideIn 0.18s ease;
-}
-.bnav-more-popup.open { display: block; }
-.bnav-more-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 13px 16px;
-  border: none;
-  background: transparent;
-  color: var(--muted);
-  font-family: 'DM Mono', monospace;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  cursor: pointer;
-  width: 100%;
-  text-align: left;
-  border-bottom: 1px solid var(--border);
-  transition: color 0.15s, background 0.15s;
-  -webkit-tap-highlight-color: transparent;
-}
-.bnav-more-item:last-child { border-bottom: none; }
-.bnav-more-item:hover,
-.bnav-more-item.active { color: var(--accent); background: rgba(87,200,255,0.05); }
-.bnav-more-item svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
-
-/* Backdrop to close More menu */
-.bnav-more-backdrop {
-  display: none;
-  position: fixed;
-  inset: 0;
-  z-index: 499;
-}
-.bnav-more-backdrop.open { display: block; }
-
-/* Bottom nav only for phones — explicitly hide everything on larger screens */
-@media (min-width: 821px) {
-  .bottom-nav,
-  .bnav-more-popup,
-  .bnav-more-backdrop { display: none !important; }
-}
-
-@media (max-width: 820px) {
-  .bottom-nav { display: grid; }
-  main { padding-bottom: calc(74px + env(safe-area-inset-bottom)); }
-  /* Hide header action buttons — bottom nav + FAB replace them */
-  #headerAddBtn { display: none; }
-  #headerIdBtn { display: none; }
-  #headerBatchBtn { display: none; }
-}
-
-/* Tablet (600px–820px): hide header center tabs */
-@media (max-width: 820px) {
-  .header-center { display: none; }
-}
-
-/* iPad landscape / mobile landscape (820px–1220px): header has all tabs + buttons, needs to be compact */
-@media (min-width: 821px) and (max-width: 1220px) {
-  header {
-    padding: 10px 16px;
-    padding-top: calc(10px + env(safe-area-inset-top));
-    gap: 6px;
-    flex-wrap: nowrap;
-    overflow: hidden;       /* prevent any horizontal overflow */
-  }
-  .logo  { font-size: 17px; white-space: nowrap; flex-shrink: 0; }
-  .date-badge { display: none; }
-  .btn-secondary { display: none; }
-  .header-center {
-    flex: 1;
-    min-width: 0;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    gap: 2px;
-  }
-  .header-center::-webkit-scrollbar { display: none; }
-  .nav-tab { font-size: 10px; padding: 5px 6px; white-space: nowrap; flex-shrink: 0; }
-  .header-right {
-    gap: 6px;
-    flex-shrink: 0;
-    flex-wrap: nowrap;
-  }
-  .sync-dot-btn { padding: 4px 8px; }
-  .sync-dot-lbl { display: none; }
-  #syncTimestamp { display: none; }
-  /* Hide Identify + Batch on tablet landscape — accessible from Crosslist view */
-  #headerIdBtn { display: none; }
-  #headerBatchBtn { display: none; }
-  #headerAddBtn { font-size: 11px; padding: 6px 12px; white-space: nowrap; }
-}
-
-@media (max-width: 480px) {
-  .bnav-btn { padding: 6px 4px; }
-}
-
-/* ── FONT SIZE CONTROL ───────────────────────── */
-.fs-popover {
-  position: fixed;
-  top: 54px;
-  right: 16px;
-  z-index: 9999;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  padding: 14px 18px 16px;
-  width: 230px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-  display: none;
-}
-.fs-popover.on { display: block; }
-
-@media (max-width: 520px) {
-  .dim-grid { grid-template-columns: 1fr; }
-}
-
-/* ── SMOKE SLIDER MOBILE ──────────────────── */
 @media (max-width: 820px) {
   .smoke-slider-wrap { gap: 8px; padding: 4px 0; }
   .smoke-slider {

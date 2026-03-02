@@ -262,7 +262,7 @@
       </select>
       <div class="toolbar-spacer"></div>
       <button class="btn-secondary" onclick="printStickers(false)" style="font-size:11px;padding:5px 10px;white-space:nowrap">🏷 Print All</button>
-      <button class="btn-secondary" onclick="openTrashModal()" style="font-size:11px;padding:5px 10px;white-space:nowrap">👑️ Trash</button>
+      <button class="btn-secondary" onclick="openTrashModal()" style="font-size:11px;padding:5px 10px;white-space:nowrap">🗑️ Trash</button>
       <span id="invCnt" style="font-size:11px;color:var(--muted);white-space:nowrap"></span>
     </div>
     <div class="bulk-bar" id="bulkBar">
@@ -376,7 +376,7 @@
   </div>
 </div>
 
-<!-- VIEW: VALUE BLEAKDOWN -->
+<!-- VIEW: VALUE BREAKDOWN -->
 <div id="view-breakdown" class="view">
   <div id="breakdownContent"></div>
 </div>
@@ -567,7 +567,7 @@
         <div class="edit-grp"><div class="edit-lbl">Shipping ($)</div><input class="edit-inp" id="d_ship" type="number" step="0.01"></div>
         <div class="edit-grp full" style="align-items:flex-start">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;margin-top:2px">
-            <input type="checkbox" id="d_bulk" onChange="toggleBulkFields('d')" style="width:15px;height:15px;accent-color:var(--accent);flex-shrink:0">
+            <input type="checkbox" id="d_bulk" onchange="toggleBulkFields('d')" style="width:15px;height:15px;accent-color:var(--accent);flex-shrink:0">
             <span class="edit-lbl" style="margin:0">Bulk Item — multiple units</span>
           </label>
         </div>
@@ -605,7 +605,7 @@
               <div class="edit-lbl">ISBN</div>
               <div class="isbn-row">
                 <input class="edit-inp" type="text" id="d_isbn" placeholder="ISBN-10 or ISBN-13" oninput="this.value=this.value.replace(/[^0-9Xx-]/g,'')">
-                <button type="button" class="isjn-lookup-btn" id="d_isbn_btn" onclick="lookupISBN('d')">🔍 Lookup</button>
+                <button type="button" class="isbn-lookup-btn" id="d_isbn_btn" onclick="lookupISBN('d')">🔍 Lookup</button>
               </div>
             </div>
             <div class="edit-grp"><div class="edit-lbl">Author</div><input class="edit-inp" type="text" id="d_author" placeholder="Author name"></div>
@@ -1255,7 +1255,7 @@
 <div class="overlay" id="trashOv" role="dialog" aria-modal="true" aria-label="Trash" onclick="if(event.target===this)closeTrashModal()">
   <div class="modal" style="max-width:460px">
     <div class="modal-hd">
-      <div class="modal-ttl">👑️ Recently Deleted</div>
+      <div class="modal-ttl">🗑️ Recently Deleted</div>
       <button class="modal-x" onclick="closeTrashModal()">×</button>
     </div>
     <div class="modal-bd" style="max-height:400px;overflow-y:auto">

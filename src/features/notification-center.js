@@ -1,5 +1,5 @@
 /**
- * notification-center.js â In-app notification bell & dropdown
+ * notification-center.js — In-app notification bell & dropdown
  * Tracks: low stock alerts, sync events, price changes, stale inventory
  */
 
@@ -81,12 +81,12 @@ function timeAgo(iso) {
 
 function iconFor(type) {
   switch (type) {
-    case 'stock': return 'ð¦';
-    case 'sync': return 'ð';
-    case 'price': return 'ð²';
-    case 'sale': return 'ð';
-    case 'info': return 'â¹ï¸';
-    default: return 'ð';
+    case 'stock': return '📦';
+    case 'sync': return '🔄';
+    case 'price': return '💲';
+    case 'sale': return '🎉';
+    case 'info': return 'ℹ️';
+    default: return '🔔';
   }
 }
 
@@ -151,10 +151,10 @@ export function generateStockAlerts() {
     addNotification('stock', 'Low Stock Warning', `${lowStock.length} item${lowStock.length > 1 ? 's are' : ' is'} running low`);
   }
   if (stale.length) {
-    addNotification('price', 'Stale Inventory', `${stale.length} item${stale.length > 1 ? 's' : ''} listed 60+ days with no sales â consider repricing`);
+    addNotification('price', 'Stale Inventory', `${stale.length} item${stale.length > 1 ? 's' : ''} listed 60+ days with no sales — consider repricing`);
   }
 
-  // ââ SMART NOTIFICATION: Repricing suggestions âââââââââââââââââââââââââ
+  // ── SMART NOTIFICATION: Repricing suggestions ─────────────────────────
   const reprice30 = inv.filter(i => {
     if ((i.qty || 0) <= 0) return false;
     const days = Math.floor((now - new Date(i.added || now).getTime()) / 86400000);
@@ -162,10 +162,10 @@ export function generateStockAlerts() {
   });
   if (reprice30.length) {
     addNotification('price', 'Reprice Suggestion',
-      `${reprice30.length} item${reprice30.length > 1 ? 's' : ''} listed 30+ days without a sale â lower price by 10-15%?`);
+      `${reprice30.length} item${reprice30.length > 1 ? 's' : ''} listed 30+ days without a sale — lower price by 10-15%?`);
   }
 
-  // ââ SMART NOTIFICATION: Expiring listings (eBay 30-day GTC) âââââââââââ
+  // ── SMART NOTIFICATION: Expiring listings (eBay 30-day GTC) ───────────
   const expiring = inv.filter(i => {
     if ((i.qty || 0) <= 0) return false;
     const pld = i.platformListingDates;
@@ -178,10 +178,10 @@ export function generateStockAlerts() {
   });
   if (expiring.length) {
     addNotification('info', 'Listings Expiring Soon',
-      `${expiring.length} listing${expiring.length > 1 ? 's' : ''} expiring in the next 3 days â relist or renew`);
+      `${expiring.length} listing${expiring.length > 1 ? 's' : ''} expiring in the next 3 days — relist or renew`);
   }
 
-  // ââ SMART NOTIFICATION: High-margin items sitting unlisted ââââââââââââ
+  // ── SMART NOTIFICATION: High-margin items sitting unlisted ────────────
   const unlistedHighMargin = inv.filter(i => {
     if ((i.qty || 0) <= 0) return false;
     const plats = i.platforms || [];
@@ -195,7 +195,7 @@ export function generateStockAlerts() {
   }
 }
 
-/** Calculate sales velocity by category â returns sorted array */
+/** Calculate sales velocity by category — returns sorted array */
 export function getSalesVelocity() {
   const catMap = {};
   // Build category stats
@@ -236,4 +236,3 @@ export function initNotificationCenter() {
     }
   });
 }
-

@@ -1,5 +1,5 @@
 /**
- * sync-indicator.js â Multi-device sync status indicator
+ * sync-indicator.js — Multi-device sync status indicator
  * Shows "Last synced: X ago" near the sync dot + pending changes badge
  */
 
@@ -71,4 +71,3 @@ export function startSyncIndicator() {
   window.addEventListener('online', () => { updateOfflineIndicator(); updateSyncIndicator(); });
   window.addEventListener('offline', updateOfflineIndicator);
 }
-

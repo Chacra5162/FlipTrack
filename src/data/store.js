@@ -282,12 +282,30 @@ export function refresh() {
 
 
 // ── CATEGORY NORMALIZATION ─────────────────────────────────────────────────
+function titleCase(s) {
+  return s.replace(/\w\S*/g, t => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase());
+}
 export function normCat(input) {
   if (!input) return input;
   const trimmed = input.trim();
   const lower = trimmed.toLowerCase();
   const existing = inv.find(i => (i.category || '').toLowerCase() === lower);
-  return existing ? existing.category : trimmed;
+  return existing ? existing.category : titleCase(trimmed);
+}
+// Normalize all existing category names in inventory to prevent duplicates
+export function normalizeAllCategories() {
+  const catMap = {};
+  let changed = 0;
+  for (const item of inv) {
+    if (!item.category) continue;
+    const lower = item.category.toLowerCase();
+    if (!catMap[lower]) catMap[lower] = titleCase(item.category);
+    if (item.category !== catMap[lower]) {
+      item.category = catMap[lower];
+      changed++;
+    }
+  }
+  return changed;
 }
 
 

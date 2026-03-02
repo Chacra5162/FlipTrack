@@ -12,6 +12,13 @@ header {
   z-index: 200;
   gap: 16px;
 }
+[data-theme="light"] header {
+  background: rgba(244,244,248,0.92);
+  border-bottom-color: var(--border);
+}
+[data-theme="light"] .nav-tab.active {
+  background: rgba(26,143,207,0.08);
+}
 
 .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: -0.5px; }
 .logo span { color: var(--accent); }

@@ -74,7 +74,7 @@ export function openFilterPanel() {
   if (panel) panel.classList.add('open');
 }
 
-// ââ CHIP BUILDING & FILTERING ââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── CHIP BUILDING & FILTERING ──────────────────────────────────────────────────
 
 export function buildChips(forceRebuild) {
   // Skip full chip rebuild if inventory data hasn't changed (filter/sort/page don't need it)
@@ -85,9 +85,9 @@ export function buildChips(forceRebuild) {
     return;
   }
   _chipsBuiltForData = dataKey;
-  // Platform chips â show all platforms, grouped with dividers
+  // Platform chips — show all platforms, grouped with dividers
   const inUse = new Set(inv.flatMap(i=>getPlatforms(i)).filter(Boolean));
-  // Platform chips â "All" clears the set; clicking a platform toggles it
+  // Platform chips — "All" clears the set; clicking a platform toggles it
   let platHtml = `<span class="filter-chip ${platFilt.size===0?'active':''}" role="button" tabindex="0" onclick="setPlatFilt('all',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">All</span>`;
   PLATFORM_GROUPS.forEach(group => {
     platHtml += `<span class="plat-group-divider">${group.label}</span>`;
@@ -98,7 +98,7 @@ export function buildChips(forceRebuild) {
   });
   document.getElementById('platChips').innerHTML = platHtml;
 
-  // Case-insensitive dedup â keep first-seen casing per lowercase key
+  // Case-insensitive dedup — keep first-seen casing per lowercase key
   const _catMap = new Map();
   inv.forEach(i => { const c=(i.category||'').trim(); if(c){ const k=c.toLowerCase(); if(!_catMap.has(k)) _catMap.set(k,c); } });
   const cats=['all',...[..._catMap.values()].sort()];
@@ -112,7 +112,7 @@ export function buildChips(forceRebuild) {
   // hide category row if no categories set yet
   document.getElementById('catToolbar').style.display=cats.length>1?'flex':'none';
 
-  // subcategory row â only show when exactly one category is active and has defined subcats
+  // subcategory row — only show when exactly one category is active and has defined subcats
   const subcatBar  = document.getElementById('subcatToolbar');
   const singleCat  = catFilt.size === 1 ? [...catFilt][0] : null;
   const subcatDefs = singleCat ? SUBCATS[singleCat] : null;
@@ -130,13 +130,13 @@ export function buildChips(forceRebuild) {
     subcatFilt='all';
   }
 
-  // sub-subcategory row â show when selected subcat has children
+  // sub-subcategory row — show when selected subcat has children
   const subsubDefs = SUBSUBCATS[subcatFilt];
   const subsubBar  = document.getElementById('subsubcatToolbar');
   if (subsubDefs && subsubDefs.length && subcatFilt !== 'all') {
     const usedSubsubs = [...new Set(inv.filter(i=>i.subcategory===subcatFilt).map(i=>i.subtype||'').filter(Boolean))];
     const allSubsubs  = [...new Set([...subsubDefs, ...usedSubsubs])];
-    document.getElementById('subsubcatLabel').textContent = ['Men','Women','Children'].includes(subcatFilt) ? `â³â³ Clothing Type` : `â³â³ ${subcatFilt}`;
+    document.getElementById('subsubcatLabel').textContent = ['Men','Women','Children'].includes(subcatFilt) ? `↳↳ Clothing Type` : `↳↳ ${subcatFilt}`;
     document.getElementById('subsubcatChips').innerHTML=
       ['all',...allSubsubs].map(s=>{
         const safe=s.replace(/'/g,"\\'");
@@ -152,7 +152,7 @@ export function buildChips(forceRebuild) {
   const smokeBar = document.getElementById('smokeToolbar');
   if (smokeBar) {
     const smokeOpts = ['all','smoke-free','smoke-exposure','unset'];
-    const smokeLabels = { all:'All', 'smoke-free':'ð¢ Smoke-Free', 'smoke-exposure':'ð´ Smoke Exp.', unset:'âª Unset' };
+    const smokeLabels = { all:'All', 'smoke-free':'🟢 Smoke-Free', 'smoke-exposure':'🔴 Smoke Exp.', unset:'⚪ Unset' };
     document.getElementById('smokeChips').innerHTML = smokeOpts.map(s =>
       `<span class="filter-chip ${smokeFilt===s?'active':''}" role="button" tabindex="0" onclick="setSmokeFilt('${s}')">${smokeLabels[s]}</span>`
     ).join('');
@@ -198,7 +198,7 @@ export function _updateChipActiveStates() {
   updateFiltersBadge();
 }
 
-// ââ FILTER SETTERS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── FILTER SETTERS ────────────────────────────────────────────────────────────
 
 export function setPlatFilt(p, el) {
   _invPage=0;
@@ -245,7 +245,7 @@ export function clearStockFilter() {
   renderInv();
 }
 
-// ââ SMOKE & CONDITION FILTER SETTERS âââââââââââââââââââââââââââââââââââââââ
+// ── SMOKE & CONDITION FILTER SETTERS ───────────────────────────────────────
 
 export function setSmokeFilt(val) {
   _invPage = 0;
@@ -267,7 +267,7 @@ export function setSubsubcatFilt(s,el){
   renderInv();
 }
 
-// ââ SORT ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── SORT ──────────────────────────────────────────────────────────────────────
 
 export function setSort(v){document.getElementById('sortSel').value=v;renderInv();}
 
@@ -290,7 +290,7 @@ export function sortItems(items){
   });
 }
 
-// ââ INVENTORY TABLE RENDERING âââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── INVENTORY TABLE RENDERING ─────────────────────────────────────────────────
 
 export function renderInv() {
   buildChips();
@@ -338,21 +338,21 @@ export function renderInv() {
     const isSel=sel.has(item.id);
     return `<tr data-id="${item.id}" class="${isSel?'sel':''}">
       <td class="cb-col"><input type="checkbox" ${isSel?'checked':''} onchange="toggleSel('${item.id}',this)"></td>
-      <td><span class="drag-handle" draggable="true" ondragstart="dStart(event,'${item.id}')" ondragover="dOver(event)" ondrop="dDrop(event,'${item.id}')">â ¿</span></td>
+      <td><span class="drag-handle" draggable="true" ondragstart="dStart(event,'${item.id}')" ondragover="dOver(event)" ondrop="dDrop(event,'${item.id}')">⠿</span></td>
       <td>${(getItemImages(item)[0])
         ? `<img class="item-thumb" loading="lazy" src="${getItemImages(item)[0]}" alt="${escHtml(item.name)}" onclick="openLightbox('${item.id}')">`
-        : `<div class="item-thumb-placeholder" title="Add photo" onclick="openDrawer('${item.id}')">ï¼</div>`
+        : `<div class="item-thumb-placeholder" title="Add photo" onclick="openDrawer('${item.id}')">＋</div>`
       }</td>
       <td>
         <div class="item-name" onclick="openDrawer('${item.id}')">${escHtml(item.name)}</div>
-        <div class="item-meta"><span class="item-sku">${escHtml(item.sku||'â')}</span>${item.upc?`<span class="upc-tag">${escHtml(item.upc)}</span>`:''}${item.category?`<span class="cat-tag">${escHtml(item.category)}</span>`:''} ${item.subcategory?`<span class="cat-tag" style="background:rgba(87,200,255,0.1);color:var(--accent)">${escHtml(item.subcategory)}</span>`:''} ${item.subtype?`<span class="cat-tag" style="background:rgba(123,97,255,0.15);color:var(--accent3)">${escHtml(item.subtype)}</span>`:''} ${item.condition?`<span class="cat-tag" style="background:rgba(87,255,154,0.08);color:var(--good)">${escHtml(item.condition)}</span>`:''} ${item.source?`<span class="cat-tag" style="background:rgba(255,107,53,0.1);color:var(--accent2)">ð${escHtml(item.source)}</span>`:''}${item.author?`<span class="book-meta-tag">â ${escHtml(item.author)}</span>`:''}${item.edition?`<span class="book-meta-tag">${escHtml(item.edition)} ed.</span>`:''}${item.signed?`<span class="book-meta-tag" style="background:rgba(255,215,0,0.15);color:#d4a017;border-color:rgba(255,215,0,0.3)">â Signed</span>`:''}</div>
+        <div class="item-meta"><span class="item-sku">${escHtml(item.sku||'—')}</span>${item.upc?`<span class="upc-tag">${escHtml(item.upc)}</span>`:''}${item.category?`<span class="cat-tag">${escHtml(item.category)}</span>`:''} ${item.subcategory?`<span class="cat-tag" style="background:rgba(87,200,255,0.1);color:var(--accent)">${escHtml(item.subcategory)}</span>`:''} ${item.subtype?`<span class="cat-tag" style="background:rgba(123,97,255,0.15);color:var(--accent3)">${escHtml(item.subtype)}</span>`:''} ${item.condition?`<span class="cat-tag" style="background:rgba(87,255,154,0.08);color:var(--good)">${escHtml(item.condition)}</span>`:''} ${item.source?`<span class="cat-tag" style="background:rgba(255,107,53,0.1);color:var(--accent2)">📍${escHtml(item.source)}</span>`:''}${item.author?`<span class="book-meta-tag">✍ ${escHtml(item.author)}</span>`:''}${item.edition?`<span class="book-meta-tag">${escHtml(item.edition)} ed.</span>`:''}${item.signed?`<span class="book-meta-tag" style="background:rgba(255,215,0,0.15);color:#d4a017;border-color:rgba(255,215,0,0.3)">✒ Signed</span>`:''}</div>
       </td>
       <td>${renderPlatTags(item)}</td>
       <td>
         <div class="stock-cell">
           <div class="stepper">
-            <button class="stepper-btn" aria-label="Decrease quantity" onclick="adjStock('${item.id}',-1)">â</button>
-            <span class="stepper-val sv-${c}" title="${c==='low'?'Low stock':c==='warn'?'Warning':'In stock'}">${item.qty||0}${c==='low'?' â ':c==='warn'?' â¡':''}</span>
+            <button class="stepper-btn" aria-label="Decrease quantity" onclick="adjStock('${item.id}',-1)">−</button>
+            <span class="stepper-val sv-${c}" title="${c==='low'?'Low stock':c==='warn'?'Warning':'In stock'}">${item.qty||0}${c==='low'?' ⚠':c==='warn'?' ⚡':''}</span>
             <button class="stepper-btn" aria-label="Increase quantity" onclick="adjStock('${item.id}',+1)">+</button>
           </div>
           <div class="mini-bar"><div class="mb-fill mf-${c}" style="width:${bp}%"></div></div>
@@ -362,11 +362,11 @@ export function renderInv() {
       <td><span class="price-disp" title="Click to edit inline" onclick="startPriceEdit(this,'${item.id}')">${fmt(price)}</span></td>
       <td><span class="margin-badge ${margCls(m)}">${pct(m)}</span></td>
       <td class="days-col"><span class="days-badge${daysListed(item)>=60?' stale':daysListed(item)>=30?' aging':''}" title="Listed ${daysListed(item)} days">${daysListed(item)}d</span></td>
-      <td class="photos-col">${(()=>{const imgs=getItemImages(item);const cnt=imgs.length;return cnt?`<span class="photo-count-badge" title="${cnt} photo${cnt>1?'s':''}">${cnt} ð·<ïspan>`:`<span class="photo-count-badge empty" title="No photos">0</span>`;})()}</td>
+      <td class="photos-col">${(()=>{const imgs=getItemImages(item);const cnt=imgs.length;return cnt?`<span class="photo-count-badge" title="${cnt} photo${cnt>1?'s':''}">${cnt} 📷</span>`:`<span class="photo-count-badge empty" title="No photos">0</span>`;})()}</td>
       <td><div class="td-acts">
-        ${item.qty>0?`<button class="act-btn" onclick="openSoldModal('${item.id}')">Sold âº</button>`:`<span class="out-badge">Out</span>`}
+        ${item.qty>0?`<button class="act-btn" onclick="openSoldModal('${item.id}')">Sold ›</button>`:`<span class="out-badge">Out</span>`}
         <button class="act-btn" onclick="openDrawer('${item.id}')">Edit</button>
-        <button class="act-btn red" onclick="delItem('${item.id}')">â</button>
+        <button class="act-btn red" onclick="delItem('${item.id}')">✕</button>
       </div></td>
     </tr>`;
   }).join('');
@@ -385,7 +385,7 @@ export function renderInv() {
   }
 }
 
-// ââ INLINE PRICE EDIT âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── INLINE PRICE EDIT ─────────────────────────────────────────────────────────
 
 export function startPriceEdit(span, id) {
   const item=inv.find(i=>i.id===id);
@@ -393,23 +393,23 @@ export function startPriceEdit(span, id) {
   const inp=document.createElement('input');
   inp.className='price-inp'; inp.type='number'; inp.step='0.01'; inp.value=item.price||0;
   span.replaceWith(inp); inp.focus(); inp.select();
-  const commit=()=>{const v=parseFloat(inp.value);if(!isNaN(v)&&v>=0){item.price=v;markDirty('inv',item.id);save();refresh();renderInv();toast('Price updated â');}else renderInv();};
+  const commit=()=>{const v=parseFloat(inp.value);if(!isNaN(v)&&v>=0){item.price=v;markDirty('inv',item.id);save();refresh();renderInv();toast('Price updated ✓');}else renderInv();};
   inp.addEventListener('blur',commit);
   inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();inp.blur();}if(e.key==='Escape'){inp.removeEventListener('blur',commit);renderInv();}});
 }
 
-// ââ STOCK STEPPER âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── STOCK STEPPER ─────────────────────────────────────────────────────────────
 
 export function adjStock(id, d) {
   const item=inv.find(i=>i.id===id); if(!item) return;
   item.qty=Math.max(0,(item.qty||0)+d);
   markDirty('inv',item.id);
   save(); refresh(); renderInv();
-  if(item.qty===0) toast('â  Out of stock!',true);
-  else if(item.bulk&&item.qty<=(item.lowAlert||2)) toast(`â  Low: ${item.qty} left`,true);
+  if(item.qty===0) toast('⚠ Out of stock!',true);
+  else if(item.bulk&&item.qty<=(item.lowAlert||2)) toast(`⚠ Low: ${item.qty} left`,true);
 }
 
-// ââ DRAG & DROP âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── DRAG & DROP ───────────────────────────────────────────────────────────────
 
 export function dStart(e,id){dragSrc=inv.findIndex(i=>i.id===id);e.dataTransfer.effectAllowed='move';}
 
@@ -417,7 +417,7 @@ export function dOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';doc
 
 export function dDrop(e,id){e.preventDefault();document.querySelectorAll('#invBody tr').forEach(r=>r.classList.remove('drag-over'));if(dragSrc===null)return;const di=inv.findIndex(i=>i.id===id);if(dragSrc===di)return;const[m]=inv.splice(dragSrc,1);inv.splice(di,0,m);dragSrc=null;save();renderInv();}
 
-// ââ SELECTION âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── SELECTION ─────────────────────────────────────────────────────────────────
 
 export function toggleSel(id,cb){cb.checked?sel.add(id):sel.delete(id);cb.closest('tr').classList.toggle('sel',cb.checked);syncBulk();const all=document.querySelectorAll('#invBody input[type=checkbox]');document.getElementById('selAll').checked=all.length&&[...all].every(c=>c.checked);}
 
@@ -427,9 +427,8 @@ export function clearSel(){sel.clear();document.getElementById('selAll').checked
 
 export function syncBulk(){const b=document.getElementById('bulkBar');b.classList.toggle('on',sel.size>0);document.getElementById('bulkCnt').textContent=sel.size+' selected';}
 
-// ââ BULK OPERATIONS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── BULK OPERATIONS ───────────────────────────────────────────────────────────
 
-export async function bulkDel(){if(!sel.size)return;if(!confirm(`Delete ${sel.size} item(s)?`))return;const ids=[...sel];ids.forEach(id=>softDeleteItem(id));sel.clear();save();refresh();toast(ids.length+' item(s) deleted â check ðï¸ to restore');await pushDeleteToCloud('ft_inventory',ids);autoSync();}
+export async function bulkDel(){if(!sel.size)return;if(!confirm(`Delete ${sel.size} item(s)?`))return;const ids=[...sel];ids.forEach(id=>softDeleteItem(id));sel.clear();save();refresh();toast(ids.length+' item(s) deleted — check 🗑️ to restore');await pushDeleteToCloud('ft_inventory',ids);autoSync();}
 
-export function bulkSold(){if(!sel.size)return;const ok=[...sel].filter(id=>{const it=getInvItem(id);return it&&it.qty>0;});if(!ok.length){toast('No sellable items selected',true);return;}if(!confirm(`Record sale for ${ok.length} item(s) at list price?`))return;const today=new Date().toISOString().split('T')[0];for(const id of ok){const it=getInvItem(id);const saleId=uid();sales.push({id:saleId,itemId:id,price:it.price,listPrice:it.price||0,qty:1,fees:it.fees||0,ship:it.ship||0,date:today});markDirty('sales',saleId);it.qty=Math.max(0,(it.qty||0)-1);markDirty('inv',id);}sel.clear();save();refresh();toast(`${ok.length} sale(s) recorded â`);}
-
+export function bulkSold(){if(!sel.size)return;const ok=[...sel].filter(id=>{const it=getInvItem(id);return it&&it.qty>0;});if(!ok.length){toast('No sellable items selected',true);return;}if(!confirm(`Record sale for ${ok.length} item(s) at list price?`))return;const today=new Date().toISOString().split('T')[0];for(const id of ok){const it=getInvItem(id);const saleId=uid();sales.push({id:saleId,itemId:id,price:it.price,listPrice:it.price||0,qty:1,fees:it.fees||0,ship:it.ship||0,date:today});markDirty('sales',saleId);it.qty=Math.max(0,(it.qty||0)-1);markDirty('inv',id);}sel.clear();save();refresh();toast(`${ok.length} sale(s) recorded ✓`);}

@@ -43,8 +43,12 @@ export function renderInsights() {
 
   // ── Category stats ────────────────────────────────────────────────────────
   const catMap = {};
+  const catDisplayNames = {}; // Track canonical display name per lowercase key
   for (const { item, revenue, profit, unitsSold } of itemStats) {
-    const cat = item.category || 'Uncategorized';
+    const rawCat = item.category || 'Uncategorized';
+    const key = rawCat.toLowerCase();
+    if (!catDisplayNames[key]) catDisplayNames[key] = rawCat;
+    const cat = catDisplayNames[key];
     if (!catMap[cat]) catMap[cat] = { revenue:0, profit:0, units:0, items:0 };
     catMap[cat].revenue += revenue;
     catMap[cat].profit  += profit;
