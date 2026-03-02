@@ -129,7 +129,9 @@ import { updateOnlineStatus } from './features/offline.js';
 import {
   initListingDates, checkExpiredListings, autoDlistOnSale,
   getCrosslistStats, getExpiredListings, getExpiringListings,
-  markPlatformStatus, relistItem, setListingDate
+  markPlatformStatus, relistItem, setListingDate,
+  enableAutoRelist, disableAutoRelist, isAutoRelistEnabled, runAutoRelist,
+  bulkPriceAdjust, bulkRelistPlatform
 } from './features/crosslist.js';
 import { generateListingLink, copyListingText } from './features/deep-links.js';
 import { initTemplates } from './features/listing-templates.js';
@@ -433,9 +435,12 @@ Object.assign(window, { markDirty, markDeleted });
 Object.assign(window, {
   renderCrosslistDashboard, clSwitchTab, clSetSearch, clSetPlatFilter, clSetStatusFilter,
   clRelistItem, clDelistItem, clCycleStatus, clOpenLink, clCopyListing,
-  clBulkRelistExpired, clAddTemplate, clDeleteTemplate,
+  clBulkRelistExpired, clAddTemplate, clDeleteTemplate, clSaveTemplate,
   markPlatformStatus, relistItem, copyListingText,
-  clRelistFromDrawer
+  clRelistFromDrawer,
+  clToggleAutoRelist, clRunAutoRelist, clBulkPrice,
+  enableAutoRelist, disableAutoRelist, isAutoRelistEnabled, runAutoRelist,
+  bulkPriceAdjust, bulkRelistPlatform
 });
 
 // eBay Integration
@@ -481,13 +486,13 @@ Object.assign(window, {
 Object.assign(window, {
   renderPriceHistoryChart, renderPriceHistoryTable,
   renderRepricingSuggestions, renderRepricingRulesManager,
-  rpAddRule, rpDeleteRule, rpToggleRule, rpApplyAll, rpApplySingle
+  rpAddRule, rpDeleteRule, rpToggleRule, rpApplyAll, rpApplySingle, rpAddRuleFromForm
 });
 
 // Phase 6: CRM
 Object.assign(window, {
   renderBuyersView, buyerAdd, buyerDelete, buyerExpand,
-  buyerSetSearch, buyerSetSort, buyerLinkSale,
+  buyerSetSearch, buyerSetSort, buyerLinkSale, buyerAddComm,
   renderOffersPanel, offerAdd, offerAddConfirm,
   offerAccept, offerReject, offerCounter, offerDelete, renderItemOffers
 });

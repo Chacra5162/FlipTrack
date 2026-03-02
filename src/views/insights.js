@@ -153,6 +153,77 @@ export function renderInsights() {
         </div>`).join('')}
     </div>`;
 
+  // Monthly revenue data for chart
+  const monthlyData = {};
+  for (const s of sales) {
+    const d = new Date(s.date);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if (!monthlyData[key]) monthlyData[key] = { revenue: 0, profit: 0, units: 0 };
+    monthlyData[key].revenue += (s.price || 0) * (s.qty || 0);
+    const it = getInvItem(s.itemId);
+    monthlyData[key].profit += (s.price||0)*(s.qty||0) - (it?.cost||0)*(s.qty||0) - (s.fees||0) - (s.ship||0);
+    monthlyData[key].units += s.qty || 0;
+  }
+
+  const monthKeys = Object.keys(monthlyData).sort().slice(-12);
+  const maxMonthRev = Math.max(...monthKeys.map(k => monthlyData[k].revenue), 1);
+
+  const revenueChart = monthKeys.length >= 2 ? `
+    <div style="background:var(--surface2);border:1px solid var(--border);padding:16px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--accent)">📈 Monthly Revenue</div>
+        <div style="font-size:10px;color:var(--muted)">Last ${monthKeys.length} months</div>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:4px;height:80px">
+        ${monthKeys.map(k => {
+          const d = monthlyData[k];
+          const h = Math.max(4, (d.revenue / maxMonthRev) * 100);
+          const monthLabel = k.split('-')[1];
+          const profitColor = d.profit >= 0 ? 'var(--good)' : 'var(--danger)';
+          return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+            <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace">${fmt(d.revenue)}</div>
+            <div style="width:100%;height:${h}%;background:var(--accent);border-radius:2px 2px 0 0;min-height:4px" title="${k}: ${fmt(d.revenue)} rev, ${fmt(d.profit)} profit"></div>
+            <div style="font-size:8px;color:var(--muted)">${monthLabel}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  ` : '';
+
+  // Sales velocity forecast
+  const last30Sales = sales.filter(s => new Date(s.date) >= day30);
+  const last60Sales = sales.filter(s => new Date(s.date) >= day60);
+  const dailyRate30 = last30Sales.length / 30;
+  const dailyRate60 = last60Sales.length / 60;
+  const velocityTrend = dailyRate30 > dailyRate60 ? 'accelerating' : dailyRate30 < dailyRate60 * 0.8 ? 'slowing' : 'steady';
+  const projectedMonthly = Math.round(dailyRate30 * 30);
+  const projectedRevenue30 = last30Sales.length > 0
+    ? Math.round(last30Sales.reduce((a,s) => a + (s.price||0)*(s.qty||0), 0) / last30Sales.length * projectedMonthly)
+    : 0;
+
+  const velocitySection = last30Sales.length >= 3 ? insightCard('🚀', 'Sales Velocity & Forecast',
+    `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+      <div style="background:var(--surface);border:1px solid var(--border);padding:10px;text-align:center">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--accent)">${dailyRate30.toFixed(1)}</div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;margin-top:2px">Sales/Day</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);padding:10px;text-align:center">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:${
+          velocityTrend === 'accelerating' ? 'var(--good)' : velocityTrend === 'slowing' ? 'var(--danger)' : 'var(--accent)'
+        }">${velocityTrend === 'accelerating' ? '↑' : velocityTrend === 'slowing' ? '↓' : '→'} ${velocityTrend}</div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;margin-top:2px">Trend</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);padding:10px;text-align:center">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--good)">${fmt(projectedRevenue30)}</div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;margin-top:2px">30d Forecast</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">
+      💡 At current pace: ~${projectedMonthly} sales/month · ${dailyRate30 > dailyRate60 ? 'Momentum is building — keep sourcing' : dailyRate30 < dailyRate60 * 0.8 ? 'Sales are slowing — consider repricing stale items' : 'Steady pace — maintain current strategy'}
+    </div>`,
+    velocityTrend === 'accelerating' ? 'var(--good)' : velocityTrend === 'slowing' ? 'var(--warn)' : 'var(--accent)'
+  ) : '';
+
   // ── Section: What's hot right now ─────────────────────────────────────────
   const hotSection = recentHot.length ? insightCard('🔥', 'Hot Right Now — 30 days',
     recentHot.map(s => itemRow(s, s => `
@@ -681,6 +752,7 @@ export function renderInsights() {
         <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">Updated ${new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}</div>
       </div>
       ${kpis}
+      ${revenueChart}
       ${agingSection}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div>
@@ -688,6 +760,7 @@ export function renderInsights() {
           ${hotSection}
           ${bestSellerSection}
           ${profitSection}
+          ${velocitySection}
           ${capitalSection}
           ${staleSection}
           ${ageSection}

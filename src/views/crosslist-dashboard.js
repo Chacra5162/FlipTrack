@@ -13,7 +13,8 @@ import {
   getCrosslistStats, getExpiredListings, getExpiringListings,
   getListingHealth, markPlatformStatus, relistItem, setListingDate,
   STATUS_LABELS, STATUS_COLORS, LISTING_STATUSES,
-  PLATFORM_EXPIRY_RULES, getDaysUntilExpiry, checkExpiredListings
+  PLATFORM_EXPIRY_RULES, getDaysUntilExpiry, checkExpiredListings,
+  enableAutoRelist, disableAutoRelist, isAutoRelistEnabled, runAutoRelist, getAutoRelistCandidates, bulkRelistPlatform, bulkPriceAdjust
 } from '../features/crosslist.js';
 import { generateListingLink, copyListingText, generateListingText } from '../features/deep-links.js';
 import { getTemplatesForCategory } from '../features/listing-templates.js';
@@ -141,6 +142,41 @@ function renderOverviewTab(inStock, expiring, expired, stats) {
     }
     html += `</div></div>`;
   }
+
+  // ── AUTO-RELIST CONTROLS ──
+  html += `<div style="padding:12px;background:var(--surface);border-bottom:1px solid var(--border)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-size:12px;font-weight:600;color:var(--text)">Auto-Relist</div>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" ${isAutoRelistEnabled() ? 'checked' : ''} onchange="clToggleAutoRelist(this.checked)" style="cursor:pointer">
+        <span style="font-size:11px;color:var(--muted)">${isAutoRelistEnabled() ? 'Enabled' : 'Disabled'}</span>
+      </label>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Automatically relist expired listings on renewable platforms (eBay, Etsy, Facebook, etc.)</div>
+    <button onclick="clRunAutoRelist()" class="btn-secondary" style="width:100%;height:32px;font-size:11px">Run Auto-Relist Now (${getAutoRelistCandidates().length} candidates)</button>
+  </div>`;
+
+  // ── BULK PRICING ──
+  html += `<div style="padding:12px;background:var(--surface);border-bottom:1px solid var(--border)">
+    <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">Bulk Price Adjustment</div>
+    <div class="form-grid" style="gap:6px">
+      <select id="clBulkCat" class="fgrp" style="grid-column:1/-1">
+        <option value="">All Categories</option>
+        ${[...new Set(inv.filter(i=>i.category).map(i=>i.category))].sort().map(c => `<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('')}
+      </select>
+      <select id="clBulkPlat" class="fgrp" style="grid-column:1/-1">
+        <option value="">All Platforms</option>
+        ${Object.keys(PLATFORM_EXPIRY_RULES).slice(0,15).map(p => `<option value="${escHtml(p)}">${escHtml(p)}</option>`).join('')}
+      </select>
+      <select id="clBulkType" class="fgrp">
+        <option value="percent">% Change</option>
+        <option value="fixed">$ Change</option>
+      </select>
+      <input id="clBulkVal" type="number" placeholder="-10" step="1" class="fgrp">
+      <input id="clBulkMinDays" type="number" placeholder="Min days listed" class="fgrp" style="grid-column:1/-1">
+      <button onclick="clBulkPrice()" class="btn-primary" style="grid-column:1/-1;height:32px;font-size:11px">Apply Bulk Pricing</button>
+    </div>
+  </div>`;
 
   // ── NOT LISTED ──
   if (stats.itemsNotListed > 0) {
@@ -430,18 +466,48 @@ export function clBulkRelistExpired() {
 }
 
 export function clAddTemplate() {
-  // Simple prompt-based template creation (could be a modal in future)
-  const name = prompt('Template name:');
-  if (!name) return;
-  const category = prompt('Category (or "All"):', 'All');
-  const titleFormula = prompt('Title formula (use {name}, {condition}, etc.):', '{name} - {condition}');
-  if (!titleFormula) return;
-  const descTemplate = prompt('Description template:', '{name}\nCondition: {condition}\n{notes}');
-  import('../features/listing-templates.js').then(mod => {
-    mod.addTemplate({ name, category, titleFormula, descriptionTemplate: descTemplate || '' });
-    toast('Template created ✓');
-    renderCrosslistDashboard();
-  });
+  // Create a modal form for template creation
+  const modalId = 'clTemplateModal-' + Date.now();
+  const html = `<div id="${modalId}" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999" onclick="if(event.target.id==='${modalId}') document.getElementById('${modalId}').remove()">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto" onclick="event.stopPropagation()">
+      <h3 style="margin:0 0 16px 0;font-size:16px;color:var(--text)">New Listing Template</h3>
+      <div class="form-grid" style="gap:12px">
+        <input id="clTplName" type="text" placeholder="Template name (e.g., 'Vintage Clothing')" class="fgrp" style="grid-column:1/-1">
+        <select id="clTplCat" class="fgrp" style="grid-column:1/-1">
+          <option value="">All Categories</option>
+          ${[...new Set(inv.filter(i=>i.category).map(i=>i.category))].sort().map(c => `<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('')}
+        </select>
+        <textarea id="clTplTitle" placeholder="Title formula (use {name}, {condition}, {category}, etc.)" class="fgrp" style="grid-column:1/-1;min-height:60px;font-family:monospace;font-size:12px">{name} - {condition}</textarea>
+        <textarea id="clTplDesc" placeholder="Description template" class="fgrp" style="grid-column:1/-1;min-height:120px;font-family:monospace;font-size:12px">{name}
+Condition: {condition}
+Category: {category}
+{notes}</textarea>
+        <div style="grid-column:1/-1;display:flex;gap:8px">
+          <button class="btn-secondary" style="flex:1;height:32px" onclick="document.getElementById('${modalId}').remove()">Cancel</button>
+          <button class="btn-primary" style="flex:1;height:32px" onclick="clSaveTemplate('${modalId}')">Create Template</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+  document.getElementById('clTplName').focus();
+}
+
+export async function clSaveTemplate(modalId) {
+  const name = document.getElementById('clTplName')?.value?.trim();
+  const category = document.getElementById('clTplCat')?.value?.trim() || '';
+  const titleFormula = document.getElementById('clTplTitle')?.value?.trim();
+  const descTemplate = document.getElementById('clTplDesc')?.value?.trim() || '';
+
+  if (!name) { toast('Enter a template name', true); return; }
+  if (!titleFormula) { toast('Enter a title formula', true); return; }
+
+  document.getElementById(modalId)?.remove();
+
+  const mod = await import('../features/listing-templates.js');
+  mod.addTemplate({ name, category, titleFormula, descriptionTemplate: descTemplate });
+  toast('Template created ✓');
+  renderCrosslistDashboard();
 }
 
 export function clDeleteTemplate(id) {
@@ -544,6 +610,35 @@ export async function clRenewEtsyListing(itemId) {
     refresh();
     renderCrosslistDashboard();
   }
+}
+
+// ── AUTO-RELIST HANDLERS ──────────────────────────────────────────────────
+
+export function clToggleAutoRelist(enabled) {
+  if (enabled) enableAutoRelist();
+  else disableAutoRelist();
+  renderCrosslistDashboard();
+}
+
+export function clRunAutoRelist() {
+  const count = runAutoRelist();
+  if (count === 0) toast('No expired renewable listings to relist');
+  renderCrosslistDashboard();
+}
+
+export function clBulkPrice() {
+  const category = document.getElementById('clBulkCat')?.value || '';
+  const platform = document.getElementById('clBulkPlat')?.value || '';
+  const adjustType = document.getElementById('clBulkType')?.value || 'percent';
+  const adjustValue = parseFloat(document.getElementById('clBulkVal')?.value) || 0;
+  const minDaysListed = parseInt(document.getElementById('clBulkMinDays')?.value) || 0;
+
+  if (!adjustValue) { toast('Enter a price adjustment value', true); return; }
+  const desc = adjustType === 'percent' ? `${adjustValue > 0 ? '+' : ''}${adjustValue}%` : `${adjustValue > 0 ? '+' : ''}$${adjustValue}`;
+  if (!confirm(`Apply ${desc} to matching items?`)) return;
+
+  bulkPriceAdjust({ category, platform, adjustType, adjustValue, minDaysListed });
+  renderCrosslistDashboard();
 }
 
 // ── eBay INTEGRATION PANEL ───────────────────────────────────────────────

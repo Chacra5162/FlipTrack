@@ -156,7 +156,9 @@ export function renderSourcingView() {
             <textarea id="haul_notes" placeholder="Add notes..." rows="2"
                       style="padding:8px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;resize:vertical"></textarea>
           </div>
-          <button class="btn-primary" onclick="addHaul()" style="padding:10px;font-weight:700;font-family:'Syne',sans-serif">Log Haul</button>
+          <input id="haul_receipt" type="file" accept="image/*" capture="environment" class="fgrp" style="grid-column:1/-1;padding:8px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:13px">
+          <div style="font-size:10px;color:var(--muted);grid-column:1/-1">Snap or upload receipt photo</div>
+          <button class="btn-primary" onclick="addHaul()" style="padding:10px;font-weight:700;font-family:'Syne',sans-serif;grid-column:1/-1">Log Haul</button>
         </div>
       </div>
 
@@ -195,9 +197,12 @@ export function renderSourcingView() {
                       <div style="font-weight:700;color:var(--text)">${escHtml(haul.location)}</div>
                       <div style="color:var(--muted);font-size:11px">${ds(haul.date)} · ${haulItems.length} item${haulItems.length !== 1 ? 's' : ''}</div>
                     </div>
-                    <div style="text-align:right">
-                      <div style="font-weight:700;color:var(--accent2)">${fmt(haul.totalSpent)}</div>
-                      <div style="color:${roiColor};font-size:11px;font-weight:700">${pct(haulROI.roi)}</div>
+                    <div style="text-align:right;display:flex;align-items:center;gap:8px">
+                      ${haul.receiptImage ? `<img src="${haul.receiptImage}" style="width:40px;height:40px;object-fit:cover;border-radius:2px;cursor:pointer" onclick="event.stopPropagation();window.open(this.src)" alt="Receipt">` : ''}
+                      <div>
+                        <div style="font-weight:700;color:var(--accent2)">${fmt(haul.totalSpent)}</div>
+                        <div style="color:${roiColor};font-size:11px;font-weight:700">${pct(haulROI.roi)}</div>
+                      </div>
                     </div>
                   </div>
                   ${isExpanded ? `
@@ -232,6 +237,82 @@ export function renderSourcingView() {
           </div>`}
         </div>
       </div>
+
+      <!-- HAUL ANALYTICS -->
+      ${_hauls.length > 0 ? (() => {
+        const totalTrips = filtered.length;
+        const totalHaulSpent = filtered.reduce((s, h) => s + (h.totalSpent || 0), 0);
+        const avgPerTrip = totalTrips > 0 ? totalHaulSpent / totalTrips : 0;
+        const totalMileage = filtered.reduce((s, h) => s + (h.mileage || 0), 0);
+
+        const sourceROI = {};
+        for (const haul of _hauls) {
+          const loc = haul.location || 'Unknown';
+          if (!sourceROI[loc]) sourceROI[loc] = { spent: 0, revenue: 0, trips: 0 };
+          sourceROI[loc].spent += haul.totalSpent || 0;
+          sourceROI[loc].trips++;
+          for (const itemId of (haul.itemIds || [])) {
+            const itemSales = sales.filter(s => s.itemId === itemId);
+            sourceROI[loc].revenue += itemSales.reduce((t, s) => t + (s.price || 0), 0);
+          }
+        }
+        const topSources = Object.entries(sourceROI)
+          .map(([loc, d]) => ({ loc, ...d, roi: d.spent > 0 ? (d.revenue - d.spent) / d.spent : 0 }))
+          .filter(s => s.trips >= 1)
+          .sort((a, b) => b.roi - a.roi)
+          .slice(0, 5);
+
+        return `
+          <div class="panel">
+            <div class="panel-header">
+              <h3 class="panel-title">Haul Performance Analytics</h3>
+            </div>
+            <div style="padding:12px;display:grid;gap:12px">
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px">
+                <div style="padding:10px;background:var(--surface);border-radius:4px;border:1px solid var(--border)">
+                  <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Total Trips</div>
+                  <div style="font-size:18px;font-weight:700;color:var(--accent);font-family:'Syne',sans-serif">${totalTrips}</div>
+                </div>
+                <div style="padding:10px;background:var(--surface);border-radius:4px;border:1px solid var(--border)">
+                  <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Total Invested</div>
+                  <div style="font-size:18px;font-weight:700;color:var(--accent2);font-family:'Syne',sans-serif">${fmt(totalHaulSpent)}</div>
+                </div>
+                <div style="padding:10px;background:var(--surface);border-radius:4px;border:1px solid var(--border)">
+                  <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Avg Per Trip</div>
+                  <div style="font-size:18px;font-weight:700;color:var(--accent3);font-family:'Syne',sans-serif">${fmt(avgPerTrip)}</div>
+                </div>
+                <div style="padding:10px;background:var(--surface);border-radius:4px;border:1px solid var(--border)">
+                  <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Total Mileage</div>
+                  <div style="font-size:18px;font-weight:700;color:var(--good);font-family:'Syne',sans-serif">${totalMileage.toFixed(1)} mi</div>
+                </div>
+              </div>
+              ${topSources.length ? `
+                <div style="border-top:1px solid var(--border);padding-top:12px">
+                  <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px">Best Sources by ROI</div>
+                  <div style="display:flex;flex-direction:column;gap:6px">
+                    ${topSources.map((src, idx) => {
+                      const roiColor = src.roi >= 0.3 ? 'var(--good)' : src.roi >= 0.1 ? 'var(--accent)' : 'var(--warn)';
+                      return `
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:rgba(var(--surface-rgb),0.5);border-radius:3px;font-size:11px;font-family:'DM Mono',monospace">
+                          <div>
+                            <span style="margin-right:6px">${['🥇', '🥈', '🥉', '4️⃣', '5️⃣'][idx]}</span>
+                            <strong>${escHtml(src.loc)}</strong>
+                            <span style="color:var(--muted);font-size:10px"> (${src.trips} trip${src.trips !== 1 ? 's' : ''})</span>
+                          </div>
+                          <div style="text-align:right">
+                            <div style="color:${roiColor};font-weight:700">${pct(src.roi)}</div>
+                            <div style="color:var(--muted);font-size:10px">${fmt(src.spent)} invested</div>
+                          </div>
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      })() : ''}
     </div>
   `;
 
@@ -267,6 +348,17 @@ export async function addHaul() {
   const totalSpent = parseFloat(spentStr);
   const mileage = mileageStr ? parseFloat(mileageStr) : 0;
 
+  // Handle receipt image
+  const receiptFile = document.getElementById('haul_receipt')?.files?.[0];
+  let receiptData = null;
+  if (receiptFile) {
+    receiptData = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.readAsDataURL(receiptFile);
+    });
+  }
+
   const newHaul = {
     id: uid(),
     date,
@@ -275,7 +367,7 @@ export async function addHaul() {
     itemIds: [],
     notes: notes || '',
     mileage: mileage || 0,
-    receiptImage: null
+    receiptImage: receiptData
   };
 
   _hauls.push(newHaul);
@@ -287,6 +379,7 @@ export async function addHaul() {
   document.getElementById('haul_spent').value = '';
   document.getElementById('haul_mileage').value = '';
   document.getElementById('haul_notes').value = '';
+  document.getElementById('haul_receipt').value = '';
 
   renderSourcingView();
 }
