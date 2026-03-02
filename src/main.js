@@ -745,16 +745,18 @@ function setFont(font, doSave = true) {
 // INIT
 // ══════════════════════════════════════════════════════════════════════════════
 
-// Restore saved preferences
-const savedTheme = localStorage.getItem('ft_theme');
-if (savedTheme === 'light') document.documentElement.setAttribute('data-theme', 'light');
-updateThemeLabels();
+// Restore saved preferences (try/catch for private browsing where localStorage may throw)
+try {
+  const savedTheme = localStorage.getItem('ft_theme');
+  if (savedTheme === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  updateThemeLabels();
 
-const savedFs = localStorage.getItem('ft_fs');
-if (savedFs) applyFontSize(savedFs, false);
+  const savedFs = localStorage.getItem('ft_fs');
+  if (savedFs) applyFontSize(savedFs, false);
 
-const savedFont = localStorage.getItem('ft_font');
-if (savedFont) setFont(savedFont, false);
+  const savedFont = localStorage.getItem('ft_font');
+  if (savedFont) setFont(savedFont, false);
+} catch (_) { /* localStorage may not be available in private browsing */ }
 
 // Set current date
 document.getElementById('currentDate').textContent =
@@ -795,12 +797,14 @@ setTimeout(_killSplash, 3000);
   _killSplash();
 
   // First-run onboarding
-  if (!localStorage.getItem('ft_welcomed')) {
-    const wOv = document.getElementById('welcomeOv');
-    if (wOv) wOv.style.display = '';
-  }
+  try {
+    if (!localStorage.getItem('ft_welcomed')) {
+      const wOv = document.getElementById('welcomeOv');
+      if (wOv) wOv.style.display = '';
+    }
+  } catch (_) {}
   window.dismissWelcome = function () {
-    localStorage.setItem('ft_welcomed', '1');
+    try { localStorage.setItem('ft_welcomed', '1'); } catch (_) {}
     const wOv = document.getElementById('welcomeOv');
     if (wOv) { wOv.style.opacity = '0'; setTimeout(() => wOv.remove(), 300); }
   };
@@ -818,30 +822,31 @@ setTimeout(_killSplash, 3000);
   initPlatPickers();
 
   // Boot auth (connects Supabase, starts realtime) — MUST await to prevent race conditions
-  await initAuth();
+  try { await initAuth(); } catch (e) { console.warn('FlipTrack: auth init error:', e.message); }
 
   // Set up offline mutation queue auto-replay
-  initOfflineQueue();
+  try { initOfflineQueue(); } catch (e) { console.warn('FlipTrack: offline queue init error:', e.message); }
 
   // Initialize crosslisting
-  await initTemplates();
-  initListingDates();
-  checkExpiredListings();
+  try { await initTemplates(); } catch (e) { console.warn('FlipTrack: templates init error:', e.message); }
+  try { initListingDates(); checkExpiredListings(); } catch (e) { console.warn('FlipTrack: listing dates error:', e.message); }
 
   // Initialize new feature modules
-  await Promise.all([
-    initHauls(),
-    initMileageLog(),
-    initRepricingRules(),
-    initBuyers(),
-    initOffers(),
-    initPackingSlipSettings(),
-    initEBaySync(),
-    initEtsySync(),
-    initPhotoSettings(),
-    initShipLabels(),
-  ]);
-  initShippingModals();
+  try {
+    await Promise.all([
+      initHauls(),
+      initMileageLog(),
+      initRepricingRules(),
+      initBuyers(),
+      initOffers(),
+      initPackingSlipSettings(),
+      initEBaySync(),
+      initEtsySync(),
+      initPhotoSettings(),
+      initShipLabels(),
+    ]);
+  } catch (e) { console.warn('FlipTrack: feature module init error:', e.message); }
+  try { initShippingModals(); } catch (e) { console.warn('FlipTrack: shipping modals error:', e.message); }
 
   // Demo data trigger (triple-tap logo)
   initDemoTrigger();

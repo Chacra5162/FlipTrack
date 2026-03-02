@@ -500,6 +500,59 @@
 }
 
 /* ============================================================================
+   CROSSLIST VIEW - MOBILE RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 820px) {
+  /* Stats strip: scrollable horizontal on mobile */
+  .cl-stats-strip {
+    display: flex !important;
+    overflow-x: auto;
+    gap: 8px;
+    padding: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .cl-stats-strip > div {
+    min-width: 100px;
+    flex-shrink: 0;
+  }
+
+  /* eBay/Etsy panels: stack vertically */
+  .cl-platform-panel {
+    flex-direction: column !important;
+    gap: 8px;
+  }
+  .cl-platform-panel > div {
+    width: 100% !important;
+  }
+
+  /* Tab buttons: full width */
+  .cl-tab-bar {
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Bulk pricing form: stack controls */
+  .cl-bulk-form select,
+  .cl-bulk-form input {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* Listing matrix: horizontal scroll */
+  .cl-matrix-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Template cards: single column */
+  .cl-templates-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ============================================================================
    REDUCED MOTION & ACCESSIBILITY
    ============================================================================ */
 
