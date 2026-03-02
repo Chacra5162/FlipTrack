@@ -16,6 +16,39 @@
   --good: #57ff9a;
   --fg: #e8e8f0;
   --fs: 100;
+  /* platform tag colors */
+  --plt-depop: #ff4757;
+  --plt-poshmark: #e63950;
+  --plt-mercari: #3cb371;
+  --plt-stockx: #00bcff;
+  --plt-vinted: #09b66d;
+  --plt-craigslist: #6495ed;
+  --plt-offerup: #50c878;
+  --plt-whatnot: #9b59b6;
+  --plt-tiktok: #ff0050;
+  --plt-shopify: #95bf47;
+  --plt-swappa: #00aeef;
+  --plt-decluttr: #ff8c00;
+  --plt-realreal: #b4b4b4;
+  --plt-vestiaire: #d4af37;
+  --plt-reverb: #0096ff;
+  --plt-discogs: #ffa500;
+  --plt-instagram: #e4405f;
+  --plt-walmart: #0071ce;
+  --plt-newegg: #ff5a00;
+  --plt-bonanza: #ffc800;
+  --plt-chairish: #8b5a2b;
+  --plt-1stdibs: #b4946f;
+  --plt-nextdoor: #00ac4f;
+  --plt-tradesy: #ff69b4;
+  /* z-index scale */
+  --z-toast: 999;
+  --z-lightbox: 5000;
+  --z-modal-overlay: 5998;
+  --z-modal: 6000;
+  --z-popover: 7000;
+  --z-tour: 8000;
+  --z-splash: 9000;
 }
 
 html { font-size: calc(var(--fs) * 0.01rem); }
@@ -101,6 +134,31 @@ body.font-dyslexic button {
   --warn: #c89500;
   --good: #1a9955;
   --fg: #1a1a2e;
+  /* platform tag colors — darker for light backgrounds */
+  --plt-depop: #cc2836;
+  --plt-poshmark: #b82d40;
+  --plt-mercari: #2d8a57;
+  --plt-stockx: #0090cc;
+  --plt-vinted: #078f56;
+  --plt-craigslist: #4a7abf;
+  --plt-offerup: #3a9a5a;
+  --plt-whatnot: #7a4496;
+  --plt-tiktok: #cc0040;
+  --plt-shopify: #6e8c35;
+  --plt-swappa: #008abf;
+  --plt-decluttr: #cc7000;
+  --plt-realreal: #787878;
+  --plt-vestiaire: #a88a2b;
+  --plt-reverb: #0078cc;
+  --plt-discogs: #cc8500;
+  --plt-instagram: #b5334c;
+  --plt-walmart: #005a9e;
+  --plt-newegg: #cc4800;
+  --plt-bonanza: #cc9f00;
+  --plt-chairish: #6e4822;
+  --plt-1stdibs: #8a7254;
+  --plt-nextdoor: #008a3f;
+  --plt-tradesy: #cc5490;
 }
 [data-theme="light"] body::before { background-image: none; }
 [data-theme="light"] .stat-card::after { opacity: 0.7; }

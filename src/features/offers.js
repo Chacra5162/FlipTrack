@@ -25,7 +25,7 @@ export async function initOffers() {
 // ── SAVE ──────────────────────────────────────────────────────────────────────
 
 function _saveOffers() {
-  setMeta('offers', JSON.stringify(_offers)).catch(() => {});
+  setMeta('offers', JSON.stringify(_offers)).catch(e => console.warn('FlipTrack: offers save failed:', e.message));
 }
 
 // ── CRUD ──────────────────────────────────────────────────────────────────────

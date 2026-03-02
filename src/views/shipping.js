@@ -38,7 +38,7 @@ async function _loadReturns() {
 }
 
 function _saveReturns() {
-  setMeta('returns', JSON.stringify(_returns)).catch(() => {});
+  setMeta('returns', JSON.stringify(_returns)).catch(e => console.warn('FlipTrack: returns save failed:', e.message));
 }
 
 // ── FILTERS ────────────────────────────────────────────────────────────────────

@@ -18,7 +18,7 @@ function updateOnlineStatus() {
     if (_pendingSync && _currentUser) {
       _pendingSync = false;
       toast('Back online — syncing…');
-      syncNow().catch(() => {});
+      syncNow().catch(e => console.warn('FlipTrack: reconnect sync failed:', e.message));
     }
   } else {
     banner.style.display = '';

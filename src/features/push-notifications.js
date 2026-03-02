@@ -55,7 +55,7 @@ function sendNotification(title, body, tag) {
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
       navigator.serviceWorker.ready.then(reg => {
         reg.showNotification(title, { body, tag });
-      }).catch(() => {});
+      }).catch(e => console.warn('FlipTrack: SW notification failed:', e.message));
     }
   }
 }

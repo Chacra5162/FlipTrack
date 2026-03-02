@@ -43,7 +43,7 @@ export async function initEtsyAuth(supabaseClient) {
     }
 
     // Verify with server (non-blocking)
-    checkEtsyStatus().catch(() => {});
+    checkEtsyStatus().catch(e => console.warn('FlipTrack: Etsy status check failed:', e.message));
   } catch (e) {
     console.warn('FlipTrack: Etsy auth init error:', e.message);
   }

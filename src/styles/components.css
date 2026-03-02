@@ -18,7 +18,7 @@
   position: fixed;
   top: 54px;
   right: 16px;
-  z-index: 9999;
+  z-index: var(--z-popover);
   background: var(--surface2);
   border: 1px solid var(--border);
   padding: 14px 18px 16px;
@@ -155,32 +155,32 @@ textarea { resize:vertical; min-height:70px; }
 .plt-amazon   { background:rgba(255,184,0,0.12);   color:var(--warn); }
 .plt-etsy     { background:rgba(123,97,255,0.15);  color:var(--accent3); }
 .plt-fb       { background:rgba(87,255,154,0.12);  color:var(--good); }
-.plt-depop    { background:rgba(255,71,87,0.13);   color:#ff4757; }
-.plt-poshmark { background:rgba(220,53,69,0.13);   color:#e63950; }
-.plt-mercari  { background:rgba(60,179,113,0.15);  color:#3cb371; }
+.plt-depop    { background:rgba(255,71,87,0.13);   color:var(--plt-depop); }
+.plt-poshmark { background:rgba(220,53,69,0.13);   color:var(--plt-poshmark); }
+.plt-mercari  { background:rgba(60,179,113,0.15);  color:var(--plt-mercari); }
 .plt-grailed  { background:rgba(87,200,255,0.12);  color:var(--accent); }
-.plt-stockx   { background:rgba(0,188,255,0.13);   color:#00bcff; }
-.plt-vinted   { background:rgba(9,182,109,0.15);   color:#09b66d; }
-.plt-craigslist { background:rgba(100,149,237,0.15); color:#6495ed; }
-.plt-offerup  { background:rgba(80,200,120,0.15);  color:#50c878; }
-.plt-whatnot  { background:rgba(155,89,182,0.15);  color:#9b59b6; }
-.plt-tiktok   { background:rgba(255,0,80,0.13);    color:#ff0050; }
-.plt-shopify  { background:rgba(149,191,71,0.15);  color:#95bf47; }
-.plt-swappa   { background:rgba(0,174,239,0.13);   color:#00aeef; }
-.plt-decluttr { background:rgba(255,140,0,0.13);   color:#ff8c00; }
+.plt-stockx   { background:rgba(0,188,255,0.13);   color:var(--plt-stockx); }
+.plt-vinted   { background:rgba(9,182,109,0.15);   color:var(--plt-vinted); }
+.plt-craigslist { background:rgba(100,149,237,0.15); color:var(--plt-craigslist); }
+.plt-offerup  { background:rgba(80,200,120,0.15);  color:var(--plt-offerup); }
+.plt-whatnot  { background:rgba(155,89,182,0.15);  color:var(--plt-whatnot); }
+.plt-tiktok   { background:rgba(255,0,80,0.13);    color:var(--plt-tiktok); }
+.plt-shopify  { background:rgba(149,191,71,0.15);  color:var(--plt-shopify); }
+.plt-swappa   { background:rgba(0,174,239,0.13);   color:var(--plt-swappa); }
+.plt-decluttr { background:rgba(255,140,0,0.13);   color:var(--plt-decluttr); }
 .plt-goat     { background:rgba(87,200,255,0.12);  color:var(--accent); }
-.plt-realreal { background:rgba(180,180,180,0.15); color:#b4b4b4; }
-.plt-vestiaire{ background:rgba(212,175,55,0.15);  color:#d4af37; }
-.plt-reverb   { background:rgba(0,150,255,0.13);   color:#0096ff; }
-.plt-discogs  { background:rgba(255,165,0,0.13);   color:#ffa500; }
-.plt-instagram{ background:rgba(228,64,95,0.13);   color:#e4405f; }
-.plt-walmart  { background:rgba(0,113,206,0.13);   color:#0071ce; }
-.plt-newegg   { background:rgba(255,90,0,0.13);    color:#ff5a00; }
-.plt-bonanza  { background:rgba(255,200,0,0.12);   color:#ffc800; }
-.plt-chairish { background:rgba(139,90,43,0.15);   color:#8b5a2b; }
-.plt-1stdibs  { background:rgba(180,148,111,0.15); color:#b4946f; }
-.plt-nextdoor { background:rgba(0,172,79,0.15);    color:#00ac4f; }
-.plt-tradesy  { background:rgba(255,105,180,0.13); color:#ff69b4; }
+.plt-realreal { background:rgba(180,180,180,0.15); color:var(--plt-realreal); }
+.plt-vestiaire{ background:rgba(212,175,55,0.15);  color:var(--plt-vestiaire); }
+.plt-reverb   { background:rgba(0,150,255,0.13);   color:var(--plt-reverb); }
+.plt-discogs  { background:rgba(255,165,0,0.13);   color:var(--plt-discogs); }
+.plt-instagram{ background:rgba(228,64,95,0.13);   color:var(--plt-instagram); }
+.plt-walmart  { background:rgba(0,113,206,0.13);   color:var(--plt-walmart); }
+.plt-newegg   { background:rgba(255,90,0,0.13);    color:var(--plt-newegg); }
+.plt-bonanza  { background:rgba(255,200,0,0.12);   color:var(--plt-bonanza); }
+.plt-chairish { background:rgba(139,90,43,0.15);   color:var(--plt-chairish); }
+.plt-1stdibs  { background:rgba(180,148,111,0.15); color:var(--plt-1stdibs); }
+.plt-nextdoor { background:rgba(0,172,79,0.15);    color:var(--plt-nextdoor); }
+.plt-tradesy  { background:rgba(255,105,180,0.13); color:var(--plt-tradesy); }
 .plt-other    { background:rgba(87,200,255,0.12);  color:var(--accent); }
 
 .plat-tag {
@@ -1388,8 +1388,8 @@ textarea { resize:vertical; min-height:70px; }
 .ship-badge.pending { background: rgba(255,184,0,0.12); color: var(--warn); }
 .ship-badge.shipped { background: rgba(87,255,154,0.12); color: var(--good); }
 .ship-badge.delivered { background: rgba(87,200,255,0.12); color: var(--accent); }
-.ship-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9998; display: none; }
-.ship-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: var(--surface2); border: 1px solid var(--border); padding: 20px 24px; z-index: 9999; max-width: 420px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.5); display: none; }
+.ship-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: var(--z-modal-overlay); display: none; }
+.ship-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: var(--surface2); border: 1px solid var(--border); padding: 20px 24px; z-index: var(--z-modal); max-width: 420px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.5); display: none; }
 .ship-modal .form-grid { gap: 10px; }
 .ship-modal-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; margin-bottom: 14px; }
 
@@ -1408,8 +1408,8 @@ textarea { resize:vertical; min-height:70px; }
 .haul-item-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; border-bottom: 1px solid rgba(255,255,255,0.03); }
 .src-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
 .src-stat { background: var(--surface2); border: 1px solid var(--border); padding: 12px; text-align: center; }
-.link-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9998; display: none; }
-.link-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: var(--surface2); border: 1px solid var(--border); padding: 20px 24px; z-index: 9999; max-width: 500px; width: 90%; max-height: 70vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.5); display: none; }
+.link-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: var(--z-modal-overlay); display: none; }
+.link-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: var(--surface2); border: 1px solid var(--border); padding: 20px 24px; z-index: var(--z-modal); max-width: 500px; width: 90%; max-height: 70vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.5); display: none; }
 
 /* ══════════════════════════════════════════════════════════════════════════
    PHASE 4: TAX

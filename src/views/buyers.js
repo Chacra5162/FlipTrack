@@ -47,7 +47,7 @@ export async function initBuyers() {
 // ── GET / SET ─────────────────────────────────────────────────────────────────
 
 function _saveBuyers() {
-  setMeta('buyers', JSON.stringify(_buyers)).catch(() => {});
+  setMeta('buyers', JSON.stringify(_buyers)).catch(e => console.warn('FlipTrack: buyers save failed:', e.message));
 }
 
 function _getBuyer(id) {

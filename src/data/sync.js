@@ -107,7 +107,7 @@ export async function pushToCloud() {
     }
 
     // ── Record last sync timestamp ──
-    await setMeta('lastSyncPush', new Date().toISOString()).catch(() => {});
+    await setMeta('lastSyncPush', new Date().toISOString()).catch(e => console.warn('FlipTrack: sync push timestamp save failed:', e.message));
     clearDirtyTracking();
   } catch (e) {
     // Network error during push — queue everything for retry
@@ -258,7 +258,7 @@ export async function pullFromCloud() {
   }
 
   // Record pull timestamp
-  await setMeta('lastSyncPull', new Date().toISOString()).catch(() => {});
+  await setMeta('lastSyncPull', new Date().toISOString()).catch(e => console.warn('FlipTrack: sync pull timestamp save failed:', e.message));
 
   // Persist to IDB + localStorage
   save();

@@ -409,7 +409,7 @@
   position: fixed;
   top: 54px;
   right: 16px;
-  z-index: 9999;
+  z-index: var(--z-popover);
   background: var(--surface2);
   border: 1px solid var(--border);
   padding: 14px 18px 16px;

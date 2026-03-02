@@ -219,7 +219,7 @@ export const save = () => {
 function _schedulePersist() {
   clearTimeout(_saveDebounce);
   _saveDebounce = setTimeout(() => {
-    _persistPromise = _persistPromise.then(() => _persistToIDB()).catch(() => {});
+    _persistPromise = _persistPromise.then(() => _persistToIDB()).catch(e => console.warn('FlipTrack: IDB persist chain error:', e.message));
   }, 200);
 }
 
@@ -319,7 +319,7 @@ export function saveTrash() {
   const cutoff = Date.now() - 7 * 86400000;
   _trash = _trash.filter(t => t.deletedAt > cutoff).slice(-30);
   // Persist trash to IDB and localStorage
-  if (_idbReady) putAll('trash', _trash).catch(() => {});
+  if (_idbReady) putAll('trash', _trash).catch(e => console.warn('FlipTrack: trash IDB save failed:', e.message));
   try { localStorage.setItem('ft_trash', JSON.stringify(_trash)); } catch {}
 }
 
@@ -396,12 +396,12 @@ export function performUndo() {
 
 // ── SUPPLIES ───────────────────────────────────────────────────────────────
 export function saveSupplies() {
-  if (_idbReady) putAll('supplies', supplies).catch(() => {});
+  if (_idbReady) putAll('supplies', supplies).catch(e => console.warn('FlipTrack: supplies IDB save failed:', e.message));
   localStorage.setItem('ft_supplies', JSON.stringify(supplies));
 }
 
 export function saveLocalSupplies() {
-  if (_idbReady) putAll('supplies', supplies).catch(() => {});
+  if (_idbReady) putAll('supplies', supplies).catch(e => console.warn('FlipTrack: supplies IDB local save failed:', e.message));
   localStorage.setItem('ft_supplies', JSON.stringify(supplies));
 }
 

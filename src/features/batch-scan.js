@@ -72,7 +72,7 @@ export function _runBatchDetector(video) {
             batchAddScanned(val);
           }
         }
-      }).catch(() => {});
+      }).catch(e => console.warn('FlipTrack: barcode detect failed:', e.message));
     }
     _batchRaf = requestAnimationFrame(tick);
   }
