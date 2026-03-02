@@ -138,7 +138,8 @@ import { initTemplates } from './features/listing-templates.js';
 import {
   renderCrosslistDashboard, clSwitchTab, clSetSearch, clSetPlatFilter, clSetStatusFilter,
   clRelistItem, clDelistItem, clCycleStatus, clOpenLink, clCopyListing,
-  clBulkRelistExpired, clAddTemplate, clDeleteTemplate,
+  clBulkRelistExpired, clAddTemplate, clDeleteTemplate, clSaveTemplate,
+  clToggleAutoRelist, clRunAutoRelist, clBulkPrice,
   clEBayConnect, clEBayDisconnect, clEBaySync, clPushToEBay, clPublishOnEBay, clEndEBayListing,
   clEtsyConnect, clEtsyDisconnect, clEtsySync, clPushToEtsy, clDeactivateEtsyListing, clRenewEtsyListing
 } from './views/crosslist-dashboard.js';
@@ -191,13 +192,14 @@ import {
 import { logPriceChange, logSalePrice, renderPriceHistoryChart, renderPriceHistoryTable } from './features/price-history.js';
 import {
   initRepricingRules, renderRepricingSuggestions, renderRepricingRulesManager,
-  rpAddRule, rpDeleteRule, rpToggleRule, rpApplyAll, rpApplySingle, evaluateRules
+  rpAddRule, rpDeleteRule, rpToggleRule, rpApplyAll, rpApplySingle, evaluateRules,
+  rpAddRuleFromForm
 } from './features/repricing-rules.js';
 
 // ── Phase 6: Customer & Offer Management ─────────────────────────────────────
 import {
   renderBuyersView, initBuyers, buyerAdd, buyerDelete, buyerExpand,
-  buyerSetSearch, buyerSetSort, buyerLinkSale
+  buyerSetSearch, buyerSetSort, buyerLinkSale, buyerAddComm
 } from './views/buyers.js';
 import {
   initOffers, renderOffersPanel, offerAdd, offerAddConfirm,
