@@ -68,6 +68,45 @@ export function loadSmokeSlider(pfx, val) {
   updateSmokeSlider(pfx);
 }
 
+// ── COVER TYPE 3-POSITION SLIDER (Soft Cover / Unknown / Hard Cover) ────────
+export function updateCoverSlider(pfx) {
+  const slider = document.getElementById(pfx + '_cover');
+  if (!slider) return;
+  const v = parseInt(slider.value, 10);
+  const lblSoft = document.getElementById(pfx + '_cover_lbl_soft');
+  const lblHard = document.getElementById(pfx + '_cover_lbl_hard');
+
+  slider.classList.remove('pos-soft', 'pos-hard');
+  if (lblSoft) lblSoft.classList.remove('on-soft');
+  if (lblHard) lblHard.classList.remove('on-hard');
+
+  if (v === 0) {
+    slider.classList.add('pos-soft');
+    if (lblSoft) lblSoft.classList.add('on-soft');
+  } else if (v === 2) {
+    slider.classList.add('pos-hard');
+    if (lblHard) lblHard.classList.add('on-hard');
+  }
+}
+
+export function getCoverValue(pfx) {
+  const slider = document.getElementById(pfx + '_cover');
+  if (!slider) return null;
+  const v = parseInt(slider.value, 10);
+  if (v === 0) return 'softcover';
+  if (v === 2) return 'hardcover';
+  return null; // neutral = unknown
+}
+
+export function loadCoverSlider(pfx, val) {
+  const slider = document.getElementById(pfx + '_cover');
+  if (!slider) return;
+  if (val === 'softcover') slider.value = '0';
+  else if (val === 'hardcover') slider.value = '2';
+  else slider.value = '1';
+  updateCoverSlider(pfx);
+}
+
 export function dupCurrent() {
   const item = inv.find(i => i.id === activeDrawId);
   if (!item) return;
@@ -157,7 +196,7 @@ export function closeAdd(){
   document.querySelectorAll('#f_cond_picker .cond-tag').forEach(b => b.classList.remove('active'));
   clearBookFields('f');
   swapConditionTags('f', false);
-  pendingAddImages=[];refreshImgSlots('f',[]);clearDimForm('f');buildPlatPicker('f_plat_picker',[]);prevProfit();loadSmokeSlider('f',null);
+  pendingAddImages=[];refreshImgSlots('f',[]);clearDimForm('f');buildPlatPicker('f_plat_picker',[]);prevProfit();loadSmokeSlider('f',null);loadCoverSlider('f',null);
 }
 
 export function toggleBulkFields(pfx) {
@@ -202,6 +241,7 @@ export function prefillFromLast() {
   if (plats.length) buildPlatPicker('f_plat_picker', plats);
   toggleBookFields('f');
   if (last.smoke) loadSmokeSlider('f', last.smoke);
+  if (last.coverType) loadCoverSlider('f', last.coverType);
 
   toast('Prefilled from: ' + last.name);
 }
@@ -271,7 +311,8 @@ export function addItem(){
   const newId = uid();
   const imagesToUpload = pendingAddImages.slice();
   const smokeVal = getSmokeValue('f');
-  inv.push({id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:(document.getElementById('f_subcat_txt').value||'').trim(),subtype:document.getElementById('f_subtype').value||'',platform,platforms:selPlats,cost:isNaN(cost)?0:cost,price,qty,bulk:isBulk,fees:isNaN(fees)?0:fees,ship:isNaN(ship)?0:ship,lowAlert,notes:document.getElementById('f_notes').value.trim(),source:document.getElementById('f_source').value.trim(),condition:document.getElementById('f_condition').value.trim(),smoke:smokeVal,images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),...(isBookCat(cat) ? getBookFields('f') : {}),added:new Date().toISOString()});
+  const coverVal = getCoverValue('f');
+  inv.push({id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:(document.getElementById('f_subcat_txt').value||'').trim(),subtype:document.getElementById('f_subtype').value||'',platform,platforms:selPlats,cost:isNaN(cost)?0:cost,price,qty,bulk:isBulk,fees:isNaN(fees)?0:fees,ship:isNaN(ship)?0:ship,lowAlert,notes:document.getElementById('f_notes').value.trim(),source:document.getElementById('f_source').value.trim(),condition:document.getElementById('f_condition').value.trim(),smoke:smokeVal,coverType:isBookCat(cat)?coverVal:null,images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),...(isBookCat(cat) ? getBookFields('f') : {}),added:new Date().toISOString()});
   markDirty('inv', newId);
   save(); closeAdd(); refresh(); _sfx.create(); toast('Item added ✓');
 

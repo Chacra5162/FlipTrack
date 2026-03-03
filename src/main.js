@@ -103,7 +103,7 @@ import {
   dupCurrent, dupItem, addFormTab,
   openAddModal, closeAdd,
   toggleBulkFields, prevProfit, prefillFromLast,
-  addItem, updateSmokeSlider
+  addItem, updateSmokeSlider, updateCoverSlider
 } from './modals/add-item.js';
 import {
   isBookCat, toggleBookFields, swapConditionTags,
@@ -374,7 +374,7 @@ Object.assign(window, {
 Object.assign(window, {
   openAddModal, closeAdd, addItem,
   dupCurrent, dupItem, addFormTab,
-  prevProfit, prefillFromLast, updateSmokeSlider
+  prevProfit, prefillFromLast, updateSmokeSlider, updateCoverSlider
 });
 
 // Sold / Sales

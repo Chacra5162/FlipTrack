@@ -26,7 +26,7 @@ import { getPlatforms, buildPlatPicker, getSelectedPlats } from '../features/pla
 import { PLATFORM_FEES, calcPlatformFee } from '../config/platforms.js';
 import { loadDimsToForm, getDimsFromForm, suggestPackaging } from '../features/dimensions.js';
 import { renderDrawerBarcode } from '../features/barcodes.js';
-import { toggleBulkFields, getSmokeValue, loadSmokeSlider } from './add-item.js';
+import { toggleBulkFields, getSmokeValue, loadSmokeSlider, getCoverValue, loadCoverSlider } from './add-item.js';
 
 export function populateSubcatSelect(selectId, category, currentValue) {
   const subs = SUBCATS[category] || [];
@@ -129,7 +129,10 @@ export function openDrawer(id) {
   populateSubtypeSelect('d_subtype', item.subcategory||'', item.subtype||'');
   // Book mode
   toggleBookFields('d');
-  if (isBookCat(item.category)) loadBookFields('d', item);
+  if (isBookCat(item.category)) {
+    loadBookFields('d', item);
+    loadCoverSlider('d', item.coverType || null);
+  }
   if (window.renderDrawerImg) window.renderDrawerImg(item.id);
   renderDrawerBarcode(item);
   loadDimsToForm('d', item);
@@ -313,7 +316,10 @@ export function saveDrawer(){
   item.condition=document.getElementById('d_condition').value.trim();
   item.notes   =document.getElementById('d_notes').value.trim();
   Object.assign(item, getDimsFromForm('d'));
-  if (isBookCat(item.category)) Object.assign(item, getBookFields('d'));
+  if (isBookCat(item.category)) {
+    Object.assign(item, getBookFields('d'));
+    item.coverType = getCoverValue('d');
+  }
   item.smoke = getSmokeValue('d');
   // Log price change if price was manually adjusted
   if (item.price !== oldPrice && item.price > 0) {
