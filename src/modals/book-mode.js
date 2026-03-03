@@ -2,6 +2,8 @@
 // Dependencies: Global state (inv), utilities (toast, fmt)
 // DOM elements, form helpers (toggleBookFields requires drawer.js)
 
+import { SUBCATS } from '../config/categories.js';
+
 export const BOOK_CONDITIONS = ['Like New', 'Very Good', 'Good', 'Acceptable', 'Poor'];
 export const STD_CONDITIONS  = ['NWT', 'NWOT', 'EUC', 'GUC', 'Fair', 'Poor', 'New/Sealed', 'Refurbished'];
 
@@ -44,6 +46,28 @@ export function updateRankDisplay(prefix) {
   else if (rank < 1000000) { color = 'var(--warn)';    label = 'Slow — may take months'; }
   else                     { color = 'var(--danger)';  label = 'Very slow — consider skipping'; }
   el.innerHTML = `<span class="rank-dot" style="background:${color}"></span><span class="rank-label">#${rank.toLocaleString()} — ${label}</span>`;
+}
+
+/** Open barcode scanner targeting the ISBN field, auto-lookup on scan */
+export async function scanISBN(prefix) {
+  const targetId = prefix + '_isbn';
+  const { openScanner } = await import('../features/scanner.js');
+  // Set up a MutationObserver + input listener to detect when scanner populates the field
+  const input = document.getElementById(targetId);
+  if (!input) return;
+  const handler = () => {
+    input.removeEventListener('input', handler);
+    // Small delay to let scanner close, then auto-lookup
+    setTimeout(() => {
+      if (input.value.replace(/[-\s]/g, '').length >= 10) {
+        lookupISBN(prefix);
+      }
+    }, 900);
+  };
+  input.addEventListener('input', handler);
+  // Clean up listener after 60s if no scan happens
+  setTimeout(() => input.removeEventListener('input', handler), 60000);
+  openScanner(targetId);
 }
 
 export async function lookupISBN(prefix) {

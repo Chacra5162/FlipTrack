@@ -945,6 +945,13 @@ textarea { resize:vertical; min-height:70px; }
 .book-fields .bf-grid .full { grid-column: 1 / -1; }
 .isbn-row { display: flex; gap: 6px; align-items: flex-end; }
 .isbn-row input { flex: 1; }
+.isbn-scan-btn {
+  background: var(--accent); color: #fff; border: none; padding: 8px 10px;
+  font-size: 14px; cursor: pointer; white-space: nowrap; line-height: 1;
+  transition: filter 0.15s;
+}
+.isbn-scan-btn:hover { filter: brightness(1.2); }
+.isbn-scan-btn:active { transform: scale(0.95); }
 .isbn-lookup-btn {
   background: var(--accent3); color: #fff; border: none; padding: 8px 12px;
   font-family: 'DM Mono', monospace; font-size: 10px; cursor: pointer;

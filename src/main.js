@@ -107,7 +107,7 @@ import {
 } from './modals/add-item.js';
 import {
   isBookCat, toggleBookFields, swapConditionTags,
-  updateRankDisplay, lookupISBN, calcFBA,
+  updateRankDisplay, lookupISBN, scanISBN, calcFBA,
   getBookFields, loadBookFields, clearBookFields
 } from './modals/book-mode.js';
 import {
@@ -427,7 +427,7 @@ Object.assign(window, {
 
 // Features: Book mode, Dimensions
 Object.assign(window, {
-  lookupISBN, calcFBA, updateRankDisplay, toggleBookFields,
+  lookupISBN, scanISBN, calcFBA, updateRankDisplay, toggleBookFields,
   setDimUnit, updateDimWeight, suggestPackaging,
   quickReprice
 });
