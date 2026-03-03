@@ -22,9 +22,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"></noscript>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
-  <script type="module" crossorigin src="./assets/index-DZJH950b.js"></script>
+  <script type="module" crossorigin src="./assets/index-BwF2l2iA.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/vendor-supabase-jY4wIOEF.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-CkgpLNDD.css">
+  <link rel="stylesheet" crossorigin href="./assets/index-DFPc8VrK.css">
 </head>
 <body>
 <!-- SPLASH / LOADING SCREEN — removed by main.js on init -->
@@ -610,6 +610,15 @@
         <div class="book-fields" id="d_book_fields">
           <div class="bf-header">📚 Book Details</div>
           <div class="bf-grid">
+            <!-- Cover Type slider -->
+            <div class="edit-grp full">
+              <div class="edit-lbl">Cover Type</div>
+              <div class="cover-slider-wrap">
+                <span class="cover-lbl cover-lbl-soft" id="d_cover_lbl_soft">Soft Cover</span>
+                <input type="range" id="d_cover" class="cover-slider" min="0" max="2" value="1" oninput="updateCoverSlider('d')">
+                <span class="cover-lbl cover-lbl-hard" id="d_cover_lbl_hard">Hard Cover</span>
+              </div>
+            </div>
             <div class="edit-grp full">
               <div class="edit-lbl">ISBN</div>
               <div class="isbn-row">
@@ -1036,6 +1045,15 @@
         <div class="book-fields" id="f_book_fields">
           <div class="bf-header">📚 Book Details</div>
           <div class="bf-grid">
+            <!-- Cover Type slider -->
+            <div class="fgrp full">
+              <label>Cover Type</label>
+              <div class="cover-slider-wrap">
+                <span class="cover-lbl cover-lbl-soft" id="f_cover_lbl_soft">Soft Cover</span>
+                <input type="range" id="f_cover" class="cover-slider" min="0" max="2" value="1" oninput="updateCoverSlider('f')">
+                <span class="cover-lbl cover-lbl-hard" id="f_cover_lbl_hard">Hard Cover</span>
+              </div>
+            </div>
             <div class="fgrp full">
               <label>ISBN</label>
               <div class="isbn-row">
