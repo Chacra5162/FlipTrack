@@ -43,23 +43,53 @@ export function populateSubcatSelect(selectId, category, currentValue) {
   }
 }
 
-export function populateSubtypeSelect(selectId, subcategory, currentValue) {
-  const types = SUBSUBCATS[subcategory] || [];
-  const sel = document.getElementById(selectId);
-  if (!sel) return;
-  const grpId = selectId === 'd_subtype' ? 'd_subtype_grp' : 'f_subtype_grp';
-  const lblId = selectId === 'd_subtype' ? 'd_subtype_lbl' : 'f_subtype_lbl';
-  const label = ['Men','Women','Children'].includes(subcategory) ? 'Clothing Type' : 'Type';
-  const lblEl = document.getElementById(lblId);
-  if (lblEl) lblEl.textContent = label;
-  const grp = document.getElementById(grpId);
-  if (types.length) {
-    sel.innerHTML = '<option value="">— None —</option>' + types.map(t=>`<option value="${t}" ${t===currentValue?'selected':''}>${t}</option>`).join('');
-    if (grp) grp.style.display = '';
-  } else {
-    sel.innerHTML = '<option value="">— None —</option>';
-    if (grp) grp.style.display = 'none';
+// ── Custom Type Persistence ──────────────────────────────────────────────────
+const CUSTOM_TYPES_KEY = 'ft_custom_types';
+
+function getCustomTypes() {
+  try { return JSON.parse(localStorage.getItem(CUSTOM_TYPES_KEY)) || {}; } catch { return {}; }
+}
+
+export function saveCustomType(subcategory, type) {
+  if (!subcategory || !type) return;
+  const predefined = SUBSUBCATS[subcategory] || [];
+  if (predefined.includes(type)) return; // already built-in
+  const custom = getCustomTypes();
+  if (!custom[subcategory]) custom[subcategory] = [];
+  if (custom[subcategory].includes(type)) return; // already saved
+  custom[subcategory].push(type);
+  localStorage.setItem(CUSTOM_TYPES_KEY, JSON.stringify(custom));
+}
+
+function getMergedTypes(subcategory) {
+  const predefined = SUBSUBCATS[subcategory] || [];
+  const custom = (getCustomTypes()[subcategory] || []);
+  // Also scan inventory for types used with this subcategory
+  const fromInv = [...new Set(inv.filter(i => (i.subcategory || '') === subcategory && i.subtype).map(i => i.subtype))];
+  // Merge and deduplicate, predefined first
+  const all = [...predefined];
+  for (const t of [...custom, ...fromInv]) {
+    if (!all.includes(t)) all.push(t);
   }
+  return all;
+}
+
+export function populateSubtypeSelect(prefix, subcategory, currentValue) {
+  const txtId = prefix + '_subtype_txt';
+  const dlId  = prefix + '_subtype_dl';
+  const lblId = prefix + '_subtype_lbl';
+  const txtEl = document.getElementById(txtId);
+  const dlEl  = document.getElementById(dlId);
+  const lblEl = document.getElementById(lblId);
+  if (!txtEl) return;
+  // Dynamic label
+  const label = ['Men','Women','Children'].includes(subcategory) ? 'Clothing Type' : 'Type';
+  if (lblEl) lblEl.textContent = label;
+  // Populate datalist with merged types
+  const types = getMergedTypes(subcategory);
+  if (dlEl) dlEl.innerHTML = types.map(t => `<option value="${t}">`).join('');
+  // Set current value
+  txtEl.value = currentValue || '';
 }
 
 export function syncDrawerSubcat() {
@@ -70,12 +100,12 @@ export function syncDrawerSubcat() {
   if (dl) dl.innerHTML = subs.map(s => `<option value="${s}">`).join('');
   // Keep the hidden select in sync for legacy data reads
   populateSubcatSelect('d_subcat', cat, document.getElementById('d_subcat_txt').value);
-  populateSubtypeSelect('d_subtype', document.getElementById('d_subcat').value, '');
+  populateSubtypeSelect('d', (document.getElementById('d_subcat_txt').value||'').trim(), '');
   toggleBookFields('d');
 }
 
 export function syncDrawerSubtype() {
-  populateSubtypeSelect('d_subtype', document.getElementById('d_subcat').value, '');
+  populateSubtypeSelect('d', (document.getElementById('d_subcat_txt').value||'').trim(), '');
 }
 
 export function syncAddSubcat() {
@@ -84,12 +114,12 @@ export function syncAddSubcat() {
   const dl = document.getElementById('f_subcat_dl');
   if (dl) dl.innerHTML = subs.map(s => `<option value="${s}">`).join('');
   populateSubcatSelect('f_subcat', cat, document.getElementById('f_subcat_txt').value);
-  populateSubtypeSelect('f_subtype', document.getElementById('f_subcat').value, '');
+  populateSubtypeSelect('f', (document.getElementById('f_subcat_txt').value||'').trim(), '');
   toggleBookFields('f');
 }
 
 export function syncAddSubtype() {
-  populateSubtypeSelect('f_subtype', document.getElementById('f_subcat').value, '');
+  populateSubtypeSelect('f', (document.getElementById('f_subcat_txt').value||'').trim(), '');
 }
 
 export function openDrawer(id) {
@@ -126,7 +156,7 @@ export function openDrawer(id) {
   loadCondTag('d', item.condition || '');
   loadSmokeSlider('d', item.smoke || null);
   populateSubcatSelect('d_subcat', item.category||'', item.subcategory||'');
-  populateSubtypeSelect('d_subtype', item.subcategory||'', item.subtype||'');
+  populateSubtypeSelect('d', item.subcategory||'', item.subtype||'');
   // Book mode
   toggleBookFields('d');
   if (isBookCat(item.category)) {
@@ -300,8 +330,9 @@ export function saveDrawer(){
   item.upc     =document.getElementById('d_upc').value.trim();
   item.category=normCat(document.getElementById('d_cat').value.trim());
   item.subcategory=(document.getElementById('d_subcat_txt').value||'').trim();
-  const _dSubtype = document.getElementById('d_subtype');
-  item.subtype = _dSubtype ? (_dSubtype.value||'') : (item.subtype||'');
+  const _dSubtypeTxt = document.getElementById('d_subtype_txt');
+  item.subtype = _dSubtypeTxt ? (_dSubtypeTxt.value||'').trim() : (item.subtype||'');
+  if (item.subcategory && item.subtype) saveCustomType(item.subcategory, item.subtype);
   item.platforms=getSelectedPlats('d_plat_picker');
   item.platform =(item.platforms[0]||'Other'); // keep legacy field for compat
   item.platformStatus = getListingStatusFromDrawer();

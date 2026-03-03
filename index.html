@@ -558,7 +558,7 @@
         <div class="edit-grp"><div class="edit-lbl">Category</div><input class="edit-inp" id="d_cat" type="text" placeholder="e.g. Clothing" oninput="syncDrawerSubcat()"></div>
         <div class="edit-grp"><div class="edit-lbl">Subcategory</div><input class="edit-inp" id="d_subcat_txt" type="text" placeholder="e.g. Sneakers, Men's…" list="d_subcat_dl"><datalist id="d_subcat_dl"></datalist></div>
         <select id="d_subcat" style="display:none"></select>
-        <div class="edit-grp" id="d_subtype_grp" style="display:none"><div class="edit-lbl" id="d_subtype_lbl">Type</div><select class="edit-inp" id="d_subtype"><option value="">— None —</option></select></div>
+        <div class="edit-grp" id="d_subtype_grp"><div class="edit-lbl" id="d_subtype_lbl">Type</div><input class="edit-inp" id="d_subtype_txt" type="text" placeholder="e.g. Shirts, Sci-Fi…" list="d_subtype_dl" oninput="syncDrawerSubtype()"><datalist id="d_subtype_dl"></datalist></div>
         <div class="edit-grp full">
           <div class="edit-lbl">Platforms <span style="color:var(--muted);font-weight:400;font-size:9px">— select all that apply</span></div>
           <div class="plat-picker" id="d_plat_picker"></div>
@@ -994,7 +994,7 @@
         </datalist>
         <div class="fgrp"><label>Subcategory</label><input type="text" id="f_subcat_txt" placeholder="e.g. Sneakers, Men's…" list="f_subcat_dl"><datalist id="f_subcat_dl"></datalist></div>
         <select id="f_subcat" style="display:none"></select>
-        <div class="fgrp" id="f_subtype_grp" style="display:none"><label id="f_subtype_lbl">Type</label><select id="f_subtype"><option value="">— None —</option></select></div>
+        <div class="fgrp" id="f_subtype_grp"><label id="f_subtype_lbl">Type</label><input type="text" id="f_subtype_txt" placeholder="e.g. Shirts, Sci-Fi…" list="f_subtype_dl" oninput="syncAddSubtype()"><datalist id="f_subtype_dl"></datalist></div>
         <div class="fgrp full">
           <label>Platforms * <span style="color:var(--muted);font-weight:400;font-size:10px">— select all that apply</span></label>
           <div class="plat-picker" id="f_plat_picker"></div>

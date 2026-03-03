@@ -93,7 +93,7 @@ import {
 // ── Modals ────────────────────────────────────────────────────────────────────
 import {
   openDrawer, closeDrawer, drawerTab, saveDrawer, delCurrent,
-  populateSubcatSelect, populateSubtypeSelect,
+  populateSubcatSelect, populateSubtypeSelect, saveCustomType,
   syncDrawerSubcat, syncDrawerSubtype,
   syncAddSubcat, syncAddSubtype,
   renderListingStatus, toggleListingStatus, getListingStatusFromDrawer,
@@ -367,7 +367,8 @@ Object.assign(window, {
 Object.assign(window, {
   openDrawer, closeDrawer, drawerTab, saveDrawer, delCurrent, delItem,
   syncDrawerSubcat, syncDrawerSubtype, syncAddSubcat, syncAddSubtype,
-  setCondTag, toggleBulkFields, toggleListingStatus, togglePlatChip
+  setCondTag, toggleBulkFields, toggleListingStatus, togglePlatChip,
+  _saveCustomType: saveCustomType
 });
 
 // Add item
