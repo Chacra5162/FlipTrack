@@ -390,16 +390,27 @@ function _isClothingCategory(item) {
 }
 
 function _getDepartment(item) {
-  // Infer eBay Department from subcategory or subtype
+  // Infer eBay Department from subcategory, subtype, or item name
   if (item.department) return item.department;
   const sub = (item.subcategory || '').toLowerCase();
   const typ = (item.subtype || '').toLowerCase();
+  const name = (item.name || '').toLowerCase();
+  // Check subcategory
   if (sub.includes('men') && !sub.includes('women')) return "Men's";
   if (sub.includes('women')) return "Women's";
   if (sub.includes('children') || sub.includes('kid') || sub.includes('boy') || sub.includes('girl')) return 'Kids';
+  // Check subtype
   if (typ.includes('men') && !typ.includes('women')) return "Men's";
   if (typ.includes('women')) return "Women's";
-  return null;
+  // Check item name as last resort
+  if (/\bmen'?s?\b/i.test(name) && !/\bwomen/i.test(name)) return "Men's";
+  if (/\bwomen'?s?\b/i.test(name)) return "Women's";
+  if (/\bboy'?s?\b/i.test(name)) return "Boys'";
+  if (/\bgirl'?s?\b/i.test(name)) return "Girls'";
+  if (/\bkids?\b|\bchild/i.test(name)) return 'Unisex Kids';
+  if (/\bunisex\b/i.test(name)) return 'Unisex Adults';
+  // Default — eBay requires this field for clothing
+  return 'Unisex Adults';
 }
 
 function _buildAspects(item) {
