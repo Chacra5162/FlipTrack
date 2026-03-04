@@ -52,7 +52,7 @@ export const PLATFORM_FEES = {
   'Vestiaire Collective':{ pct: 0.15,   flat: 0,    label: '15%' },
   'Reverb':              { pct: 0.05,   flat: 0.25, label: '5% + $0.25' },
   'Discogs':             { pct: 0.08,   flat: 0,    label: '8%' },
-  'Whatnot':             { pct: 0.089,  flat: 0,    label: '8.9%' },
+  'Whatnot':             { pct: 0.08,   flat: 0,    label: '8% + 2.9% processing + $0.30', processing: 0.029, processingFlat: 0.30 },
   'TikTok Shop':         { pct: 0.08,   flat: 0,    label: '8%' },
   'Shopify':             { pct: 0.029,  flat: 0.30, label: '2.9% + $0.30 processing' },
   'Walmart Marketplace': { pct: 0.15,   flat: 0,    label: '15% referral' },
@@ -65,6 +65,7 @@ export function calcPlatformFee(platform, salePrice) {
   if (!fee) return null;
   let total = (salePrice * fee.pct) + (fee.flat || 0);
   if (fee.processing) total += salePrice * fee.processing;
+  if (fee.processingFlat) total += fee.processingFlat;
   // Poshmark minimum
   if (platform === 'Poshmark' && salePrice < 15) total = 2.95;
   // Facebook minimum

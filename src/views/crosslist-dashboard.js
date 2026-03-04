@@ -59,7 +59,11 @@ let _etsyTagEditItem = null;
 let _clStatusFilter = 'all';
 let _wnExpandedShow = null; // which show is expanded in the Whatnot panel
 let _wnShowItemPicker = false; // whether item picker is open
-let _wnTab = 'shows'; // 'shows' | 'analytics' | 'builder'
+let _wnTab = 'shows'; // 'shows' | 'analytics' | 'builder' | 'calculator'
+let _wnCalcPrice = '';
+let _wnCalcShipping = '';
+let _wnCalcCost = '';
+let _wnCalcTax = '';
 let _wnBuilderSelected = new Set(); // selected item IDs in smart builder
 let _clTab = 'overview'; // 'overview', 'matrix', 'templates'
 
@@ -987,11 +991,13 @@ function _renderWhatnotPanel() {
       <button class="wn-tab${_wnTab === 'shows' ? ' active' : ''}" onclick="wnSwitchTab('shows')">Shows</button>
       <button class="wn-tab${_wnTab === 'analytics' ? ' active' : ''}" onclick="wnSwitchTab('analytics')">Analytics</button>
       <button class="wn-tab${_wnTab === 'builder' ? ' active' : ''}" onclick="wnSwitchTab('builder')">Smart Builder</button>
+      <button class="wn-tab${_wnTab === 'calculator' ? ' active' : ''}" onclick="wnSwitchTab('calculator')">Sale Calculator</button>
     </div>`;
 
   if (_wnTab === 'shows') html += _renderWnShowsTab();
   else if (_wnTab === 'analytics') html += _renderWnAnalyticsTab();
   else if (_wnTab === 'builder') html += _renderWnBuilderTab();
+  else if (_wnTab === 'calculator') html += _renderWnCalculatorTab();
 
   html += `</div>`;
   return html;
@@ -1301,7 +1307,116 @@ function _renderWnBuilderTab() {
   return html;
 }
 
+// ── Sale Calculator Tab ───────────────────────────────────────────────
+
+function _renderWnCalculatorTab() {
+  const price = parseFloat(_wnCalcPrice) || 0;
+  const shipping = parseFloat(_wnCalcShipping) || 0;
+  const cost = parseFloat(_wnCalcCost) || 0;
+  const tax = parseFloat(_wnCalcTax) || 0;
+
+  // Whatnot fees:
+  // Commission: 8% on item sale price only (not shipping/tax)
+  // Processing: 2.9% + $0.30 on total order value (price + shipping + tax)
+  const commission = price * 0.08;
+  const orderTotal = price + shipping + tax;
+  const processing = (orderTotal * 0.029) + 0.30;
+  const totalFees = commission + processing;
+  const payout = price + shipping - totalFees;
+  const profit = payout - cost;
+  const margin = price > 0 ? (profit / price) * 100 : 0;
+  const hasInput = price > 0;
+
+  let html = `<div class="wn-calc">
+    <div class="wn-calc-form">
+      <div class="wn-calc-row">
+        <label>Sale Price</label>
+        <div class="wn-calc-input-wrap">
+          <span class="wn-calc-dollar">$</span>
+          <input type="number" min="0" step="0.01" placeholder="0.00" value="${_wnCalcPrice}"
+            oninput="wnCalcUpdate('price',this.value)" class="wn-calc-input">
+        </div>
+      </div>
+      <div class="wn-calc-row">
+        <label>Shipping Charged</label>
+        <div class="wn-calc-input-wrap">
+          <span class="wn-calc-dollar">$</span>
+          <input type="number" min="0" step="0.01" placeholder="0.00" value="${_wnCalcShipping}"
+            oninput="wnCalcUpdate('shipping',this.value)" class="wn-calc-input">
+        </div>
+      </div>
+      <div class="wn-calc-row">
+        <label>Item Cost (COGS)</label>
+        <div class="wn-calc-input-wrap">
+          <span class="wn-calc-dollar">$</span>
+          <input type="number" min="0" step="0.01" placeholder="0.00" value="${_wnCalcCost}"
+            oninput="wnCalcUpdate('cost',this.value)" class="wn-calc-input">
+        </div>
+      </div>
+      <div class="wn-calc-row">
+        <label>Tax Collected</label>
+        <div class="wn-calc-input-wrap">
+          <span class="wn-calc-dollar">$</span>
+          <input type="number" min="0" step="0.01" placeholder="0.00" value="${_wnCalcTax}"
+            oninput="wnCalcUpdate('tax',this.value)" class="wn-calc-input">
+        </div>
+      </div>
+    </div>`;
+
+  if (hasInput) {
+    html += `<div class="wn-calc-breakdown">
+      <div class="wn-calc-section-label">Fee Breakdown</div>
+      <div class="wn-calc-line">
+        <span>Commission (8% on $${price.toFixed(2)})</span>
+        <span class="wn-calc-neg">-$${commission.toFixed(2)}</span>
+      </div>
+      <div class="wn-calc-line">
+        <span>Processing (2.9% + $0.30 on $${orderTotal.toFixed(2)})</span>
+        <span class="wn-calc-neg">-$${processing.toFixed(2)}</span>
+      </div>
+      <div class="wn-calc-line wn-calc-total-line">
+        <span>Total Fees</span>
+        <span class="wn-calc-neg">-$${totalFees.toFixed(2)}</span>
+      </div>
+
+      <div class="wn-calc-divider"></div>
+
+      <div class="wn-calc-section-label">Your Numbers</div>
+      <div class="wn-calc-line">
+        <span>Payout (sale + shipping − fees)</span>
+        <span>$${payout.toFixed(2)}</span>
+      </div>
+      ${cost > 0 ? `<div class="wn-calc-line">
+        <span>Item Cost</span>
+        <span class="wn-calc-neg">-$${cost.toFixed(2)}</span>
+      </div>` : ''}
+      <div class="wn-calc-line wn-calc-profit-line">
+        <span>Profit${cost > 0 ? '' : ' (before COGS)'}</span>
+        <span class="${profit >= 0 ? 'wn-calc-pos' : 'wn-calc-neg'}">$${profit.toFixed(2)}</span>
+      </div>
+      ${cost > 0 ? `<div class="wn-calc-line">
+        <span>Margin</span>
+        <span class="${margin >= 0 ? 'wn-calc-pos' : 'wn-calc-neg'}">${margin.toFixed(1)}%</span>
+      </div>` : ''}
+    </div>`;
+  } else {
+    html += `<div class="wn-calc-placeholder">Enter a sale price to see your fee breakdown and estimated profit.</div>`;
+  }
+
+  html += `<div class="wn-calc-note">Commission = 8% of sale price only. Processing = 2.9% + $0.30 on total order (price + shipping + tax).</div>`;
+  html += `</div>`;
+  return html;
+}
+
 // ── Whatnot Show Handlers (exposed to window) ────────────────────────────
+
+export function wnCalcUpdate(field, value) {
+  if (field === 'price') _wnCalcPrice = value;
+  else if (field === 'shipping') _wnCalcShipping = value;
+  else if (field === 'cost') _wnCalcCost = value;
+  else if (field === 'tax') _wnCalcTax = value;
+  renderCrosslistDashboard();
+}
 
 export function wnSwitchTab(tab) {
   _wnTab = tab;

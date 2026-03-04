@@ -2938,3 +2938,42 @@ textarea { resize:vertical; min-height:70px; }
   color: var(--accent);
 }
 .etsy-tag-suggest:hover { background: var(--accent); color: #fff; }
+
+/* ── WHATNOT SALE CALCULATOR ──────────────────────── */
+.wn-calc { padding: 12px 0; }
+.wn-calc-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.wn-calc-row { display: flex; flex-direction: column; gap: 3px; }
+.wn-calc-row label { font-size: 0.78rem; color: var(--muted); font-weight: 500; }
+.wn-calc-input-wrap {
+  display: flex; align-items: center;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+  padding: 0 8px; transition: border-color 0.15s;
+}
+.wn-calc-input-wrap:focus-within { border-color: var(--accent); }
+.wn-calc-dollar { color: var(--muted); font-size: 0.85rem; margin-right: 2px; }
+.wn-calc-input {
+  background: transparent; border: none; outline: none;
+  color: var(--fg); font-size: 0.95rem; padding: 7px 4px; width: 100%;
+}
+.wn-calc-input::placeholder { color: var(--muted); opacity: 0.5; }
+.wn-calc-breakdown {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px 14px; margin-bottom: 10px;
+}
+.wn-calc-section-label {
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--muted); margin-bottom: 6px; font-weight: 600;
+}
+.wn-calc-line {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 4px 0; font-size: 0.85rem;
+}
+.wn-calc-line span:first-child { color: var(--fg); }
+.wn-calc-neg { color: var(--danger, #e74c3c); font-weight: 500; }
+.wn-calc-pos { color: var(--success, #27ae60); font-weight: 600; }
+.wn-calc-total-line { font-weight: 600; padding-top: 6px; border-top: 1px solid var(--border); margin-top: 4px; }
+.wn-calc-divider { height: 1px; background: var(--border); margin: 10px 0; }
+.wn-calc-profit-line { font-size: 1rem; font-weight: 700; padding-top: 6px; border-top: 1px solid var(--border); margin-top: 4px; }
+.wn-calc-placeholder { color: var(--muted); font-size: 0.85rem; text-align: center; padding: 24px 0; }
+.wn-calc-note { font-size: 0.72rem; color: var(--muted); margin-top: 8px; text-align: center; }
+@media (max-width: 480px) { .wn-calc-form { grid-template-columns: 1fr; } }

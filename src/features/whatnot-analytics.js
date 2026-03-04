@@ -31,13 +31,15 @@ export function calcShowRevenue(show) {
 
 /**
  * Show profit = revenue - COGS - Whatnot fees - expenses.
- * Whatnot fee is 8.9% of sale price.
+ * Whatnot: 8% commission on sale price + 2.9% + $0.30 processing on order total.
+ * For show-level estimates we approximate using total revenue (no per-item shipping).
  */
 export function calcShowProfit(show) {
   if (!show) return 0;
   const revenue = show.totalRevenue || 0;
-  const feeRate = PLATFORM_FEES?.Whatnot || 0.089;
-  const fees = revenue * feeRate;
+  const soldCount = show.soldItems ? Object.keys(show.soldItems).length : 0;
+  // Commission: 8% on sale price, Processing: 2.9% + $0.30 per transaction
+  const fees = (revenue * 0.08) + (revenue * 0.029) + (soldCount * 0.30);
   const expenses = show.showExpenses || 0;
 
   // Sum COGS from sold items
