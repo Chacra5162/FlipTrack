@@ -436,11 +436,26 @@ export async function publishEBayListing(itemId, options = {}) {
 
   // Re-push inventory item to ensure latest aspects (Brand etc.) are on eBay
   try {
+    // First try full payload rebuild
     const invPayload = _buildInventoryPayload(item);
     console.log('[eBay] Re-pushing inventory item with latest aspects…');
     await ebayAPI('PUT', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`, invPayload);
+    console.log('[eBay] Inventory re-push succeeded');
   } catch (invErr) {
-    console.warn('[eBay] Inventory re-push failed:', invErr.message);
+    console.warn('[eBay] Full re-push failed:', invErr.message, '— trying aspect-only patch');
+    // If full payload fails (e.g. no valid image URLs), fetch existing item from eBay
+    // and just update the aspects (Brand etc.) on it
+    try {
+      const existing = await ebayAPI('GET', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`);
+      const aspects = _buildAspects(item);
+      if (!existing.product) existing.product = {};
+      existing.product.aspects = { ...(existing.product.aspects || {}), ...aspects };
+      console.log('[eBay] Patching aspects on existing inventory item:', JSON.stringify(aspects));
+      await ebayAPI('PUT', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`, existing);
+      console.log('[eBay] Aspect patch succeeded');
+    } catch (patchErr) {
+      console.warn('[eBay] Aspect patch also failed:', patchErr.message);
+    }
   }
 
   // Auto-detect category if not provided
