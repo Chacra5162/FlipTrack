@@ -382,6 +382,26 @@ function _buildDescription(item) {
 </div>`;
 }
 
+function _isClothingCategory(item) {
+  const cat = (item.category || '').toLowerCase();
+  const subcat = (item.subcategory || '').toLowerCase();
+  return cat === 'clothing' || cat === 'shoes' || cat === 'apparel'
+    || subcat.includes('footwear') || subcat.includes('accessories');
+}
+
+function _getDepartment(item) {
+  // Infer eBay Department from subcategory or subtype
+  if (item.department) return item.department;
+  const sub = (item.subcategory || '').toLowerCase();
+  const typ = (item.subtype || '').toLowerCase();
+  if (sub.includes('men') && !sub.includes('women')) return "Men's";
+  if (sub.includes('women')) return "Women's";
+  if (sub.includes('children') || sub.includes('kid') || sub.includes('boy') || sub.includes('girl')) return 'Kids';
+  if (typ.includes('men') && !typ.includes('women')) return "Men's";
+  if (typ.includes('women')) return "Women's";
+  return null;
+}
+
 function _buildAspects(item) {
   const aspects = {};
   // Brand is required by most eBay categories — default to "Unbranded"
@@ -393,6 +413,27 @@ function _buildAspects(item) {
   if (item.pattern) aspects['Pattern'] = [item.pattern];
   if (item.model) aspects['Model'] = [item.model];
   if (item.mpn) aspects['MPN'] = [item.mpn];
+
+  // Clothing-specific aspects required by eBay apparel categories
+  if (_isClothingCategory(item)) {
+    // Size Type — required for most clothing categories
+    aspects['Size Type'] = [item.sizeType || 'Regular'];
+    // Department — Men's, Women's, Kids, etc.
+    const dept = item.department || _getDepartment(item);
+    if (dept) aspects['Department'] = [dept];
+    // Inseam for pants/shorts/jeans
+    if (item.inseam) aspects['Inseam'] = [item.inseam];
+    // Garment Care
+    if (item.garmentCare) aspects['Garment Care'] = [item.garmentCare];
+  }
+
+  // Footwear-specific
+  if ((item.subcategory || '').toLowerCase().includes('footwear') ||
+      (item.category || '').toLowerCase() === 'shoes') {
+    if (item.shoeSize) aspects['US Shoe Size'] = [item.shoeSize];
+    if (item.shoeWidth) aspects['Shoe Width'] = [item.shoeWidth];
+  }
+
   // Book-specific aspects
   if (item.author) aspects['Author'] = [item.author];
   if (item.publisher) aspects['Publisher'] = [item.publisher];

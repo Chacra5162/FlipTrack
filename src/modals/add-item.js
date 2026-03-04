@@ -189,7 +189,7 @@ export function openAddModal(){
 export function closeAdd(){
   releaseFocus();
   document.getElementById('addOv').classList.remove('on');
-  ['f_name','f_sku','f_upc','f_cat','f_subcat_txt','f_subtype_txt','f_cost','f_price','f_fees','f_ship','f_notes','f_alert','f_source','f_condition','f_brand','f_color','f_size','f_material','f_mpn','f_model','f_style','f_pattern','f_ebay_desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['f_name','f_sku','f_upc','f_cat','f_subcat_txt','f_subtype_txt','f_cost','f_price','f_fees','f_ship','f_notes','f_alert','f_source','f_condition','f_brand','f_color','f_size','f_sizeType','f_department','f_material','f_mpn','f_model','f_style','f_pattern','f_ebay_desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('f_qty').value='1';
   const bulkCb = document.getElementById('f_bulk'); if(bulkCb) bulkCb.checked=false;
   const bulkFields = document.getElementById('f_bulk_fields'); if(bulkFields) bulkFields.style.display='none';
@@ -326,9 +326,11 @@ export function addItem(){
   const model = (document.getElementById('f_model')?.value || '').trim();
   const style = (document.getElementById('f_style')?.value || '').trim();
   const pattern = (document.getElementById('f_pattern')?.value || '').trim();
+  const sizeType = (document.getElementById('f_sizeType')?.value || '').trim();
+  const department = (document.getElementById('f_department')?.value || '').trim();
   const ebayDesc = (document.getElementById('f_ebay_desc')?.value || '').trim();
 
-  inv.push({id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:subcatVal,subtype:subtypeVal,platform,platforms:selPlats,cost:isNaN(cost)?0:cost,price,qty,bulk:isBulk,fees:isNaN(fees)?0:fees,ship:isNaN(ship)?0:ship,lowAlert,notes:document.getElementById('f_notes').value.trim(),source:document.getElementById('f_source').value.trim(),condition:document.getElementById('f_condition').value.trim(),smoke:smokeVal,coverType:isBookCat(cat)?coverVal:null,brand,color,size,material,mpn,model,style,pattern,ebayDesc,images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),...(isBookCat(cat) ? getBookFields('f') : {}),added:new Date().toISOString()});
+  inv.push({id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:subcatVal,subtype:subtypeVal,platform,platforms:selPlats,cost:isNaN(cost)?0:cost,price,qty,bulk:isBulk,fees:isNaN(fees)?0:fees,ship:isNaN(ship)?0:ship,lowAlert,notes:document.getElementById('f_notes').value.trim(),source:document.getElementById('f_source').value.trim(),condition:document.getElementById('f_condition').value.trim(),smoke:smokeVal,coverType:isBookCat(cat)?coverVal:null,brand,color,size,sizeType,department,material,mpn,model,style,pattern,ebayDesc,images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),...(isBookCat(cat) ? getBookFields('f') : {}),added:new Date().toISOString()});
   markDirty('inv', newId);
   save(); closeAdd(); refresh(); _sfx.create(); toast('Item added ✓');
 

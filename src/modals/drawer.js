@@ -142,7 +142,7 @@ export function openDrawer(id) {
     <div class="d-met"><div class="dm-lbl">ROI</div><div class="dm-val" style="color:var(--accent3)">${pct(roi)}</div></div>
     <div class="d-met"><div class="dm-lbl">Units Sold</div><div class="dm-val">${totSold}</div></div>
     <div class="d-met"><div class="dm-lbl">Total Revenue</div><div class="dm-val">${fmt(totRev)}</div></div>`;
-  const fields={d_name:'name',d_sku:'sku',d_upc:'upc',d_cat:'category',d_cost:'cost',d_price:'price',d_fees:'fees',d_ship:'ship',d_notes:'notes',d_url:'url',d_alert:'lowAlert',d_source:'source',d_brand:'brand',d_color:'color',d_size:'size',d_material:'material',d_mpn:'mpn',d_model:'model',d_style:'style',d_pattern:'pattern',d_ebay_desc:'ebayDesc'};
+  const fields={d_name:'name',d_sku:'sku',d_upc:'upc',d_cat:'category',d_cost:'cost',d_price:'price',d_fees:'fees',d_ship:'ship',d_notes:'notes',d_url:'url',d_alert:'lowAlert',d_source:'source',d_brand:'brand',d_color:'color',d_size:'size',d_sizeType:'sizeType',d_department:'department',d_material:'material',d_mpn:'mpn',d_model:'model',d_style:'style',d_pattern:'pattern',d_ebay_desc:'ebayDesc'};
   for(const[eid,key]of Object.entries(fields)){const el=document.getElementById(eid);if(el)el.value=item[key]||'';}
   // Populate subcategory text input and datalist suggestions
   const subcatTxt = document.getElementById('d_subcat_txt');
@@ -362,6 +362,8 @@ export function saveDrawer(){
   item.model   =(document.getElementById('d_model')?.value||'').trim();
   item.style   =(document.getElementById('d_style')?.value||'').trim();
   item.pattern =(document.getElementById('d_pattern')?.value||'').trim();
+  item.sizeType=(document.getElementById('d_sizeType')?.value||'').trim();
+  item.department=(document.getElementById('d_department')?.value||'').trim();
   item.ebayDesc=(document.getElementById('d_ebay_desc')?.value||'').trim();
   Object.assign(item, getDimsFromForm('d'));
   if (isBookCat(item.category)) {
