@@ -443,6 +443,45 @@ export async function pushItemToEBay(itemId) {
 }
 
 /**
+ * Update an already-published eBay listing with latest item data.
+ * Updates the inventory item (aspects, description, images, weight, etc.)
+ * and re-publishes the offer so changes appear on the live listing.
+ */
+export async function updateEBayListing(itemId) {
+  if (!isEBayConnected()) throw new Error('eBay not connected');
+
+  const item = getInvItem(itemId);
+  if (!item) throw new Error('Item not found');
+  if (!item.ebayItemId) throw new Error('Item not on eBay');
+
+  const sku = item.ebayItemId;
+
+  // 1. Update the inventory item with latest data
+  const payload = _buildInventoryPayload(item);
+  console.log('[eBay] Updating inventory item:', sku);
+  await ebayAPI('PUT', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`, payload);
+  console.log('[eBay] Inventory item updated');
+
+  // 2. Find the existing offer and re-publish it to push changes live
+  try {
+    const existing = await ebayAPI('GET', `${INVENTORY_API}/offer?sku=${encodeURIComponent(sku)}`);
+    if (existing?.offers?.length > 0) {
+      const offerId = existing.offers[0].offerId;
+      console.log('[eBay] Re-publishing offer to push changes live:', offerId);
+      const pubResp = await ebayAPI('POST', `${INVENTORY_API}/offer/${offerId}/publish`);
+      console.log('[eBay] Listing updated live, listingId:', pubResp.listingId);
+    } else {
+      console.log('[eBay] No offer found — inventory item updated but listing may need manual publish');
+    }
+  } catch (pubErr) {
+    // Publish can fail if listing is already up-to-date or other reasons
+    console.warn('[eBay] Re-publish note:', pubErr.message);
+  }
+
+  return { success: true };
+}
+
+/**
  * Fetch the seller's eBay business policies (payment, return, fulfillment).
  * Caches after first successful call.
  * @returns {Promise<{paymentPolicyId: string, returnPolicyId: string, fulfillmentPolicyId: string} | null>}
