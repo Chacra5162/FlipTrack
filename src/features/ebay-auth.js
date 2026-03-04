@@ -109,6 +109,9 @@ async function callEdgeFn(action, body = {}) {
     try { data = JSON.parse(text); } catch { throw new Error(`Unexpected response (${resp.status})`); }
   }
   if (!resp.ok) {
+    console.error('[eBay] API ERROR:', data.method, data.path, '→', data.ebayStatus || resp.status);
+    console.error('[eBay] Error message:', data.error);
+    if (data.ebayErrors) console.error('[eBay] Full eBay errors:', JSON.stringify(data.ebayErrors, null, 2));
     if (data.sentPayload) console.error('[eBay] Payload sent:', JSON.stringify(data.sentPayload));
     throw new Error(data.error || `Edge function error: ${resp.status}`);
   }
