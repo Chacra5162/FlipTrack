@@ -615,6 +615,58 @@ async function _fetchMerchantLocation() {
 }
 
 /**
+ * Fetch valid condition IDs for an eBay category and return the best match.
+ * If our preferred condition isn't valid, picks the closest valid one.
+ * @param {string} categoryId - eBay category ID
+ * @param {string} preferredEnum - e.g. 'USED_GOOD', 'NEW', etc.
+ * @returns {Promise<string>} Valid ConditionEnum value
+ */
+async function _getValidCondition(categoryId, preferredEnum) {
+  try {
+    const resp = await ebayAPI('GET',
+      `/commerce/taxonomy/v1/category_tree/0/get_item_conditions_policies?category_id=${categoryId}`);
+    const condArr = resp?.itemConditionPolicies?.[0]?.itemConditions || [];
+    const validIds = condArr.map(c => String(c.conditionId));
+    console.log('[eBay] Valid conditions for category', categoryId, ':', validIds.join(','));
+
+    // Build reverse map: conditionId → enumVal
+    const allConds = Object.values(CONDITION_MAP);
+    const preferredId = allConds.find(c => c.enumVal === preferredEnum)?.id;
+
+    if (preferredId && validIds.includes(String(preferredId))) {
+      return preferredEnum; // our condition is valid
+    }
+
+    // Condition not valid — find the closest valid one
+    // Priority: try broader used conditions, then fall back to the first non-new valid one
+    const usedFallbackOrder = [3000, 4000, 5000, 6000, 2750, 7000, 1500, 1000];
+    const newFallbackOrder = [1000, 1500, 3000];
+    const isNewPref = ['NEW', 'NEW_OTHER', 'LIKE_NEW'].includes(preferredEnum);
+    const order = isNewPref ? newFallbackOrder : usedFallbackOrder;
+
+    for (const id of order) {
+      if (validIds.includes(String(id))) {
+        const match = allConds.find(c => c.id === id);
+        if (match) {
+          console.log('[eBay] Condition', preferredEnum, 'not valid, falling back to', match.enumVal);
+          return match.enumVal;
+        }
+      }
+    }
+
+    // Last resort — use whatever eBay says is first valid
+    if (condArr.length > 0) {
+      const firstValid = allConds.find(c => c.id === parseInt(condArr[0].conditionId));
+      if (firstValid) return firstValid.enumVal;
+    }
+    return preferredEnum; // return original and let eBay error if needed
+  } catch (e) {
+    console.warn('[eBay] Could not fetch valid conditions:', e.message);
+    return preferredEnum; // fallback to original on API error
+  }
+}
+
+/**
  * Create an offer and publish it to make an eBay listing live.
  * Requires the item to already be in eBay inventory (via pushItemToEBay).
  * Auto-detects business policies and category if not provided.
@@ -635,37 +687,44 @@ export async function publishEBayListing(itemId, options = {}) {
   const price = item.price || 0;
   if (price <= 0) throw new Error('Item needs a price before listing');
 
-  // Re-push inventory item to ensure latest aspects (Brand etc.) are on eBay
-  try {
-    // First try full payload rebuild
-    const invPayload = _buildInventoryPayload(item);
-    console.log('[eBay] Re-pushing inventory item with latest aspects…');
-    await ebayAPI('PUT', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`, invPayload);
-    console.log('[eBay] Inventory re-push succeeded');
-  } catch (invErr) {
-    console.warn('[eBay] Full re-push failed:', invErr.message, '— trying aspect-only patch');
-    // If full payload fails (e.g. no valid image URLs), fetch existing item from eBay
-    // and just update the aspects (Brand etc.) on it
-    try {
-      const existing = await ebayAPI('GET', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`);
-      const aspects = _buildAspects(item);
-      if (!existing.product) existing.product = {};
-      existing.product.aspects = { ...(existing.product.aspects || {}), ...aspects };
-      console.log('[eBay] Patching aspects on existing inventory item:', JSON.stringify(aspects));
-      await ebayAPI('PUT', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`, existing);
-      console.log('[eBay] Aspect patch succeeded');
-    } catch (patchErr) {
-      console.warn('[eBay] Aspect patch also failed:', patchErr.message);
-    }
-  }
-
-  // Auto-detect category if not provided
+  // Auto-detect category first — we need it for condition validation
   let categoryId = options.categoryId || null;
   if (!categoryId) {
     categoryId = await _suggestCategory(item.name || 'item');
   }
   if (!categoryId) {
     throw new Error('Could not determine eBay category. Please set a category for this item.');
+  }
+
+  // Validate condition against category — some categories only accept certain conditions
+  const condition = (item.condition || 'good').toLowerCase().trim();
+  const condInfo = CONDITION_MAP[condition] || CONDITION_MAP['good'];
+  const validEnum = await _getValidCondition(categoryId, condInfo.enumVal);
+  if (validEnum !== condInfo.enumVal) {
+    console.log('[eBay] Overriding condition from', condInfo.enumVal, 'to', validEnum, 'for category', categoryId);
+  }
+
+  // Re-push inventory item to ensure latest aspects AND valid condition are on eBay
+  try {
+    const invPayload = _buildInventoryPayload(item);
+    invPayload.condition = String(validEnum); // use validated condition
+    console.log('[eBay] Re-pushing inventory item with validated condition:', validEnum);
+    await ebayAPI('PUT', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`, invPayload);
+    console.log('[eBay] Inventory re-push succeeded');
+  } catch (invErr) {
+    console.warn('[eBay] Full re-push failed:', invErr.message, '— trying aspect-only patch');
+    try {
+      const existing = await ebayAPI('GET', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`);
+      const aspects = _buildAspects(item);
+      if (!existing.product) existing.product = {};
+      existing.product.aspects = { ...(existing.product.aspects || {}), ...aspects };
+      existing.condition = String(validEnum); // fix condition on existing item too
+      console.log('[eBay] Patching aspects + condition on existing inventory item');
+      await ebayAPI('PUT', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`, existing);
+      console.log('[eBay] Aspect patch succeeded');
+    } catch (patchErr) {
+      console.warn('[eBay] Aspect patch also failed:', patchErr.message);
+    }
   }
 
   // Auto-detect business policies if not provided
