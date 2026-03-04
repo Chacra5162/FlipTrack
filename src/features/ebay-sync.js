@@ -524,6 +524,7 @@ export async function publishEBayListing(itemId, options = {}) {
     toast(`Listed on eBay! Item #${listingId}`);
     return { success: true, listingId };
   } catch (e) {
+    console.error('[eBay] PUBLISH ERROR DETAIL:', e.message);
     toast(`eBay listing error: ${e.message}`, true);
     return { success: false };
   }
