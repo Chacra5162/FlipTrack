@@ -356,6 +356,7 @@ function renderMatrixTab(inStock) {
             ${expiryLabel}
           </div>
           <div class="cl-plat-actions">
+            ${p === 'eBay' && st === 'draft' ? `<button class="btn-xs btn-accent" onclick="clPublishOnEBay('${item.id}')">Publish</button>` : ''}
             <button class="btn-xs" onclick="clCycleStatus('${item.id}','${escHtml(p)}')" title="Change status">⟳</button>
             <button class="btn-xs" onclick="clCopyListing('${item.id}')" title="Copy listing text">📋</button>
             <button class="btn-xs" onclick="clOpenLink('${escHtml(p)}','${item.id}')" title="Open platform">↗</button>
@@ -1675,8 +1676,20 @@ export async function clEBaySync() {
 export async function clPushToEBay(itemId) {
   toast('Pushing item to eBay…');
   try {
-    const result = await pushItemToEBay(itemId);
-    if (result.success) {
+    const pushResult = await pushItemToEBay(itemId);
+    if (pushResult.success) {
+      // Auto-publish after pushing to inventory
+      toast('Publishing eBay listing…');
+      try {
+        const pubResult = await publishEBayListing(itemId);
+        if (pubResult.success) {
+          renderCrosslistDashboard();
+          return;
+        }
+      } catch (pubErr) {
+        // Publish failed but push succeeded — show draft with Publish button
+        toast(`Pushed to eBay inventory (draft). ${pubErr.message}`, true);
+      }
       renderCrosslistDashboard();
     }
   } catch (e) {

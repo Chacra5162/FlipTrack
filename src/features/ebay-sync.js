@@ -39,10 +39,13 @@ const CONDITION_MAP = {
   'poor':          { id: 7000, enumVal: 'FOR_PARTS_OR_NOT_WORKING' },
 };
 
+const ACCOUNT_API = '/sell/account/v1';
+
 // ── STATE ──────────────────────────────────────────────────────────────────
 let _lastSyncTime = null;
 let _syncing = false;
 let _syncInterval = null;
+let _policiesCache = null;
 
 // ── INITIALIZATION ─────────────────────────────────────────────────────────
 
@@ -231,7 +234,7 @@ function _buildInventoryPayload(item) {
         quantity: item.qty || 1,
       },
     },
-    condition: condInfo.enumVal,
+    condition: String(condInfo.enumVal),
     product: {
       title: (item.name || 'Item').slice(0, 80),
       description: _buildDescription(item),
@@ -241,7 +244,7 @@ function _buildInventoryPayload(item) {
 
   // conditionDescription not allowed for NEW condition items
   if (!isNew && item.notes) {
-    payload.conditionDescription = item.notes.slice(0, 1000);
+    payload.conditionDescription = String(item.notes).slice(0, 1000);
   }
 
   // Only add aspects if we have meaningful ones (empty object causes 400)
@@ -323,8 +326,38 @@ export async function pushItemToEBay(itemId) {
 }
 
 /**
+ * Fetch the seller's eBay business policies (payment, return, fulfillment).
+ * Caches after first successful call.
+ * @returns {Promise<{paymentPolicyId: string, returnPolicyId: string, fulfillmentPolicyId: string} | null>}
+ */
+async function _fetchBusinessPolicies() {
+  if (_policiesCache) return _policiesCache;
+  try {
+    const [payment, returns, fulfillment] = await Promise.all([
+      ebayAPI('GET', `${ACCOUNT_API}/payment_policy`),
+      ebayAPI('GET', `${ACCOUNT_API}/return_policy`),
+      ebayAPI('GET', `${ACCOUNT_API}/fulfillment_policy`),
+    ]);
+
+    const payId = payment?.paymentPolicies?.[0]?.paymentPolicyId;
+    const retId = returns?.returnPolicies?.[0]?.returnPolicyId;
+    const fulId = fulfillment?.fulfillmentPolicies?.[0]?.fulfillmentPolicyId;
+
+    if (payId && retId && fulId) {
+      _policiesCache = { paymentPolicyId: payId, returnPolicyId: retId, fulfillmentPolicyId: fulId };
+      return _policiesCache;
+    }
+    return null;
+  } catch (e) {
+    console.warn('[eBay] Could not fetch business policies:', e.message);
+    return null;
+  }
+}
+
+/**
  * Create an offer and publish it to make an eBay listing live.
  * Requires the item to already be in eBay inventory (via pushItemToEBay).
+ * Auto-detects business policies if not provided.
  * @param {string} itemId - Local FlipTrack item ID
  * @param {Object} [options] - Listing options
  * @param {string} [options.categoryId] - eBay category ID
@@ -361,12 +394,23 @@ export async function publishEBayListing(itemId, options = {}) {
     offerPayload.categoryId = options.categoryId;
   }
 
-  // Add listing policies if provided (required by eBay)
-  if (options.paymentPolicyId || options.returnPolicyId || options.fulfillmentPolicyId) {
+  // Add listing policies — auto-fetch from seller account if not provided
+  const hasPolicies = options.paymentPolicyId || options.returnPolicyId || options.fulfillmentPolicyId;
+  if (hasPolicies) {
     offerPayload.listingPolicies = {};
     if (options.paymentPolicyId) offerPayload.listingPolicies.paymentPolicyId = options.paymentPolicyId;
     if (options.returnPolicyId) offerPayload.listingPolicies.returnPolicyId = options.returnPolicyId;
     if (options.fulfillmentPolicyId) offerPayload.listingPolicies.fulfillmentPolicyId = options.fulfillmentPolicyId;
+  } else {
+    // Auto-detect business policies from seller account
+    const policies = await _fetchBusinessPolicies();
+    if (policies) {
+      offerPayload.listingPolicies = {
+        paymentPolicyId: policies.paymentPolicyId,
+        returnPolicyId: policies.returnPolicyId,
+        fulfillmentPolicyId: policies.fulfillmentPolicyId,
+      };
+    }
   }
 
   try {
