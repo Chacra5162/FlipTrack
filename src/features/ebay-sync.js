@@ -434,6 +434,15 @@ export async function publishEBayListing(itemId, options = {}) {
   const price = item.price || 0;
   if (price <= 0) throw new Error('Item needs a price before listing');
 
+  // Re-push inventory item to ensure latest aspects (Brand etc.) are on eBay
+  try {
+    const invPayload = _buildInventoryPayload(item);
+    console.log('[eBay] Re-pushing inventory item with latest aspects…');
+    await ebayAPI('PUT', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`, invPayload);
+  } catch (invErr) {
+    console.warn('[eBay] Inventory re-push failed:', invErr.message);
+  }
+
   // Auto-detect category if not provided
   let categoryId = options.categoryId || null;
   if (!categoryId) {
