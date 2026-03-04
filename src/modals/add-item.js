@@ -24,6 +24,8 @@ import { getSupabaseClient } from '../data/auth.js';
 import { getCurrentUser } from '../data/auth.js';
 
 import { openDrawer, closeDrawer, loadCondTag, syncAddSubcat } from './drawer.js';
+import { isEBayConnected } from '../features/ebay-auth.js';
+import { pushItemToEBay, publishEBayListing } from '../features/ebay-sync.js';
 
 let pendingAddImages = [];
 
@@ -334,6 +336,8 @@ export function addItem(){
   markDirty('inv', newId);
   save(); closeAdd(); refresh(); _sfx.create(); toast('Item added ✓');
 
+  const wantsEbay = selPlats.includes('eBay') && isEBayConnected();
+
   if (imagesToUpload.length && getSupabaseClient() && getCurrentUser()) {
     const newItem = inv.find(i => i.id === newId);
     if (newItem) {
@@ -348,7 +352,31 @@ export function addItem(){
         markDirty('inv', newItem.id);
         save();
         if (window.renderInv) window.renderInv();
+        // Auto-list to eBay after images are uploaded (eBay needs http URLs)
+        if (wantsEbay) _autoListEBay(newId);
       });
     }
+  } else if (wantsEbay) {
+    // No images to upload — list immediately
+    _autoListEBay(newId);
+  }
+}
+
+/**
+ * Auto push + publish an item to eBay after it's created.
+ * Runs in background — errors show as toasts.
+ */
+async function _autoListEBay(itemId) {
+  try {
+    toast('Listing on eBay…');
+    const pushResult = await pushItemToEBay(itemId);
+    if (!pushResult.success) return;
+    const pubResult = await publishEBayListing(itemId);
+    if (pubResult.success) {
+      toast(`Listed on eBay! Item #${pubResult.listingId}`);
+    }
+  } catch (e) {
+    console.warn('[eBay] Auto-list failed:', e.message);
+    toast(`eBay auto-list: ${e.message}`, true);
   }
 }
