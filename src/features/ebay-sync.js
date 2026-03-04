@@ -389,10 +389,21 @@ async function _fetchMerchantLocation() {
       console.log('[eBay] Found merchant location:', _locationKeyCache);
       return _locationKeyCache;
     }
-    console.log('[eBay] No merchant locations found — will try offer without one');
-    return null;
+
+    // No location exists — create one (eBay needs this for Item.Country)
+    const key = 'fliptrack-default';
+    console.log('[eBay] Creating default merchant location…');
+    await ebayAPI('POST', `${INVENTORY_API}/location/${key}`, {
+      location: {
+        address: { country: 'US' },
+      },
+      merchantLocationStatus: 'ENABLED',
+    });
+    _locationKeyCache = key;
+    console.log('[eBay] Created merchant location:', key);
+    return _locationKeyCache;
   } catch (e) {
-    console.warn('[eBay] Could not fetch merchant locations:', e.message);
+    console.warn('[eBay] Could not fetch/create merchant location:', e.message);
     return null;
   }
 }
@@ -449,8 +460,11 @@ export async function publishEBayListing(itemId, options = {}) {
     throw new Error('eBay requires business policies (payment, return, shipping). Set these up in eBay Seller Hub first.');
   }
 
-  // Try to get merchant location (some accounts require it)
+  // Merchant location is required — provides Item.Country for the listing
   const merchantLocationKey = await _fetchMerchantLocation();
+  if (!merchantLocationKey) {
+    throw new Error('Could not set up eBay inventory location. Go to eBay Seller Hub → Shipping → Locations and add one.');
+  }
 
   const offerPayload = {
     sku,
@@ -458,6 +472,7 @@ export async function publishEBayListing(itemId, options = {}) {
     format: 'FIXED_PRICE',
     listingDuration: options.listingDuration || 'GTC',
     categoryId,
+    merchantLocationKey,
     listingPolicies,
     pricingSummary: {
       price: {
@@ -467,9 +482,6 @@ export async function publishEBayListing(itemId, options = {}) {
     },
     availableQuantity: item.qty || 1,
   };
-  if (merchantLocationKey) {
-    offerPayload.merchantLocationKey = merchantLocationKey;
-  }
 
   try {
     // Check for existing offers for this SKU first
