@@ -214,6 +214,15 @@ async function _syncEBayOrders() {
 function _buildInventoryPayload(item) {
   const condition = (item.condition || 'good').toLowerCase().trim();
   const condInfo = CONDITION_MAP[condition] || CONDITION_MAP['good'];
+  const isNew = condInfo.enumVal === 'NEW' || condInfo.enumVal === 'NEW_WITH_TAGS' || condInfo.enumVal === 'NEW_OTHER';
+
+  // eBay requires at least one image URL
+  const imageUrls = (item.images || []).filter(url =>
+    url && typeof url === 'string' && url.startsWith('http')
+  ).slice(0, 12);
+  if (imageUrls.length === 0) {
+    throw new Error('eBay requires at least one image. Add a photo to this item first.');
+  }
 
   const payload = {
     availability: {
@@ -222,16 +231,23 @@ function _buildInventoryPayload(item) {
       },
     },
     condition: condInfo.enumVal,
-    ...(item.notes ? { conditionDescription: item.notes } : {}),
     product: {
       title: (item.name || 'Item').slice(0, 80),
       description: _buildDescription(item),
-      aspects: _buildAspects(item),
-      imageUrls: (item.images || []).filter(url =>
-        url && url.startsWith('http')
-      ).slice(0, 12),
+      imageUrls,
     },
   };
+
+  // conditionDescription not allowed for NEW condition items
+  if (!isNew && item.notes) {
+    payload.conditionDescription = item.notes.slice(0, 1000);
+  }
+
+  // Only add aspects if we have meaningful ones (empty object causes 400)
+  const aspects = _buildAspects(item);
+  if (Object.keys(aspects).length > 0) {
+    payload.product.aspects = aspects;
+  }
 
   // Add UPC if available
   if (item.upc) {
@@ -258,10 +274,11 @@ function _buildDescription(item) {
 
 function _buildAspects(item) {
   const aspects = {};
-  if (item.category) aspects['Category'] = [item.category];
-  if (item.condition) aspects['Condition'] = [item.condition];
+  // Note: 'Condition' is NOT a valid eBay aspect — it's set via the condition field
+  if (item.brand) aspects['Brand'] = [item.brand];
   if (item.author) aspects['Author'] = [item.author];
-  if (item.isbn) aspects['ISBN'] = [item.isbn];
+  if (item.color) aspects['Color'] = [item.color];
+  if (item.size) aspects['Size'] = [item.size];
   return aspects;
 }
 
