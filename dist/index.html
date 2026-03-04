@@ -22,7 +22,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"></noscript>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
-  <script type="module" crossorigin src="./assets/index-Av1DS4_R.js"></script>
+  <script type="module" crossorigin src="./assets/index-PC66Bjsf.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/vendor-supabase-jY4wIOEF.js">
   <link rel="stylesheet" crossorigin href="./assets/index-yydwUGLB.css">
 </head>
@@ -681,7 +681,7 @@
             <div class="edit-grp"><div class="edit-lbl">Type / Pattern</div><input class="edit-inp" type="text" id="d_pattern" placeholder="e.g. Solid, Striped"></div>
           </div>
         </div>
-        <div class="edit-grp full"><div class="edit-lbl">eBay Description</div><textarea class="edit-ta" id="d_ebay_desc" placeholder="Custom eBay listing description (optional — auto-generated if blank)"></textarea></div>
+        <div class="edit-grp full"><div class="edit-lbl">eBay Description <button type="button" class="btn-sm" style="margin-left:8px;font-size:11px;padding:2px 8px" onclick="window.aiGenerateDesc?.('drawer')">✨ AI Generate</button></div><textarea class="edit-ta" id="d_ebay_desc" placeholder="Leave blank to auto-generate with AI when listing on eBay"></textarea></div>
         <div class="edit-grp full"><div class="edit-lbl">Notes</div><textarea class="edit-ta" id="d_notes"></textarea></div>
       </div>
       <!-- Fee Calculator -->
@@ -1165,7 +1165,7 @@
             <option value="Plastic"><option value="Wood"><option value="Glass"><option value="Ceramic">
           </datalist>
         </div>
-        <div class="fgrp full"><label>eBay Description</label><textarea id="f_ebay_desc" placeholder="Custom eBay listing description (optional — auto-generated if blank)" style="min-height:60px"></textarea></div>
+        <div class="fgrp full"><label>eBay Description <button type="button" class="btn-sm" style="margin-left:8px;font-size:11px;padding:2px 8px" onclick="window.aiGenerateDesc?.('add')">✨ AI Generate</button></label><textarea id="f_ebay_desc" placeholder="Leave blank to auto-generate with AI when listing on eBay" style="min-height:60px"></textarea></div>
         <div class="fgrp full"><label>Notes</label><textarea id="f_notes" placeholder="Condition, sourcing, etc."></textarea></div>
         <div class="fgrp full" id="f_dim_section">
           <label style="display:flex;align-items:center;justify-content:space-between">
