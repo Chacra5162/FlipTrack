@@ -8,6 +8,32 @@ export function getPlatforms(item) {
   return [];
 }
 
+/**
+ * Enforce mutual exclusivity: "Unlisted" cannot coexist with real platforms.
+ * If "Unlisted" is present alongside others, the most-recently-added side wins.
+ * Call this on any platforms array before saving.
+ * @param {string[]} plats - mutable platforms array
+ * @param {string} [justAdded] - the platform tag that was just toggled on (if any)
+ * @returns {string[]} cleaned array (same ref)
+ */
+export function sanitizePlatforms(plats, justAdded) {
+  if (!Array.isArray(plats)) return plats;
+  const hasUnlisted = plats.includes('Unlisted');
+  const hasReal = plats.some(p => p !== 'Unlisted' && p !== 'Other');
+  if (!hasUnlisted || !hasReal) return plats;
+
+  if (justAdded === 'Unlisted') {
+    // User just picked Unlisted → remove all real platforms
+    plats.length = 0;
+    plats.push('Unlisted');
+  } else {
+    // User added a real platform → remove Unlisted
+    const idx = plats.indexOf('Unlisted');
+    if (idx !== -1) plats.splice(idx, 1);
+  }
+  return plats;
+}
+
 export function buildPlatPicker(pickerId, selected = []) {
   const el = document.getElementById(pickerId);
   if (!el) return;
@@ -27,13 +53,33 @@ export function buildPlatPicker(pickerId, selected = []) {
 }
 
 export function togglePlatChip(el, pickerId) {
+  const wasActive = el.classList.contains('active');
   el.classList.toggle('active');
+
+  // Enforce Unlisted / real-platform mutual exclusivity in the picker UI
+  if (!wasActive) {
+    // Chip was just activated
+    const picker = document.getElementById(pickerId);
+    if (!picker) return;
+    const plat = el.dataset.plat;
+    if (plat === 'Unlisted') {
+      // Deselect all other chips
+      picker.querySelectorAll('.plat-pick-chip.active').forEach(c => {
+        if (c.dataset.plat !== 'Unlisted') c.classList.remove('active');
+      });
+    } else {
+      // Deselect Unlisted chip
+      const unChip = picker.querySelector('.plat-pick-chip[data-plat="Unlisted"]');
+      if (unChip) unChip.classList.remove('active');
+    }
+  }
 }
 
 export function getSelectedPlats(pickerId) {
   const el = document.getElementById(pickerId);
   if (!el) return [];
-  return [...el.querySelectorAll('.plat-pick-chip.active')].map(c => c.dataset.plat);
+  const plats = [...el.querySelectorAll('.plat-pick-chip.active')].map(c => c.dataset.plat);
+  return sanitizePlatforms(plats);
 }
 
 // Populate platform pickers from central PLATFORMS list at startup
