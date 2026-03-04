@@ -256,14 +256,11 @@ function _buildInventoryPayload(item) {
 
   // Package weight is required for eBay to calculate shipping
   const weightLbs = parseFloat(item.weight) || 1;
-  const weightMajor = Math.floor(weightLbs);
-  const weightMinor = Math.round((weightLbs - weightMajor) * 16); // remainder in oz
   payload.packageWeightAndSize = {
     weight: {
       value: weightLbs,
       unit: 'POUND',
     },
-    packageType: 'MAILING_BOX',
   };
 
   // Add UPC if available
