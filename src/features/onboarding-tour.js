@@ -392,6 +392,17 @@ function createOverlay() {
   document.addEventListener('keydown', _overlayEl._keyHandler);
 }
 
+/** Clamp a rect so spotlight doesn't exceed viewport */
+function clampRect(rect) {
+  const vw = window.innerWidth, vh = window.innerHeight;
+  // If the element is taller/wider than 60% of viewport, treat as a "full view" target
+  // and show a smaller highlight region (top portion only)
+  let top = rect.top, left = rect.left, width = rect.width, height = rect.height;
+  if (height > vh * 0.6) { height = Math.min(120, vh * 0.2); }
+  if (width > vw * 0.9) { left = 16; width = vw - 32; }
+  return { top, left, width, height, bottom: top + height, right: left + width };
+}
+
 function goToStep(idx) {
   if (idx < 0 || idx >= _activeSteps.length) return;
   _currentStep = idx;
@@ -408,57 +419,72 @@ function goToStep(idx) {
 
     const spotlight = document.getElementById('tourSpotlight');
     const tooltip = document.getElementById('tourTooltip');
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const margin = 12; // min distance from viewport edges
+    const ttW = Math.min(340, vw - margin * 2);
 
     if (targetEl) {
       targetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
       setTimeout(() => {
-        const rect = targetEl.getBoundingClientRect();
+        const rawRect = targetEl.getBoundingClientRect();
+        const rect = clampRect(rawRect);
         const pad = 8;
 
         spotlight.style.cssText = `
           position: fixed;
-          top: ${rect.top - pad}px;
-          left: ${rect.left - pad}px;
-          width: ${rect.width + pad * 2}px;
-          height: ${rect.height + pad * 2}px;
+          top: ${Math.max(0, rect.top - pad)}px;
+          left: ${Math.max(0, rect.left - pad)}px;
+          width: ${Math.min(rect.width + pad * 2, vw)}px;
+          height: ${Math.min(rect.height + pad * 2, vh * 0.5)}px;
           display: block;
         `;
 
-        const ttW = Math.min(340, window.innerWidth - 32);
+        // Position tooltip — try preferred position, then flip if it overflows
         let ttTop, ttLeft;
 
+        // Horizontal: center on target, clamped to viewport
+        if (position === 'bottom-left') {
+          ttLeft = Math.max(margin, rect.right - ttW);
+        } else {
+          ttLeft = rect.left + rect.width / 2 - ttW / 2;
+        }
+        ttLeft = Math.max(margin, Math.min(ttLeft, vw - ttW - margin));
+
+        // Vertical: place below or above target
+        const spaceBelow = vh - rect.bottom - 16;
+        const spaceAbove = rect.top - 16;
+        const estimatedHeight = 220; // rough tooltip height
+
         if (position === 'bottom' || position === 'bottom-left') {
-          ttTop = rect.bottom + 16;
-          ttLeft = position === 'bottom-left'
-            ? Math.max(16, rect.right - ttW)
-            : Math.max(16, rect.left + rect.width / 2 - ttW / 2);
+          // Prefer below
+          if (spaceBelow >= estimatedHeight || spaceBelow >= spaceAbove) {
+            ttTop = rect.bottom + 16;
+          } else {
+            // Flip to above
+            ttTop = rect.top - estimatedHeight - 16;
+          }
         } else {
-          ttTop = rect.top - 16;
-          ttLeft = Math.max(16, rect.left + rect.width / 2 - ttW / 2);
+          // Prefer above (position === 'top')
+          if (spaceAbove >= estimatedHeight || spaceAbove >= spaceBelow) {
+            ttTop = rect.top - estimatedHeight - 16;
+          } else {
+            // Flip to below
+            ttTop = rect.bottom + 16;
+          }
         }
 
-        ttLeft = Math.min(ttLeft, window.innerWidth - ttW - 16);
-        ttTop = Math.max(16, ttTop);
+        // Final vertical clamp — never go off-screen
+        ttTop = Math.max(margin, Math.min(ttTop, vh - estimatedHeight - margin));
 
-        if (position !== 'top' && ttTop + 200 > window.innerHeight) {
-          ttTop = rect.top - 200;
-        }
-        if (position === 'top') {
-          tooltip.style.cssText = `position:fixed;bottom:${window.innerHeight - rect.top + 16}px;left:${ttLeft}px;display:block;width:${ttW}px;`;
-        } else {
-          tooltip.style.cssText = `position:fixed;top:${ttTop}px;left:${ttLeft}px;display:block;width:${ttW}px;`;
-        }
+        tooltip.style.cssText = `position:fixed;top:${ttTop}px;left:${ttLeft}px;display:block;width:${ttW}px;max-height:${vh - margin * 2}px;overflow-y:auto;`;
       }, 300);
     } else {
       spotlight.style.display = 'none';
-      const ttW = Math.min(340, window.innerWidth - 32);
-      tooltip.style.cssText = `position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);display:block;width:${ttW}px;`;
+      tooltip.style.cssText = `position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);display:block;width:${ttW}px;max-height:${vh - margin * 2}px;overflow-y:auto;`;
     }
 
     // Section badge
-    const sections = getSections();
-    const sectionIdx = sections.indexOf(step.section);
     document.getElementById('tourSection').textContent = step.section || '';
     document.getElementById('tourSection').style.display = step.section ? '' : 'none';
 
