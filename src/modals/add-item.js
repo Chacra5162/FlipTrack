@@ -143,8 +143,8 @@ export function addFormTab(tab, btn) {
   const basicIds = ['f_name','f_sku','f_upc','f_cat','f_source','f_subcat_txt','f_subtype_txt','f_plat_picker','f_bulk','f_qty','f_alert'].map(id=>document.getElementById(id));
   // Pricing fields: cost, price, fees, ship, condition, smoke exposure, profit preview
   const pricingIds = ['f_cost','f_price','f_fees','f_ship','f_condition','f_smoke'].map(id=>document.getElementById(id));
-  // Details fields: notes, dimensions, photos, book fields
-  const detailIds = ['f_notes','f_book_fields','fImgWrap'].map(id=>document.getElementById(id));
+  // Details fields: notes, eBay fields, dimensions, photos, book fields
+  const detailIds = ['f_ebay_fields','f_ebay_desc','f_notes','f_book_fields','fImgWrap'].map(id=>document.getElementById(id));
 
   const showGrp = (el) => { if(el) { const grp = el.closest('.fgrp') || el.closest('.full') || el; grp.style.display=''; }};
   const hideGrp = (el) => { if(el) { const grp = el.closest('.fgrp') || el.closest('.full') || el; grp.style.display='none'; }};
@@ -189,7 +189,7 @@ export function openAddModal(){
 export function closeAdd(){
   releaseFocus();
   document.getElementById('addOv').classList.remove('on');
-  ['f_name','f_sku','f_upc','f_cat','f_subcat_txt','f_subtype_txt','f_cost','f_price','f_fees','f_ship','f_notes','f_alert','f_source','f_condition'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['f_name','f_sku','f_upc','f_cat','f_subcat_txt','f_subtype_txt','f_cost','f_price','f_fees','f_ship','f_notes','f_alert','f_source','f_condition','f_brand','f_color','f_size','f_material','f_mpn','f_model','f_style','f_pattern','f_ebay_desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('f_qty').value='1';
   const bulkCb = document.getElementById('f_bulk'); if(bulkCb) bulkCb.checked=false;
   const bulkFields = document.getElementById('f_bulk_fields'); if(bulkFields) bulkFields.style.display='none';
@@ -317,7 +317,18 @@ export function addItem(){
   const subcatVal = (document.getElementById('f_subcat_txt').value||'').trim();
   const subtypeVal = (document.getElementById('f_subtype_txt').value||'').trim();
   if (subcatVal && subtypeVal) window._saveCustomType?.(subcatVal, subtypeVal);
-  inv.push({id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:subcatVal,subtype:subtypeVal,platform,platforms:selPlats,cost:isNaN(cost)?0:cost,price,qty,bulk:isBulk,fees:isNaN(fees)?0:fees,ship:isNaN(ship)?0:ship,lowAlert,notes:document.getElementById('f_notes').value.trim(),source:document.getElementById('f_source').value.trim(),condition:document.getElementById('f_condition').value.trim(),smoke:smokeVal,coverType:isBookCat(cat)?coverVal:null,images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),...(isBookCat(cat) ? getBookFields('f') : {}),added:new Date().toISOString()});
+  // eBay listing detail fields
+  const brand = (document.getElementById('f_brand')?.value || '').trim();
+  const color = (document.getElementById('f_color')?.value || '').trim();
+  const size = (document.getElementById('f_size')?.value || '').trim();
+  const material = (document.getElementById('f_material')?.value || '').trim();
+  const mpn = (document.getElementById('f_mpn')?.value || '').trim();
+  const model = (document.getElementById('f_model')?.value || '').trim();
+  const style = (document.getElementById('f_style')?.value || '').trim();
+  const pattern = (document.getElementById('f_pattern')?.value || '').trim();
+  const ebayDesc = (document.getElementById('f_ebay_desc')?.value || '').trim();
+
+  inv.push({id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:subcatVal,subtype:subtypeVal,platform,platforms:selPlats,cost:isNaN(cost)?0:cost,price,qty,bulk:isBulk,fees:isNaN(fees)?0:fees,ship:isNaN(ship)?0:ship,lowAlert,notes:document.getElementById('f_notes').value.trim(),source:document.getElementById('f_source').value.trim(),condition:document.getElementById('f_condition').value.trim(),smoke:smokeVal,coverType:isBookCat(cat)?coverVal:null,brand,color,size,material,mpn,model,style,pattern,ebayDesc,images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),...(isBookCat(cat) ? getBookFields('f') : {}),added:new Date().toISOString()});
   markDirty('inv', newId);
   save(); closeAdd(); refresh(); _sfx.create(); toast('Item added ✓');
 

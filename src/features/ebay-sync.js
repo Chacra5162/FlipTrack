@@ -254,14 +254,44 @@ function _buildInventoryPayload(item) {
     payload.product.aspects = aspects;
   }
 
-  // Package weight is required for eBay to calculate shipping
-  const weightLbs = parseFloat(item.weight) || 1;
+  // Package weight — read from weightMaj/weightMin (lb/oz or kg/g)
+  const unit = item.dimUnit || 'in';
+  const maj = parseFloat(item.weightMaj) || 0;
+  const min = parseFloat(item.weightMin) || 0;
+  let weightLbs;
+  if (unit === 'cm') {
+    // kg + g → convert to lbs
+    weightLbs = (maj + min / 1000) * 2.205;
+  } else {
+    // lb + oz
+    weightLbs = maj + min / 16;
+  }
+  if (weightLbs <= 0) weightLbs = 1; // default 1 lb if not set
   payload.packageWeightAndSize = {
     weight: {
-      value: weightLbs,
+      value: Math.round(weightLbs * 100) / 100,
       unit: 'POUND',
     },
   };
+
+  // Package dimensions if provided
+  const dimL = parseFloat(item.dimL) || 0;
+  const dimW = parseFloat(item.dimW) || 0;
+  const dimH = parseFloat(item.dimH) || 0;
+  if (dimL > 0 && dimW > 0 && dimH > 0) {
+    let lenIn = dimL, widIn = dimW, hgtIn = dimH;
+    if (unit === 'cm') {
+      lenIn = dimL / 2.54;
+      widIn = dimW / 2.54;
+      hgtIn = dimH / 2.54;
+    }
+    payload.packageWeightAndSize.dimensions = {
+      length: Math.round(lenIn * 10) / 10,
+      width: Math.round(widIn * 10) / 10,
+      height: Math.round(hgtIn * 10) / 10,
+      unit: 'INCH',
+    };
+  }
 
   // Add UPC if available
   if (item.upc) {
@@ -273,26 +303,72 @@ function _buildInventoryPayload(item) {
     payload.product.isbn = [item.isbn];
   }
 
+  // Add MPN if available
+  if (item.mpn) {
+    payload.product.mpn = item.mpn;
+  }
+
   return payload;
 }
 
 function _buildDescription(item) {
-  const parts = [];
-  if (item.condition) parts.push(`Condition: ${item.condition}`);
-  if (item.category) parts.push(`Category: ${item.category}`);
-  if (item.subcategory) parts.push(`Subcategory: ${item.subcategory}`);
-  if (item.notes) parts.push(item.notes);
-  parts.push('Ships fast! Check my other listings for bundle deals.');
-  return parts.join('\n');
+  // If user wrote a custom eBay description, use it
+  if (item.ebayDesc) return item.ebayDesc;
+
+  // Auto-generate a comprehensive listing description
+  const lines = [];
+  lines.push((item.name || 'Item') + '\n');
+
+  const details = [];
+  if (item.brand && item.brand !== 'Unbranded') details.push(`Brand: ${item.brand}`);
+  if (item.model) details.push(`Model: ${item.model}`);
+  if (item.color) details.push(`Color: ${item.color}`);
+  if (item.size) details.push(`Size: ${item.size}`);
+  if (item.material) details.push(`Material: ${item.material}`);
+  if (item.style) details.push(`Style: ${item.style}`);
+  if (item.pattern) details.push(`Pattern: ${item.pattern}`);
+  if (item.mpn) details.push(`MPN: ${item.mpn}`);
+  if (item.condition) details.push(`Condition: ${item.condition}`);
+  if (item.subcategory) details.push(`Category: ${item.subcategory}`);
+  // Book-specific fields
+  if (item.author) details.push(`Author: ${item.author}`);
+  if (item.publisher) details.push(`Publisher: ${item.publisher}`);
+  if (item.edition) details.push(`Edition: ${item.edition}`);
+  if (item.pubYear) details.push(`Year: ${item.pubYear}`);
+  if (item.coverType) details.push(`Cover: ${item.coverType}`);
+
+  if (details.length > 0) {
+    lines.push(details.join('\n'));
+    lines.push('');
+  }
+
+  if (item.notes) {
+    lines.push(item.notes);
+    lines.push('');
+  }
+
+  lines.push('Ships fast! Check my other listings for bundle deals.');
+  return lines.join('\n');
 }
 
 function _buildAspects(item) {
   const aspects = {};
   // Brand is required by most eBay categories — default to "Unbranded"
   aspects['Brand'] = [item.brand || 'Unbranded'];
-  if (item.author) aspects['Author'] = [item.author];
   if (item.color) aspects['Color'] = [item.color];
   if (item.size) aspects['Size'] = [item.size];
+  if (item.material) aspects['Material'] = [item.material];
+  if (item.style) aspects['Style'] = [item.style];
+  if (item.pattern) aspects['Pattern'] = [item.pattern];
+  if (item.model) aspects['Model'] = [item.model];
+  if (item.mpn) aspects['MPN'] = [item.mpn];
+  // Book-specific aspects
+  if (item.author) aspects['Author'] = [item.author];
+  if (item.publisher) aspects['Publisher'] = [item.publisher];
+  if (item.edition) aspects['Edition'] = [item.edition];
+  if (item.pubYear) aspects['Publication Year'] = [String(item.pubYear)];
+  if (item.coverType) aspects['Format'] = [item.coverType === 'hardcover' ? 'Hardcover' : 'Paperback'];
+  if (item.isbn) aspects['ISBN'] = [item.isbn];
   return aspects;
 }
 

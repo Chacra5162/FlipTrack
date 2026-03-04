@@ -650,6 +650,21 @@
             </div>
           </div>
         </div>
+        <!-- eBay Listing Details -->
+        <div class="edit-grp full" id="d_ebay_fields" style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
+          <div class="edit-lbl" style="color:var(--accent);margin-bottom:8px">eBay Listing Details</div>
+          <div class="form-grid" style="margin-top:0">
+            <div class="edit-grp"><div class="edit-lbl">Brand</div><input class="edit-inp" type="text" id="d_brand" placeholder="e.g. Nike, Unbranded" list="brandList"></div>
+            <div class="edit-grp"><div class="edit-lbl">Color</div><input class="edit-inp" type="text" id="d_color" placeholder="e.g. Black, Red/Blue" list="colorList"></div>
+            <div class="edit-grp"><div class="edit-lbl">Size</div><input class="edit-inp" type="text" id="d_size" placeholder="e.g. Large, 10, 32x30"></div>
+            <div class="edit-grp"><div class="edit-lbl">Material</div><input class="edit-inp" type="text" id="d_material" placeholder="e.g. Cotton, Leather" list="materialList"></div>
+            <div class="edit-grp"><div class="edit-lbl">MPN</div><input class="edit-inp" type="text" id="d_mpn" placeholder="Mfr Part Number"></div>
+            <div class="edit-grp"><div class="edit-lbl">Model</div><input class="edit-inp" type="text" id="d_model" placeholder="e.g. Air Max 90"></div>
+            <div class="edit-grp"><div class="edit-lbl">Style</div><input class="edit-inp" type="text" id="d_style" placeholder="e.g. Casual, Athletic"></div>
+            <div class="edit-grp"><div class="edit-lbl">Type / Pattern</div><input class="edit-inp" type="text" id="d_pattern" placeholder="e.g. Solid, Striped"></div>
+          </div>
+        </div>
+        <div class="edit-grp full"><div class="edit-lbl">eBay Description</div><textarea class="edit-ta" id="d_ebay_desc" placeholder="Custom eBay listing description (optional — auto-generated if blank)"></textarea></div>
         <div class="edit-grp full"><div class="edit-lbl">Notes</div><textarea class="edit-ta" id="d_notes"></textarea></div>
       </div>
       <!-- Fee Calculator -->
@@ -1086,6 +1101,40 @@
             </div>
           </div>
         </div>
+        <!-- eBay Listing Details -->
+        <div class="fgrp full" id="f_ebay_fields" style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
+          <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:8px;display:block">eBay Listing Details</label>
+          <div class="form-grid" style="margin-top:0">
+            <div class="fgrp"><label>Brand</label><input type="text" id="f_brand" placeholder="e.g. Nike, Unbranded" list="brandList"></div>
+            <div class="fgrp"><label>Color</label><input type="text" id="f_color" placeholder="e.g. Black, Red/Blue" list="colorList"></div>
+            <div class="fgrp"><label>Size</label><input type="text" id="f_size" placeholder="e.g. Large, 10, 32x30"></div>
+            <div class="fgrp"><label>Material</label><input type="text" id="f_material" placeholder="e.g. Cotton, Leather" list="materialList"></div>
+            <div class="fgrp"><label>MPN</label><input type="text" id="f_mpn" placeholder="Mfr Part Number"></div>
+            <div class="fgrp"><label>Model</label><input type="text" id="f_model" placeholder="e.g. Air Max 90"></div>
+            <div class="fgrp"><label>Style</label><input type="text" id="f_style" placeholder="e.g. Casual, Athletic"></div>
+            <div class="fgrp"><label>Type / Pattern</label><input type="text" id="f_pattern" placeholder="e.g. Solid, Striped"></div>
+          </div>
+          <datalist id="brandList">
+            <option value="Unbranded"><option value="Nike"><option value="Adidas"><option value="Levi's">
+            <option value="Under Armour"><option value="Champion"><option value="Carhartt"><option value="The North Face">
+            <option value="Patagonia"><option value="Ralph Lauren"><option value="Tommy Hilfiger"><option value="Calvin Klein">
+            <option value="Coach"><option value="Michael Kors"><option value="Gucci"><option value="Louis Vuitton">
+            <option value="Apple"><option value="Samsung"><option value="Sony"><option value="Dell">
+          </datalist>
+          <datalist id="colorList">
+            <option value="Black"><option value="White"><option value="Blue"><option value="Red">
+            <option value="Green"><option value="Gray"><option value="Navy"><option value="Brown">
+            <option value="Pink"><option value="Purple"><option value="Orange"><option value="Yellow">
+            <option value="Beige"><option value="Multicolor">
+          </datalist>
+          <datalist id="materialList">
+            <option value="Cotton"><option value="Polyester"><option value="Leather"><option value="Denim">
+            <option value="Nylon"><option value="Wool"><option value="Silk"><option value="Linen">
+            <option value="Canvas"><option value="Suede"><option value="Rubber"><option value="Metal">
+            <option value="Plastic"><option value="Wood"><option value="Glass"><option value="Ceramic">
+          </datalist>
+        </div>
+        <div class="fgrp full"><label>eBay Description</label><textarea id="f_ebay_desc" placeholder="Custom eBay listing description (optional — auto-generated if blank)" style="min-height:60px"></textarea></div>
         <div class="fgrp full"><label>Notes</label><textarea id="f_notes" placeholder="Condition, sourcing, etc."></textarea></div>
         <div class="fgrp full" id="f_dim_section">
           <label style="display:flex;align-items:center;justify-content:space-between">
