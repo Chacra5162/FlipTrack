@@ -395,8 +395,13 @@ async function _fetchMerchantLocation() {
     console.log('[eBay] Creating default merchant location…');
     await ebayAPI('POST', `${INVENTORY_API}/location/${key}`, {
       location: {
-        address: { country: 'US' },
+        address: {
+          postalCode: '10001',
+          country: 'US',
+        },
       },
+      locationTypes: ['WAREHOUSE'],
+      name: 'Default',
       merchantLocationStatus: 'ENABLED',
     });
     _locationKeyCache = key;
