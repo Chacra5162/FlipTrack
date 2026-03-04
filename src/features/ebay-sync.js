@@ -441,6 +441,15 @@ export async function pushItemToEBay(itemId) {
   // Use existing eBay SKU or FlipTrack SKU or generate one
   const sku = item.ebayItemId || item.sku || `FT-${itemId.slice(0, 12)}`;
   const payload = _buildInventoryPayload(item);
+
+  // Auto-detect category and fill required aspects
+  try {
+    const catId = await _suggestCategory(item.name || 'item');
+    if (catId && payload.product?.aspects) {
+      await _fillMissingAspects(payload.product.aspects, catId, item);
+    }
+  } catch (e) { console.warn('[eBay] Aspect pre-fill skipped:', e.message); }
+
   console.log('[eBay] Inventory payload:', JSON.stringify(payload, null, 2));
 
   try {
@@ -482,6 +491,15 @@ export async function updateEBayListing(itemId) {
 
   // 1. Update the inventory item with latest data
   const payload = _buildInventoryPayload(item);
+
+  // Auto-detect category and fill required aspects before pushing
+  try {
+    const catId = await _suggestCategory(item.name || 'item');
+    if (catId && payload.product?.aspects) {
+      await _fillMissingAspects(payload.product.aspects, catId, item);
+    }
+  } catch (e) { console.warn('[eBay] Aspect pre-fill skipped:', e.message); }
+
   console.log('[eBay] Updating inventory item:', sku);
   await ebayAPI('PUT', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`, payload);
   console.log('[eBay] Inventory item updated');
