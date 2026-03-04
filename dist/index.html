@@ -22,7 +22,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"></noscript>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
-  <script type="module" crossorigin src="./assets/index-N0dtLSCG.js"></script>
+  <script type="module" crossorigin src="./assets/index-vN6Dgc5z.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/vendor-supabase-jY4wIOEF.js">
   <link rel="stylesheet" crossorigin href="./assets/index-yydwUGLB.css">
 </head>
@@ -660,6 +660,20 @@
             <div class="edit-grp"><div class="edit-lbl">Brand</div><input class="edit-inp" type="text" id="d_brand" placeholder="e.g. Nike, Unbranded" list="brandList"></div>
             <div class="edit-grp"><div class="edit-lbl">Color</div><input class="edit-inp" type="text" id="d_color" placeholder="e.g. Black, Red/Blue" list="colorList"></div>
             <div class="edit-grp"><div class="edit-lbl">Size</div><input class="edit-inp" type="text" id="d_size" placeholder="e.g. Large, 10, 32x30"></div>
+            <div class="edit-grp"><div class="edit-lbl">Size Type</div>
+              <select class="edit-inp" id="d_sizeType">
+                <option value="">—</option><option value="Regular">Regular</option><option value="Plus">Plus</option>
+                <option value="Petite">Petite</option><option value="Big">Big</option><option value="Tall">Tall</option>
+                <option value="Big & Tall">Big & Tall</option><option value="Junior">Junior</option><option value="Husky">Husky</option>
+              </select>
+            </div>
+            <div class="edit-grp"><div class="edit-lbl">Department</div>
+              <select class="edit-inp" id="d_department">
+                <option value="">—</option><option value="Men's">Men's</option><option value="Women's">Women's</option>
+                <option value="Boys'">Boys'</option><option value="Girls'">Girls'</option><option value="Unisex Kids">Unisex Kids</option>
+                <option value="Unisex Adults">Unisex Adults</option>
+              </select>
+            </div>
             <div class="edit-grp"><div class="edit-lbl">Material</div><input class="edit-inp" type="text" id="d_material" placeholder="e.g. Cotton, Leather" list="materialList"></div>
             <div class="edit-grp"><div class="edit-lbl">MPN</div><input class="edit-inp" type="text" id="d_mpn" placeholder="Mfr Part Number"></div>
             <div class="edit-grp"><div class="edit-lbl">Model</div><input class="edit-inp" type="text" id="d_model" placeholder="e.g. Air Max 90"></div>
@@ -1111,6 +1125,20 @@
             <div class="fgrp"><label>Brand</label><input type="text" id="f_brand" placeholder="e.g. Nike, Unbranded" list="brandList"></div>
             <div class="fgrp"><label>Color</label><input type="text" id="f_color" placeholder="e.g. Black, Red/Blue" list="colorList"></div>
             <div class="fgrp"><label>Size</label><input type="text" id="f_size" placeholder="e.g. Large, 10, 32x30"></div>
+            <div class="fgrp"><label>Size Type</label>
+              <select id="f_sizeType">
+                <option value="">—</option><option value="Regular">Regular</option><option value="Plus">Plus</option>
+                <option value="Petite">Petite</option><option value="Big">Big</option><option value="Tall">Tall</option>
+                <option value="Big & Tall">Big & Tall</option><option value="Junior">Junior</option><option value="Husky">Husky</option>
+              </select>
+            </div>
+            <div class="fgrp"><label>Department</label>
+              <select id="f_department">
+                <option value="">—</option><option value="Men's">Men's</option><option value="Women's">Women's</option>
+                <option value="Boys'">Boys'</option><option value="Girls'">Girls'</option><option value="Unisex Kids">Unisex Kids</option>
+                <option value="Unisex Adults">Unisex Adults</option>
+              </select>
+            </div>
             <div class="fgrp"><label>Material</label><input type="text" id="f_material" placeholder="e.g. Cotton, Leather" list="materialList"></div>
             <div class="fgrp"><label>MPN</label><input type="text" id="f_mpn" placeholder="Mfr Part Number"></div>
             <div class="fgrp"><label>Model</label><input type="text" id="f_model" placeholder="e.g. Air Max 90"></div>
