@@ -142,6 +142,10 @@ import {
   clToggleAutoRelist, clRunAutoRelist, clBulkPrice,
   clEBayConnect, clEBayDisconnect, clEBaySync, clPushToEBay, clPublishOnEBay, clEndEBayListing,
   clEtsyConnect, clEtsyDisconnect, clEtsySync, clPushToEtsy, clDeactivateEtsyListing, clRenewEtsyListing,
+  clEtsySubTab, clEtsyLoadStats, clEtsyLoadReviews, clEtsyLoadShipments,
+  clEtsyPushTracking, clEtsySyncQty, clEtsyPushPhotos, clEtsyPushQty,
+  clEtsyPushPrice, clEtsyTagSelect, clEtsyRemoveTag, clEtsyAddTag,
+  clEtsySuggestTags, clEtsySaveTags, clEtsySyncExpenses,
   wnToggleShow, wnNewShow, wnDeleteShow, wnStartShow, wnEndShow,
   wnMarkSold, wnMoveItem, wnRemoveItem, wnOpenItemPicker, wnCloseItemPicker,
   wnPickItem, wnCopyPrep,
@@ -152,7 +156,7 @@ import {
 import { initEBayAuth, handleEBayCallback, isEBayConnected } from './features/ebay-auth.js';
 import { initEBaySync, startEBaySyncInterval } from './features/ebay-sync.js';
 import { initEtsyAuth, handleEtsyCallback, isEtsyConnected } from './features/etsy-auth.js';
-import { initEtsySync, startEtsySyncInterval } from './features/etsy-sync.js';
+import { initEtsySync, startEtsySyncInterval, syncEtsyExpenses } from './features/etsy-sync.js';
 import { initWhatnotShows, getTodayShows } from './features/whatnot-show.js';
 import {
   setDimUnit, updateDimWeight, suggestPackaging,
@@ -467,6 +471,11 @@ Object.assign(window, {
   clEtsyConnect, clEtsyDisconnect, clEtsySync,
   clPushToEtsy, clDeactivateEtsyListing, clRenewEtsyListing,
   handleEtsyCallback,
+  // Etsy Phase 2: Stats, Reviews, Shipments, Tags, Qty, Photos, Price, Expenses
+  clEtsySubTab, clEtsyLoadStats, clEtsyLoadReviews, clEtsyLoadShipments,
+  clEtsyPushTracking, clEtsySyncQty, clEtsyPushPhotos, clEtsyPushQty,
+  clEtsyPushPrice, clEtsyTagSelect, clEtsyRemoveTag, clEtsyAddTag,
+  clEtsySuggestTags, clEtsySaveTags, clEtsySyncExpenses,
 });
 
 // Whatnot Integration
@@ -888,7 +897,10 @@ setTimeout(_killSplash, 3000);
       if (isEBayConnected()) startEBaySyncInterval();
     }).catch(e => console.warn('eBay init:', e.message));
     initEtsyAuth(_sbClient).then(() => {
-      if (isEtsyConnected()) startEtsySyncInterval();
+      if (isEtsyConnected()) {
+        startEtsySyncInterval();
+        syncEtsyExpenses().catch(e => console.warn('Etsy expense sync:', e.message));
+      }
     }).catch(e => console.warn('Etsy init:', e.message));
     initAIListing(_sbClient);
   }

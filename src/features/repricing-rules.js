@@ -10,6 +10,7 @@ import { toast } from '../utils/dom.js';
 import { getMeta, setMeta } from '../data/idb.js';
 import { logPriceChange } from './price-history.js';
 import { getItemShowsWithoutSale } from './whatnot-show.js';
+import { pushEtsyPrice } from './etsy-sync.js';
 
 // ── DEFAULT RULES ────────────────────────────────────────────────────────────
 const DEFAULT_RULES = [
@@ -245,6 +246,10 @@ export function applyRepricing(suggestions) {
     logPriceChange(item.id, suggestion.suggestedPrice, 'repricing');
     item.price = suggestion.suggestedPrice;
     markDirty('inv', item.id);
+    // Auto-push price to Etsy if item has an Etsy listing
+    if (item.etsyListingId) {
+      pushEtsyPrice(item.id).catch(e => console.warn('Etsy price sync:', e.message));
+    }
   });
 
   save();

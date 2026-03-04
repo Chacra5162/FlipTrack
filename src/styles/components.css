@@ -2859,3 +2859,82 @@ textarea { resize:vertical; min-height:70px; }
   font-size: 13px;
 }
 .wn-empty-icon { font-size: 32px; margin-bottom: 8px; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ETSY FEATURES — Sub-tabs, Stats, Reviews, Shipments, Tags
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.etsy-subtabs {
+  display: flex; gap: 4px; padding: 8px 12px 0;
+  border-bottom: 1px solid var(--border); margin-bottom: 0;
+}
+.etsy-subtab {
+  padding: 6px 14px; font-size: 12px; font-weight: 600;
+  border: none; background: transparent; color: var(--muted);
+  cursor: pointer; border-bottom: 2px solid transparent;
+  transition: color .15s, border-color .15s;
+}
+.etsy-subtab:hover { color: var(--text); }
+.etsy-subtab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.etsy-stats-panel {
+  padding: 14px; background: var(--card); border-radius: 0 0 10px 10px;
+  border: 1px solid var(--border); border-top: none;
+}
+
+.etsy-stats-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 10px; margin-bottom: 10px;
+}
+.etsy-stat {
+  text-align: center; padding: 8px 4px;
+  background: var(--bg); border-radius: 8px;
+}
+.etsy-stat-val { font-size: 18px; font-weight: 700; color: var(--text); }
+.etsy-stat-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* Rating bars */
+.etsy-rating-bars { display: flex; flex-direction: column; gap: 4px; }
+.etsy-rating-row {
+  display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text);
+}
+.etsy-rating-row > span:first-child { width: 28px; text-align: right; }
+.etsy-rating-row > span:last-child { width: 24px; text-align: right; color: var(--muted); }
+.etsy-rating-bar {
+  flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden;
+}
+.etsy-rating-fill {
+  height: 100%; background: var(--warn); border-radius: 4px;
+  transition: width .3s ease;
+}
+
+/* Review cards */
+.etsy-review-card {
+  padding: 10px; border-bottom: 1px solid var(--border);
+}
+.etsy-review-card:last-child { border-bottom: none; }
+
+/* Pending shipments */
+.etsy-pending-ship {
+  padding: 10px; border-bottom: 1px solid var(--border);
+}
+.etsy-pending-ship:last-child { border-bottom: none; }
+.etsy-tracking-input {
+  padding: 5px 8px; font-size: 12px; border: 1px solid var(--border);
+  border-radius: 6px; background: var(--bg); color: var(--text);
+}
+
+/* Tag chips */
+.etsy-tag-chip, .etsy-tag-suggest {
+  display: inline-block; padding: 3px 10px; font-size: 12px;
+  border-radius: 12px; cursor: pointer; transition: all .15s;
+}
+.etsy-tag-chip {
+  background: var(--accent); color: #fff;
+}
+.etsy-tag-chip:hover { opacity: 0.8; }
+.etsy-tag-suggest {
+  background: transparent; border: 1px dashed var(--accent);
+  color: var(--accent);
+}
+.etsy-tag-suggest:hover { background: var(--accent); color: #fff; }

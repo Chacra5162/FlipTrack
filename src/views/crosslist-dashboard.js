@@ -21,7 +21,16 @@ import { getTemplatesForCategory } from '../features/listing-templates.js';
 import { isEBayConnected, isEBayStatusVerified, getEBayUsername, connectEBay, disconnectEBay, checkEBayStatus } from '../features/ebay-auth.js';
 import { pullEBayListings, pushItemToEBay, publishEBayListing, endEBayListing, isEBaySyncing, getLastEBaySyncTime } from '../features/ebay-sync.js';
 import { isEtsyConnected, getEtsyShopName, connectEtsy, disconnectEtsy } from '../features/etsy-auth.js';
-import { pullEtsyListings, pushItemToEtsy, deactivateEtsyListing, renewEtsyListing, isEtsySyncing, getLastEtsySyncTime } from '../features/etsy-sync.js';
+import {
+  pullEtsyListings, pushItemToEtsy, deactivateEtsyListing, renewEtsyListing, isEtsySyncing, getLastEtsySyncTime,
+  pushEtsyQuantity, syncAllEtsyQuantities, pushEtsyPhotos,
+  fetchEtsyShopStats, fetchEtsyListingStats, getEtsyAnalyticsSummary,
+  fetchEtsyReviews, getEtsyReviewSummary,
+  fetchEtsyReceiptsPending, pushEtsyTracking, getEtsyCarriers,
+  pushEtsyPrice, pushEtsyPriceBulk,
+  fetchEtsyListingTags, suggestEtsyTags, pushEtsyTags,
+  calcEtsyFees, syncEtsyExpenses
+} from '../features/etsy-sync.js';
 import {
   getUpcomingShows, getPastShows, getShow, createShow, updateShow, deleteShow,
   addItemToShow, addItemsToShow, removeItemFromShow, moveShowItem,
@@ -42,6 +51,11 @@ let _clPage = 0;
 const _clPageSize = 25;
 let _clSearch = '';
 let _clPlatFilter = 'all';
+let _etsyTab = 'none'; // 'none' | 'stats' | 'reviews' | 'shipments' | 'tags'
+let _etsyStatsCache = null;
+let _etsyReviewsCache = null;
+let _etsyPendingCache = null;
+let _etsyTagEditItem = null;
 let _clStatusFilter = 'all';
 let _wnExpandedShow = null; // which show is expanded in the Whatnot panel
 let _wnShowItemPicker = false; // whether item picker is open
@@ -549,7 +563,7 @@ function _renderEtsyPanel() {
     : 'Never';
 
   if (connected) {
-    return `<div class="etsy-panel etsy-connected">
+    let html = `<div class="etsy-panel etsy-connected">
       <div class="etsy-panel-left">
         <div class="etsy-panel-status">
           <span class="etsy-dot etsy-dot-on"></span>
@@ -565,6 +579,22 @@ function _renderEtsyPanel() {
         <button class="btn-sm btn-muted" onclick="clEtsyDisconnect()">Disconnect</button>
       </div>
     </div>`;
+
+    // Sub-tabs for Etsy features
+    html += `<div class="etsy-subtabs">
+      <button class="etsy-subtab ${_etsyTab === 'stats' ? 'active' : ''}" onclick="clEtsySubTab('stats')">Stats</button>
+      <button class="etsy-subtab ${_etsyTab === 'reviews' ? 'active' : ''}" onclick="clEtsySubTab('reviews')">Reviews</button>
+      <button class="etsy-subtab ${_etsyTab === 'shipments' ? 'active' : ''}" onclick="clEtsySubTab('shipments')">Shipments</button>
+      <button class="etsy-subtab ${_etsyTab === 'tags' ? 'active' : ''}" onclick="clEtsySubTab('tags')">Tags</button>
+    </div>`;
+
+    // Render active sub-tab content
+    if (_etsyTab === 'stats') html += _renderEtsyStats();
+    else if (_etsyTab === 'reviews') html += _renderEtsyReviews();
+    else if (_etsyTab === 'shipments') html += _renderEtsyShipments();
+    else if (_etsyTab === 'tags') html += _renderEtsyTags();
+
+    return html;
   }
 
   return `<div class="etsy-panel">
@@ -580,6 +610,156 @@ function _renderEtsyPanel() {
       <button class="btn-sm btn-etsy" onclick="clEtsyConnect()">Connect Etsy Shop</button>
     </div>
   </div>`;
+}
+
+function _renderEtsyStats() {
+  if (!_etsyStatsCache) {
+    return `<div class="etsy-stats-panel"><div style="text-align:center;padding:20px;color:var(--muted)">
+      <button class="btn-sm btn-etsy" onclick="clEtsyLoadStats()">Load Shop Stats</button>
+    </div></div>`;
+  }
+  const s = _etsyStatsCache;
+  const summary = getEtsyAnalyticsSummary();
+  return `<div class="etsy-stats-panel">
+    <div class="etsy-stats-grid">
+      <div class="etsy-stat"><div class="etsy-stat-val">${s.numFavorers}</div><div class="etsy-stat-lbl">Favorites</div></div>
+      <div class="etsy-stat"><div class="etsy-stat-val">${s.totalSold}</div><div class="etsy-stat-lbl">Total Sold</div></div>
+      <div class="etsy-stat"><div class="etsy-stat-val">${s.activeListings}</div><div class="etsy-stat-lbl">Active</div></div>
+      <div class="etsy-stat"><div class="etsy-stat-val">${s.reviewCount}</div><div class="etsy-stat-lbl">Reviews</div></div>
+      <div class="etsy-stat"><div class="etsy-stat-val">${s.reviewAvg ? s.reviewAvg.toFixed(1) + '★' : '—'}</div><div class="etsy-stat-lbl">Rating</div></div>
+      <div class="etsy-stat"><div class="etsy-stat-val">${fmt(summary.totalRevenue)}</div><div class="etsy-stat-lbl">Revenue</div></div>
+    </div>
+    ${summary.topItems.length ? `<div style="margin-top:12px">
+      <strong style="font-size:12px;color:var(--muted)">Top Sellers</strong>
+      ${summary.topItems.map(t => `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)">
+        <span>${escHtml(t.name)}</span><span style="color:var(--accent)">${t.count} sold</span>
+      </div>`).join('')}
+    </div>` : ''}
+    <div style="margin-top:8px;text-align:right">
+      <button class="btn-sm btn-muted" onclick="clEtsyLoadStats()">Refresh</button>
+      <button class="btn-sm btn-muted" onclick="clEtsySyncQty()">Sync All Quantities</button>
+      <button class="btn-sm btn-muted" onclick="clEtsySyncExpenses()">Sync Expenses</button>
+    </div>
+  </div>`;
+}
+
+function _renderEtsyReviews() {
+  if (!_etsyReviewsCache) {
+    return `<div class="etsy-stats-panel"><div style="text-align:center;padding:20px;color:var(--muted)">
+      <button class="btn-sm btn-etsy" onclick="clEtsyLoadReviews()">Load Reviews</button>
+    </div></div>`;
+  }
+  const summary = getEtsyReviewSummary(_etsyReviewsCache);
+  const stars = '★'.repeat(Math.round(summary.avg)) + '☆'.repeat(5 - Math.round(summary.avg));
+  return `<div class="etsy-stats-panel">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+      <span style="font-size:24px;font-weight:700">${summary.avg.toFixed(1)}</span>
+      <span style="font-size:18px;color:var(--warn)">${stars}</span>
+      <span style="color:var(--muted);font-size:13px">(${summary.count} reviews)</span>
+    </div>
+    <div class="etsy-rating-bars">
+      ${[5,4,3,2,1].map(n => {
+        const pctVal = summary.count ? Math.round(summary.distribution[n] / summary.count * 100) : 0;
+        return `<div class="etsy-rating-row">
+          <span>${n}★</span>
+          <div class="etsy-rating-bar"><div class="etsy-rating-fill" style="width:${pctVal}%"></div></div>
+          <span>${summary.distribution[n]}</span>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="margin-top:12px">
+      ${_etsyReviewsCache.slice(0, 10).map(r => `<div class="etsy-review-card">
+        <div style="display:flex;justify-content:space-between">
+          <span style="color:var(--warn)">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</span>
+          <span style="font-size:11px;color:var(--muted)">${r.createdAt ? new Date(r.createdAt).toLocaleDateString() : ''}</span>
+        </div>
+        ${r.message ? `<div style="font-size:13px;margin-top:4px">${escHtml(r.message.slice(0, 200))}${r.message.length > 200 ? '…' : ''}</div>` : '<div style="font-size:12px;color:var(--muted);margin-top:4px">No comment</div>'}
+      </div>`).join('')}
+    </div>
+    <div style="margin-top:8px;text-align:right">
+      <button class="btn-sm btn-muted" onclick="clEtsyLoadReviews()">Refresh</button>
+    </div>
+  </div>`;
+}
+
+function _renderEtsyShipments() {
+  if (!_etsyPendingCache) {
+    return `<div class="etsy-stats-panel"><div style="text-align:center;padding:20px;color:var(--muted)">
+      <button class="btn-sm btn-etsy" onclick="clEtsyLoadShipments()">Load Pending Shipments</button>
+    </div></div>`;
+  }
+  if (!_etsyPendingCache.length) {
+    return `<div class="etsy-stats-panel"><div style="text-align:center;padding:20px;color:var(--muted)">No pending shipments</div></div>`;
+  }
+  const carriers = getEtsyCarriers();
+  return `<div class="etsy-stats-panel">
+    <strong style="font-size:13px">${_etsyPendingCache.length} Pending Shipment${_etsyPendingCache.length > 1 ? 's' : ''}</strong>
+    ${_etsyPendingCache.map(r => `<div class="etsy-pending-ship">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <strong style="font-size:13px">${escHtml(r.buyerName)}</strong>
+        <span style="font-size:12px;color:var(--muted)">${r.createdAt ? new Date(r.createdAt).toLocaleDateString() : ''}</span>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px">
+        ${r.items.map(i => `${escHtml(i.title)} ×${i.quantity}`).join(', ')}
+        — ${fmt(r.totalPrice)}
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input type="text" class="etsy-tracking-input" id="etsyTrack_${r.receiptId}" placeholder="Tracking #" style="flex:1">
+        <select id="etsyCarrier_${r.receiptId}" class="etsy-tracking-input" style="width:100px">
+          ${carriers.map(c => `<option value="${c}">${c.toUpperCase()}</option>`).join('')}
+        </select>
+        <button class="btn-sm btn-etsy" onclick="clEtsyPushTracking('${r.receiptId}')">Ship</button>
+      </div>
+    </div>`).join('')}
+    <div style="margin-top:8px;text-align:right">
+      <button class="btn-sm btn-muted" onclick="clEtsyLoadShipments()">Refresh</button>
+    </div>
+  </div>`;
+}
+
+function _renderEtsyTags() {
+  const etsyItems = inv.filter(i => i.etsyListingId);
+  if (!etsyItems.length) {
+    return `<div class="etsy-stats-panel"><div style="text-align:center;padding:20px;color:var(--muted)">No Etsy-linked items</div></div>`;
+  }
+
+  let html = `<div class="etsy-stats-panel">
+    <strong style="font-size:13px">Tag Optimizer</strong>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Select an item to edit its Etsy tags (max 13 per listing)</div>
+    <select id="etsyTagItemPick" onchange="clEtsyTagSelect(this.value)" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);margin-bottom:10px">
+      <option value="">— Select item —</option>
+      ${etsyItems.map(i => `<option value="${i.id}" ${_etsyTagEditItem === i.id ? 'selected' : ''}>${escHtml(i.name || 'Untitled')} (${(i.tags || []).length}/13 tags)</option>`).join('')}
+    </select>`;
+
+  if (_etsyTagEditItem) {
+    const item = inv.find(i => i.id === _etsyTagEditItem);
+    if (item) {
+      const currentTags = item.tags || [];
+      const suggestions = suggestEtsyTags(item.id);
+      html += `<div style="margin-bottom:8px">
+        <strong style="font-size:12px">Current Tags (${currentTags.length}/13)</strong>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
+          ${currentTags.map((t, i) => `<span class="etsy-tag-chip" onclick="clEtsyRemoveTag('${_etsyTagEditItem}',${i})">${escHtml(t)} ×</span>`).join('')}
+          ${!currentTags.length ? '<span style="font-size:12px;color:var(--muted)">No tags</span>' : ''}
+        </div>
+      </div>`;
+      if (suggestions.length && currentTags.length < 13) {
+        html += `<div style="margin-bottom:8px">
+          <strong style="font-size:12px">Suggestions</strong>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
+            ${suggestions.slice(0, 13 - currentTags.length).map(t => `<span class="etsy-tag-suggest" onclick="clEtsyAddTag('${_etsyTagEditItem}','${escHtml(t)}')">${escHtml(t)} +</span>`).join('')}
+          </div>
+        </div>`;
+      }
+      html += `<div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn-sm btn-etsy" onclick="clEtsySaveTags('${_etsyTagEditItem}')">Save to Etsy</button>
+        <button class="btn-sm btn-muted" onclick="clEtsySuggestTags('${_etsyTagEditItem}')">Suggest More</button>
+      </div>`;
+    }
+  }
+
+  html += `</div>`;
+  return html;
 }
 
 // ── Etsy ACTION HANDLERS ─────────────────────────────────────────────────
@@ -628,6 +808,129 @@ export async function clRenewEtsyListing(itemId) {
     refresh();
     renderCrosslistDashboard();
   }
+}
+
+// ── Etsy SUB-TAB & FEATURE HANDLERS ──────────────────────────────────────
+
+export function clEtsySubTab(tab) {
+  _etsyTab = _etsyTab === tab ? 'none' : tab;
+  renderCrosslistDashboard();
+}
+
+export async function clEtsyLoadStats() {
+  toast('Loading Etsy stats…');
+  try {
+    _etsyStatsCache = await fetchEtsyShopStats();
+    renderCrosslistDashboard();
+  } catch (e) { toast(`Stats error: ${e.message}`, true); }
+}
+
+export async function clEtsyLoadReviews() {
+  toast('Loading Etsy reviews…');
+  try {
+    _etsyReviewsCache = await fetchEtsyReviews();
+    renderCrosslistDashboard();
+  } catch (e) { toast(`Reviews error: ${e.message}`, true); }
+}
+
+export async function clEtsyLoadShipments() {
+  toast('Loading pending shipments…');
+  try {
+    _etsyPendingCache = await fetchEtsyReceiptsPending();
+    renderCrosslistDashboard();
+  } catch (e) { toast(`Shipments error: ${e.message}`, true); }
+}
+
+export async function clEtsyPushTracking(receiptId) {
+  const trackEl = document.getElementById(`etsyTrack_${receiptId}`);
+  const carrierEl = document.getElementById(`etsyCarrier_${receiptId}`);
+  const tracking = trackEl?.value?.trim();
+  const carrier = carrierEl?.value || 'usps';
+  if (!tracking) { toast('Enter a tracking number', true); return; }
+  const result = await pushEtsyTracking(receiptId, tracking, carrier);
+  if (result.success) {
+    // Refresh pending list
+    _etsyPendingCache = await fetchEtsyReceiptsPending();
+    renderCrosslistDashboard();
+  }
+}
+
+export async function clEtsySyncQty() {
+  toast('Syncing quantities…');
+  try {
+    const r = await syncAllEtsyQuantities();
+    toast(`Qty sync: ${r.pulled} pulled, ${r.pushed} pushed`);
+    renderCrosslistDashboard();
+  } catch (e) { toast(`Qty sync error: ${e.message}`, true); }
+}
+
+export async function clEtsyPushPhotos(itemId) {
+  toast('Uploading photos…');
+  try {
+    await pushEtsyPhotos(itemId);
+  } catch (e) { toast(`Photo error: ${e.message}`, true); }
+}
+
+export async function clEtsyPushQty(itemId) {
+  await pushEtsyQuantity(itemId);
+}
+
+export async function clEtsyPushPrice(itemId) {
+  toast('Pushing price to Etsy…');
+  try {
+    const r = await pushEtsyPrice(itemId);
+    if (r.success) toast('Price synced to Etsy');
+    else toast('Price sync failed', true);
+  } catch (e) { toast(`Price sync error: ${e.message}`, true); }
+}
+
+export function clEtsyTagSelect(itemId) {
+  _etsyTagEditItem = itemId || null;
+  renderCrosslistDashboard();
+}
+
+export function clEtsyRemoveTag(itemId, tagIndex) {
+  const item = inv.find(i => i.id === itemId);
+  if (!item || !item.tags) return;
+  item.tags.splice(tagIndex, 1);
+  markDirty('inv', itemId);
+  save();
+  renderCrosslistDashboard();
+}
+
+export function clEtsyAddTag(itemId, tag) {
+  const item = inv.find(i => i.id === itemId);
+  if (!item) return;
+  if (!item.tags) item.tags = [];
+  if (item.tags.length >= 13) { toast('Max 13 tags', true); return; }
+  if (item.tags.includes(tag)) return;
+  item.tags.push(tag.slice(0, 20));
+  markDirty('inv', itemId);
+  save();
+  renderCrosslistDashboard();
+}
+
+export async function clEtsySuggestTags(itemId) {
+  const suggestions = suggestEtsyTags(itemId);
+  if (!suggestions.length) toast('No more suggestions');
+  renderCrosslistDashboard();
+}
+
+export async function clEtsySaveTags(itemId) {
+  toast('Saving tags to Etsy…');
+  try {
+    const item = inv.find(i => i.id === itemId);
+    if (!item) return;
+    await pushEtsyTags(itemId, item.tags || []);
+  } catch (e) { toast(`Tag save error: ${e.message}`, true); }
+}
+
+export async function clEtsySyncExpenses() {
+  toast('Syncing Etsy expenses…');
+  try {
+    const r = await syncEtsyExpenses();
+    toast(`${r.synced} expense${r.synced !== 1 ? 's' : ''} synced`);
+  } catch (e) { toast(`Expense sync error: ${e.message}`, true); }
 }
 
 // ── AUTO-RELIST HANDLERS ──────────────────────────────────────────────────

@@ -471,3 +471,540 @@ export async function getEtsyTaxonomies() {
 
 export function isEtsySyncing() { return _syncing; }
 export function getLastEtsySyncTime() { return _lastSyncTime; }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FEATURE 1: Inventory Quantity Sync (bi-directional)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Push local item quantity to Etsy.
+ */
+export async function pushEtsyQuantity(itemId) {
+  if (!isEtsyConnected()) throw new Error('Etsy not connected');
+  const item = getInvItem(itemId);
+  if (!item || !item.etsyListingId) throw new Error('Item not on Etsy');
+  try {
+    await updateEtsyListing(itemId, { quantity: Math.max(0, item.qty || 0) });
+    toast(`Qty synced to Etsy: ${item.qty || 0}`);
+    return { success: true };
+  } catch (e) {
+    toast(`Qty sync error: ${e.message}`, true);
+    return { success: false };
+  }
+}
+
+/**
+ * Pull quantities from Etsy and update local items where they differ.
+ */
+export async function pullEtsyQuantities() {
+  if (!isEtsyConnected()) throw new Error('Etsy not connected');
+  const shopId = getEtsyShopId();
+  if (!shopId) throw new Error('No shop ID');
+  let pulled = 0;
+  let offset = 0;
+  const limit = 100;
+  let hasMore = true;
+  while (hasMore) {
+    const resp = await etsyAPI('GET',
+      `/application/shops/${shopId}/listings?state=${ETSY_STATE_ACTIVE}&limit=${limit}&offset=${offset}`
+    );
+    const results = resp.results || [];
+    if (results.length < limit) hasMore = false;
+    for (const el of results) {
+      const lid = String(el.listing_id);
+      const sku = (el.skus && el.skus[0]) || null;
+      let local = sku ? inv.find(i => i.sku && i.sku === sku) : null;
+      if (!local) local = inv.find(i => i.etsyListingId && i.etsyListingId === lid);
+      if (local && el.quantity !== undefined) {
+        const etsyQty = el.quantity || 0;
+        if (etsyQty !== (local.qty || 0)) {
+          local.qty = etsyQty;
+          markDirty('inv', local.id);
+          pulled++;
+        }
+      }
+    }
+    offset += limit;
+  }
+  if (pulled > 0) { save(); refresh(); }
+  return { pulled };
+}
+
+/**
+ * Bi-directional quantity sync: pull first, then push local-only changes.
+ */
+export async function syncAllEtsyQuantities() {
+  const pullResult = await pullEtsyQuantities();
+  // Push local quantities for items that have Etsy listings
+  const etsyItems = inv.filter(i => i.etsyListingId && (i.qty || 0) > 0);
+  let pushed = 0;
+  for (const item of etsyItems) {
+    try {
+      await updateEtsyListing(item.id, { quantity: item.qty || 0 });
+      pushed++;
+    } catch (_) { /* skip failures */ }
+  }
+  return { pulled: pullResult.pulled, pushed };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FEATURE 2: Photo Sync (push photos to Etsy)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Push item photos to an Etsy listing.
+ * Sends image URLs to edge function which downloads + uploads to Etsy as multipart.
+ */
+export async function pushEtsyPhotos(itemId) {
+  if (!isEtsyConnected()) throw new Error('Etsy not connected');
+  const shopId = getEtsyShopId();
+  const item = getInvItem(itemId);
+  if (!item || !item.etsyListingId) throw new Error('Item not on Etsy');
+
+  const images = item.images || (item.image ? [item.image] : []);
+  if (!images.length) throw new Error('No photos to upload');
+
+  let uploaded = 0;
+  for (const imgUrl of images) {
+    try {
+      await etsyAPI('POST', `/application/shops/${shopId}/listings/${item.etsyListingId}/images`, {
+        image_url: imgUrl
+      });
+      uploaded++;
+    } catch (e) {
+      console.warn('Etsy photo upload error:', e.message);
+    }
+  }
+  if (uploaded > 0) toast(`${uploaded} photo${uploaded > 1 ? 's' : ''} pushed to Etsy`);
+  else toast('No photos could be uploaded', true);
+  return { uploaded };
+}
+
+/**
+ * Delete a specific photo from an Etsy listing.
+ */
+export async function deleteEtsyPhoto(itemId, imageId) {
+  if (!isEtsyConnected()) throw new Error('Etsy not connected');
+  const shopId = getEtsyShopId();
+  const item = getInvItem(itemId);
+  if (!item || !item.etsyListingId) throw new Error('Item not on Etsy');
+  await etsyAPI('DELETE', `/application/shops/${shopId}/listings/${item.etsyListingId}/images/${imageId}`);
+  toast('Photo removed from Etsy');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FEATURE 3: Shop Stats & Analytics
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Fetch shop-level statistics from Etsy.
+ */
+export async function fetchEtsyShopStats() {
+  if (!isEtsyConnected()) throw new Error('Etsy not connected');
+  const shopId = getEtsyShopId();
+  if (!shopId) throw new Error('No shop ID');
+  try {
+    const resp = await etsyAPI('GET', `/application/shops/${shopId}`);
+    return {
+      numFavorers: resp.num_favorers || 0,
+      totalSold: resp.transaction_sold_count || 0,
+      activeListings: resp.listing_active_count || 0,
+      digitalListings: resp.digital_listing_count || 0,
+      reviewCount: resp.review_count || 0,
+      reviewAvg: resp.review_average || 0,
+      shopCreated: resp.create_date || null,
+      shopName: resp.shop_name || '',
+      currencyCode: resp.currency_code || 'USD',
+    };
+  } catch (e) {
+    console.warn('Etsy shop stats error:', e.message);
+    return null;
+  }
+}
+
+/**
+ * Fetch listing-level stats (views, favorites) for all active listings.
+ */
+export async function fetchEtsyListingStats() {
+  if (!isEtsyConnected()) throw new Error('Etsy not connected');
+  const shopId = getEtsyShopId();
+  if (!shopId) throw new Error('No shop ID');
+
+  const listings = [];
+  let offset = 0;
+  const limit = 100;
+  let hasMore = true;
+  while (hasMore) {
+    const resp = await etsyAPI('GET',
+      `/application/shops/${shopId}/listings?state=${ETSY_STATE_ACTIVE}&limit=${limit}&offset=${offset}&includes=Images`
+    );
+    const results = resp.results || [];
+    if (results.length < limit) hasMore = false;
+    for (const el of results) {
+      listings.push({
+        listingId: el.listing_id,
+        title: el.title,
+        views: el.views || 0,
+        numFavorers: el.num_favorers || 0,
+        quantity: el.quantity || 0,
+        price: el.price ? el.price.amount / el.price.divisor : 0,
+        created: el.created_timestamp,
+        image: el.images?.[0]?.url_75x75 || '',
+      });
+    }
+    offset += limit;
+  }
+  return listings;
+}
+
+/**
+ * Build an analytics summary from local receipt/sale data.
+ */
+export function getEtsyAnalyticsSummary() {
+  const etsySales = (typeof window !== 'undefined' && window.sales || [])
+    .filter(s => (s.platform || '').toLowerCase() === 'etsy');
+  const totalRevenue = etsySales.reduce((sum, s) => sum + (s.price || 0), 0);
+  const avgPrice = etsySales.length ? totalRevenue / etsySales.length : 0;
+
+  // Best sellers: count by item name
+  const nameCounts = {};
+  etsySales.forEach(s => {
+    const n = s.name || 'Unknown';
+    nameCounts[n] = (nameCounts[n] || 0) + 1;
+  });
+  const topItems = Object.entries(nameCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, count]) => ({ name, count }));
+
+  // Monthly revenue
+  const monthly = {};
+  etsySales.forEach(s => {
+    const d = new Date(s.date || s.soldDate);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    monthly[key] = (monthly[key] || 0) + (s.price || 0);
+  });
+
+  return {
+    totalRevenue,
+    avgPrice,
+    totalSales: etsySales.length,
+    topItems,
+    monthlyRevenue: monthly
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FEATURE 4: Review / Feedback Tracking
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Fetch shop reviews from Etsy.
+ */
+export async function fetchEtsyReviews() {
+  if (!isEtsyConnected()) throw new Error('Etsy not connected');
+  const shopId = getEtsyShopId();
+  if (!shopId) throw new Error('No shop ID');
+  try {
+    const resp = await etsyAPI('GET', `/application/shops/${shopId}/reviews?limit=25`);
+    const reviews = (resp.results || []).map(r => ({
+      id: r.review_id,
+      rating: r.rating || 0,
+      message: r.review || '',
+      createdAt: r.created_timestamp ? new Date(r.created_timestamp * 1000).toISOString() : null,
+      buyerName: r.buyer_user_id ? `Buyer #${r.buyer_user_id}` : 'Anonymous',
+      listingId: r.listing_id || null,
+      transactionId: r.transaction_id || null,
+    }));
+    // Store last check time
+    await setMeta('etsyLastReviewCheck', Date.now());
+    return reviews;
+  } catch (e) {
+    console.warn('Etsy reviews error:', e.message);
+    return [];
+  }
+}
+
+/**
+ * Compute review summary stats.
+ */
+export function getEtsyReviewSummary(reviews) {
+  if (!reviews || !reviews.length) return { avg: 0, count: 0, distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } };
+  const dist = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+  let total = 0;
+  reviews.forEach(r => {
+    const rating = Math.min(5, Math.max(1, Math.round(r.rating)));
+    dist[rating]++;
+    total += r.rating;
+  });
+  return {
+    avg: total / reviews.length,
+    count: reviews.length,
+    distribution: dist,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FEATURE 5: Shipping Label / Tracking Sync
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Push tracking info to an Etsy receipt.
+ */
+export async function pushEtsyTracking(receiptId, trackingCode, carrier) {
+  if (!isEtsyConnected()) throw new Error('Etsy not connected');
+  const shopId = getEtsyShopId();
+  if (!shopId) throw new Error('No shop ID');
+  try {
+    await etsyAPI('POST', `/application/shops/${shopId}/receipts/${receiptId}/tracking`, {
+      tracking_code: trackingCode,
+      carrier_name: carrier,
+    });
+    toast('Tracking info sent to Etsy');
+    return { success: true };
+  } catch (e) {
+    toast(`Tracking error: ${e.message}`, true);
+    return { success: false };
+  }
+}
+
+/**
+ * Fetch pending (unshipped) Etsy receipts.
+ */
+export async function fetchEtsyReceiptsPending() {
+  if (!isEtsyConnected()) throw new Error('Etsy not connected');
+  const shopId = getEtsyShopId();
+  if (!shopId) throw new Error('No shop ID');
+  try {
+    const resp = await etsyAPI('GET',
+      `/application/shops/${shopId}/receipts?was_shipped=false&limit=50`
+    );
+    return (resp.results || []).map(r => ({
+      receiptId: r.receipt_id,
+      buyerName: r.name || 'Unknown',
+      buyerEmail: r.buyer_email || '',
+      totalPrice: r.grandtotal?.amount ? r.grandtotal.amount / r.grandtotal.divisor : 0,
+      createdAt: r.create_timestamp ? new Date(r.create_timestamp * 1000).toISOString() : null,
+      items: (r.transactions || []).map(t => ({
+        title: t.title || '',
+        quantity: t.quantity || 1,
+        price: t.price?.amount ? t.price.amount / t.price.divisor : 0,
+        listingId: t.listing_id,
+      })),
+      shippingAddress: r.formatted_address || '',
+    }));
+  } catch (e) {
+    console.warn('Etsy pending receipts error:', e.message);
+    return [];
+  }
+}
+
+/**
+ * Standard Etsy-supported carriers.
+ */
+export function getEtsyCarriers() {
+  return [
+    'usps', 'ups', 'fedex', 'dhl', 'other',
+    'canada-post', 'royal-mail', 'australia-post',
+    'ups-mi', 'fedex-smartpost',
+  ];
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FEATURE 6: Price Sync (push price changes to Etsy)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Push local price to Etsy listing.
+ */
+export async function pushEtsyPrice(itemId) {
+  if (!isEtsyConnected()) return { success: false };
+  const item = getInvItem(itemId);
+  if (!item || !item.etsyListingId || !item.price) return { success: false };
+  try {
+    await updateEtsyListing(itemId, { price: item.price });
+    return { success: true };
+  } catch (e) {
+    console.warn('Etsy price sync error:', e.message);
+    return { success: false };
+  }
+}
+
+/**
+ * Batch price push for multiple items.
+ */
+export async function pushEtsyPriceBulk(itemIds) {
+  let pushed = 0;
+  for (const id of itemIds) {
+    const r = await pushEtsyPrice(id);
+    if (r.success) pushed++;
+  }
+  if (pushed > 0) toast(`${pushed} price${pushed > 1 ? 's' : ''} synced to Etsy`);
+  return { pushed };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FEATURE 7: Tag Optimization
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Common stop words to exclude from tag suggestions
+const TAG_STOP_WORDS = new Set([
+  'the', 'and', 'for', 'with', 'this', 'that', 'from', 'are', 'was', 'has',
+  'have', 'been', 'not', 'but', 'all', 'can', 'had', 'her', 'his', 'its',
+  'new', 'our', 'one', 'two', 'you', 'very', 'will', 'size', 'item',
+]);
+
+/**
+ * Get current tags for an Etsy-linked item from local data.
+ */
+export function fetchEtsyListingTags(itemId) {
+  const item = getInvItem(itemId);
+  if (!item) return [];
+  return item.tags || [];
+}
+
+/**
+ * Suggest optimized tags for a listing based on title, category, condition.
+ */
+export function suggestEtsyTags(itemId) {
+  const item = getInvItem(itemId);
+  if (!item) return [];
+
+  const suggestions = new Set();
+
+  // Extract words from title
+  if (item.name) {
+    item.name.split(/[\s\-_,]+/)
+      .filter(w => w.length > 2 && !TAG_STOP_WORDS.has(w.toLowerCase()))
+      .forEach(w => suggestions.add(w.toLowerCase().slice(0, 20)));
+  }
+
+  // Add category-based tags
+  if (item.category) suggestions.add(item.category.toLowerCase().slice(0, 20));
+  if (item.subcategory) suggestions.add(item.subcategory.toLowerCase().slice(0, 20));
+  if (item.subtype) suggestions.add(item.subtype.toLowerCase().slice(0, 20));
+
+  // Add condition as a tag
+  if (item.condition) {
+    const cond = item.condition.toLowerCase();
+    if (cond.includes('vintage')) suggestions.add('vintage');
+    if (cond.includes('new')) suggestions.add('new');
+    if (cond.includes('nwt')) { suggestions.add('nwt'); suggestions.add('new with tags'); }
+  }
+
+  // Add common reseller tags based on category
+  const cat = (item.category || '').toLowerCase();
+  if (cat.includes('clothing') || cat.includes('shirt') || cat.includes('dress')) {
+    suggestions.add('fashion');
+  }
+  if (cat.includes('shoe')) {
+    suggestions.add('footwear');
+  }
+  if (cat.includes('toy') || cat.includes('game')) {
+    suggestions.add('collectible');
+  }
+
+  // Remove existing tags from suggestions
+  const existing = new Set((item.tags || []).map(t => t.toLowerCase()));
+  return Array.from(suggestions)
+    .filter(t => !existing.has(t) && t.length >= 2)
+    .slice(0, 13);
+}
+
+/**
+ * Push tags to Etsy listing.
+ */
+export async function pushEtsyTags(itemId, tags) {
+  if (!isEtsyConnected()) throw new Error('Etsy not connected');
+  const item = getInvItem(itemId);
+  if (!item || !item.etsyListingId) throw new Error('Item not on Etsy');
+  const validTags = tags.slice(0, 13).map(t => t.slice(0, 20));
+  // Update local
+  item.tags = validTags;
+  markDirty('inv', item.id);
+  save();
+  // Push to Etsy
+  await updateEtsyListing(itemId, { tags: validTags });
+  toast(`${validTags.length} tags saved to Etsy`);
+  return { success: true };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FEATURE 8: Receipt-Based Auto-Expense Tracking
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Calculate Etsy fees for a receipt transaction.
+ * @param {number} salePrice - The item sale price
+ * @param {number} [shippingCost=0] - Shipping charged to buyer
+ * @returns {Object} Fee breakdown
+ */
+export function calcEtsyFees(salePrice, shippingCost = 0) {
+  const listingFee = 0.20;                          // $0.20 per listing
+  const transactionFee = salePrice * 0.065;          // 6.5% of sale price
+  const processingFee = (salePrice + shippingCost) * 0.03 + 0.25; // 3% + $0.25
+  const shippingTransactionFee = shippingCost * 0.065; // 6.5% of shipping too
+  const totalFees = listingFee + transactionFee + processingFee + shippingTransactionFee;
+  return {
+    listingFee,
+    transactionFee: +transactionFee.toFixed(2),
+    processingFee: +processingFee.toFixed(2),
+    shippingTransactionFee: +shippingTransactionFee.toFixed(2),
+    totalFees: +totalFees.toFixed(2),
+  };
+}
+
+/**
+ * Sync Etsy expenses from recent receipts.
+ * Calculates and stores fee breakdowns for new receipts since last sync.
+ */
+export async function syncEtsyExpenses() {
+  if (!isEtsyConnected()) return { synced: 0 };
+  const shopId = getEtsyShopId();
+  if (!shopId) return { synced: 0 };
+
+  const lastSync = await getMeta('etsyLastExpenseSync') || 0;
+  const since = lastSync
+    ? Math.floor(lastSync / 1000)
+    : Math.floor((Date.now() - 7 * 86400000) / 1000); // Last 7 days default
+
+  try {
+    const resp = await etsyAPI('GET',
+      `/application/shops/${shopId}/receipts?min_created=${since}&limit=50`
+    );
+    const receipts = resp.results || [];
+    let synced = 0;
+
+    for (const receipt of receipts) {
+      const transactions = receipt.transactions || [];
+      for (const txn of transactions) {
+        const price = txn.price?.amount ? txn.price.amount / txn.price.divisor : 0;
+        const shipping = txn.shipping_cost?.amount ? txn.shipping_cost.amount / txn.shipping_cost.divisor : 0;
+        if (price > 0) {
+          const fees = calcEtsyFees(price, shipping);
+          // Store fee data on the local item if matched
+          const listingId = String(txn.listing_id);
+          const local = inv.find(i => i.etsyListingId === listingId);
+          if (local) {
+            if (!local.etsyFees) local.etsyFees = {};
+            local.etsyFees[receipt.receipt_id] = {
+              ...fees,
+              salePrice: price,
+              shippingCost: shipping,
+              date: receipt.create_timestamp ? new Date(receipt.create_timestamp * 1000).toISOString() : new Date().toISOString(),
+            };
+            markDirty('inv', local.id);
+            synced++;
+          }
+        }
+      }
+    }
+
+    await setMeta('etsyLastExpenseSync', Date.now());
+    if (synced > 0) save();
+    return { synced };
+  } catch (e) {
+    console.warn('Etsy expense sync error:', e.message);
+    return { synced: 0 };
+  }
+}

@@ -22,6 +22,7 @@ import { getDaysUntilExpiry, STATUS_LABELS, STATUS_COLORS, LISTING_STATUSES, mar
 import { generateListingLink, copyListingText } from '../features/deep-links.js';
 import { pushDeleteToCloud } from '../data/sync.js';
 import { logPriceChange } from '../features/price-history.js';
+import { pushEtsyPrice } from '../features/etsy-sync.js';
 import { getPlatforms, buildPlatPicker, getSelectedPlats } from '../features/platforms.js';
 import { PLATFORM_FEES, calcPlatformFee } from '../config/platforms.js';
 import { loadDimsToForm, getDimsFromForm, suggestPackaging } from '../features/dimensions.js';
@@ -355,6 +356,10 @@ export function saveDrawer(){
   // Log price change if price was manually adjusted
   if (item.price !== oldPrice && item.price > 0) {
     logPriceChange(item.id, item.price, 'manual');
+    // Auto-push price to Etsy if item has an Etsy listing
+    if (item.etsyListingId) {
+      pushEtsyPrice(item.id).catch(e => console.warn('Etsy price sync:', e.message));
+    }
   }
   markDirty('inv', item.id);
   save(); closeDrawer(); refresh(); _sfx.edit(); toast('Changes saved ✓');
