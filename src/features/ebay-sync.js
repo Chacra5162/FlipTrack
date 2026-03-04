@@ -19,17 +19,23 @@ import { escHtml } from '../utils/format.js';
 const INVENTORY_API = '/sell/inventory/v1';
 const FULFILLMENT_API = '/sell/fulfillment/v1';
 
-// eBay condition ID mapping
+// eBay condition enum mapping (Inventory API values)
 const CONDITION_MAP = {
-  'new':        { id: 1000, name: 'New' },
-  'like new':   { id: 3000, name: 'Like New' },
-  'open box':   { id: 1500, name: 'Open Box' },
-  'excellent':  { id: 2750, name: 'Excellent - Refurbished' },
-  'very good':  { id: 4000, name: 'Very Good' },
-  'good':       { id: 5000, name: 'Good' },
-  'acceptable': { id: 6000, name: 'Acceptable' },
-  'fair':       { id: 6000, name: 'Acceptable' },
-  'poor':       { id: 7000, name: 'For parts or not working' },
+  'new':           { id: 1000, enumVal: 'NEW' },
+  'nwt':           { id: 1000, enumVal: 'NEW_WITH_TAGS' },
+  'new/sealed':    { id: 1000, enumVal: 'NEW' },
+  'like new':      { id: 3000, enumVal: 'LIKE_NEW' },
+  'nwot':          { id: 1500, enumVal: 'NEW_OTHER' },
+  'open box':      { id: 1500, enumVal: 'NEW_OTHER' },
+  'excellent':     { id: 2750, enumVal: 'SELLER_REFURBISHED' },
+  'refurbished':   { id: 2750, enumVal: 'SELLER_REFURBISHED' },
+  'euc':           { id: 4000, enumVal: 'VERY_GOOD' },
+  'very good':     { id: 4000, enumVal: 'VERY_GOOD' },
+  'good':          { id: 5000, enumVal: 'GOOD' },
+  'guc':           { id: 5000, enumVal: 'GOOD' },
+  'acceptable':    { id: 6000, enumVal: 'ACCEPTABLE' },
+  'fair':          { id: 6000, enumVal: 'ACCEPTABLE' },
+  'poor':          { id: 7000, enumVal: 'FOR_PARTS_OR_NOT_WORKING' },
 };
 
 // ── STATE ──────────────────────────────────────────────────────────────────
@@ -206,7 +212,7 @@ async function _syncEBayOrders() {
  * Build eBay inventory item payload from a local FlipTrack item.
  */
 function _buildInventoryPayload(item) {
-  const condition = (item.condition || 'good').toLowerCase();
+  const condition = (item.condition || 'good').toLowerCase().trim();
   const condInfo = CONDITION_MAP[condition] || CONDITION_MAP['good'];
 
   const payload = {
@@ -215,8 +221,8 @@ function _buildInventoryPayload(item) {
         quantity: item.qty || 1,
       },
     },
-    condition: condInfo.name.toUpperCase().replace(/\s+/g, '_'),
-    conditionDescription: item.notes || undefined,
+    condition: condInfo.enumVal,
+    ...(item.notes ? { conditionDescription: item.notes } : {}),
     product: {
       title: (item.name || 'Item').slice(0, 80),
       description: _buildDescription(item),
@@ -336,14 +342,23 @@ export async function publishEBayListing(itemId, options = {}) {
     offerPayload.categoryId = options.categoryId;
   }
 
+  // Add listing policies if provided (required by eBay)
+  if (options.paymentPolicyId || options.returnPolicyId || options.fulfillmentPolicyId) {
+    offerPayload.listingPolicies = {};
+    if (options.paymentPolicyId) offerPayload.listingPolicies.paymentPolicyId = options.paymentPolicyId;
+    if (options.returnPolicyId) offerPayload.listingPolicies.returnPolicyId = options.returnPolicyId;
+    if (options.fulfillmentPolicyId) offerPayload.listingPolicies.fulfillmentPolicyId = options.fulfillmentPolicyId;
+  }
+
   try {
     // Create offer
     const offerResp = await ebayAPI('POST', `${INVENTORY_API}/offer`, offerPayload);
     const offerId = offerResp.offerId;
 
     if (!offerId) {
-      // Might have listing policies issue — show helpful message
-      const msg = offerResp.errors?.[0]?.message || 'Could not create offer. Check your eBay business policies.';
+      // eBay requires business policies (payment, return, fulfillment) to create an offer
+      const ebayMsg = offerResp.errors?.[0]?.longMessage || offerResp.errors?.[0]?.message || '';
+      const msg = ebayMsg || 'Could not create offer. eBay requires business policies (payment, return, fulfillment) to be set up in your Seller Hub before listing.';
       throw new Error(msg);
     }
 

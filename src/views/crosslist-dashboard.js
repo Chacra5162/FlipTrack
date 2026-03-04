@@ -725,25 +725,39 @@ export async function clEBaySync() {
 }
 
 export async function clPushToEBay(itemId) {
-  const result = await pushItemToEBay(itemId);
-  if (result.success) {
-    renderCrosslistDashboard();
+  toast('Pushing item to eBay…');
+  try {
+    const result = await pushItemToEBay(itemId);
+    if (result.success) {
+      renderCrosslistDashboard();
+    }
+  } catch (e) {
+    toast(`eBay push error: ${e.message}`, true);
   }
 }
 
 export async function clPublishOnEBay(itemId) {
-  const result = await publishEBayListing(itemId);
-  if (result.success) {
-    refresh();
-    renderCrosslistDashboard();
+  toast('Publishing eBay listing…');
+  try {
+    const result = await publishEBayListing(itemId);
+    if (result.success) {
+      refresh();
+      renderCrosslistDashboard();
+    }
+  } catch (e) {
+    toast(`eBay publish error: ${e.message}`, true);
   }
 }
 
 export async function clEndEBayListing(itemId) {
   if (!confirm('End this eBay listing?')) return;
-  const result = await endEBayListing(itemId);
-  if (result.success) {
-    refresh();
-    renderCrosslistDashboard();
+  try {
+    const result = await endEBayListing(itemId);
+    if (result.success) {
+      refresh();
+      renderCrosslistDashboard();
+    }
+  } catch (e) {
+    toast(`eBay end listing error: ${e.message}`, true);
   }
 }

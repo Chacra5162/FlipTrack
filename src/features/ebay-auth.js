@@ -88,12 +88,26 @@ async function getAuthHeaders() {
 async function callEdgeFn(action, body = {}) {
   const headers = await getAuthHeaders();
   headers['x-ebay-action'] = action;
-  const resp = await fetch(EDGE_FN, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ ...body, isSandbox: _isSandbox }),
-  });
-  const data = await resp.json();
+  let resp;
+  try {
+    resp = await fetch(EDGE_FN, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ ...body, isSandbox: _isSandbox }),
+    });
+  } catch (networkErr) {
+    throw new Error('Network error — check your internet connection');
+  }
+  // Handle non-JSON responses (e.g., HTML error pages, 502 gateway errors)
+  const contentType = resp.headers.get('content-type') || '';
+  let data;
+  if (contentType.includes('application/json')) {
+    data = await resp.json();
+  } else {
+    const text = await resp.text();
+    if (!resp.ok) throw new Error(`Server error (${resp.status}): ${text.slice(0, 100)}`);
+    try { data = JSON.parse(text); } catch { throw new Error(`Unexpected response (${resp.status})`); }
+  }
   if (!resp.ok) throw new Error(data.error || `Edge function error: ${resp.status}`);
   return data;
 }
