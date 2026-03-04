@@ -478,11 +478,24 @@ export async function publishEBayListing(itemId, options = {}) {
       const existing = await ebayAPI('GET', `${INVENTORY_API}/offer?sku=${encodeURIComponent(sku)}`);
       if (existing?.offers?.length > 0) {
         offerId = existing.offers[0].offerId;
-        console.log('[eBay] Found existing offer:', offerId);
+        console.log('[eBay] Found existing offer:', offerId, '— updating it');
       }
     } catch (_) { /* no existing offers */ }
 
-    // Create offer if none exists
+    if (offerId) {
+      // Update existing offer with current payload data
+      console.log('[eBay] Updating offer:', offerId, JSON.stringify(offerPayload));
+      try {
+        await ebayAPI('PUT', `${INVENTORY_API}/offer/${offerId}`, offerPayload);
+      } catch (updateErr) {
+        console.warn('[eBay] Offer update failed:', updateErr.message, '— deleting and recreating');
+        // If update fails, delete the stale offer and create fresh
+        try { await ebayAPI('DELETE', `${INVENTORY_API}/offer/${offerId}`); } catch (_) {}
+        offerId = null;
+      }
+    }
+
+    // Create offer if none exists (or old one was deleted)
     if (!offerId) {
       console.log('[eBay] Creating offer:', JSON.stringify(offerPayload));
       const offerResp = await ebayAPI('POST', `${INVENTORY_API}/offer`, offerPayload);
@@ -495,6 +508,7 @@ export async function publishEBayListing(itemId, options = {}) {
     }
 
     // Publish offer (makes it live)
+    console.log('[eBay] Publishing offer:', offerId);
     const publishResp = await ebayAPI('POST', `${INVENTORY_API}/offer/${offerId}/publish`);
     const listingId = publishResp.listingId;
 
