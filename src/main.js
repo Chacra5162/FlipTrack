@@ -587,6 +587,27 @@ Object.assign(window, {
   },
   aiRegenerate: (itemId) => window.aiGenerate(itemId),
   aiCopyListing: copyAIListing,
+  aiGenerateDesc: async (mode) => {
+    // Gather item details from the visible form (drawer or add-item)
+    const pfx = mode === 'drawer' ? 'd_' : 'f_';
+    const gv = id => (document.getElementById(pfx + id)?.value || '').trim();
+    const fakeItem = {
+      name: gv('name'), category: gv('cat'), subcategory: gv('subcat_txt') || gv('subcat'),
+      condition: gv('condition'), notes: gv('notes'), brand: gv('brand'), color: gv('color'),
+      size: gv('size'), material: gv('material'), model: gv('model'), style: gv('style'),
+      pattern: gv('pattern'), price: parseFloat(gv('price')) || 0,
+    };
+    if (!fakeItem.name) { toast('Enter an item name first', true); return; }
+    const ta = document.getElementById(pfx + 'ebay_desc');
+    try {
+      toast('Generating AI description…');
+      const result = await generateListing(fakeItem, { platform: 'eBay' });
+      if (result.description && ta) {
+        ta.value = result.description;
+        toast('AI description generated ✓');
+      }
+    } catch (e) { toast('AI generation failed: ' + e.message, true); }
+  },
   // Inventory Value
   renderInventoryValueDashboard,
   // Shipping Labels

@@ -14,6 +14,7 @@ import { logSalePrice } from './price-history.js';
 import { toast } from '../utils/dom.js';
 import { getMeta, setMeta } from '../data/idb.js';
 import { escHtml } from '../utils/format.js';
+import { generateListing } from './ai-listing.js';
 
 // ── CONSTANTS ──────────────────────────────────────────────────────────────
 const INVENTORY_API = '/sell/inventory/v1';
@@ -313,11 +314,41 @@ function _buildInventoryPayload(item) {
   return payload;
 }
 
+/**
+ * Generate an AI description for the item and cache it in item._aiDesc.
+ * Falls back to the template description if AI is unavailable.
+ */
+async function _ensureDescription(item) {
+  // Already has a user-written or cached AI description — nothing to do
+  if (item.ebayDesc) return;
+  if (item._aiDesc) return;
+
+  try {
+    console.log('[eBay] Generating AI description for', item.name);
+    const result = await generateListing(item, { platform: 'eBay' });
+    if (result.description) {
+      // Cache the AI description on the item so it persists
+      item.ebayDesc = result.description.slice(0, 4000);
+      // Also store the AI title suggestion — user can use it later
+      if (result.title && !item.aiListing) {
+        item.aiListing = { title: result.title, description: result.description,
+          keywords: result.keywords, generatedAt: new Date().toISOString(), platform: 'eBay' };
+      }
+      markDirty('inv', item.id);
+      save();
+      console.log('[eBay] AI description generated and saved');
+    }
+  } catch (e) {
+    console.warn('[eBay] AI description generation failed, using template:', e.message);
+    // Fall through — _buildDescription will use the template
+  }
+}
+
 function _buildDescription(item) {
-  // If user wrote a custom eBay description, use it as-is (but enforce limit)
+  // If user wrote a custom eBay description or AI generated one, use it
   if (item.ebayDesc) return String(item.ebayDesc).slice(0, 4000);
 
-  // Auto-generate a compact HTML listing description (must stay under 4000 chars)
+  // Fallback: auto-generate a compact HTML listing description (must stay under 4000 chars)
   const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const title = esc(item.name || 'Item');
   const brandLine = (item.brand && item.brand !== 'Unbranded') ? esc(item.brand) + ' ' : '';
@@ -333,7 +364,6 @@ function _buildDescription(item) {
   addSpec('Style', item.style);
   addSpec('Pattern', item.pattern);
   addSpec('Condition', item.condition);
-  // Book-specific
   addSpec('Author', item.author);
   addSpec('Publisher', item.publisher);
   addSpec('ISBN', item.isbn);
@@ -350,9 +380,7 @@ function _buildDescription(item) {
     `<p style="color:#555;font-size:13px">Ships within 1 business day. Check out my other listings!</p>` +
     `</div>`;
 
-  // Hard guard — eBay max is 4000 chars
   if (html.length > 4000) {
-    // Strip notes first, then specs if still too long
     const fallback = `<div><h2>${brandLine}${title}</h2>` +
       `<p>${specs.slice(0, 6).join(' &bull; ')}</p></div>`;
     return fallback.slice(0, 4000);
@@ -483,6 +511,9 @@ export async function pushItemToEBay(itemId) {
 
   // Use existing eBay SKU or FlipTrack SKU or generate one
   const sku = item.ebayItemId || item.sku || `FT-${itemId.slice(0, 12)}`;
+
+  // Generate AI description if user left it blank
+  await _ensureDescription(item);
   const payload = _buildInventoryPayload(item);
 
   // Auto-detect category and fill required aspects
@@ -536,6 +567,7 @@ export async function updateEBayListing(itemId) {
   const sku = item.ebayItemId;
 
   // 1. Update the inventory item with latest data
+  await _ensureDescription(item);
   const payload = _buildInventoryPayload(item);
 
   // Auto-detect category and fill required aspects before pushing
@@ -863,6 +895,9 @@ export async function publishEBayListing(itemId, options = {}) {
   if (validEnum !== condInfo.enumVal) {
     console.log('[eBay] Overriding condition from', condInfo.enumVal, 'to', validEnum, 'for category', categoryId);
   }
+
+  // Generate AI description if user left it blank
+  await _ensureDescription(item);
 
   // Re-push inventory item to ensure latest aspects AND valid condition are on eBay
   try {
