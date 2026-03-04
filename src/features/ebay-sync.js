@@ -428,6 +428,49 @@ function _buildAspects(item) {
 }
 
 /**
+ * Parse missing aspect name(s) from an eBay error message.
+ * eBay format: "The item specific <NAME> is missing."
+ * @param {string} msg - Error message
+ * @returns {string[]} Array of missing aspect names
+ */
+function _parseMissingAspects(msg) {
+  const names = [];
+  const re = /item specific (\w[\w\s/&'-]*?) is missing/gi;
+  let m;
+  while ((m = re.exec(msg)) !== null) names.push(m[1].trim());
+  return names;
+}
+
+/**
+ * PUT an inventory item to eBay with automatic retry for missing aspects.
+ * If the first PUT fails with "item specific X is missing", we add X with
+ * a default value and retry once.
+ */
+async function _putInventoryWithRetry(sku, payload, item) {
+  try {
+    await ebayAPI('PUT', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`, payload);
+    return;
+  } catch (e) {
+    const missing = _parseMissingAspects(e.message || '');
+    if (missing.length === 0) throw e; // not a missing-aspect error
+
+    console.log('[eBay] Missing aspects detected:', missing.join(', '), '— auto-filling and retrying');
+    if (!payload.product) payload.product = {};
+    if (!payload.product.aspects) payload.product.aspects = {};
+
+    for (const name of missing) {
+      if (payload.product.aspects[name]) continue; // already there somehow
+      const defaultFn = _ASPECT_DEFAULTS[name.toLowerCase()];
+      payload.product.aspects[name] = [defaultFn ? String(defaultFn(item)) : 'N/A'];
+    }
+
+    // Retry once with patched aspects
+    console.log('[eBay] Retrying PUT with patched aspects');
+    await ebayAPI('PUT', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`, payload);
+  }
+}
+
+/**
  * Create or update an inventory item on eBay.
  * @param {string} itemId - Local FlipTrack item ID
  * @returns {Promise<{ success: boolean, sku: string }>}
@@ -453,8 +496,8 @@ export async function pushItemToEBay(itemId) {
   console.log('[eBay] Inventory payload:', JSON.stringify(payload, null, 2));
 
   try {
-    // PUT creates or updates the inventory item
-    await ebayAPI('PUT', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`, payload);
+    // PUT creates or updates the inventory item (with auto-retry for missing aspects)
+    await _putInventoryWithRetry(sku, payload, item);
 
     // Store eBay reference on local item
     item.ebayItemId = sku;
@@ -501,7 +544,7 @@ export async function updateEBayListing(itemId) {
   } catch (e) { console.warn('[eBay] Aspect pre-fill skipped:', e.message); }
 
   console.log('[eBay] Updating inventory item:', sku);
-  await ebayAPI('PUT', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`, payload);
+  await _putInventoryWithRetry(sku, payload, item);
   console.log('[eBay] Inventory item updated');
 
   // 2. Find the existing offer and re-publish it to push changes live
@@ -827,7 +870,7 @@ export async function publishEBayListing(itemId, options = {}) {
       await _fillMissingAspects(invPayload.product.aspects, categoryId, item);
     }
     console.log('[eBay] Re-pushing inventory item with validated condition:', validEnum);
-    await ebayAPI('PUT', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`, invPayload);
+    await _putInventoryWithRetry(sku, invPayload, item);
     console.log('[eBay] Inventory re-push succeeded');
   } catch (invErr) {
     console.warn('[eBay] Full re-push failed:', invErr.message, '— trying aspect-only patch');
