@@ -425,25 +425,19 @@ function _buildAspects(item) {
   if (item.model) aspects['Model'] = [item.model];
   if (item.mpn) aspects['MPN'] = [item.mpn];
 
-  // Clothing-specific aspects required by eBay apparel categories
-  if (_isClothingCategory(item)) {
-    // Size Type — required for most clothing categories
-    aspects['Size Type'] = [item.sizeType || 'Regular'];
-    // Department — Men's, Women's, Kids, etc.
-    const dept = item.department || _getDepartment(item);
-    if (dept) aspects['Department'] = [dept];
-    // Inseam for pants/shorts/jeans
-    if (item.inseam) aspects['Inseam'] = [item.inseam];
-    // Garment Care
-    if (item.garmentCare) aspects['Garment Care'] = [item.garmentCare];
-  }
+  // Size Type & Department — required by most eBay clothing/apparel categories.
+  // Always send these when detectable; eBay ignores unneeded aspects silently.
+  const dept = item.department || _getDepartment(item);
+  aspects['Department'] = [dept];
+  aspects['Size Type'] = [item.sizeType || 'Regular'];
+
+  // Clothing extras
+  if (item.inseam) aspects['Inseam'] = [item.inseam];
+  if (item.garmentCare) aspects['Garment Care'] = [item.garmentCare];
 
   // Footwear-specific
-  if ((item.subcategory || '').toLowerCase().includes('footwear') ||
-      (item.category || '').toLowerCase() === 'shoes') {
-    if (item.shoeSize) aspects['US Shoe Size'] = [item.shoeSize];
-    if (item.shoeWidth) aspects['Shoe Width'] = [item.shoeWidth];
-  }
+  if (item.shoeSize) aspects['US Shoe Size'] = [item.shoeSize];
+  if (item.shoeWidth) aspects['Shoe Width'] = [item.shoeWidth];
 
   // Book-specific aspects
   if (item.author) aspects['Author'] = [item.author];
