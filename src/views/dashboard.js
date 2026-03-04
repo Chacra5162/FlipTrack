@@ -13,7 +13,7 @@ export function updateStats() {
   const invVal = inv.reduce((a,i)=>a+(i.price||0)*(i.qty||0),0);
   const units  = inv.reduce((a,i)=>a+(i.qty||0),0);
   const low    = inv.filter(i=>i.bulk&&i.qty>0&&i.qty<=(i.lowAlert||2));
-  const out    = inv.filter(i=>i.qty===0);
+  const out    = inv.filter(i=>i.bulk&&i.qty===0);
   let rev=0,cogs=0,fees=0;
   for(const s of sales){
     const it=getInvItem(s.itemId);

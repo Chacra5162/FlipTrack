@@ -405,7 +405,7 @@ export function adjStock(id, d) {
   item.qty=Math.max(0,(item.qty||0)+d);
   markDirty('inv',item.id);
   save(); refresh(); renderInv();
-  if(item.qty===0) toast('⚠ Out of stock!',true);
+  if(item.bulk&&item.qty===0) toast('⚠ Out of stock!',true);
   else if(item.bulk&&item.qty<=(item.lowAlert||2)) toast(`⚠ Low: ${item.qty} left`,true);
 }
 

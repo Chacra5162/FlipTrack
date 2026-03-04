@@ -433,7 +433,7 @@ export function calc(item) {
 }
 
 export function sc(qty, alert, bulk) {
-  if (!bulk) return qty === 0 ? 'low' : 'ok';
+  if (!bulk) return 'ok'; // single-qty items don't need stock alerts
   return qty === 0 ? 'low' : qty <= (alert || 2) ? 'warn' : 'ok';
 }
 

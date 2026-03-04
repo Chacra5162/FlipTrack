@@ -136,7 +136,7 @@ export function generateStockAlerts() {
   if (now - lastCheck < 3600000) return; // Once per hour
   localStorage.setItem('ft_notif_stock_check', now.toString());
 
-  const outOfStock = inv.filter(i => i.qty === 0);
+  const outOfStock = inv.filter(i => i.bulk && i.qty === 0);
   const lowStock = inv.filter(i => i.bulk && i.qty > 0 && i.qty <= (i.lowAlert || 2));
   const stale = inv.filter(i => {
     if ((i.qty || 0) <= 0) return false;
