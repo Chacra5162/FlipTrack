@@ -312,43 +312,73 @@ function _buildInventoryPayload(item) {
 }
 
 function _buildDescription(item) {
-  // If user wrote a custom eBay description, use it
+  // If user wrote a custom eBay description, use it as-is
   if (item.ebayDesc) return item.ebayDesc;
 
-  // Auto-generate a comprehensive listing description
-  const lines = [];
-  lines.push((item.name || 'Item') + '\n');
+  // Auto-generate a professional HTML listing description
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const title = esc(item.name || 'Item');
+  const brandLine = (item.brand && item.brand !== 'Unbranded') ? esc(item.brand) + ' ' : '';
 
-  const details = [];
-  if (item.brand && item.brand !== 'Unbranded') details.push(`Brand: ${item.brand}`);
-  if (item.model) details.push(`Model: ${item.model}`);
-  if (item.color) details.push(`Color: ${item.color}`);
-  if (item.size) details.push(`Size: ${item.size}`);
-  if (item.material) details.push(`Material: ${item.material}`);
-  if (item.style) details.push(`Style: ${item.style}`);
-  if (item.pattern) details.push(`Pattern: ${item.pattern}`);
-  if (item.mpn) details.push(`MPN: ${item.mpn}`);
-  if (item.condition) details.push(`Condition: ${item.condition}`);
-  if (item.subcategory) details.push(`Category: ${item.subcategory}`);
-  // Book-specific fields
-  if (item.author) details.push(`Author: ${item.author}`);
-  if (item.publisher) details.push(`Publisher: ${item.publisher}`);
-  if (item.edition) details.push(`Edition: ${item.edition}`);
-  if (item.pubYear) details.push(`Year: ${item.pubYear}`);
-  if (item.coverType) details.push(`Cover: ${item.coverType}`);
+  // Build specification rows
+  const specs = [];
+  const addSpec = (label, val) => { if (val) specs.push({ label, val: esc(val) }); };
+  addSpec('Brand', item.brand && item.brand !== 'Unbranded' ? item.brand : null);
+  addSpec('Model', item.model);
+  addSpec('MPN', item.mpn);
+  addSpec('UPC', item.upc);
+  addSpec('Color', item.color);
+  addSpec('Size', item.size);
+  addSpec('Material', item.material);
+  addSpec('Style', item.style);
+  addSpec('Pattern', item.pattern);
+  addSpec('Condition', item.condition);
+  addSpec('Category', item.subcategory);
+  // Book-specific
+  addSpec('Author', item.author);
+  addSpec('Publisher', item.publisher);
+  addSpec('Edition', item.edition);
+  addSpec('Year Published', item.pubYear);
+  addSpec('Cover Type', item.coverType);
+  addSpec('ISBN', item.isbn);
 
-  if (details.length > 0) {
-    lines.push(details.join('\n'));
-    lines.push('');
+  // Build specs table HTML
+  let specsHtml = '';
+  if (specs.length > 0) {
+    const rows = specs.map((s, i) =>
+      `<tr style="background:${i % 2 === 0 ? '#f8f9fa' : '#ffffff'}"><td style="padding:8px 12px;border-bottom:1px solid #e9ecef;color:#555;font-weight:600;width:140px">${s.label}</td><td style="padding:8px 12px;border-bottom:1px solid #e9ecef;color:#222">${s.val}</td></tr>`
+    ).join('');
+    specsHtml = `
+    <div style="margin:20px 0">
+      <div style="background:#2d2d2d;color:#fff;padding:10px 15px;font-size:15px;font-weight:600;border-radius:6px 6px 0 0">Item Specifications</div>
+      <table style="width:100%;border-collapse:collapse;border:1px solid #e9ecef;border-top:none;border-radius:0 0 6px 6px;overflow:hidden">${rows}</table>
+    </div>`;
   }
 
+  // Condition detail section
+  let conditionHtml = '';
   if (item.notes) {
-    lines.push(item.notes);
-    lines.push('');
+    conditionHtml = `
+    <div style="margin:20px 0;padding:15px;background:#fff3cd;border-left:4px solid #ffc107;border-radius:4px">
+      <div style="font-weight:600;color:#856404;margin-bottom:6px">Condition Notes</div>
+      <div style="color:#664d03;line-height:1.5">${esc(item.notes)}</div>
+    </div>`;
   }
 
-  lines.push('Ships fast! Check my other listings for bundle deals.');
-  return lines.join('\n');
+  return `
+<div style="max-width:800px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#333;line-height:1.6">
+  <div style="text-align:center;padding:20px 0;border-bottom:2px solid #2d2d2d;margin-bottom:20px">
+    <h1 style="margin:0 0 6px;font-size:22px;color:#111">${brandLine}${title}</h1>
+    ${item.condition ? `<div style="display:inline-block;padding:4px 14px;background:#28a745;color:#fff;border-radius:20px;font-size:13px;font-weight:600">${esc(item.condition)}</div>` : ''}
+  </div>
+  ${specsHtml}
+  ${conditionHtml}
+  <div style="margin:24px 0;padding:18px;background:#f0f7ff;border-radius:8px;text-align:center">
+    <div style="font-size:15px;font-weight:600;color:#0056b3;margin-bottom:4px">Fast Shipping &amp; Great Service</div>
+    <div style="color:#555;font-size:13px">Ships within 1 business day. Check out my other listings for bundle deals!</div>
+  </div>
+  <div style="text-align:center;padding:12px 0;color:#999;font-size:11px;border-top:1px solid #eee">Listed with FlipTrack</div>
+</div>`;
 }
 
 function _buildAspects(item) {
