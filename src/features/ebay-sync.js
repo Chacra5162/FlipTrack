@@ -19,22 +19,23 @@ import { escHtml } from '../utils/format.js';
 const INVENTORY_API = '/sell/inventory/v1';
 const FULFILLMENT_API = '/sell/fulfillment/v1';
 
-// eBay condition enum mapping (Inventory API values)
+// eBay condition enum mapping (Inventory API ConditionEnum values)
+// See: https://developer.ebay.com/api-docs/sell/inventory/types/slr:ConditionEnum
 const CONDITION_MAP = {
   'new':           { id: 1000, enumVal: 'NEW' },
-  'nwt':           { id: 1000, enumVal: 'NEW_WITH_TAGS' },
+  'nwt':           { id: 1000, enumVal: 'NEW' },
   'new/sealed':    { id: 1000, enumVal: 'NEW' },
   'like new':      { id: 3000, enumVal: 'LIKE_NEW' },
   'nwot':          { id: 1500, enumVal: 'NEW_OTHER' },
   'open box':      { id: 1500, enumVal: 'NEW_OTHER' },
-  'excellent':     { id: 2750, enumVal: 'SELLER_REFURBISHED' },
+  'excellent':     { id: 2750, enumVal: 'USED_EXCELLENT' },
   'refurbished':   { id: 2750, enumVal: 'SELLER_REFURBISHED' },
-  'euc':           { id: 4000, enumVal: 'VERY_GOOD' },
-  'very good':     { id: 4000, enumVal: 'VERY_GOOD' },
-  'good':          { id: 5000, enumVal: 'GOOD' },
-  'guc':           { id: 5000, enumVal: 'GOOD' },
-  'acceptable':    { id: 6000, enumVal: 'ACCEPTABLE' },
-  'fair':          { id: 6000, enumVal: 'ACCEPTABLE' },
+  'euc':           { id: 4000, enumVal: 'USED_VERY_GOOD' },
+  'very good':     { id: 4000, enumVal: 'USED_VERY_GOOD' },
+  'good':          { id: 5000, enumVal: 'USED_GOOD' },
+  'guc':           { id: 5000, enumVal: 'USED_GOOD' },
+  'acceptable':    { id: 6000, enumVal: 'USED_ACCEPTABLE' },
+  'fair':          { id: 6000, enumVal: 'USED_ACCEPTABLE' },
   'poor':          { id: 7000, enumVal: 'FOR_PARTS_OR_NOT_WORKING' },
 };
 
@@ -214,7 +215,7 @@ async function _syncEBayOrders() {
 function _buildInventoryPayload(item) {
   const condition = (item.condition || 'good').toLowerCase().trim();
   const condInfo = CONDITION_MAP[condition] || CONDITION_MAP['good'];
-  const isNew = condInfo.enumVal === 'NEW' || condInfo.enumVal === 'NEW_WITH_TAGS' || condInfo.enumVal === 'NEW_OTHER';
+  const isNew = condInfo.enumVal === 'NEW' || condInfo.enumVal === 'NEW_OTHER' || condInfo.enumVal === 'LIKE_NEW';
 
   // eBay requires at least one image URL
   const imageUrls = (item.images || []).filter(url =>
@@ -296,6 +297,7 @@ export async function pushItemToEBay(itemId) {
   // Use existing eBay SKU or FlipTrack SKU or generate one
   const sku = item.ebayItemId || item.sku || `FT-${itemId.slice(0, 12)}`;
   const payload = _buildInventoryPayload(item);
+  console.log('[eBay] Inventory payload:', JSON.stringify(payload, null, 2));
 
   try {
     // PUT creates or updates the inventory item
