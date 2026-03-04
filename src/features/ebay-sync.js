@@ -333,10 +333,11 @@ export async function pushItemToEBay(itemId) {
 async function _fetchBusinessPolicies() {
   if (_policiesCache) return _policiesCache;
   try {
+    const mp = 'marketplace_id=EBAY_US';
     const [payment, returns, fulfillment] = await Promise.all([
-      ebayAPI('GET', `${ACCOUNT_API}/payment_policy`),
-      ebayAPI('GET', `${ACCOUNT_API}/return_policy`),
-      ebayAPI('GET', `${ACCOUNT_API}/fulfillment_policy`),
+      ebayAPI('GET', `${ACCOUNT_API}/payment_policy?${mp}`),
+      ebayAPI('GET', `${ACCOUNT_API}/return_policy?${mp}`),
+      ebayAPI('GET', `${ACCOUNT_API}/fulfillment_policy?${mp}`),
     ]);
 
     const payId = payment?.paymentPolicies?.[0]?.paymentPolicyId;
@@ -355,9 +356,27 @@ async function _fetchBusinessPolicies() {
 }
 
 /**
+ * Suggest an eBay category ID from an item title using the Taxonomy API.
+ * @param {string} query - Item title or search phrase
+ * @returns {Promise<string|null>} eBay category ID or null
+ */
+async function _suggestCategory(query) {
+  try {
+    const q = encodeURIComponent(query.slice(0, 100));
+    const resp = await ebayAPI('GET',
+      `/commerce/taxonomy/v1/category_tree/0/get_category_suggestions?q=${q}`);
+    const suggestion = resp?.categorySuggestions?.[0];
+    return suggestion?.category?.categoryId || null;
+  } catch (e) {
+    console.warn('[eBay] Category suggestion failed:', e.message);
+    return null;
+  }
+}
+
+/**
  * Create an offer and publish it to make an eBay listing live.
  * Requires the item to already be in eBay inventory (via pushItemToEBay).
- * Auto-detects business policies if not provided.
+ * Auto-detects business policies and category if not provided.
  * @param {string} itemId - Local FlipTrack item ID
  * @param {Object} [options] - Listing options
  * @param {string} [options.categoryId] - eBay category ID
@@ -375,11 +394,44 @@ export async function publishEBayListing(itemId, options = {}) {
   const price = item.price || 0;
   if (price <= 0) throw new Error('Item needs a price before listing');
 
+  // Auto-detect category if not provided
+  let categoryId = options.categoryId || null;
+  if (!categoryId) {
+    categoryId = await _suggestCategory(item.name || 'item');
+  }
+  if (!categoryId) {
+    throw new Error('Could not determine eBay category. Please set a category for this item.');
+  }
+
+  // Auto-detect business policies if not provided
+  const hasPolicies = options.paymentPolicyId || options.returnPolicyId || options.fulfillmentPolicyId;
+  let listingPolicies = null;
+  if (hasPolicies) {
+    listingPolicies = {};
+    if (options.paymentPolicyId) listingPolicies.paymentPolicyId = options.paymentPolicyId;
+    if (options.returnPolicyId) listingPolicies.returnPolicyId = options.returnPolicyId;
+    if (options.fulfillmentPolicyId) listingPolicies.fulfillmentPolicyId = options.fulfillmentPolicyId;
+  } else {
+    const policies = await _fetchBusinessPolicies();
+    if (policies) {
+      listingPolicies = {
+        paymentPolicyId: policies.paymentPolicyId,
+        returnPolicyId: policies.returnPolicyId,
+        fulfillmentPolicyId: policies.fulfillmentPolicyId,
+      };
+    }
+  }
+  if (!listingPolicies) {
+    throw new Error('eBay requires business policies (payment, return, shipping). Set these up in eBay Seller Hub first.');
+  }
+
   const offerPayload = {
     sku,
     marketplaceId: 'EBAY_US',
     format: 'FIXED_PRICE',
     listingDuration: options.listingDuration || 'GTC',
+    categoryId,
+    listingPolicies,
     pricingSummary: {
       price: {
         value: price.toFixed(2),
@@ -388,30 +440,6 @@ export async function publishEBayListing(itemId, options = {}) {
     },
     availableQuantity: item.qty || 1,
   };
-
-  // Add category if provided
-  if (options.categoryId) {
-    offerPayload.categoryId = options.categoryId;
-  }
-
-  // Add listing policies — auto-fetch from seller account if not provided
-  const hasPolicies = options.paymentPolicyId || options.returnPolicyId || options.fulfillmentPolicyId;
-  if (hasPolicies) {
-    offerPayload.listingPolicies = {};
-    if (options.paymentPolicyId) offerPayload.listingPolicies.paymentPolicyId = options.paymentPolicyId;
-    if (options.returnPolicyId) offerPayload.listingPolicies.returnPolicyId = options.returnPolicyId;
-    if (options.fulfillmentPolicyId) offerPayload.listingPolicies.fulfillmentPolicyId = options.fulfillmentPolicyId;
-  } else {
-    // Auto-detect business policies from seller account
-    const policies = await _fetchBusinessPolicies();
-    if (policies) {
-      offerPayload.listingPolicies = {
-        paymentPolicyId: policies.paymentPolicyId,
-        returnPolicyId: policies.returnPolicyId,
-        fulfillmentPolicyId: policies.fulfillmentPolicyId,
-      };
-    }
-  }
 
   try {
     // Create offer
