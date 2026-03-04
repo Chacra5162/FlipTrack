@@ -23,6 +23,8 @@ import { generateListingLink, copyListingText } from '../features/deep-links.js'
 import { pushDeleteToCloud } from '../data/sync.js';
 import { logPriceChange } from '../features/price-history.js';
 import { pushEtsyPrice } from '../features/etsy-sync.js';
+import { pushItemToEBay } from '../features/ebay-sync.js';
+import { isEBayConnected } from '../features/ebay-auth.js';
 import { getPlatforms, buildPlatPicker, getSelectedPlats } from '../features/platforms.js';
 import { PLATFORM_FEES, calcPlatformFee } from '../config/platforms.js';
 import { loadDimsToForm, getDimsFromForm, suggestPackaging } from '../features/dimensions.js';
@@ -369,6 +371,12 @@ export function saveDrawer(){
     if (item.etsyListingId) {
       pushEtsyPrice(item.id).catch(e => console.warn('Etsy price sync:', e.message));
     }
+  }
+  // Auto-push updates to eBay if item has an eBay listing
+  if (item.ebayItemId && isEBayConnected()) {
+    pushItemToEBay(item.id)
+      .then(() => toast('eBay listing updated ✓'))
+      .catch(e => console.warn('[eBay] Auto-push failed:', e.message));
   }
   markDirty('inv', item.id);
   save(); closeDrawer(); refresh(); _sfx.edit(); toast('Changes saved ✓');
