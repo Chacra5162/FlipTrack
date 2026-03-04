@@ -442,15 +442,26 @@ export async function publishEBayListing(itemId, options = {}) {
   };
 
   try {
-    // Create offer
-    const offerResp = await ebayAPI('POST', `${INVENTORY_API}/offer`, offerPayload);
-    const offerId = offerResp.offerId;
+    // Check for existing offers for this SKU first
+    let offerId = null;
+    try {
+      const existing = await ebayAPI('GET', `${INVENTORY_API}/offer?sku=${encodeURIComponent(sku)}`);
+      if (existing?.offers?.length > 0) {
+        offerId = existing.offers[0].offerId;
+        console.log('[eBay] Found existing offer:', offerId);
+      }
+    } catch (_) { /* no existing offers */ }
 
+    // Create offer if none exists
     if (!offerId) {
-      // eBay requires business policies (payment, return, fulfillment) to create an offer
-      const ebayMsg = offerResp.errors?.[0]?.longMessage || offerResp.errors?.[0]?.message || '';
-      const msg = ebayMsg || 'Could not create offer. eBay requires business policies (payment, return, fulfillment) to be set up in your Seller Hub before listing.';
-      throw new Error(msg);
+      console.log('[eBay] Creating offer:', JSON.stringify(offerPayload));
+      const offerResp = await ebayAPI('POST', `${INVENTORY_API}/offer`, offerPayload);
+      offerId = offerResp.offerId;
+
+      if (!offerId) {
+        const ebayMsg = offerResp.errors?.[0]?.longMessage || offerResp.errors?.[0]?.message || '';
+        throw new Error(ebayMsg || 'Could not create offer. Set up business policies in eBay Seller Hub first.');
+      }
     }
 
     // Publish offer (makes it live)
