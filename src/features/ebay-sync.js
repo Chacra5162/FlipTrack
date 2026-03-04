@@ -47,6 +47,7 @@ let _syncing = false;
 let _syncInterval = null;
 let _policiesCache = null;
 let _locationKeyCache = null;
+let _aspectsCache = {};  // categoryId → { required: [...], timestamp }
 
 // ── INITIALIZATION ─────────────────────────────────────────────────────────
 
@@ -667,6 +668,124 @@ async function _getValidCondition(categoryId, preferredEnum) {
 }
 
 /**
+ * Fetch required item aspects for a given eBay category from the Taxonomy API.
+ * Caches results for 1 hour per category.
+ * @param {string} categoryId
+ * @returns {Promise<Array<{ name: string, required: boolean, mode: string, values: string[] }>>}
+ */
+async function _fetchRequiredAspects(categoryId) {
+  // Check cache (1 hour TTL)
+  const cached = _aspectsCache[categoryId];
+  if (cached && Date.now() - cached.timestamp < 3600000) return cached.aspects;
+
+  try {
+    const resp = await ebayAPI('GET',
+      `/commerce/taxonomy/v1/category_tree/0/get_item_aspects_for_category?category_id=${categoryId}`);
+    const raw = resp?.aspects || [];
+    const aspects = raw.map(a => ({
+      name: a.localizedAspectName || '',
+      required: a.aspectConstraint?.aspectRequired === true,
+      mode: a.aspectConstraint?.aspectMode || 'FREE_TEXT',
+      values: (a.aspectValues || []).map(v => v.localizedValue).filter(Boolean),
+    }));
+    _aspectsCache[categoryId] = { aspects, timestamp: Date.now() };
+    console.log('[eBay] Fetched', aspects.length, 'aspects for category', categoryId,
+      '—', aspects.filter(a => a.required).length, 'required');
+    return aspects;
+  } catch (e) {
+    console.warn('[eBay] Could not fetch required aspects for category', categoryId, ':', e.message);
+    return [];
+  }
+}
+
+/**
+ * Smart defaults for common required eBay aspects that we can't infer from item data.
+ * Keys are lowercased aspect names.
+ */
+const _ASPECT_DEFAULTS = {
+  'type':             (item) => item.subtype || item.subcategory || 'Other',
+  'style':            (item) => item.style || 'Classic',
+  'closure':          (_) => 'Pull On',
+  'pattern':          (item) => item.pattern || 'Solid',
+  'material':         (item) => item.material || 'N/A',
+  'color':            (item) => item.color || 'Multicolor',
+  'features':         (_) => 'N/A',
+  'theme':            (_) => 'Classic',
+  'occasion':         (_) => 'Casual',
+  'season':           (_) => 'All Seasons',
+  'fit':              (_) => 'Regular',
+  'rise':             (_) => 'Mid Rise',
+  'leg style':        (_) => 'Straight',
+  'sleeve length':    (_) => 'Short Sleeve',
+  'neckline':         (_) => 'Crew Neck',
+  'vintage':          (_) => 'No',
+  'country/region of manufacture': (_) => 'Unknown',
+  'character':        (_) => 'N/A',
+  'model':            (item) => item.model || 'N/A',
+  'connectivity':     (_) => 'N/A',
+  'number of items in set': (_) => '1',
+  'unit type':        (_) => 'Unit',
+  'unit quantity':    (_) => '1',
+};
+
+/**
+ * Fill any missing REQUIRED aspects using eBay Taxonomy data + smart defaults.
+ * Merges into the existing aspects object in-place.
+ * @param {Object} aspects - Existing aspects map (mutated)
+ * @param {string} categoryId - eBay category ID
+ * @param {Object} item - FlipTrack item
+ * @returns {Promise<Object>} The aspects object (same ref, possibly expanded)
+ */
+async function _fillMissingAspects(aspects, categoryId, item) {
+  const required = await _fetchRequiredAspects(categoryId);
+  if (!required.length) return aspects;
+
+  const existingLower = {};
+  for (const k of Object.keys(aspects)) existingLower[k.toLowerCase()] = k;
+
+  let filled = 0;
+  for (const asp of required) {
+    if (!asp.required) continue;
+    const key = asp.name;
+    const keyLow = key.toLowerCase();
+
+    // Already provided
+    if (existingLower[keyLow]) continue;
+
+    // Try smart default function
+    const defaultFn = _ASPECT_DEFAULTS[keyLow];
+    if (defaultFn) {
+      const val = defaultFn(item);
+      // Validate against allowed values if SELECTION_ONLY
+      if (asp.mode === 'SELECTION_ONLY' && asp.values.length > 0) {
+        // Try to match our default to an allowed value (case-insensitive)
+        const match = asp.values.find(v => v.toLowerCase() === String(val).toLowerCase());
+        aspects[key] = [match || asp.values[0]];
+      } else {
+        aspects[key] = [String(val)];
+      }
+      filled++;
+      continue;
+    }
+
+    // No smart default — use first allowed value or generic fallback
+    if (asp.values.length > 0) {
+      aspects[key] = [asp.values[0]];
+      filled++;
+    } else {
+      // Free text required aspect with no values list — use generic
+      aspects[key] = ['N/A'];
+      filled++;
+    }
+  }
+
+  if (filled > 0) {
+    console.log('[eBay] Auto-filled', filled, 'missing required aspects for category', categoryId);
+  }
+  return aspects;
+}
+
+/**
  * Create an offer and publish it to make an eBay listing live.
  * Requires the item to already be in eBay inventory (via pushItemToEBay).
  * Auto-detects business policies and category if not provided.
@@ -708,6 +827,10 @@ export async function publishEBayListing(itemId, options = {}) {
   try {
     const invPayload = _buildInventoryPayload(item);
     invPayload.condition = String(validEnum); // use validated condition
+    // Auto-fill any missing required aspects for this category
+    if (invPayload.product?.aspects) {
+      await _fillMissingAspects(invPayload.product.aspects, categoryId, item);
+    }
     console.log('[eBay] Re-pushing inventory item with validated condition:', validEnum);
     await ebayAPI('PUT', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`, invPayload);
     console.log('[eBay] Inventory re-push succeeded');
@@ -716,6 +839,7 @@ export async function publishEBayListing(itemId, options = {}) {
     try {
       const existing = await ebayAPI('GET', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`);
       const aspects = _buildAspects(item);
+      await _fillMissingAspects(aspects, categoryId, item);
       if (!existing.product) existing.product = {};
       existing.product.aspects = { ...(existing.product.aspects || {}), ...aspects };
       existing.condition = String(validEnum); // fix condition on existing item too
