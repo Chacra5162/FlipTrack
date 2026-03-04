@@ -277,7 +277,7 @@ function _buildDescription(item) {
   if (item.condition) parts.push(`Condition: ${item.condition}`);
   if (item.category) parts.push(`Category: ${item.category}`);
   if (item.subcategory) parts.push(`Subcategory: ${item.subcategory}`);
-  if (item.notes) parts.push(item.notes);
+  // Notes are private — never include in public listings
   parts.push('');
   parts.push('Ships fast! Check my shop for bundle deals and more items.');
   return parts.join('\n');

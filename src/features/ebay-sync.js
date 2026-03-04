@@ -246,9 +246,9 @@ function _buildInventoryPayload(item) {
     },
   };
 
-  // conditionDescription not allowed for NEW condition items
-  if (!isNew && item.notes) {
-    payload.conditionDescription = String(item.notes).slice(0, 1000);
+  // conditionDescription — only use the dedicated condition field, never internal notes
+  if (!isNew && item.conditionDesc) {
+    payload.conditionDescription = String(item.conditionDesc).slice(0, 1000);
   }
 
   // Only add aspects if we have meaningful ones (empty object causes 400)
@@ -371,8 +371,7 @@ function _buildDescription(item) {
   const specsHtml = specs.length > 0
     ? `<p>${specs.join(' &bull; ')}</p>` : '';
 
-  const notesHtml = item.notes
-    ? `<p><b>Condition Notes:</b> ${esc(String(item.notes).slice(0, 500))}</p>` : '';
+  const notesHtml = ''; // Notes are private — never include in public listings
 
   const html = `<div style="font-family:sans-serif;max-width:700px;margin:0 auto">` +
     `<h2 style="margin:0 0 8px">${brandLine}${title}</h2>` +

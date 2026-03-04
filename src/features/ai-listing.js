@@ -66,7 +66,7 @@ function _buildPrompt(item, platform, tone, includeKeywords) {
   if (item.category) details.push(`Category: ${item.category}`);
   if (item.subcategory) details.push(`Subcategory: ${item.subcategory}`);
   if (item.condition) details.push(`Condition: ${item.condition}`);
-  if (item.notes) details.push(`Notes: ${item.notes}`);
+  // Notes are private — never feed to AI or include in public listings
   if (item.upc) details.push(`UPC: ${item.upc}`);
   if (item.isbn) details.push(`ISBN: ${item.isbn}`);
   if (item.author) details.push(`Author: ${item.author}`);
