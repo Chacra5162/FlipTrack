@@ -279,8 +279,8 @@ function _buildDescription(item) {
 
 function _buildAspects(item) {
   const aspects = {};
-  // Note: 'Condition' is NOT a valid eBay aspect — it's set via the condition field
-  if (item.brand) aspects['Brand'] = [item.brand];
+  // Brand is required by most eBay categories — default to "Unbranded"
+  aspects['Brand'] = [item.brand || 'Unbranded'];
   if (item.author) aspects['Author'] = [item.author];
   if (item.color) aspects['Color'] = [item.color];
   if (item.size) aspects['Size'] = [item.size];
