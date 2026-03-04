@@ -301,7 +301,7 @@ export function renderInv() {
     const iCat=(i.category||'').toLowerCase(); const mc=catFilt.size===0||[...catFilt].some(f=>f.toLowerCase()===iCat);
     const ms=subcatFilt==='all'||(i.subcategory||'')===subcatFilt;
     const mss=subsubcatFilt==='all'||(i.subtype||'')===subsubcatFilt;
-    const mst=stockFilt==='all'||(stockFilt==='low'&&(i.qty===0||(i.bulk&&i.qty<=(i.lowAlert||2))));
+    const mst=stockFilt==='all'||(stockFilt==='low'&&i.bulk&&(i.qty===0||i.qty<=(i.lowAlert||2)));
     const msk=smokeFilt==='all'||(smokeFilt==='unset'?!i.smoke:i.smoke===smokeFilt);
     const mco=conditionFilt==='all'||(i.condition||'')=== conditionFilt;
     return mq&&mp&&mc&&ms&&mss&&mst&&msk&&mco;
