@@ -207,5 +207,33 @@ Fast shipping! Bundle discounts available.`,
     platforms: ['Poshmark'],
     tags: ['poshmark', 'fashion'],
     isDefault: true
+  },
+  {
+    id: 'tpl-whatnot-auction',
+    name: 'Whatnot — Auction',
+    category: 'All',
+    titleFormula: '{name} - {condition}',
+    descriptionTemplate: `{name}
+{condition} condition
+{notes}`,
+    platforms: ['Whatnot'],
+    tags: ['whatnot', 'auction', 'live'],
+    isDefault: true
+  },
+  {
+    id: 'tpl-whatnot-fixed',
+    name: 'Whatnot — Fixed Price',
+    category: 'All',
+    titleFormula: '{name} - {condition} - {subcategory}',
+    descriptionTemplate: `{name}
+
+Condition: {condition}
+Category: {category} > {subcategory}
+{notes}
+
+Ships fast! Check my store for more.`,
+    platforms: ['Whatnot'],
+    tags: ['whatnot', 'fixed', 'store'],
+    isDefault: true
   }
 ];

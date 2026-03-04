@@ -22,6 +22,11 @@ import { isEBayConnected, isEBayStatusVerified, getEBayUsername, connectEBay, di
 import { pullEBayListings, pushItemToEBay, publishEBayListing, endEBayListing, isEBaySyncing, getLastEBaySyncTime } from '../features/ebay-sync.js';
 import { isEtsyConnected, getEtsyShopName, connectEtsy, disconnectEtsy } from '../features/etsy-auth.js';
 import { pullEtsyListings, pushItemToEtsy, deactivateEtsyListing, renewEtsyListing, isEtsySyncing, getLastEtsySyncTime } from '../features/etsy-sync.js';
+import {
+  getUpcomingShows, getPastShows, getShow, createShow, updateShow, deleteShow,
+  addItemToShow, addItemsToShow, removeItemFromShow, moveShowItem,
+  startShow, endShow, markShowItemSold, copyShowPrepList, getLiveShow
+} from '../features/whatnot-show.js';
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 
@@ -30,6 +35,8 @@ const _clPageSize = 25;
 let _clSearch = '';
 let _clPlatFilter = 'all';
 let _clStatusFilter = 'all';
+let _wnExpandedShow = null; // which show is expanded in the Whatnot panel
+let _wnShowItemPicker = false; // whether item picker is open
 let _clTab = 'overview'; // 'overview', 'matrix', 'templates'
 
 // ── RENDER ────────────────────────────────────────────────────────────────
@@ -51,6 +58,7 @@ export function renderCrosslistDashboard() {
   // ── CONNECTION PANELS ──
   html += _renderEBayPanel();
   html += _renderEtsyPanel();
+  html += _renderWhatnotPanel();
 
   // ── STATS STRIP ──
   html += `<div class="cl-stats-strip">
@@ -639,6 +647,208 @@ export function clBulkPrice() {
 
   bulkPriceAdjust({ category, platform, adjustType, adjustValue, minDaysListed });
   renderCrosslistDashboard();
+}
+
+// ── WHATNOT SHOWS PANEL ─────────────────────────────────────────────────────
+
+function _renderWhatnotPanel() {
+  const upcoming = getUpcomingShows();
+  const liveShow = getLiveShow();
+  const past = getPastShows();
+  const showCount = upcoming.length;
+
+  let html = `<div class="wn-panel">
+    <div class="wn-panel-header">
+      <div class="wn-panel-left">
+        <div class="wn-panel-status">
+          <span class="wn-dot${liveShow ? ' wn-dot-live' : ''}"></span>
+          <strong>Whatnot Shows</strong>
+          ${liveShow ? `<span class="wn-live-badge">LIVE</span>` : `<span style="color:var(--muted)">${showCount} upcoming</span>`}
+        </div>
+        <div class="wn-panel-meta">${liveShow ? `"${escHtml(liveShow.name)}" is live — ${liveShow.soldCount || 0} sold` : 'Organize items into shows for live selling'}</div>
+      </div>
+      <div class="wn-panel-actions">
+        <button class="btn-sm btn-accent" onclick="wnNewShow()">+ New Show</button>
+      </div>
+    </div>`;
+
+  // Show cards
+  if (upcoming.length > 0) {
+    html += `<div class="wn-shows-list">`;
+    for (const show of upcoming) {
+      const expanded = _wnExpandedShow === show.id;
+      const isLive = show.status === 'live';
+      const dateLabel = show.date ? ds(show.date + 'T12:00:00') : 'No date';
+      const timeLabel = show.time || '';
+
+      html += `<div class="wn-show-card${isLive ? ' wn-show-live' : ''}${expanded ? ' wn-show-expanded' : ''}">
+        <div class="wn-show-header" onclick="wnToggleShow('${show.id}')">
+          <div class="wn-show-info">
+            <span class="wn-show-name">${escHtml(show.name)}</span>
+            <span class="wn-show-date">${escHtml(dateLabel)}${timeLabel ? ' @ ' + escHtml(timeLabel) : ''}</span>
+            <span class="wn-show-count">${show.items.length} item${show.items.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div class="wn-show-actions" onclick="event.stopPropagation()">
+            ${isLive
+              ? `<button class="btn-xs btn-danger" onclick="wnEndShow('${show.id}')">End Show</button>`
+              : `<button class="btn-xs btn-accent" onclick="wnStartShow('${show.id}')"${show.items.length === 0 ? ' disabled title="Add items first"' : ''}>Go Live</button>`
+            }
+            <button class="btn-xs" onclick="wnCopyPrep('${show.id}')" title="Copy prep list">📋</button>
+            ${!isLive ? `<button class="btn-xs btn-muted" onclick="wnDeleteShow('${show.id}')" title="Delete show">✕</button>` : ''}
+          </div>
+        </div>`;
+
+      // Expanded item list
+      if (expanded) {
+        html += `<div class="wn-show-items">`;
+        if (show.items.length === 0) {
+          html += `<div class="wn-show-empty">No items yet — add items to start your show prep</div>`;
+        }
+        show.items.forEach((itemId, i) => {
+          const item = inv.find(x => x.id === itemId);
+          if (!item) return;
+          const imgUrl = (item.images && item.images[0]) || '';
+          html += `<div class="wn-show-item">
+            <span class="wn-item-num">${i + 1}</span>
+            ${imgUrl ? `<img class="wn-item-thumb" src="${escHtml(imgUrl)}" alt="">` : `<span class="wn-item-thumb wn-item-nophoto">📦</span>`}
+            <div class="wn-item-info">
+              <span class="wn-item-name">${escHtml(item.name || 'Untitled')}</span>
+              <span class="wn-item-detail">${escHtml(item.condition || '')} ${item.price ? fmt(item.price) : ''}</span>
+            </div>
+            <div class="wn-item-actions">
+              ${isLive ? `<button class="btn-xs btn-accent" onclick="wnMarkSold('${show.id}','${itemId}')">Sold</button>` : ''}
+              <button class="btn-xs" onclick="wnMoveItem('${show.id}','${itemId}','up')" title="Move up"${i === 0 ? ' disabled' : ''}>▲</button>
+              <button class="btn-xs" onclick="wnMoveItem('${show.id}','${itemId}','down')" title="Move down"${i === show.items.length - 1 ? ' disabled' : ''}>▼</button>
+              <button class="btn-xs btn-muted" onclick="wnRemoveItem('${show.id}','${itemId}')" title="Remove">✕</button>
+            </div>
+          </div>`;
+        });
+        // Add items button
+        html += `<div class="wn-show-add-row">
+          <button class="btn-sm btn-accent" onclick="wnOpenItemPicker('${show.id}')">+ Add Items</button>
+        </div>`;
+
+        // Item picker (inline)
+        if (_wnShowItemPicker) {
+          const available = inv.filter(x =>
+            (x.qty || 0) > 0 && !show.items.includes(x.id)
+          ).slice(0, 50);
+          html += `<div class="wn-item-picker">
+            <div class="wn-picker-header">
+              <strong>Select items to add</strong>
+              <button class="btn-xs btn-muted" onclick="wnCloseItemPicker()">Done</button>
+            </div>
+            <div class="wn-picker-list">`;
+          if (available.length === 0) {
+            html += `<div class="wn-picker-empty">All in-stock items are already in this show</div>`;
+          }
+          for (const item of available) {
+            html += `<div class="wn-picker-item" onclick="wnPickItem('${show.id}','${item.id}')">
+              <span class="wn-picker-name">${escHtml(item.name || 'Untitled')}</span>
+              <span class="wn-picker-price">${item.price ? fmt(item.price) : ''}</span>
+            </div>`;
+          }
+          html += `</div></div>`;
+        }
+        html += `</div>`;
+      }
+      html += `</div>`;
+    }
+    html += `</div>`;
+  }
+
+  // Past shows summary
+  if (past.length > 0) {
+    const recentPast = past.slice(0, 3);
+    html += `<div class="wn-past-shows">
+      <div class="wn-past-label">Recent shows:</div>
+      ${recentPast.map(s => `<span class="wn-past-chip" title="${escHtml(s.name)}">${escHtml(s.name.slice(0, 15))} — ${s.soldCount || 0} sold${s.totalRevenue ? ', ' + fmt(s.totalRevenue) : ''}</span>`).join('')}
+    </div>`;
+  }
+
+  html += `</div>`;
+  return html;
+}
+
+// ── Whatnot Show Handlers (exposed to window) ────────────────────────────
+
+export function wnToggleShow(showId) {
+  _wnExpandedShow = _wnExpandedShow === showId ? null : showId;
+  _wnShowItemPicker = false;
+  renderCrosslistDashboard();
+}
+
+export async function wnNewShow() {
+  const name = prompt('Show name:');
+  if (!name) return;
+  const date = prompt('Date (YYYY-MM-DD):', new Date().toISOString().slice(0, 10));
+  if (!date) return;
+  const time = prompt('Time (HH:MM, optional):', '19:00') || '';
+  const show = await createShow(name, date, time);
+  _wnExpandedShow = show.id;
+  renderCrosslistDashboard();
+}
+
+export async function wnDeleteShow(showId) {
+  const show = getShow(showId);
+  if (!show) return;
+  if (!confirm(`Delete show "${show.name}"?`)) return;
+  await deleteShow(showId);
+  if (_wnExpandedShow === showId) _wnExpandedShow = null;
+  renderCrosslistDashboard();
+}
+
+export async function wnStartShow(showId) {
+  const show = getShow(showId);
+  if (!show) return;
+  if (!confirm(`Go live with "${show.name}" (${show.items.length} items)?`)) return;
+  await startShow(showId);
+  _wnExpandedShow = showId;
+  renderCrosslistDashboard();
+}
+
+export async function wnEndShow(showId) {
+  if (!confirm('End this live show?')) return;
+  await endShow(showId);
+  renderCrosslistDashboard();
+}
+
+export async function wnMarkSold(showId, itemId) {
+  const item = inv.find(x => x.id === itemId);
+  const price = item?.price || 0;
+  await markShowItemSold(showId, itemId, price);
+  refresh();
+  renderCrosslistDashboard();
+}
+
+export async function wnMoveItem(showId, itemId, direction) {
+  await moveShowItem(showId, itemId, direction);
+  renderCrosslistDashboard();
+}
+
+export async function wnRemoveItem(showId, itemId) {
+  await removeItemFromShow(showId, itemId);
+  renderCrosslistDashboard();
+}
+
+export function wnOpenItemPicker(showId) {
+  _wnExpandedShow = showId;
+  _wnShowItemPicker = true;
+  renderCrosslistDashboard();
+}
+
+export function wnCloseItemPicker() {
+  _wnShowItemPicker = false;
+  renderCrosslistDashboard();
+}
+
+export async function wnPickItem(showId, itemId) {
+  await addItemToShow(showId, itemId);
+  renderCrosslistDashboard();
+}
+
+export async function wnCopyPrep(showId) {
+  await copyShowPrepList(showId);
 }
 
 // ── eBay INTEGRATION PANEL ───────────────────────────────────────────────

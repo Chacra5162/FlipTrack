@@ -34,7 +34,11 @@ const PLATFORM_LINKS = {
   'Craigslist': () => `https://post.craigslist.org/`,
   'OfferUp': () => `https://offerup.com/post`,
   'Nextdoor': () => `https://nextdoor.com/for_sale_and_free/`,
-  'Whatnot': () => `https://www.whatnot.com/sell`,
+  'Whatnot': (item) => {
+    // Whatnot doesn't support pre-fill params yet — open seller dashboard
+    // If item has a category, link to the sell page
+    return `https://www.whatnot.com/sell`;
+  },
   'TikTok Shop': () => `https://seller-us.tiktok.com/`,
   'Instagram': () => `https://www.instagram.com/`,
   'Shopify': () => `https://admin.shopify.com/`,

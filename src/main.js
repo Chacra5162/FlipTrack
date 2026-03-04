@@ -141,12 +141,16 @@ import {
   clBulkRelistExpired, clAddTemplate, clDeleteTemplate, clSaveTemplate,
   clToggleAutoRelist, clRunAutoRelist, clBulkPrice,
   clEBayConnect, clEBayDisconnect, clEBaySync, clPushToEBay, clPublishOnEBay, clEndEBayListing,
-  clEtsyConnect, clEtsyDisconnect, clEtsySync, clPushToEtsy, clDeactivateEtsyListing, clRenewEtsyListing
+  clEtsyConnect, clEtsyDisconnect, clEtsySync, clPushToEtsy, clDeactivateEtsyListing, clRenewEtsyListing,
+  wnToggleShow, wnNewShow, wnDeleteShow, wnStartShow, wnEndShow,
+  wnMarkSold, wnMoveItem, wnRemoveItem, wnOpenItemPicker, wnCloseItemPicker,
+  wnPickItem, wnCopyPrep
 } from './views/crosslist-dashboard.js';
 import { initEBayAuth, handleEBayCallback, isEBayConnected } from './features/ebay-auth.js';
 import { initEBaySync, startEBaySyncInterval } from './features/ebay-sync.js';
 import { initEtsyAuth, handleEtsyCallback, isEtsyConnected } from './features/etsy-auth.js';
 import { initEtsySync, startEtsySyncInterval } from './features/etsy-sync.js';
+import { initWhatnotShows } from './features/whatnot-show.js';
 import {
   setDimUnit, updateDimWeight, suggestPackaging,
   loadDimsToForm, getDimsFromForm, clearDimForm
@@ -460,6 +464,13 @@ Object.assign(window, {
   clEtsyConnect, clEtsyDisconnect, clEtsySync,
   clPushToEtsy, clDeactivateEtsyListing, clRenewEtsyListing,
   handleEtsyCallback,
+});
+
+// Whatnot Integration
+Object.assign(window, {
+  wnToggleShow, wnNewShow, wnDeleteShow, wnStartShow, wnEndShow,
+  wnMarkSold, wnMoveItem, wnRemoveItem, wnOpenItemPicker, wnCloseItemPicker,
+  wnPickItem, wnCopyPrep
 });
 
 // Phase 2: Shipping
@@ -843,6 +854,7 @@ setTimeout(_killSplash, 3000);
       initPackingSlipSettings(),
       initEBaySync(),
       initEtsySync(),
+      initWhatnotShows(),
       initPhotoSettings(),
       initShipLabels(),
     ]);
