@@ -236,3 +236,44 @@ export function initNotificationCenter() {
     }
   });
 }
+
+/**
+ * Check for upcoming Whatnot shows today and create reminder notifications.
+ * Should be called during boot after initWhatnotShows().
+ */
+export function checkWhatnotShowReminders(getTodayShows) {
+  try {
+    if (typeof getTodayShows !== 'function') return;
+    const todayShows = getTodayShows();
+    if (!todayShows || !todayShows.length) return;
+
+    for (const show of todayShows) {
+      // Don't re-notify for the same show (check by show id in recent notifications)
+      const alreadyNotified = _notifications.some(n =>
+        n.actionId === `wn_show_${show.id}` && n.type === 'show'
+      );
+      if (alreadyNotified) continue;
+
+      const timeLabel = show.time ? ` at ${show.time}` : '';
+      addNotification(
+        'show',
+        `Whatnot Show Today${timeLabel}`,
+        `"${show.name}" — ${show.items.length} items prepped`,
+        `wn_show_${show.id}`
+      );
+    }
+  } catch (_) { /* whatnot-show may not be loaded */ }
+}
+
+/**
+ * Generate post-show summary notification.
+ * Call after endShow() in whatnot-show.js.
+ */
+export function notifyShowEnded(showName, soldCount, totalRevenue) {
+  addNotification(
+    'sale',
+    'Show Complete',
+    `"${showName}" ended — ${soldCount} sold, $${(totalRevenue || 0).toFixed(2)} revenue`,
+    null
+  );
+}

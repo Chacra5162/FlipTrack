@@ -9,6 +9,7 @@ import { fmt, pct, uid, escHtml } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { getMeta, setMeta } from '../data/idb.js';
 import { logPriceChange } from './price-history.js';
+import { getItemShowsWithoutSale } from './whatnot-show.js';
 
 // ── DEFAULT RULES ────────────────────────────────────────────────────────────
 const DEFAULT_RULES = [
@@ -37,6 +38,15 @@ const DEFAULT_RULES = [
     condition: { daysListed: 0, noSalesDays: 0, priceAbove: 0, priceBelow: 9999 },
     action: { type: 'percent_raise', value: 5 },
     platforms: [],
+    categories: []
+  },
+  {
+    id: 'rule_whatnot_stale',
+    name: '10% drop after 3 shows without sale',
+    active: false,
+    condition: { daysListed: 0, noSalesDays: 0, priceAbove: 0, priceBelow: 9999, showsWithoutSale: 3 },
+    action: { type: 'percent_drop', value: 10 },
+    platforms: ['Whatnot'],
     categories: []
   }
 ];
@@ -148,13 +158,19 @@ export function evaluateRules() {
         if (!rule.categories.includes(item.category)) return;
       }
 
-      const { daysListed, noSalesDays, priceAbove, priceBelow } = rule.condition;
+      const { daysListed, noSalesDays, priceAbove, priceBelow, showsWithoutSale } = rule.condition;
       const { type, value } = rule.action;
+
+      // Check Whatnot show performance condition
+      if (showsWithoutSale > 0) {
+        const unsold = getItemShowsWithoutSale(item.id);
+        if (unsold < showsWithoutSale) return;
+      }
 
       // Check days listed condition
       const createdAt = item.createdAt || item.listedAt || 0;
       const daysOld = (now - createdAt) / (24 * 3600000);
-      if (daysOld < daysListed) return;
+      if (daysListed > 0 && daysOld < daysListed) return;
 
       // Check price range
       if (item.price < priceAbove || item.price > priceBelow) return;
@@ -297,7 +313,7 @@ export function renderRepricingRulesManager() {
       <div>
         <div style="font-weight:500;color:var(--text)">${escHtml(rule.name)}</div>
         <div style="font-size:11px;color:var(--muted)">
-          ${rule.condition.daysListed > 0 ? `After ${rule.condition.daysListed} days` : 'Always'} •
+          ${rule.condition.showsWithoutSale > 0 ? `After ${rule.condition.showsWithoutSale} shows unsold` : rule.condition.daysListed > 0 ? `After ${rule.condition.daysListed} days` : 'Always'} •
           ${rule.action.type === 'percent_drop' ? `${rule.action.value}% drop` : rule.action.type === 'percent_raise' ? `${rule.action.value}% raise` : `$${rule.action.value} drop`}
         </div>
       </div>

@@ -7,6 +7,7 @@
 import { inv, sales } from '../data/store.js';
 import { fmt, ds, escHtml } from '../utils/format.js';
 import { getPlatforms } from './platforms.js';
+import { getItemShowsWithoutSale, getItemShowHistory } from './whatnot-show.js';
 
 // ── CONSTANTS ─────────────────────────────────────────────────────────────
 
@@ -98,6 +99,22 @@ export function getDeathPileItems(items) {
       }
     }
 
+    // Whatnot show stale detection
+    let showAppearances = 0;
+    let lastShownDate = null;
+    try {
+      showAppearances = getItemShowsWithoutSale(item.id);
+      if (showAppearances >= 3) {
+        const history = getItemShowHistory(item.id);
+        if (history.length) lastShownDate = history[0].show.date || null;
+        if (!reason || showAppearances >= 3) {
+          reason = `Shown in ${showAppearances} Whatnot shows, 0 sales`;
+          suggestedAction = 'Lower price, improve presentation, or move to different platform';
+          daysStale = Math.max(daysStale, showAppearances * 7); // synthetic staleness
+        }
+      }
+    } catch (_) { /* whatnot-show not loaded yet */ }
+
     const urgency = getUrgencyLevel(daysStale);
     if (!urgency) continue;
 
@@ -108,6 +125,8 @@ export function getDeathPileItems(items) {
       urgency,
       suggestedAction,
       potentialLoss: (item.cost || 0) * (item.qty || 1),
+      showAppearances,
+      lastShownDate,
     });
   }
 
@@ -241,6 +260,7 @@ export function renderDeathPileView() {
             <span>${fmt(dp.item.price || 0)}</span>
             <span style="color:var(--muted)">${escHtml(dp.reason)}</span>
           </div>
+          ${dp.showAppearances >= 2 ? `<div class="dp-row-shows" style="font-size:10px;color:var(--warn)">Shown ${dp.showAppearances}× on Whatnot</div>` : ''}
           <div class="dp-row-action">${escHtml(dp.suggestedAction)}</div>
         </div>
       `;

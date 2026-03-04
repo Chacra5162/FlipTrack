@@ -2598,3 +2598,264 @@ textarea { resize:vertical; min-height:70px; }
   .fee-row { flex-wrap: wrap; gap: 4px; }
   .fee-plat { min-width: 60px; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   WHATNOT — Analytics, Builder, Notes, Run Sheet (Phase 2)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Sub-Tab Navigation ──────────────────────────────────────────────── */
+.wn-tabs {
+  display: flex; gap: 0; border-bottom: 2px solid var(--border);
+  margin: 0 -12px; padding: 0 12px;
+}
+.wn-tab {
+  padding: 8px 16px; font-size: 12px; font-weight: 600;
+  color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent;
+  margin-bottom: -2px; transition: color .15s, border-color .15s;
+  user-select: none;
+}
+.wn-tab:hover { color: var(--text); }
+.wn-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── Analytics Tab ───────────────────────────────────────────────────── */
+.wn-analytics { padding: 12px 0; }
+.wn-section-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .5px; color: var(--muted); margin: 16px 0 8px;
+}
+.wn-section-title:first-child { margin-top: 4px; }
+
+.wn-stats-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px; margin-bottom: 12px;
+}
+.wn-stat {
+  background: var(--surface2); border-radius: 8px; padding: 10px;
+  text-align: center;
+}
+.wn-stat-val {
+  font-size: 18px; font-weight: 700; color: var(--text);
+  line-height: 1.2;
+}
+.wn-stat-label {
+  font-size: 10px; color: var(--muted); margin-top: 2px;
+}
+
+.wn-best-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.wn-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--surface2); border-radius: 8px; padding: 8px 12px;
+  font-size: 12px;
+}
+.wn-badge-icon { font-size: 16px; }
+.wn-badge-label { color: var(--muted); font-size: 10px; }
+.wn-badge-value { font-weight: 600; color: var(--text); }
+
+/* Sparkline trend */
+.wn-trend-section { margin-bottom: 12px; }
+.wn-sparkline {
+  width: 100%; height: 60px; display: block;
+  background: var(--surface2); border-radius: 8px; padding: 4px;
+}
+
+/* Category performance bars */
+.wn-cat-bars { margin-bottom: 12px; }
+.wn-cat-row {
+  display: grid; grid-template-columns: 100px 1fr 50px;
+  gap: 8px; align-items: center; padding: 4px 0;
+  font-size: 11px;
+}
+.wn-cat-name {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--text);
+}
+.wn-cat-bar-wrap {
+  height: 14px; background: var(--surface2); border-radius: 7px;
+  overflow: hidden;
+}
+.wn-cat-bar {
+  height: 100%; background: var(--accent); border-radius: 7px;
+  min-width: 2px; transition: width .3s;
+}
+.wn-cat-pct { color: var(--muted); text-align: right; font-size: 10px; font-weight: 600; }
+
+/* Performance table */
+.wn-perf-table {
+  width: 100%; font-size: 11px; border-collapse: collapse;
+  margin-bottom: 12px;
+}
+.wn-perf-table th {
+  text-align: left; padding: 6px 8px; font-weight: 600;
+  color: var(--muted); border-bottom: 1px solid var(--border);
+  font-size: 10px; text-transform: uppercase; letter-spacing: .3px;
+}
+.wn-perf-table td {
+  padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,.03);
+  color: var(--text);
+}
+.wn-perf-table tr:hover td { background: var(--hover); }
+
+/* Top/worst performers */
+.wn-performer-list { margin-bottom: 12px; }
+.wn-performer-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,.03);
+  font-size: 12px;
+}
+.wn-performer-item:hover { background: var(--hover); }
+.wn-performer-rank {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--surface2); display: flex; align-items: center;
+  justify-content: center; font-size: 10px; font-weight: 700;
+  color: var(--muted); flex-shrink: 0;
+}
+.wn-performer-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wn-performer-stat { color: var(--muted); font-size: 11px; white-space: nowrap; }
+
+/* ── Builder Tab ─────────────────────────────────────────────────────── */
+.wn-builder { padding: 12px 0; }
+.wn-builder-rec {
+  background: var(--surface2); border-radius: 8px; padding: 12px;
+  margin-bottom: 12px; font-size: 12px;
+}
+.wn-builder-rec-title { font-weight: 600; margin-bottom: 6px; color: var(--text); }
+.wn-builder-rec-val { color: var(--accent); font-weight: 700; font-size: 18px; }
+.wn-builder-rec-note { color: var(--muted); font-size: 11px; margin-top: 4px; }
+
+.wn-builder-mix {
+  background: var(--surface2); border-radius: 8px; padding: 12px;
+  margin-bottom: 12px;
+}
+.wn-builder-mix-title { font-weight: 600; font-size: 12px; margin-bottom: 8px; }
+.wn-builder-mix-row {
+  display: flex; align-items: center; gap: 8px; font-size: 11px;
+  padding: 3px 0;
+}
+.wn-builder-mix-bar {
+  flex: 1; height: 10px; background: var(--bg); border-radius: 5px; overflow: hidden;
+}
+.wn-builder-mix-fill {
+  height: 100%; background: var(--accent); border-radius: 5px;
+  opacity: .7;
+}
+
+.wn-builder-actions {
+  display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;
+}
+.wn-builder-actions .btn-primary,
+.wn-builder-actions .btn-secondary {
+  font-size: 11px; padding: 6px 12px;
+}
+
+.wn-builder-list { margin-bottom: 8px; }
+.wn-builder-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px; border-bottom: 1px solid rgba(255,255,255,.03);
+  cursor: pointer; transition: background .1s;
+}
+.wn-builder-item:hover { background: var(--hover); }
+.wn-builder-item.selected { background: rgba(108,99,255,.08); }
+.wn-builder-item input[type="checkbox"] { flex-shrink: 0; cursor: pointer; }
+.wn-builder-item-info { flex: 1; min-width: 0; }
+.wn-builder-item-name {
+  font-size: 12px; font-weight: 500; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.wn-builder-item-meta {
+  font-size: 10px; color: var(--muted); display: flex; gap: 8px;
+  margin-top: 2px;
+}
+.wn-builder-item-score {
+  font-size: 10px; font-weight: 700; color: var(--accent);
+  white-space: nowrap;
+}
+.wn-builder-item-reasons {
+  font-size: 10px; color: var(--muted); margin-top: 2px;
+  display: flex; gap: 4px; flex-wrap: wrap;
+}
+.wn-builder-reason {
+  background: var(--surface2); padding: 1px 6px; border-radius: 4px;
+  font-size: 9px;
+}
+
+/* ── Show Card Enhancements (Notes, Sold Tags, Live Controls) ──────── */
+.wn-item-note-preview {
+  font-size: 10px; color: var(--muted); font-style: italic;
+  margin-top: 2px; display: flex; align-items: center; gap: 4px;
+  cursor: pointer;
+}
+.wn-item-note-preview:hover { color: var(--text); }
+.wn-item-note-icon { font-size: 12px; }
+
+.wn-sold-tag {
+  display: inline-block; background: var(--good); color: #fff;
+  font-size: 9px; font-weight: 700; padding: 1px 6px;
+  border-radius: 4px; text-transform: uppercase; letter-spacing: .3px;
+}
+.wn-unsold-tag {
+  display: inline-block; background: var(--muted); color: var(--bg);
+  font-size: 9px; font-weight: 700; padding: 1px 6px;
+  border-radius: 4px; text-transform: uppercase; letter-spacing: .3px;
+  opacity: .6;
+}
+
+.wn-live-controls {
+  display: flex; gap: 8px; padding: 8px 12px;
+  background: rgba(108,99,255,.05); border-radius: 6px;
+  margin: 8px 0; align-items: center; flex-wrap: wrap;
+}
+.wn-live-controls label {
+  font-size: 11px; color: var(--muted); display: flex;
+  align-items: center; gap: 4px;
+}
+.wn-viewer-input, .wn-expense-input {
+  width: 70px; font-size: 11px; padding: 4px 6px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 4px; color: var(--text);
+}
+
+.wn-recurring-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: rgba(108,99,255,.12); color: var(--accent);
+  font-size: 10px; font-weight: 600; padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.wn-past-actions {
+  display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 0;
+}
+.wn-past-actions button {
+  font-size: 10px; padding: 4px 10px; border-radius: 4px;
+  cursor: pointer; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text);
+  transition: background .1s;
+}
+.wn-past-actions button:hover { background: var(--hover); }
+
+.wn-show-history-badge {
+  font-size: 9px; color: var(--warn); font-weight: 600;
+  display: inline-block; margin-left: 4px;
+}
+
+/* ── Run Sheet (print-friendly) ──────────────────────────────────────── */
+@media print {
+  .wn-run-sheet { font-size: 12px; }
+  .wn-run-sheet table { width: 100%; border-collapse: collapse; }
+  .wn-run-sheet th, .wn-run-sheet td {
+    padding: 6px 8px; border: 1px solid #ccc; text-align: left;
+  }
+  .wn-run-sheet th { background: #f0f0f0; font-weight: 700; }
+}
+
+/* ── Death pile Whatnot show badge ────────────────────────────────────── */
+.dp-row-shows {
+  font-size: 10px; color: var(--warn); font-weight: 600;
+  margin-top: 2px;
+}
+
+/* ── Empty / no-data states ──────────────────────────────────────────── */
+.wn-empty {
+  text-align: center; padding: 30px 12px; color: var(--muted);
+  font-size: 13px;
+}
+.wn-empty-icon { font-size: 32px; margin-bottom: 8px; }

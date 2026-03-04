@@ -25,8 +25,16 @@ import { pullEtsyListings, pushItemToEtsy, deactivateEtsyListing, renewEtsyListi
 import {
   getUpcomingShows, getPastShows, getShow, createShow, updateShow, deleteShow,
   addItemToShow, addItemsToShow, removeItemFromShow, moveShowItem,
-  startShow, endShow, markShowItemSold, copyShowPrepList, getLiveShow
+  startShow, endShow, markShowItemSold, copyShowPrepList, getLiveShow,
+  getEndedShows, setItemNote, getItemNote, cloneShow, setShowViewerPeak,
+  setShowExpenses, getShowSoldItems, getShowUnsoldItems, getItemShowHistory,
+  getItemShowsWithoutSale, getShowRunSheet, getTodayShows
 } from '../features/whatnot-show.js';
+import {
+  getShowMetrics, calcBestShowDay, calcBestShowTime, calcCategoryPerformance,
+  calcShowTrends, calcTopPerformingItems, calcWorstPerformingItems, calcOverallStats,
+  suggestShowItems, suggestShowSize, suggestCategoryMix
+} from '../features/whatnot-analytics.js';
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 
@@ -37,6 +45,8 @@ let _clPlatFilter = 'all';
 let _clStatusFilter = 'all';
 let _wnExpandedShow = null; // which show is expanded in the Whatnot panel
 let _wnShowItemPicker = false; // whether item picker is open
+let _wnTab = 'shows'; // 'shows' | 'analytics' | 'builder'
+let _wnBuilderSelected = new Set(); // selected item IDs in smart builder
 let _clTab = 'overview'; // 'overview', 'matrix', 'templates'
 
 // ── RENDER ────────────────────────────────────────────────────────────────
@@ -652,9 +662,8 @@ export function clBulkPrice() {
 // ── WHATNOT SHOWS PANEL ─────────────────────────────────────────────────────
 
 function _renderWhatnotPanel() {
-  const upcoming = getUpcomingShows();
   const liveShow = getLiveShow();
-  const past = getPastShows();
+  const upcoming = getUpcomingShows();
   const showCount = upcoming.length;
 
   let html = `<div class="wn-panel">
@@ -670,9 +679,28 @@ function _renderWhatnotPanel() {
       <div class="wn-panel-actions">
         <button class="btn-sm btn-accent" onclick="wnNewShow()">+ New Show</button>
       </div>
+    </div>
+    <div class="wn-tabs">
+      <button class="wn-tab${_wnTab === 'shows' ? ' active' : ''}" onclick="wnSwitchTab('shows')">Shows</button>
+      <button class="wn-tab${_wnTab === 'analytics' ? ' active' : ''}" onclick="wnSwitchTab('analytics')">Analytics</button>
+      <button class="wn-tab${_wnTab === 'builder' ? ' active' : ''}" onclick="wnSwitchTab('builder')">Smart Builder</button>
     </div>`;
 
-  // Show cards
+  if (_wnTab === 'shows') html += _renderWnShowsTab();
+  else if (_wnTab === 'analytics') html += _renderWnAnalyticsTab();
+  else if (_wnTab === 'builder') html += _renderWnBuilderTab();
+
+  html += `</div>`;
+  return html;
+}
+
+// ── Shows Tab ──────────────────────────────────────────────────────────
+
+function _renderWnShowsTab() {
+  const upcoming = getUpcomingShows();
+  const past = getPastShows();
+  let html = '';
+
   if (upcoming.length > 0) {
     html += `<div class="wn-shows-list">`;
     for (const show of upcoming) {
@@ -685,6 +713,7 @@ function _renderWhatnotPanel() {
         <div class="wn-show-header" onclick="wnToggleShow('${show.id}')">
           <div class="wn-show-info">
             <span class="wn-show-name">${escHtml(show.name)}</span>
+            ${show.recurring ? '<span class="wn-recurring-badge">↻</span>' : ''}
             <span class="wn-show-date">${escHtml(dateLabel)}${timeLabel ? ' @ ' + escHtml(timeLabel) : ''}</span>
             <span class="wn-show-count">${show.items.length} item${show.items.length !== 1 ? 's' : ''}</span>
           </div>
@@ -694,13 +723,19 @@ function _renderWhatnotPanel() {
               : `<button class="btn-xs btn-accent" onclick="wnStartShow('${show.id}')"${show.items.length === 0 ? ' disabled title="Add items first"' : ''}>Go Live</button>`
             }
             <button class="btn-xs" onclick="wnCopyPrep('${show.id}')" title="Copy prep list">📋</button>
+            <button class="btn-xs" onclick="wnPrintRunSheet('${show.id}')" title="Print run sheet">🖨</button>
             ${!isLive ? `<button class="btn-xs btn-muted" onclick="wnDeleteShow('${show.id}')" title="Delete show">✕</button>` : ''}
           </div>
         </div>`;
 
-      // Expanded item list
       if (expanded) {
         html += `<div class="wn-show-items">`;
+        // Viewer count & expenses for live shows
+        if (isLive) {
+          html += `<div class="wn-live-controls">
+            <label class="wn-viewer-input">Viewers: <input type="number" min="0" value="${show.viewerPeak || ''}" placeholder="Peak" onchange="wnSetViewerPeak('${show.id}',this.value)" style="width:60px"></label>
+          </div>`;
+        }
         if (show.items.length === 0) {
           html += `<div class="wn-show-empty">No items yet — add items to start your show prep</div>`;
         }
@@ -708,27 +743,30 @@ function _renderWhatnotPanel() {
           const item = inv.find(x => x.id === itemId);
           if (!item) return;
           const imgUrl = (item.images && item.images[0]) || '';
-          html += `<div class="wn-show-item">
+          const note = getItemNote(show.id, itemId);
+          const isSold = show.soldItems?.[itemId];
+          html += `<div class="wn-show-item${isSold ? ' wn-item-sold' : ''}">
             <span class="wn-item-num">${i + 1}</span>
             ${imgUrl ? `<img class="wn-item-thumb" src="${escHtml(imgUrl)}" alt="">` : `<span class="wn-item-thumb wn-item-nophoto">📦</span>`}
             <div class="wn-item-info">
-              <span class="wn-item-name">${escHtml(item.name || 'Untitled')}</span>
+              <span class="wn-item-name">${escHtml(item.name || 'Untitled')}${isSold ? ' <span class="wn-sold-tag">SOLD</span>' : ''}</span>
               <span class="wn-item-detail">${escHtml(item.condition || '')} ${item.price ? fmt(item.price) : ''}</span>
+              ${note ? `<span class="wn-item-note-preview" title="${escHtml(note)}">💬 ${escHtml(note.slice(0, 40))}${note.length > 40 ? '…' : ''}</span>` : ''}
             </div>
             <div class="wn-item-actions">
-              ${isLive ? `<button class="btn-xs btn-accent" onclick="wnMarkSold('${show.id}','${itemId}')">Sold</button>` : ''}
+              ${isLive && !isSold ? `<button class="btn-xs btn-accent" onclick="wnMarkSold('${show.id}','${itemId}')">Sold</button>` : ''}
+              <button class="btn-xs" onclick="wnEditItemNote('${show.id}','${itemId}')" title="Talking points">💬</button>
               <button class="btn-xs" onclick="wnMoveItem('${show.id}','${itemId}','up')" title="Move up"${i === 0 ? ' disabled' : ''}>▲</button>
               <button class="btn-xs" onclick="wnMoveItem('${show.id}','${itemId}','down')" title="Move down"${i === show.items.length - 1 ? ' disabled' : ''}>▼</button>
               <button class="btn-xs btn-muted" onclick="wnRemoveItem('${show.id}','${itemId}')" title="Remove">✕</button>
             </div>
           </div>`;
         });
-        // Add items button
         html += `<div class="wn-show-add-row">
           <button class="btn-sm btn-accent" onclick="wnOpenItemPicker('${show.id}')">+ Add Items</button>
+          <label class="wn-expense-input">Expenses: $<input type="number" min="0" step="0.01" value="${show.showExpenses || ''}" placeholder="0" onchange="wnSetExpenses('${show.id}',this.value)" style="width:60px"></label>
         </div>`;
 
-        // Item picker (inline)
         if (_wnShowItemPicker) {
           const available = inv.filter(x =>
             (x.qty || 0) > 0 && !show.items.includes(x.id)
@@ -743,8 +781,10 @@ function _renderWhatnotPanel() {
             html += `<div class="wn-picker-empty">All in-stock items are already in this show</div>`;
           }
           for (const item of available) {
+            const showHist = getItemShowHistory(item.id);
+            const histLabel = showHist.length ? ` (${showHist.filter(h => h.wasSold).length}/${showHist.length} shows sold)` : '';
             html += `<div class="wn-picker-item" onclick="wnPickItem('${show.id}','${item.id}')">
-              <span class="wn-picker-name">${escHtml(item.name || 'Untitled')}</span>
+              <span class="wn-picker-name">${escHtml(item.name || 'Untitled')}${histLabel}</span>
               <span class="wn-picker-price">${item.price ? fmt(item.price) : ''}</span>
             </div>`;
           }
@@ -757,13 +797,201 @@ function _renderWhatnotPanel() {
     html += `</div>`;
   }
 
-  // Past shows summary
+  // Past shows
   if (past.length > 0) {
-    const recentPast = past.slice(0, 3);
     html += `<div class="wn-past-shows">
-      <div class="wn-past-label">Recent shows:</div>
-      ${recentPast.map(s => `<span class="wn-past-chip" title="${escHtml(s.name)}">${escHtml(s.name.slice(0, 15))} — ${s.soldCount || 0} sold${s.totalRevenue ? ', ' + fmt(s.totalRevenue) : ''}</span>`).join('')}
+      <div class="wn-past-label">Past Shows</div>`;
+    for (const s of past.slice(0, 5)) {
+      const m = getShowMetrics(s);
+      html += `<div class="wn-past-card">
+        <div class="wn-past-info">
+          <strong>${escHtml(s.name.slice(0, 25))}</strong>
+          <span>${s.date ? ds(s.date + 'T12:00:00') : ''}</span>
+        </div>
+        <div class="wn-past-stats">
+          <span>${s.soldCount || 0}/${s.items?.length || 0} sold</span>
+          <span>${fmt(s.totalRevenue || 0)}</span>
+          <span style="color:${m.profit >= 0 ? 'var(--good)' : 'var(--danger)'}">${fmt(m.profit)}</span>
+        </div>
+        <div class="wn-past-actions">
+          <button class="btn-xs" onclick="wnCloneShow('${s.id}')" title="Clone as new show">↻ Clone</button>
+          <button class="btn-xs" onclick="wnExportShowCSV('${s.id}')" title="Export results CSV">📊</button>
+        </div>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  return html;
+}
+
+// ── Analytics Tab ──────────────────────────────────────────────────────
+
+function _renderWnAnalyticsTab() {
+  const stats = calcOverallStats();
+  if (!stats) {
+    return `<div class="wn-analytics-empty">
+      <p style="color:var(--muted);text-align:center;padding:30px">No completed shows yet. Analytics will appear after your first show ends.</p>
     </div>`;
+  }
+
+  let html = `<div class="wn-analytics">`;
+
+  // Overall stats
+  html += `<div class="wn-stats-grid">
+    <div class="wn-stat"><div class="wn-stat-val">${stats.showCount}</div><div class="wn-stat-label">Shows</div></div>
+    <div class="wn-stat"><div class="wn-stat-val">${(stats.avgSellThrough * 100).toFixed(0)}%</div><div class="wn-stat-label">Avg Sell-Through</div></div>
+    <div class="wn-stat"><div class="wn-stat-val">${fmt(stats.totalRevenue)}</div><div class="wn-stat-label">Total Revenue</div></div>
+    <div class="wn-stat"><div class="wn-stat-val">${fmt(stats.totalProfit)}</div><div class="wn-stat-label">Total Profit</div></div>
+    <div class="wn-stat"><div class="wn-stat-val">${fmt(stats.revenuePerHour)}/hr</div><div class="wn-stat-label">Rev/Hour</div></div>
+    <div class="wn-stat"><div class="wn-stat-val">${stats.totalSold}</div><div class="wn-stat-label">Items Sold</div></div>
+  </div>`;
+
+  // Best day/time
+  const bestDay = calcBestShowDay().find(d => d.showCount > 0);
+  const bestTime = calcBestShowTime().find(t => t.showCount > 0);
+  if (bestDay || bestTime) {
+    html += `<div class="wn-best-badges">`;
+    if (bestDay) html += `<span class="wn-badge">Best Day: <strong>${bestDay.dayName}</strong> (${(bestDay.avgSellThrough * 100).toFixed(0)}% sell-through)</span>`;
+    if (bestTime) html += `<span class="wn-badge">Best Time: <strong>${bestTime.label}</strong> (${(bestTime.avgSellThrough * 100).toFixed(0)}% sell-through)</span>`;
+    html += `</div>`;
+  }
+
+  // Performance trend (sparkline via inline SVG)
+  const trends = calcShowTrends(10);
+  if (trends.length >= 2) {
+    const maxST = Math.max(...trends.map(t => t.sellThrough), 0.01);
+    const w = 300, h = 60, pad = 4;
+    const pts = trends.map((t, i) => {
+      const x = pad + (i / (trends.length - 1)) * (w - pad * 2);
+      const y = h - pad - (t.sellThrough / maxST) * (h - pad * 2);
+      return `${x},${y}`;
+    }).join(' ');
+    html += `<div class="wn-trend-section">
+      <div class="wn-section-title">Sell-Through Trend (last ${trends.length} shows)</div>
+      <svg class="wn-sparkline" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
+        <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2"/>
+        ${trends.map((t, i) => {
+          const x = pad + (i / (trends.length - 1)) * (w - pad * 2);
+          const y = h - pad - (t.sellThrough / maxST) * (h - pad * 2);
+          return `<circle cx="${x}" cy="${y}" r="3" fill="var(--accent)"><title>${t.name}: ${(t.sellThrough * 100).toFixed(0)}%</title></circle>`;
+        }).join('')}
+      </svg>
+    </div>`;
+  }
+
+  // Category performance
+  const catPerf = calcCategoryPerformance().slice(0, 6);
+  if (catPerf.length > 0) {
+    const maxShown = Math.max(...catPerf.map(c => c.shown), 1);
+    html += `<div class="wn-section-title">Category Performance</div>
+    <div class="wn-cat-bars">`;
+    for (const c of catPerf) {
+      const pct = (c.sellThrough * 100).toFixed(0);
+      const barW = Math.max(4, (c.shown / maxShown) * 100);
+      html += `<div class="wn-cat-row">
+        <span class="wn-cat-name">${escHtml(c.category)}</span>
+        <div class="wn-cat-bar-wrap"><div class="wn-cat-bar" style="width:${barW}%"></div></div>
+        <span class="wn-cat-pct">${pct}% (${c.sold}/${c.shown})</span>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  // Performance table
+  const recent = getEndedShows(10);
+  if (recent.length > 0) {
+    html += `<div class="wn-section-title">Recent Shows</div>
+    <div class="wn-perf-table"><table>
+      <thead><tr><th>Show</th><th>Date</th><th>Items</th><th>Sold</th><th>ST%</th><th>Revenue</th><th>Profit</th></tr></thead><tbody>`;
+    for (const s of recent) {
+      const m = getShowMetrics(s);
+      html += `<tr>
+        <td>${escHtml(s.name.slice(0, 20))}</td>
+        <td>${s.date || ''}</td>
+        <td>${m.itemCount}</td>
+        <td>${m.soldCount}</td>
+        <td>${(m.sellThrough * 100).toFixed(0)}%</td>
+        <td>${fmt(m.revenue)}</td>
+        <td style="color:${m.profit >= 0 ? 'var(--good)' : 'var(--danger)'}">${fmt(m.profit)}</td>
+      </tr>`;
+    }
+    html += `</tbody></table></div>`;
+  }
+
+  // Top & worst performers
+  const top = calcTopPerformingItems(5);
+  const worst = calcWorstPerformingItems(2, 5);
+
+  if (top.length > 0) {
+    html += `<div class="wn-section-title">Top Sellers on Whatnot</div><div class="wn-performer-list">`;
+    for (const t of top) {
+      html += `<div class="wn-performer-row"><span>${escHtml(t.item.name?.slice(0, 30) || '')}</span><span class="wn-performer-stat">${t.sold}/${t.shown} sold · ${fmt(t.totalRevenue)}</span></div>`;
+    }
+    html += `</div>`;
+  }
+
+  if (worst.length > 0) {
+    html += `<div class="wn-section-title" style="color:var(--warn)">Struggling Items (shown ${worst[0]?.shown || 2}+ times, 0 sales)</div><div class="wn-performer-list">`;
+    for (const w of worst) {
+      html += `<div class="wn-performer-row"><span>${escHtml(w.item.name?.slice(0, 30) || '')}</span><span class="wn-performer-stat" style="color:var(--warn)">Shown ${w.shown}× — no sales</span></div>`;
+    }
+    html += `</div>`;
+  }
+
+  html += `</div>`;
+  return html;
+}
+
+// ── Smart Builder Tab ──────────────────────────────────────────────────
+
+function _renderWnBuilderTab() {
+  const suggestions = suggestShowItems(30);
+  const sizeRec = suggestShowSize();
+  const catMix = suggestCategoryMix();
+
+  let html = `<div class="wn-builder">`;
+
+  // Size recommendation
+  html += `<div class="wn-builder-rec">
+    <strong>Recommended show size:</strong> ~${sizeRec.recommended} items
+    (${sizeRec.min}-${sizeRec.max} range)
+    ${sizeRec.avgSellThrough ? ` · Best sell-through at this size: ${(sizeRec.avgSellThrough * 100).toFixed(0)}%` : ''}
+  </div>`;
+
+  // Category mix
+  if (catMix.length > 0) {
+    html += `<div class="wn-builder-mix"><strong>Suggested mix:</strong> `;
+    html += catMix.slice(0, 5).map(c => `${escHtml(c.category)} (${(c.percentage * 100).toFixed(0)}%)`).join(', ');
+    html += `</div>`;
+  }
+
+  // Action bar
+  const selCount = _wnBuilderSelected.size;
+  html += `<div class="wn-builder-actions">
+    <button class="btn-sm btn-accent" onclick="wnBuilderCreateShow()" ${selCount === 0 ? 'disabled' : ''}>${selCount > 0 ? `Create Show with ${selCount} Items` : 'Select Items Below'}</button>
+    <button class="btn-sm" onclick="wnBuilderSelectAll()">Select All (${Math.min(suggestions.length, sizeRec.recommended)})</button>
+    <button class="btn-sm btn-muted" onclick="wnBuilderClearSelection()">Clear</button>
+  </div>`;
+
+  // Suggestions list
+  if (suggestions.length === 0) {
+    html += `<div style="text-align:center;padding:20px;color:var(--muted)">No suggestions — add more inventory or complete more shows</div>`;
+  } else {
+    html += `<div class="wn-builder-list">`;
+    for (const s of suggestions) {
+      const isSelected = _wnBuilderSelected.has(s.item.id);
+      html += `<div class="wn-builder-item${isSelected ? ' selected' : ''}" onclick="wnBuilderToggle('${s.item.id}')">
+        <div class="wn-builder-check">${isSelected ? '☑' : '☐'}</div>
+        <div class="wn-builder-item-info">
+          <span class="wn-builder-item-name">${escHtml(s.item.name || 'Untitled')}</span>
+          <span class="wn-builder-item-detail">${escHtml(s.item.condition || '')} · ${s.item.price ? fmt(s.item.price) : '—'} · ${s.item.category || ''}</span>
+          <span class="wn-builder-item-reason">${escHtml(s.reason)}</span>
+        </div>
+        <div class="wn-builder-item-score">${s.score.toFixed(1)}</div>
+      </div>`;
+    }
+    html += `</div>`;
   }
 
   html += `</div>`;
@@ -771,6 +999,11 @@ function _renderWhatnotPanel() {
 }
 
 // ── Whatnot Show Handlers (exposed to window) ────────────────────────────
+
+export function wnSwitchTab(tab) {
+  _wnTab = tab;
+  renderCrosslistDashboard();
+}
 
 export function wnToggleShow(showId) {
   _wnExpandedShow = _wnExpandedShow === showId ? null : showId;
@@ -785,6 +1018,7 @@ export async function wnNewShow() {
   if (!date) return;
   const time = prompt('Time (HH:MM, optional):', '19:00') || '';
   const show = await createShow(name, date, time);
+  _wnTab = 'shows';
   _wnExpandedShow = show.id;
   renderCrosslistDashboard();
 }
@@ -849,6 +1083,92 @@ export async function wnPickItem(showId, itemId) {
 
 export async function wnCopyPrep(showId) {
   await copyShowPrepList(showId);
+}
+
+export async function wnEditItemNote(showId, itemId) {
+  const existing = getItemNote(showId, itemId);
+  const note = prompt('Talking points for this item:', existing);
+  if (note === null) return; // cancelled
+  await setItemNote(showId, itemId, note);
+  renderCrosslistDashboard();
+}
+
+export async function wnCloneShow(showId) {
+  const date = prompt('Date for cloned show (YYYY-MM-DD):', new Date().toISOString().slice(0, 10));
+  if (!date) return;
+  const newShow = await cloneShow(showId, date);
+  if (newShow) {
+    _wnTab = 'shows';
+    _wnExpandedShow = newShow.id;
+    renderCrosslistDashboard();
+  }
+}
+
+export async function wnSetViewerPeak(showId, val) {
+  await setShowViewerPeak(showId, val);
+}
+
+export async function wnSetExpenses(showId, val) {
+  await setShowExpenses(showId, val);
+}
+
+export function wnPrintRunSheet(showId) {
+  const html = getShowRunSheet(showId);
+  if (!html) return;
+  const w = window.open('', '_blank', 'width=800,height=600');
+  w.document.write(`<!DOCTYPE html><html><head><title>Show Run Sheet</title>
+    <style>body{font-family:system-ui,sans-serif;padding:20px;font-size:14px}
+    h2{margin:0 0 4px}p{color:#666;margin:0 0 16px}
+    table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:6px 8px;text-align:left}
+    th{background:#f5f5f5;font-size:12px}td{font-size:13px}
+    @media print{body{padding:0}}</style>
+  </head><body>${html}</body></html>`);
+  w.document.close();
+  w.print();
+}
+
+export function wnExportShowCSV(showId) {
+  // Delegate to csv-templates if wired, else simple fallback
+  if (window.exportShowResultsCSV) {
+    window.exportShowResultsCSV(showId);
+  } else {
+    toast('CSV export loading…');
+  }
+}
+
+// Smart Builder handlers
+export function wnBuilderToggle(itemId) {
+  if (_wnBuilderSelected.has(itemId)) _wnBuilderSelected.delete(itemId);
+  else _wnBuilderSelected.add(itemId);
+  renderCrosslistDashboard();
+}
+
+export function wnBuilderSelectAll() {
+  const suggestions = suggestShowItems(30);
+  const size = suggestShowSize();
+  _wnBuilderSelected.clear();
+  suggestions.slice(0, size.recommended).forEach(s => _wnBuilderSelected.add(s.item.id));
+  renderCrosslistDashboard();
+}
+
+export function wnBuilderClearSelection() {
+  _wnBuilderSelected.clear();
+  renderCrosslistDashboard();
+}
+
+export async function wnBuilderCreateShow() {
+  if (_wnBuilderSelected.size === 0) { toast('No items selected', true); return; }
+  const name = prompt('Show name:', `Smart Show - ${new Date().toLocaleDateString()}`);
+  if (!name) return;
+  const date = prompt('Date (YYYY-MM-DD):', new Date().toISOString().slice(0, 10));
+  if (!date) return;
+  const time = prompt('Time (HH:MM):', '19:00') || '';
+  const show = await createShow(name, date, time, '', { items: [..._wnBuilderSelected] });
+  _wnBuilderSelected.clear();
+  _wnTab = 'shows';
+  _wnExpandedShow = show.id;
+  renderCrosslistDashboard();
+  toast(`Show created with ${show.items.length} items`);
 }
 
 // ── eBay INTEGRATION PANEL ───────────────────────────────────────────────

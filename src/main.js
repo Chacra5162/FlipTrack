@@ -144,13 +144,16 @@ import {
   clEtsyConnect, clEtsyDisconnect, clEtsySync, clPushToEtsy, clDeactivateEtsyListing, clRenewEtsyListing,
   wnToggleShow, wnNewShow, wnDeleteShow, wnStartShow, wnEndShow,
   wnMarkSold, wnMoveItem, wnRemoveItem, wnOpenItemPicker, wnCloseItemPicker,
-  wnPickItem, wnCopyPrep
+  wnPickItem, wnCopyPrep,
+  wnSwitchTab, wnEditItemNote, wnCloneShow, wnSetViewerPeak, wnSetExpenses,
+  wnPrintRunSheet, wnExportShowCSV,
+  wnBuilderToggle, wnBuilderSelectAll, wnBuilderClearSelection, wnBuilderCreateShow
 } from './views/crosslist-dashboard.js';
 import { initEBayAuth, handleEBayCallback, isEBayConnected } from './features/ebay-auth.js';
 import { initEBaySync, startEBaySyncInterval } from './features/ebay-sync.js';
 import { initEtsyAuth, handleEtsyCallback, isEtsyConnected } from './features/etsy-auth.js';
 import { initEtsySync, startEtsySyncInterval } from './features/etsy-sync.js';
-import { initWhatnotShows } from './features/whatnot-show.js';
+import { initWhatnotShows, getTodayShows } from './features/whatnot-show.js';
 import {
   setDimUnit, updateDimWeight, suggestPackaging,
   loadDimsToForm, getDimsFromForm, clearDimForm
@@ -236,11 +239,11 @@ import { getInventoryValueData, renderInventoryValueDashboard } from './features
 import { initDemoTrigger, loadDemoData, clearDemoData } from './features/demo-data.js';
 import { animateStatCounters } from './features/animated-counters.js';
 import { mountProfitHeatmap } from './features/profit-heatmap.js';
-import { exportPlatformCSV, exportSalesCSV, exportTaxCSV, renderCSVExportPanel } from './features/csv-templates.js';
+import { exportPlatformCSV, exportSalesCSV, exportTaxCSV, exportShowPrepCSV, exportShowResultsCSV, exportAllShowsCSV, renderCSVExportPanel } from './features/csv-templates.js';
 import { toggleNotifications, startStockAlertChecks, getNotifStatus } from './features/push-notifications.js';
 import { startTour, endTour, maybeStartTour } from './features/onboarding-tour.js';
 import { renderKPIGoals, openKPIGoalEditor, closeKPIGoalEditor, saveKPIGoals } from './features/kpi-goals.js';
-import { toggleNotifCenter, closeNotifCenter, markAllRead, clearNotifications, addNotification, initNotificationCenter, getSalesVelocity } from './features/notification-center.js';
+import { toggleNotifCenter, closeNotifCenter, markAllRead, clearNotifications, addNotification, initNotificationCenter, getSalesVelocity, checkWhatnotShowReminders, notifyShowEnded } from './features/notification-center.js';
 import { recordSync, startSyncIndicator } from './features/sync-indicator.js';
 import { exportPLReport, exportTaxReport } from './features/pdf-reports.js';
 import {
@@ -470,7 +473,12 @@ Object.assign(window, {
 Object.assign(window, {
   wnToggleShow, wnNewShow, wnDeleteShow, wnStartShow, wnEndShow,
   wnMarkSold, wnMoveItem, wnRemoveItem, wnOpenItemPicker, wnCloseItemPicker,
-  wnPickItem, wnCopyPrep
+  wnPickItem, wnCopyPrep,
+  wnSwitchTab, wnEditItemNote, wnCloneShow, wnSetViewerPeak, wnSetExpenses,
+  wnPrintRunSheet, wnExportShowCSV,
+  wnBuilderToggle, wnBuilderSelectAll, wnBuilderClearSelection, wnBuilderCreateShow,
+  exportShowPrepCSV, exportShowResultsCSV, exportAllShowsCSV,
+  notifyShowEnded
 });
 
 // Phase 2: Shipping
@@ -869,6 +877,7 @@ setTimeout(_killSplash, 3000);
 
   // Initialize notification center, sync indicator, and onboarding tour
   initNotificationCenter();
+  checkWhatnotShowReminders(getTodayShows);
   startSyncIndicator();
   maybeStartTour();
 

@@ -22,13 +22,19 @@ let _shows = [];
  *   date: string,          // ISO date 'YYYY-MM-DD'
  *   time: string,          // 'HH:MM' or ''
  *   items: string[],       // array of item IDs, in presentation order
- *   status: 'prep'|'live'|'ended',
+ *   status: 'prep'|'live'|'ended'|'template',
  *   notes: string,
  *   createdAt: number,     // Date.now()
  *   startedAt: number|null,
  *   endedAt: number|null,
  *   soldCount: number,
  *   totalRevenue: number,
+ *   itemNotes: Object,     // { [itemId]: "talking points..." }
+ *   soldItems: Object,     // { [itemId]: { price, soldAt } }
+ *   recurring: Object|null,// { pattern: 'weekly'|'biweekly', dayOfWeek: 0-6, time: 'HH:MM' }
+ *   templateOf: string|null,// source show ID if cloned
+ *   viewerPeak: number|null,// manual peak viewer count
+ *   showExpenses: number,  // props/setup costs for this show
  * }
  */
 
@@ -72,34 +78,40 @@ export function getShow(id) {
   return _shows.find(s => s.id === id) || null;
 }
 
-export async function createShow(name, date, time, notes) {
+export async function createShow(name, date, time, notes, opts = {}) {
   const show = {
     id: uid(),
     name: (name || '').trim() || 'Untitled Show',
     date: date || new Date().toISOString().slice(0, 10),
     time: time || '',
-    items: [],
-    status: 'prep',
+    items: opts.items ? [...opts.items] : [],
+    status: opts.status || 'prep',
     notes: (notes || '').trim(),
     createdAt: Date.now(),
     startedAt: null,
     endedAt: null,
     soldCount: 0,
     totalRevenue: 0,
+    itemNotes: opts.itemNotes ? { ...opts.itemNotes } : {},
+    soldItems: {},
+    recurring: opts.recurring || null,
+    templateOf: opts.templateOf || null,
+    viewerPeak: null,
+    showExpenses: 0,
   };
   _shows.push(show);
   await _save();
-  toast(`Show "${show.name}" created`);
+  if (show.status !== 'template') toast(`Show "${show.name}" created`);
   return show;
 }
 
 export async function updateShow(showId, changes) {
   const show = _shows.find(s => s.id === showId);
   if (!show) return null;
-  if (changes.name !== undefined) show.name = changes.name;
-  if (changes.date !== undefined) show.date = changes.date;
-  if (changes.time !== undefined) show.time = changes.time;
-  if (changes.notes !== undefined) show.notes = changes.notes;
+  const fields = ['name', 'date', 'time', 'notes', 'recurring', 'viewerPeak', 'showExpenses'];
+  for (const f of fields) {
+    if (changes[f] !== undefined) show[f] = changes[f];
+  }
   await _save();
   return show;
 }
@@ -223,8 +235,11 @@ export async function markShowItemSold(showId, itemId, salePrice) {
   markDirty(itemId);
   save();
 
+  const price = salePrice || item.price || 0;
   show.soldCount = (show.soldCount || 0) + 1;
-  show.totalRevenue = (show.totalRevenue || 0) + (salePrice || item.price || 0);
+  show.totalRevenue = (show.totalRevenue || 0) + price;
+  if (!show.soldItems) show.soldItems = {};
+  show.soldItems[itemId] = { price, soldAt: Date.now() };
   await _save();
   return true;
 }
@@ -244,6 +259,8 @@ export function getShowPrepText(showId) {
     lines.push(`${i + 1}. ${item.name || 'Untitled'}`);
     if (item.condition) lines.push(`   Condition: ${item.condition}`);
     if (item.price) lines.push(`   Price: ${fmt(item.price)}`);
+    const talkingPts = show.itemNotes?.[itemId];
+    if (talkingPts) lines.push(`   Talking Points: ${talkingPts}`);
     if (item.notes) lines.push(`   Notes: ${item.notes}`);
     lines.push('');
   });
@@ -265,6 +282,134 @@ export async function copyShowPrepList(showId) {
   }
 }
 
+// ── ITEM NOTES (talking points) ──────────────────────────────────────────
+
+export async function setItemNote(showId, itemId, note) {
+  const show = _shows.find(s => s.id === showId);
+  if (!show) return false;
+  if (!show.itemNotes) show.itemNotes = {};
+  show.itemNotes[itemId] = (note || '').trim();
+  if (!show.itemNotes[itemId]) delete show.itemNotes[itemId];
+  await _save();
+  return true;
+}
+
+export function getItemNote(showId, itemId) {
+  const show = _shows.find(s => s.id === showId);
+  return show?.itemNotes?.[itemId] || '';
+}
+
+// ── CLONING & TEMPLATES ─────────────────────────────────────────────────
+
+export async function cloneShow(showId, newDate, newTime) {
+  const src = _shows.find(s => s.id === showId);
+  if (!src) { toast('Show not found', true); return null; }
+  return createShow(
+    src.name,
+    newDate || new Date().toISOString().slice(0, 10),
+    newTime || src.time,
+    src.notes,
+    { items: src.items, itemNotes: src.itemNotes, templateOf: showId }
+  );
+}
+
+export function getShowTemplates() {
+  return _shows.filter(s => s.status === 'template');
+}
+
+export async function createFromRecurring(templateShow, date) {
+  if (!templateShow?.recurring) return null;
+  return createShow(
+    templateShow.name,
+    date || new Date().toISOString().slice(0, 10),
+    templateShow.time,
+    templateShow.notes,
+    { items: templateShow.items, itemNotes: templateShow.itemNotes, templateOf: templateShow.id }
+  );
+}
+
+// ── VIEWER & EXPENSES ───────────────────────────────────────────────────
+
+export async function setShowViewerPeak(showId, count) {
+  const show = _shows.find(s => s.id === showId);
+  if (!show) return false;
+  show.viewerPeak = Math.max(0, parseInt(count) || 0);
+  await _save();
+  return true;
+}
+
+export async function setShowExpenses(showId, amount) {
+  const show = _shows.find(s => s.id === showId);
+  if (!show) return false;
+  show.showExpenses = Math.max(0, parseFloat(amount) || 0);
+  await _save();
+  return true;
+}
+
+// ── SOLD ITEMS DETAIL ───────────────────────────────────────────────────
+
+export function getShowSoldItems(showId) {
+  const show = _shows.find(s => s.id === showId);
+  if (!show?.soldItems) return [];
+  return Object.entries(show.soldItems).map(([itemId, data]) => {
+    const item = getInvItem(itemId);
+    return { itemId, item, price: data.price, soldAt: data.soldAt };
+  }).filter(d => d.item);
+}
+
+export function getShowUnsoldItems(showId) {
+  const show = _shows.find(s => s.id === showId);
+  if (!show) return [];
+  const soldIds = new Set(Object.keys(show.soldItems || {}));
+  return show.items.filter(id => !soldIds.has(id)).map(id => getInvItem(id)).filter(Boolean);
+}
+
+// ── ITEM SHOW HISTORY ───────────────────────────────────────────────────
+
+/**
+ * Get every show an item has appeared in, with sold/unsold status.
+ * @returns {Array<{ show, wasSold, salePrice }>}
+ */
+export function getItemShowHistory(itemId) {
+  return _shows
+    .filter(s => s.status === 'ended' && s.items.includes(itemId))
+    .map(show => ({
+      show,
+      wasSold: !!(show.soldItems?.[itemId]),
+      salePrice: show.soldItems?.[itemId]?.price || 0,
+    }))
+    .sort((a, b) => (b.show.endedAt || 0) - (a.show.endedAt || 0));
+}
+
+/**
+ * Count how many ended shows an item was in without selling.
+ */
+export function getItemShowsWithoutSale(itemId) {
+  return _shows.filter(s =>
+    s.status === 'ended' && s.items.includes(itemId) && !s.soldItems?.[itemId]
+  ).length;
+}
+
+// ── RUN SHEET (print-friendly) ──────────────────────────────────────────
+
+export function getShowRunSheet(showId) {
+  const show = _shows.find(s => s.id === showId);
+  if (!show) return '';
+  const lines = [];
+  lines.push(`<div class="wn-run-sheet">`);
+  lines.push(`<h2>${escHtml(show.name)}</h2>`);
+  lines.push(`<p>${show.date}${show.time ? ' @ ' + show.time : ''} &middot; ${show.items.length} items</p>`);
+  lines.push(`<table><thead><tr><th>#</th><th>Item</th><th>Condition</th><th>Price</th><th>Talking Points</th></tr></thead><tbody>`);
+  show.items.forEach((itemId, i) => {
+    const item = getInvItem(itemId);
+    if (!item) return;
+    const note = show.itemNotes?.[itemId] || '';
+    lines.push(`<tr><td>${i + 1}</td><td>${escHtml(item.name || '')}</td><td>${escHtml(item.condition || '')}</td><td>${fmt(item.price || 0)}</td><td>${escHtml(note)}</td></tr>`);
+  });
+  lines.push(`</tbody></table></div>`);
+  return lines.join('\n');
+}
+
 // ── HELPERS ──────────────────────────────────────────────────────────────────
 
 /**
@@ -280,5 +425,31 @@ export function getLiveShow() {
 export function getItemShows(itemId) {
   return _shows.filter(s =>
     (s.status === 'prep' || s.status === 'live') && s.items.includes(itemId)
+  );
+}
+
+/**
+ * Get all ended shows (optionally limited to last N).
+ */
+export function getEndedShows(limit) {
+  const ended = _shows.filter(s => s.status === 'ended')
+    .sort((a, b) => (b.endedAt || 0) - (a.endedAt || 0));
+  return limit ? ended.slice(0, limit) : ended;
+}
+
+/**
+ * Get shows scheduled for a specific date.
+ */
+export function getShowsByDate(date) {
+  return _shows.filter(s => s.date === date && s.status !== 'template');
+}
+
+/**
+ * Get today's upcoming shows.
+ */
+export function getTodayShows() {
+  const today = new Date().toISOString().slice(0, 10);
+  return _shows.filter(s =>
+    s.date === today && (s.status === 'prep' || s.status === 'live')
   );
 }
