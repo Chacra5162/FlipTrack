@@ -311,7 +311,7 @@ export function renderInv() {
   const banner = document.getElementById('stockFilterBanner');
   if (stockFilt !== 'all') {
     const lowCnt = inv.filter(i=>i.bulk&&i.qty>0&&i.qty<=(i.lowAlert||2)).length;
-    const outCnt = inv.filter(i=>i.qty===0).length;
+    const outCnt = inv.filter(i=>i.bulk&&i.qty===0).length;
     document.getElementById('stockFilterLabel').textContent =
       `Showing low stock (${lowCnt}) and out of stock (${outCnt}) items only`;
     banner.style.display = 'flex';
