@@ -174,7 +174,12 @@ export function openDrawer(id) {
   const shipSummary = document.getElementById('d_ship_summary');
   if (shipSummary) {
     const dims = [];
-    if (item.weight) dims.push(`${item.weight} ${item.dimUnit === 'cm' ? 'kg' : 'lb'}`);
+    const wMaj = parseFloat(item.weightMaj) || 0;
+    const wMin = parseFloat(item.weightMin) || 0;
+    if (wMaj || wMin) {
+      const wLabel = item.dimUnit === 'cm' ? `${wMaj} kg ${wMin} g` : `${wMaj} lb ${wMin} oz`;
+      dims.push(wLabel);
+    }
     if (item.dimL && item.dimW && item.dimH) dims.push(`${item.dimL}×${item.dimW}×${item.dimH} ${item.dimUnit || 'in'}`);
     shipSummary.textContent = dims.length ? `Package: ${dims.join(' · ')}` : 'Add dimensions above to see package info';
   }
@@ -284,7 +289,7 @@ export function toggleListingStatus(el) {
 }
 
 export function getListingStatusFromDrawer() {
-  const badges = document.querySelectorAll('#d_listing_status .ls-badge');
+  const badges = document.querySelectorAll('#d_listing_status .ls-badge-enhanced');
   const status = {};
   badges.forEach(b => {
     status[b.getAttribute('data-plat')] = b.getAttribute('data-status');
