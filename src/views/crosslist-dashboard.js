@@ -340,7 +340,13 @@ function renderMatrixTab(inStock) {
       <div class="cl-matrix-platforms">`;
 
     for (const p of plats) {
-      const st = ps[p] || 'active';
+      // For eBay: derive real status from whether item was actually pushed/published
+      let st = ps[p] || 'active';
+      if (p === 'eBay') {
+        if (!item.ebayItemId) st = 'unlisted';          // tagged but never pushed
+        else if (!item.ebayListingId) st = 'draft';      // pushed to inventory but not published
+        // else keep whatever platformStatus says (active, sold, etc.)
+      }
       const daysLeft = getDaysUntilExpiry(p, dates[p]);
       const expiryLabel = daysLeft !== null
         ? (daysLeft < 0 ? `<span style="color:var(--danger)">${Math.abs(daysLeft)}d expired</span>`
@@ -350,16 +356,21 @@ function renderMatrixTab(inStock) {
 
       // Show "List on eBay" button if platform is eBay but item hasn't actually been pushed
       const needsEbayPush = p === 'eBay' && !item.ebayItemId && isEBayConnected();
+      // Show "Publish" button if pushed to inventory but not yet live
+      const needsEbayPublish = p === 'eBay' && item.ebayItemId && !item.ebayListingId && isEBayConnected();
+      const ebayStatusLabel = needsEbayPush ? 'Not on eBay yet'
+        : needsEbayPublish ? 'Draft — not published'
+        : (STATUS_LABELS[st] || st);
       html += `<div class="cl-plat-row">
           <div class="cl-plat-info">
-            <span class="cl-plat-dot" style="background:${STATUS_COLORS[st] || 'var(--muted)'}"></span>
+            <span class="cl-plat-dot" style="background:${needsEbayPush || needsEbayPublish ? 'var(--warn)' : (STATUS_COLORS[st] || 'var(--muted)')}"></span>
             <span class="cl-plat-name">${escHtml(p)}</span>
-            <span class="cl-plat-status">${needsEbayPush ? 'Not on eBay yet' : (STATUS_LABELS[st] || st)}</span>
+            <span class="cl-plat-status">${escHtml(ebayStatusLabel)}</span>
             ${expiryLabel}
           </div>
           <div class="cl-plat-actions">
             ${needsEbayPush ? `<button class="btn-xs btn-accent" onclick="clPushToEBay('${item.id}')">List on eBay</button>` : ''}
-            ${p === 'eBay' && st === 'draft' && !needsEbayPush ? `<button class="btn-xs btn-accent" onclick="clPublishOnEBay('${item.id}')">Publish</button>` : ''}
+            ${needsEbayPublish ? `<button class="btn-xs btn-accent" onclick="clPublishOnEBay('${item.id}')">Publish</button>` : ''}
             <button class="btn-xs" onclick="clCycleStatus('${item.id}','${escHtml(p)}')" title="Change status">⟳</button>
             <button class="btn-xs" onclick="clCopyListing('${item.id}')" title="Copy listing text">📋</button>
             <button class="btn-xs" onclick="clOpenLink('${escHtml(p)}','${item.id}')" title="Open platform">↗</button>
