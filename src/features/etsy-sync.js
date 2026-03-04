@@ -328,6 +328,9 @@ export async function pushItemToEtsy(itemId, options = {}) {
     item.etsyListingId = listingId;
     if (!item.platforms) item.platforms = [];
     if (!item.platforms.includes('Etsy')) item.platforms.push('Etsy');
+    // Remove "Unlisted" tag now that item is on a real platform
+    const uIdx = item.platforms.indexOf('Unlisted');
+    if (uIdx !== -1) item.platforms.splice(uIdx, 1);
     if (!item.platformStatus) item.platformStatus = {};
     item.platformStatus['Etsy'] = isDraft ? 'draft' : 'active';
 

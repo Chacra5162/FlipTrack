@@ -503,6 +503,9 @@ export async function pushItemToEBay(itemId) {
     item.ebayItemId = sku;
     if (!item.platforms) item.platforms = [];
     if (!item.platforms.includes('eBay')) item.platforms.push('eBay');
+    // Remove "Unlisted" tag now that item is on a real platform
+    const uIdx = item.platforms.indexOf('Unlisted');
+    if (uIdx !== -1) item.platforms.splice(uIdx, 1);
     if (!item.platformStatus) item.platformStatus = {};
     item.platformStatus['eBay'] = 'draft'; // Not yet published — needs an offer
 

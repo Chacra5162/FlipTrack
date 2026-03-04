@@ -104,6 +104,11 @@ export function markPlatformStatus(itemId, platform, status) {
   if (!item) return false;
   if (!item.platformStatus) item.platformStatus = {};
   item.platformStatus[platform] = status;
+  // Remove "Unlisted" tag when item becomes active on any real platform
+  if (status === 'active' && Array.isArray(item.platforms)) {
+    const uIdx = item.platforms.indexOf('Unlisted');
+    if (uIdx !== -1) item.platforms.splice(uIdx, 1);
+  }
   markDirty('inv', itemId);
   return true;
 }
