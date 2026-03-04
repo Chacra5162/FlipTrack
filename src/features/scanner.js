@@ -6,6 +6,23 @@ let _scanStream = null;
 let _scanRaf = null;
 let _quaggaActive = false;
 
+/** Check if current scan target is an ISBN field */
+function _isISBNTarget() {
+  return _scanTargetId && _scanTargetId.endsWith('_isbn');
+}
+
+/** Validate a scanned value as a proper ISBN-13 (EAN-13 starting with 978 or 979) */
+function _isValidISBN13(value) {
+  const clean = (value || '').replace(/[^0-9]/g, '');
+  if (clean.length !== 13) return false;
+  if (!clean.startsWith('978') && !clean.startsWith('979')) return false;
+  // Verify EAN-13 check digit
+  let sum = 0;
+  for (let i = 0; i < 12; i++) sum += parseInt(clean[i]) * (i % 2 === 0 ? 1 : 3);
+  const check = (10 - (sum % 10)) % 10;
+  return check === parseInt(clean[12]);
+}
+
 export function _loadScript(src) {
   return new Promise((resolve, reject) => {
     if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
@@ -33,7 +50,9 @@ export async function openScanner(targetInputId) {
 
   document.getElementById('scannerOv').classList.add('on');
   _setResult('Starting camera…', false);
-  document.getElementById('scannerSub').textContent = 'Hold steady — auto-detects UPC, EAN, QR & more';
+  document.getElementById('scannerSub').textContent = _isISBNTarget()
+    ? 'Point at the ISBN barcode (above or below the ISBN number on the back cover)'
+    : 'Hold steady — auto-detects UPC, EAN, QR & more';
   document.getElementById('scannerCamSel').style.display = 'none';
 
   try {
@@ -72,10 +91,13 @@ export async function openScanner(targetInputId) {
 }
 
 export function _runNativeDetector(video) {
+  const isbnMode = _isISBNTarget();
   let detector;
   try {
     detector = new BarcodeDetector({
-      formats: ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','qr_code','data_matrix','itf','aztec','pdf417']
+      formats: isbnMode
+        ? ['ean_13']
+        : ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','qr_code','data_matrix','itf','aztec','pdf417']
     });
   } catch {
     detector = new BarcodeDetector();
@@ -84,7 +106,16 @@ export function _runNativeDetector(video) {
     if (!_scanActive) return;
     try {
       const codes = await detector.detect(video);
-      if (codes.length > 0) { _onScanSuccess(codes[0].rawValue); return; }
+      for (const code of codes) {
+        const val = code.rawValue;
+        // In ISBN mode, only accept valid ISBN-13 (978/979 prefix + valid check digit)
+        if (isbnMode) {
+          if (_isValidISBN13(val)) { _onScanSuccess(val); return; }
+          // Skip non-ISBN barcodes silently
+        } else {
+          _onScanSuccess(val); return;
+        }
+      }
     } catch {}
     _scanRaf = requestAnimationFrame(tick);
   };
@@ -93,6 +124,7 @@ export function _runNativeDetector(video) {
 
 export function _runQuagga() {
   _quaggaActive = true;
+  const isbnMode = _isISBNTarget();
   // Quagga2 takes over the video element directly via a live stream config
   const video = document.getElementById('scannerVideo');
   Quagga.init({
@@ -104,7 +136,9 @@ export function _runQuagga() {
       area: { top: '20%', right: '10%', left: '10%', bottom: '20%' },
     },
     decoder: {
-      readers: ['ean_reader','ean_8_reader','upc_reader','upc_e_reader','code_128_reader','code_39_reader','i2of5_reader'],
+      readers: isbnMode
+        ? ['ean_reader']
+        : ['ean_reader','ean_8_reader','upc_reader','upc_e_reader','code_128_reader','code_39_reader','i2of5_reader'],
       multiple: false,
     },
     locate: true,
@@ -117,13 +151,16 @@ export function _runQuagga() {
       return;
     }
     Quagga.start();
-    _setResult('Point camera at barcode…', false);
+    _setResult(isbnMode ? 'Point at ISBN barcode…' : 'Point camera at barcode…', false);
   });
 
   Quagga.onDetected((result) => {
     if (!_scanActive || !_quaggaActive) return;
     const code = result && result.codeResult && result.codeResult.code;
-    if (code) _onScanSuccess(code);
+    if (!code) return;
+    // In ISBN mode, only accept valid ISBN-13
+    if (isbnMode && !_isValidISBN13(code)) return;
+    _onScanSuccess(code);
   });
 }
 
@@ -186,23 +223,27 @@ export function _setResult(text, isError) {
 export function _onScanSuccess(value) {
   if (!_scanActive) return;
   _scanActive = false;
+  const isbnMode = _isISBNTarget();
+  // Clean the value — strip non-digit chars for ISBN
+  const cleanValue = isbnMode ? value.replace(/[^0-9]/g, '') : value;
   const el = document.getElementById('scannerResult');
-  el.innerHTML = `✓ <strong>${value}</strong>`;
+  el.innerHTML = isbnMode
+    ? `✓ ISBN: <strong>${cleanValue}</strong>`
+    : `✓ <strong>${value}</strong>`;
   el.style.color = 'var(--accent)';
   if (navigator.vibrate) navigator.vibrate(80);
 
   if (_scanTargetId === '__priceResearch__') {
-    // Strip any non-digit prefix a barcode scanner might prepend (e.g. "UPC ", "EAN:")
-    const cleanValue = value.replace(/^[^0-9]+/, '').trim();
+    const stripped = value.replace(/^[^0-9]+/, '').trim();
     setTimeout(() => {
       closeScanner();
-      document.getElementById('prUpcInput').value = cleanValue;
+      document.getElementById('prUpcInput').value = stripped;
       document.getElementById('prOv').classList.add('on');
       lookupPrices();
     }, 700);
   } else {
     const input = document.getElementById(_scanTargetId);
-    if (input) { input.value = value; input.dispatchEvent(new Event('input')); }
+    if (input) { input.value = cleanValue; input.dispatchEvent(new Event('input')); }
     setTimeout(() => closeScanner(), 800);
   }
 }
