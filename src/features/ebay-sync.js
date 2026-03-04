@@ -483,10 +483,11 @@ export async function publishEBayListing(itemId, options = {}) {
     } catch (_) { /* no existing offers */ }
 
     if (offerId) {
-      // Update existing offer with current payload data
-      console.log('[eBay] Updating offer:', offerId, JSON.stringify(offerPayload));
+      // Update existing offer — eBay update payload must NOT include sku or marketplaceId
+      const { sku: _s, marketplaceId: _m, ...updatePayload } = offerPayload;
+      console.log('[eBay] Updating offer:', offerId, JSON.stringify(updatePayload));
       try {
-        await ebayAPI('PUT', `${INVENTORY_API}/offer/${offerId}`, offerPayload);
+        await ebayAPI('PUT', `${INVENTORY_API}/offer/${offerId}`, updatePayload);
       } catch (updateErr) {
         console.warn('[eBay] Offer update failed:', updateErr.message, '— deleting and recreating');
         // If update fails, delete the stale offer and create fresh
