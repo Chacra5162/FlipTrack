@@ -176,7 +176,7 @@ async function _syncEBayOrders() {
       ? new Date(_lastSyncTime).toISOString()
       : new Date(Date.now() - 86400000).toISOString();
 
-    const filter = `creationdate:[${since}..NOW]`;
+    const filter = `creationdate:{${since}..}`;
     const resp = await ebayAPI('GET',
       `${FULFILLMENT_API}/order?filter=${encodeURIComponent(filter)}&limit=50`
     );
