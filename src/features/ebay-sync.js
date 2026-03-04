@@ -375,9 +375,9 @@ async function _suggestCategory(query) {
 }
 
 /**
- * Fetch (or create) the seller's merchant inventory location key.
- * eBay requires this on every offer — it identifies where inventory is stored.
- * @returns {Promise<string|null>} merchantLocationKey
+ * Fetch the seller's merchant inventory location key (if any).
+ * eBay may require this on offers depending on the seller's account setup.
+ * @returns {Promise<string|null>} merchantLocationKey or null
  */
 async function _fetchMerchantLocation() {
   if (_locationKeyCache) return _locationKeyCache;
@@ -386,28 +386,13 @@ async function _fetchMerchantLocation() {
     const locations = resp?.locations || [];
     if (locations.length > 0) {
       _locationKeyCache = locations[0].merchantLocationKey;
+      console.log('[eBay] Found merchant location:', _locationKeyCache);
       return _locationKeyCache;
     }
-
-    // No location exists — create a default one
-    const defaultKey = 'default';
-    await ebayAPI('PUT', `${INVENTORY_API}/location/${defaultKey}`, {
-      location: {
-        address: {
-          city: 'Not Specified',
-          stateOrProvince: 'Not Specified',
-          postalCode: '00000',
-          country: 'US',
-        },
-      },
-      locationTypes: ['WAREHOUSE'],
-      name: 'Default Location',
-      merchantLocationStatus: 'ENABLED',
-    });
-    _locationKeyCache = defaultKey;
-    return _locationKeyCache;
+    console.log('[eBay] No merchant locations found — will try offer without one');
+    return null;
   } catch (e) {
-    console.warn('[eBay] Could not fetch/create merchant location:', e.message);
+    console.warn('[eBay] Could not fetch merchant locations:', e.message);
     return null;
   }
 }
@@ -464,11 +449,8 @@ export async function publishEBayListing(itemId, options = {}) {
     throw new Error('eBay requires business policies (payment, return, shipping). Set these up in eBay Seller Hub first.');
   }
 
-  // Merchant location is required for every offer
+  // Try to get merchant location (some accounts require it)
   const merchantLocationKey = await _fetchMerchantLocation();
-  if (!merchantLocationKey) {
-    throw new Error('eBay requires an inventory location. Go to eBay Seller Hub → Shipping → Locations and add one.');
-  }
 
   const offerPayload = {
     sku,
@@ -476,7 +458,6 @@ export async function publishEBayListing(itemId, options = {}) {
     format: 'FIXED_PRICE',
     listingDuration: options.listingDuration || 'GTC',
     categoryId,
-    merchantLocationKey,
     listingPolicies,
     pricingSummary: {
       price: {
@@ -486,6 +467,9 @@ export async function publishEBayListing(itemId, options = {}) {
     },
     availableQuantity: item.qty || 1,
   };
+  if (merchantLocationKey) {
+    offerPayload.merchantLocationKey = merchantLocationKey;
+  }
 
   try {
     // Check for existing offers for this SKU first
