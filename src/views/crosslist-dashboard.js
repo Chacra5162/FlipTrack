@@ -348,15 +348,18 @@ function renderMatrixTab(inStock) {
           : `<span style="color:var(--muted)">${daysLeft}d</span>`)
         : '';
 
+      // Show "List on eBay" button if platform is eBay but item hasn't actually been pushed
+      const needsEbayPush = p === 'eBay' && !item.ebayItemId && isEBayConnected();
       html += `<div class="cl-plat-row">
           <div class="cl-plat-info">
             <span class="cl-plat-dot" style="background:${STATUS_COLORS[st] || 'var(--muted)'}"></span>
             <span class="cl-plat-name">${escHtml(p)}</span>
-            <span class="cl-plat-status">${STATUS_LABELS[st] || st}</span>
+            <span class="cl-plat-status">${needsEbayPush ? 'Not on eBay yet' : (STATUS_LABELS[st] || st)}</span>
             ${expiryLabel}
           </div>
           <div class="cl-plat-actions">
-            ${p === 'eBay' && st === 'draft' ? `<button class="btn-xs btn-accent" onclick="clPublishOnEBay('${item.id}')">Publish</button>` : ''}
+            ${needsEbayPush ? `<button class="btn-xs btn-accent" onclick="clPushToEBay('${item.id}')">List on eBay</button>` : ''}
+            ${p === 'eBay' && st === 'draft' && !needsEbayPush ? `<button class="btn-xs btn-accent" onclick="clPublishOnEBay('${item.id}')">Publish</button>` : ''}
             <button class="btn-xs" onclick="clCycleStatus('${item.id}','${escHtml(p)}')" title="Change status">⟳</button>
             <button class="btn-xs" onclick="clCopyListing('${item.id}')" title="Copy listing text">📋</button>
             <button class="btn-xs" onclick="clOpenLink('${escHtml(p)}','${item.id}')" title="Open platform">↗</button>
@@ -365,8 +368,8 @@ function renderMatrixTab(inStock) {
         </div>`;
     }
 
-    // Show "List on eBay" button if eBay connected but item not on eBay
-    if (isEBayConnected() && !plats.includes('eBay')) {
+    // Show "List on eBay" button if eBay connected but item not yet pushed to eBay
+    if (isEBayConnected() && !item.ebayItemId && !plats.includes('eBay')) {
       html += `<div class="cl-plat-row" style="border-top:1px dashed var(--border)">
         <div class="cl-plat-info" style="color:var(--accent)">
           <span class="cl-plat-name">eBay</span>
