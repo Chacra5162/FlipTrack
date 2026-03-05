@@ -207,7 +207,7 @@ export function idAddToInventory() {
   closeIdentify();
 
   // Switch to inventory view and open Add modal
-  const invTab = document.querySelectorAll('.nav-tab')[1];
+  const invTab = document.querySelectorAll('.nav-tab')[2];
   if (window.switchView) window.switchView('inventory', invTab);
 
   if (window.openAddModal) window.openAddModal();

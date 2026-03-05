@@ -1,8 +1,8 @@
 // Currency format
-export const fmt = n => '$' + Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+export const fmt = n => { const v = Number(n||0); return '$' + (isFinite(v) ? v : 0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); };
 
 // Percentage format
-export const pct = n => (n*100).toFixed(1)+'%';
+export const pct = n => { const v = n*100; return (isFinite(v) ? v : 0).toFixed(1)+'%'; };
 
 // Unique ID generator
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);

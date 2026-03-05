@@ -4,7 +4,7 @@
  */
 
 import { inv, sales } from '../data/store.js';
-import { fmt, escHtml } from '../utils/format.js';
+import { fmt, escHtml, escAttr } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 
 const MAX_NOTIFICATIONS = 50;
@@ -100,7 +100,7 @@ function renderDropdown() {
   }
 
   list.innerHTML = _notifications.slice(0, 20).map(n => `
-    <div class="notif-item${n.read ? '' : ' unread'}" data-nid="${n.id}"${n.actionId ? ` onclick="openDrawer('${n.actionId}')"` : ''}>
+    <div class="notif-item${n.read ? '' : ' unread'}" data-nid="${n.id}"${n.actionId ? ` onclick="openDrawer('${escAttr(n.actionId)}')"` : ''}>
       <span class="notif-icon">${iconFor(n.type)}</span>
       <div class="notif-body">
         <div class="notif-title">${escHtml(n.title)}</div>

@@ -19,17 +19,19 @@ export function initKeyboardShortcuts() {
       if (document.getElementById('idOv')?.classList.contains('on')) { closeIdentify(); return; }
     }
 
-    // Ctrl/Cmd combos
+    // Ctrl/Cmd combos — skip if user is typing in an input (except Ctrl+F search)
     if (e.ctrlKey || e.metaKey) {
-      if (e.key === 'n' || e.key === 'N') { e.preventDefault(); openAddModal(); return; }
-      if ((e.key === 'f' || e.key === 'F') && !inInput) {
-        e.preventDefault();
-        switchView('inventory', document.querySelectorAll('.nav-tab')[1]);
-        setTimeout(() => document.getElementById('invSearch')?.focus(), 100);
+      if (e.key === 'n' || e.key === 'N') { if (!inInput) { e.preventDefault(); openAddModal(); } return; }
+      if (e.key === 'f' || e.key === 'F') {
+        if (!inInput) {
+          e.preventDefault();
+          switchView('inventory', document.querySelectorAll('.nav-tab')[2]);
+          setTimeout(() => document.getElementById('invSearch')?.focus(), 100);
+        }
         return;
       }
-      if (e.key === 'e' || e.key === 'E') { e.preventDefault(); exportAll(); return; }
-      if (e.key === 'b' || e.key === 'B') { e.preventDefault(); openBatchScan(); return; }
+      if (e.key === 'e' || e.key === 'E') { if (!inInput) { e.preventDefault(); exportAll(); } return; }
+      if (e.key === 'b' || e.key === 'B') { if (!inInput) { e.preventDefault(); openBatchScan(); } return; }
     }
   });
 }

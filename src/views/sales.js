@@ -277,15 +277,6 @@ export function renderSalesView() {
   const empty = document.getElementById('salesEmpty');
   const pagEl = document.getElementById('salesPagination');
 
-  let rev = 0, profit = 0;
-  for (const s of sales) {
-    const it = getInvItem(s.itemId);
-    rev += (s.price || 0) * (s.qty || 0);
-    profit += (s.price || 0) * (s.qty || 0) - (it ? (it.cost || 0) * (s.qty || 0) : 0) - (s.fees || 0) - (s.ship || 0);
-  }
-  document.getElementById('salesTotalLbl').textContent =
-    `${sales.length} sales · ${fmt(rev)} revenue · ${fmt(profit)} profit`;
-
   const all = [...sales].reverse();
 
   // Apply search filter
@@ -306,6 +297,16 @@ export function renderSalesView() {
   if (_salesDateTo) {
     filtered = filtered.filter(s => s.date <= _salesDateTo);
   }
+
+  // Compute totals from filtered results (not all sales)
+  let rev = 0, profit = 0;
+  for (const s of filtered) {
+    const it = getInvItem(s.itemId);
+    rev += (s.price || 0) * (s.qty || 0);
+    profit += (s.price || 0) * (s.qty || 0) - (it ? (it.cost || 0) * (s.qty || 0) : 0) - (s.fees || 0) - (s.ship || 0);
+  }
+  document.getElementById('salesTotalLbl').textContent =
+    `${filtered.length} sales · ${fmt(rev)} revenue · ${fmt(profit)} profit`;
 
   // Render filter bar
   const filterBar = document.getElementById('salesFilterBar');

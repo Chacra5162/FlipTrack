@@ -47,7 +47,7 @@ export function importCSV(file) {
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
-      const text = e.target.result;
+      const text = e.target.result.replace(/^\uFEFF/, ''); // Strip BOM
       const sep = text.indexOf('\t') !== -1 && text.indexOf(',') === -1 ? '\t' : ',';
       const lines = [];
       let current = '', inQuote = false;

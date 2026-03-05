@@ -35,4 +35,5 @@ window.addEventListener('offline', updateOnlineStatus);
 // Check initial state
 if (!navigator.onLine) updateOnlineStatus();
 
+export function setOfflineUser(user) { _currentUser = user; }
 export { _pendingSync, updateOnlineStatus };

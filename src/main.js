@@ -61,6 +61,10 @@ import {
   dStart, dOver, dDrop,
   toggleSel, toggleAll, clearSel, syncBulk,
   bulkDel, bulkSold,
+  toggleBulkMenu, openBulkPrice, closeBulkPrice, previewBulkPrice, applyBulkPrice,
+  openBulkCategory, closeBulkCategory, applyBulkCategory,
+  openBulkPlatform, closeBulkPlatform, applyBulkPlatform,
+  bulkExportCSV,
   toggleFilterPanel, openFilterPanel, updateFiltersBadge,
   setStockFilt, clearStockFilter,
   setSmokeFilt, setConditionFilt, daysListed
@@ -72,6 +76,11 @@ import {
   setSalesSearch, setSalesDateFrom, setSalesDateTo, clearSalesFilters
 } from './views/sales.js';
 import { renderInsights } from './views/insights.js';
+import {
+  renderProfitDashboard,
+  setProfitDateRange, setProfitSearch, setProfitPlatFilter,
+  setProfitCatFilter, setProfitSort
+} from './views/profit-dashboard.js';
 import {
   setDefaultExpDate, addExpense, delExpense, renderExpenses,
   setExpSearch, setExpDateFrom, setExpDateTo, clearExpFilters
@@ -301,6 +310,9 @@ const cropConfirm = _lw(lazyImages, 'cropConfirm');
 const cropCancel = _lw(lazyImages, 'cropCancel');
 const cropReset = _lw(lazyImages, 'cropReset');
 const cropSetAspect = _lw(lazyImages, 'cropSetAspect');
+const cropWhiteBg = _lw(lazyImages, 'cropWhiteBg');
+const cropAutoEnhance = _lw(lazyImages, 'cropAutoEnhance');
+const cropRotate = _lw(lazyImages, 'cropRotate');
 
 // AI Identify
 const openIdentify = _lw(lazyIdentify, 'openIdentify');
@@ -357,6 +369,13 @@ Object.assign(window, {
   renderBreakdown, toggleBdSubs, filterToCat, filterToSubcat
 });
 
+// Profit Dashboard
+Object.assign(window, {
+  renderProfitDashboard,
+  setProfitDateRange, setProfitSearch, setProfitPlatFilter,
+  setProfitCatFilter, setProfitSort
+});
+
 // Auth
 Object.assign(window, {
   switchAuthTab, authSubmit, authForgotPassword, authSignOut,
@@ -371,6 +390,10 @@ Object.assign(window, {
   dStart, dOver, dDrop,
   toggleSel, toggleAll, clearSel, clearStockFilt,
   bulkDel, bulkSold,
+  toggleBulkMenu, openBulkPrice, closeBulkPrice, previewBulkPrice, applyBulkPrice,
+  openBulkCategory, closeBulkCategory, applyBulkCategory,
+  openBulkPlatform, closeBulkPlatform, applyBulkPlatform,
+  bulkExportCSV,
   toggleFilterPanel,
   _debouncedRenderInv,
   setSmokeFilt, setConditionFilt, daysListed
@@ -429,6 +452,7 @@ Object.assign(window, {
   imgDragOver, imgDragLeave, imgDrop,
   openLightbox, openLightboxUrl, closeLightbox,
   openCropModal, cropDraw, cropConfirm, cropCancel, cropReset, cropSetAspect,
+  cropWhiteBg, cropAutoEnhance, cropRotate,
   renderAddFormImages, renderDrawerImg
 });
 
@@ -708,6 +732,7 @@ function switchView(name, el) {
   else if (name === 'reports') renderReports();
   else if (name === 'breakdown') renderBreakdown();
   else if (name === 'dashboard') renderDash();
+  else if (name === 'profit') renderProfitDashboard();
   else if (name === 'crosslist') renderCrosslistDashboard();
   else if (name === 'shipping') renderShippingView();
   else if (name === 'sourcing') renderSourcingView();
@@ -721,20 +746,20 @@ function switchView(name, el) {
 window.switchView = switchView;
 
 function goToBreakdown() {
-  const tab = document.querySelectorAll('.nav-tab')[7];
+  const tab = document.querySelectorAll('.nav-tab')[8];
   switchView('breakdown', tab);
   bnav('bn-more-breakdown');
 }
 
 function goToReports() {
-  const tab = document.querySelectorAll('.nav-tab')[6];
+  const tab = document.querySelectorAll('.nav-tab')[7];
   switchView('reports', tab);
   bnav('bn-more-reports');
 }
 
 function goToStockAlert() {
   setStockFilt('low');
-  const tab = document.querySelectorAll('.nav-tab')[1];
+  const tab = document.querySelectorAll('.nav-tab')[2];
   switchView('inventory', tab);
   bnav('bn-inventory');
 }

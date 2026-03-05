@@ -194,7 +194,7 @@ function filterToCat(cat) {
   invSetSubcatFilt('all', null);
   invSetSubsubcatFilt('all', null);
   invSetStockFilt('all');
-  const invTab = document.querySelectorAll('.nav-tab')[1];
+  const invTab = document.querySelectorAll('.nav-tab')[2];
   if (window.switchView) window.switchView('inventory', invTab);
   if (window.bnav) window.bnav('bn-inventory');
   openFilterPanel();
@@ -206,7 +206,7 @@ function filterToSubcat(cat, sub) {
   invSetSubcatFilt(sub, null);
   invSetSubsubcatFilt('all', null);
   invSetStockFilt('all');
-  const invTab = document.querySelectorAll('.nav-tab')[1];
+  const invTab = document.querySelectorAll('.nav-tab')[2];
   if (window.switchView) window.switchView('inventory', invTab);
   if (window.bnav) window.bnav('bn-inventory');
   openFilterPanel();

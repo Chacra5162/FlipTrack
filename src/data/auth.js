@@ -7,6 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 import { SB_URL, SB_KEY } from '../config/constants.js';
 import { inv, sales, expenses, save, refresh } from './store.js';
 import { syncNow, autoSync, pullSupplies, startRealtime, stopRealtime, setSyncStatus, stopPoll } from './sync.js';
+import { setOfflineUser } from '../features/offline.js';
 
 // ── SUPABASE CLIENT & AUTH STATE ───────────────────────────────────────────
 let _sb = null;
@@ -193,6 +194,7 @@ async function _startSession(user) {
   if (_sessionStarting) return; // prevent double-call from race
   _sessionStarting = true;
   _currentUser = user;
+  setOfflineUser(user);
   hideAuthModal();
 
   const lbl = document.getElementById('syncDotLbl');
@@ -227,6 +229,7 @@ export async function initAuth() {
   _sb.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_OUT') {
       _currentUser = null;
+      setOfflineUser(null);
       stopPoll();
       clearTimeout(_syncDebounce);
       setSyncStatus('disconnected');

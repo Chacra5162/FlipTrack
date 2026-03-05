@@ -75,7 +75,7 @@ export function updatePlatBreakdown() {
     'Other':'#57c8ff'
   };
   const el=document.getElementById('platBreakdown');
-  if(!entries.length){el.innerHTML='<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">Record your first sale to see revenue breakdown by platform</div><button class="empty-state-cta" onclick="switchView(\'sales\',document.querySelectorAll(\'.nav-tab\')[2])">Go to Sales →</button></div>';return;}
+  if(!entries.length){el.innerHTML='<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">Record your first sale to see revenue breakdown by platform</div><button class="empty-state-cta" onclick="switchView(\'sales\',document.querySelectorAll(\'.nav-tab\')[3])">Go to Sales →</button></div>';return;}
   el.innerHTML=entries.map(([n,v])=>`
     <div class="plat-row">
       <span class="plat-name">${n}</span>

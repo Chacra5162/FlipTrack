@@ -96,7 +96,13 @@ export function renderDrawerImg(itemId) {
   refreshImgSlots('d', item ? getItemImages(item) : []);
 }
 
+const MAX_IMG_SIZE = 15 * 1024 * 1024; // 15 MB
+
 export function readImgFile(file, ctx) {
+  if (file.size > MAX_IMG_SIZE) {
+    toast('Image too large (max 15 MB)', true);
+    return;
+  }
   const reader = new FileReader();
   reader.onload = e => openCropModal(e.target.result, file.type, ctx);
   reader.readAsDataURL(file);
@@ -382,6 +388,155 @@ export function cropSetAspect(aw, ah) {
   }
   _crop.rect = r;
   cropDraw();
+}
+
+/**
+ * White Background — pads the image onto a square white canvas.
+ * Great for marketplace listings where clean white backgrounds convert better.
+ */
+export function cropWhiteBg() {
+  const { img, scale } = _crop;
+  if (!img) return;
+
+  // Use current crop area (or full image if no crop)
+  const rect = _crop.rect || { x: 0, y: 0, w: img.width * scale, h: img.height * scale };
+  const sx = rect.x / scale, sy = rect.y / scale;
+  const sw = rect.w / scale, sh = rect.h / scale;
+
+  // Create a square canvas with padding
+  const maxDim = Math.max(sw, sh);
+  const padding = Math.round(maxDim * 0.08);
+  const canvasSize = Math.round(maxDim + padding * 2);
+
+  const out = document.createElement('canvas');
+  out.width = canvasSize;
+  out.height = canvasSize;
+  const c = out.getContext('2d');
+
+  // White background
+  c.fillStyle = '#ffffff';
+  c.fillRect(0, 0, canvasSize, canvasSize);
+
+  // Center the image
+  const dx = Math.round((canvasSize - sw) / 2);
+  const dy = Math.round((canvasSize - sh) / 2);
+  c.drawImage(img, sx, sy, sw, sh, dx, dy, Math.round(sw), Math.round(sh));
+
+  // Replace the image in crop modal
+  const newDataUrl = out.toDataURL('image/jpeg', 0.92);
+  const newImg = new Image();
+  newImg.onload = () => {
+    _crop.img = newImg;
+    const canvas = document.getElementById('cropCanvas');
+    const maxW = Math.min(window.innerWidth * 0.9, 520);
+    const maxH = window.innerHeight * 0.55;
+    const newScale = Math.min(maxW / newImg.width, maxH / newImg.height, 1);
+    canvas.width = Math.round(newImg.width * newScale);
+    canvas.height = Math.round(newImg.height * newScale);
+    _crop.scale = newScale;
+    _crop.rect = { x: 0, y: 0, w: canvas.width, h: canvas.height };
+    cropDraw();
+    toast('White background applied ✓');
+  };
+  newImg.src = newDataUrl;
+}
+
+/**
+ * Auto-enhance — adjusts brightness and contrast for listing photos.
+ */
+export function cropAutoEnhance() {
+  const { img, scale } = _crop;
+  if (!img) return;
+
+  const rect = _crop.rect || { x: 0, y: 0, w: img.width * scale, h: img.height * scale };
+  const sx = rect.x / scale, sy = rect.y / scale;
+  const sw = rect.w / scale, sh = rect.h / scale;
+
+  const out = document.createElement('canvas');
+  out.width = Math.round(sw);
+  out.height = Math.round(sh);
+  const c = out.getContext('2d');
+  c.drawImage(img, sx, sy, sw, sh, 0, 0, out.width, out.height);
+
+  // Auto-levels: find min/max brightness, stretch to full range
+  const imgData = c.getImageData(0, 0, out.width, out.height);
+  const d = imgData.data;
+  let minL = 255, maxL = 0;
+
+  // Sample brightness (every 4th pixel for speed)
+  if (d.length < 4) { toast('Image too small to enhance'); return; }
+  for (let i = 0; i < d.length; i += 16) {
+    const l = (d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114);
+    if (l < minL) minL = l;
+    if (l > maxL) maxL = l;
+  }
+
+  const range = maxL - minL;
+  if (range < 10) { toast('Image already well-exposed'); return; }
+
+  const factor = 255 / range;
+  for (let i = 0; i < d.length; i += 4) {
+    d[i]     = Math.min(255, Math.max(0, (d[i]     - minL) * factor)); // R
+    d[i + 1] = Math.min(255, Math.max(0, (d[i + 1] - minL) * factor)); // G
+    d[i + 2] = Math.min(255, Math.max(0, (d[i + 2] - minL) * factor)); // B
+  }
+  c.putImageData(imgData, 0, 0);
+
+  // Slight saturation boost
+  c.globalCompositeOperation = 'saturation';
+  c.fillStyle = 'hsl(0, 15%, 50%)';
+  c.fillRect(0, 0, out.width, out.height);
+  c.globalCompositeOperation = 'source-over';
+
+  const newDataUrl = out.toDataURL('image/jpeg', 0.92);
+  const newImg = new Image();
+  newImg.onload = () => {
+    _crop.img = newImg;
+    const canvas = document.getElementById('cropCanvas');
+    const maxW = Math.min(window.innerWidth * 0.9, 520);
+    const maxH = window.innerHeight * 0.55;
+    const newScale = Math.min(maxW / newImg.width, maxH / newImg.height, 1);
+    canvas.width = Math.round(newImg.width * newScale);
+    canvas.height = Math.round(newImg.height * newScale);
+    _crop.scale = newScale;
+    _crop.rect = { x: 0, y: 0, w: canvas.width, h: canvas.height };
+    cropDraw();
+    toast('Auto-enhanced ✓');
+  };
+  newImg.src = newDataUrl;
+}
+
+/**
+ * Rotate image 90° clockwise.
+ */
+export function cropRotate() {
+  const { img, scale } = _crop;
+  if (!img) return;
+
+  const out = document.createElement('canvas');
+  out.width = img.height;
+  out.height = img.width;
+  const c = out.getContext('2d');
+  c.translate(out.width, 0);
+  c.rotate(Math.PI / 2);
+  c.drawImage(img, 0, 0);
+
+  const newDataUrl = out.toDataURL('image/jpeg', 0.92);
+  const newImg = new Image();
+  newImg.onload = () => {
+    _crop.img = newImg;
+    const canvas = document.getElementById('cropCanvas');
+    const maxW = Math.min(window.innerWidth * 0.9, 520);
+    const maxH = window.innerHeight * 0.55;
+    const newScale = Math.min(maxW / newImg.width, maxH / newImg.height, 1);
+    canvas.width = Math.round(newImg.width * newScale);
+    canvas.height = Math.round(newImg.height * newScale);
+    _crop.scale = newScale;
+    _crop.rect = { x: 0, y: 0, w: canvas.width, h: canvas.height };
+    cropDraw();
+    toast('Rotated 90° ✓');
+  };
+  newImg.src = newDataUrl;
 }
 
 export function cropCancel() {

@@ -40,7 +40,7 @@ import { PLATFORMS, PLATFORM_GROUPS, platCls } from '../config/platforms.js';
 import { SUBCATS, SUBSUBCATS } from '../config/categories.js';
 import { toast } from '../utils/dom.js';
 import { pushDeleteToCloud, autoSync } from '../data/sync.js';
-import { getPlatforms, renderPlatTags } from '../features/platforms.js';
+import { getPlatforms, renderPlatTags, sanitizePlatforms } from '../features/platforms.js';
 import { getItemImages } from '../features/images.js';
 import { renderPagination } from '../utils/pagination.js';
 
@@ -432,3 +432,212 @@ export function syncBulk(){const b=document.getElementById('bulkBar');b.classLis
 export async function bulkDel(){if(!sel.size)return;if(!confirm(`Delete ${sel.size} item(s)?`))return;const ids=[...sel];ids.forEach(id=>softDeleteItem(id));sel.clear();save();refresh();toast(ids.length+' item(s) deleted — check 🗑️ to restore');await pushDeleteToCloud('ft_inventory',ids);autoSync();}
 
 export function bulkSold(){if(!sel.size)return;const ok=[...sel].filter(id=>{const it=getInvItem(id);return it&&it.qty>0;});if(!ok.length){toast('No sellable items selected',true);return;}if(!confirm(`Record sale for ${ok.length} item(s) at list price?`))return;const today=new Date().toISOString().split('T')[0];for(const id of ok){const it=getInvItem(id);const saleId=uid();sales.push({id:saleId,itemId:id,price:it.price,listPrice:it.price||0,qty:1,fees:it.fees||0,ship:it.ship||0,date:today});markDirty('sales',saleId);it.qty=Math.max(0,(it.qty||0)-1);markDirty('inv',id);}sel.clear();save();refresh();toast(`${ok.length} sale(s) recorded ✓`);}
+
+// ── ADVANCED BULK OPERATIONS ─────────────────────────────────────────────────
+
+/** Show/hide the bulk actions dropdown */
+export function toggleBulkMenu() {
+  const menu = document.getElementById('bulkMenu');
+  if (!menu) return;
+  menu.classList.toggle('open');
+  // Close on outside click
+  if (menu.classList.contains('open')) {
+    const close = (e) => {
+      if (!menu.contains(e.target) && e.target.id !== 'bulkMoreBtn') {
+        menu.classList.remove('open');
+        document.removeEventListener('click', close);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', close), 0);
+  }
+}
+
+/** Open the bulk price adjust popup */
+export function openBulkPrice() {
+  if (!sel.size) return;
+  document.getElementById('bulkMenu')?.classList.remove('open');
+  const ov = document.getElementById('bulkPriceOv');
+  if (ov) {
+    document.getElementById('bulkPriceType').value = 'percent';
+    document.getElementById('bulkPriceVal').value = '';
+    document.getElementById('bulkPriceDir').value = 'decrease';
+    document.getElementById('bulkPricePreview').textContent = `${sel.size} item(s) will be adjusted`;
+    ov.classList.add('on');
+  }
+}
+
+export function closeBulkPrice() {
+  document.getElementById('bulkPriceOv')?.classList.remove('on');
+}
+
+export function previewBulkPrice() {
+  const type = document.getElementById('bulkPriceType').value;
+  const dir  = document.getElementById('bulkPriceDir').value;
+  const raw  = parseFloat(document.getElementById('bulkPriceVal').value) || 0;
+  const val  = dir === 'decrease' ? -Math.abs(raw) : Math.abs(raw);
+  let cnt = 0;
+  for (const id of sel) {
+    const it = getInvItem(id);
+    if (!it) continue;
+    let np = it.price || 0;
+    np = type === 'percent' ? np * (1 + val / 100) : np + val;
+    np = Math.max(0.01, Math.round(np * 100) / 100);
+    if (np !== (it.price || 0)) cnt++;
+  }
+  document.getElementById('bulkPricePreview').textContent =
+    `${cnt} of ${sel.size} item(s) will change price`;
+}
+
+export function applyBulkPrice() {
+  const type = document.getElementById('bulkPriceType').value;
+  const dir  = document.getElementById('bulkPriceDir').value;
+  const raw  = parseFloat(document.getElementById('bulkPriceVal').value) || 0;
+  if (raw === 0) { toast('Enter an amount', true); return; }
+  const val  = dir === 'decrease' ? -Math.abs(raw) : Math.abs(raw);
+  let cnt = 0;
+  for (const id of sel) {
+    const it = getInvItem(id);
+    if (!it) continue;
+    let np = it.price || 0;
+    np = type === 'percent' ? np * (1 + val / 100) : np + val;
+    np = Math.max(0.01, Math.round(np * 100) / 100);
+    if (np !== (it.price || 0)) {
+      it.price = np;
+      markDirty('inv', it.id);
+      cnt++;
+    }
+  }
+  if (cnt) { save(); refresh(); }
+  closeBulkPrice();
+  toast(cnt ? `${cnt} price(s) updated ✓` : 'No changes needed');
+  renderInv();
+}
+
+/** Open the bulk category assign popup */
+export function openBulkCategory() {
+  if (!sel.size) return;
+  document.getElementById('bulkMenu')?.classList.remove('open');
+  const ov = document.getElementById('bulkCatOv');
+  if (ov) {
+    // Build options from existing categories in inventory + CAT_TREE
+    const cats = new Set(inv.map(i => i.category).filter(Boolean));
+    try {
+      // Dynamically import is tricky — we already have category data from filter chips
+      document.querySelectorAll('#catChips .cat-chip').forEach(c => {
+        const t = c.textContent.trim();
+        if (t !== 'All Categories') cats.add(t);
+      });
+    } catch (_) {}
+    const selEl = document.getElementById('bulkCatSelect');
+    selEl.innerHTML = `<option value="">— Pick a category —</option>` +
+      [...cats].sort().map(c => `<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('');
+    document.getElementById('bulkCatCount').textContent = `${sel.size} item(s)`;
+    ov.classList.add('on');
+  }
+}
+
+export function closeBulkCategory() {
+  document.getElementById('bulkCatOv')?.classList.remove('on');
+}
+
+export function applyBulkCategory() {
+  const cat = document.getElementById('bulkCatSelect').value;
+  if (!cat) { toast('Pick a category', true); return; }
+  let cnt = 0;
+  for (const id of sel) {
+    const it = getInvItem(id);
+    if (!it) continue;
+    if (it.category !== cat) {
+      it.category = cat;
+      markDirty('inv', it.id);
+      cnt++;
+    }
+  }
+  if (cnt) { save(); refresh(); }
+  closeBulkCategory();
+  toast(cnt ? `${cnt} item(s) → ${cat} ✓` : 'No changes');
+  renderInv();
+}
+
+/** Open the bulk platform toggle popup */
+export function openBulkPlatform() {
+  if (!sel.size) return;
+  document.getElementById('bulkMenu')?.classList.remove('open');
+  const ov = document.getElementById('bulkPlatOv');
+  if (ov) {
+    document.getElementById('bulkPlatAction').value = 'add';
+    document.getElementById('bulkPlatCount').textContent = `${sel.size} item(s)`;
+    ov.classList.add('on');
+  }
+}
+
+export function closeBulkPlatform() {
+  document.getElementById('bulkPlatOv')?.classList.remove('on');
+}
+
+export function applyBulkPlatform() {
+  const action = document.getElementById('bulkPlatAction').value;
+  const plat   = document.getElementById('bulkPlatSelect').value;
+  if (!plat) { toast('Pick a platform', true); return; }
+  let cnt = 0;
+  for (const id of sel) {
+    const it = getInvItem(id);
+    if (!it) continue;
+    let plats = Array.isArray(it.platforms) ? [...it.platforms] : (it.platform ? [it.platform] : []);
+    if (action === 'add') {
+      if (!plats.includes(plat)) { plats.push(plat); cnt++; }
+    } else {
+      const idx = plats.indexOf(plat);
+      if (idx >= 0) { plats.splice(idx, 1); cnt++; }
+    }
+    // Enforce Unlisted mutual exclusivity
+    plats = sanitizePlatforms(plats, action === 'add' ? plat : undefined);
+    it.platforms = plats;
+    if (plats.length === 1) it.platform = plats[0];
+    else if (plats.length === 0) { it.platform = ''; it.platforms = []; }
+    markDirty('inv', it.id);
+  }
+  if (cnt) { save(); refresh(); }
+  closeBulkPlatform();
+  toast(cnt ? `${cnt} item(s) ${action === 'add' ? '→' : '✕'} ${plat} ✓` : 'No changes');
+  renderInv();
+}
+
+/** Export selected items to CSV */
+export function bulkExportCSV() {
+  if (!sel.size) return;
+  document.getElementById('bulkMenu')?.classList.remove('open');
+  const headers = ['Name','SKU','UPC','Category','Subcategory','Platform(s)','Cost','Price','Qty','Condition','Source','Date Added','Days Listed'];
+  const rows = [headers.join(',')];
+  for (const id of sel) {
+    const it = getInvItem(id);
+    if (!it) continue;
+    const plats = getPlatforms(it).join('; ');
+    const row = [
+      `"${(it.name || '').replace(/"/g, '""')}"`,
+      `"${(it.sku || '').replace(/"/g, '""')}"`,
+      `"${(it.upc || '').replace(/"/g, '""')}"`,
+      `"${(it.category || '').replace(/"/g, '""')}"`,
+      `"${(it.subcategory || '').replace(/"/g, '""')}"`,
+      `"${plats.replace(/"/g, '""')}"`,
+      (it.cost || 0).toFixed(2),
+      (it.price || 0).toFixed(2),
+      it.qty || 0,
+      `"${(it.condition || '').replace(/"/g, '""')}"`,
+      `"${(it.source || '').replace(/"/g, '""')}"`,
+      `"${it.added || ''}"`,
+      daysListed(it)
+    ];
+    rows.push(row.join(','));
+  }
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `fliptrack-export-${new Date().toISOString().split('T')[0]}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast(`Exported ${sel.size} item(s) to CSV ✓`);
+}

@@ -757,6 +757,8 @@ export function renderInsights() {
       </div>
       ${kpis}
       ${revenueChart}
+      ${_buildDayOfWeekHeatmap(sales, getInvItem)}
+      ${_buildWeeklyTrend(sales, getInvItem)}
       ${agingSection}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div>
@@ -785,4 +787,110 @@ export function renderInsights() {
       ${!sellers.length && !stale.length && !inStockCount ? '<div style="text-align:center;color:var(--muted);font-size:13px;padding:40px 0;font-family:\'DM Mono\',monospace">Add some inventory items to start seeing insights ↗</div>' : ''}
     </div>`;
   _insightsCache = el.innerHTML;
+}
+
+// ── Day-of-Week Sales Heatmap ────────────────────────────────────────────────
+function _buildDayOfWeekHeatmap(salesData, getItem) {
+  if (salesData.length < 5) return '';
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const hours = Array.from({ length: 24 }, (_, i) => i);
+  const grid = Array.from({ length: 7 }, () => Array(24).fill(0));
+  let max = 0;
+
+  for (const s of salesData) {
+    const d = new Date(s.date);
+    if (isNaN(d)) continue;
+    grid[d.getDay()][d.getHours()] += (s.qty || 1);
+    if (grid[d.getDay()][d.getHours()] > max) max = grid[d.getDay()][d.getHours()];
+  }
+  if (max === 0) return '';
+
+  // Day totals for side summary
+  const dayTotals = grid.map(row => row.reduce((a, v) => a + v, 0));
+  const bestDay = dayTotals.indexOf(Math.max(...dayTotals));
+
+  const cellSize = 14;
+  const cells = days.map((day, di) =>
+    hours.map(h => {
+      const v = grid[di][h];
+      const intensity = v / max;
+      const bg = v === 0 ? 'var(--border)' : `rgba(87,255,154,${0.15 + intensity * 0.85})`;
+      return `<div title="${day} ${h}:00 — ${v} sale${v !== 1 ? 's' : ''}" style="width:${cellSize}px;height:${cellSize}px;background:${bg};border-radius:2px"></div>`;
+    }).join('')
+  ).map((row, di) => `<div style="display:flex;gap:1px;align-items:center"><span style="width:28px;font-size:9px;color:var(--muted);font-family:'DM Mono',monospace">${days[di]}</span>${row}<span style="margin-left:6px;font-size:9px;color:var(--muted);font-family:'DM Mono',monospace">${dayTotals[di]}</span></div>`).join('');
+
+  const hourLabels = [0, 6, 12, 18, 23].map(h =>
+    `<span style="position:absolute;left:${28 + h * (cellSize + 1)}px;font-size:8px;color:var(--muted);font-family:'DM Mono',monospace">${h === 0 ? '12a' : h < 12 ? h + 'a' : h === 12 ? '12p' : (h - 12) + 'p'}</span>`
+  ).join('');
+
+  return `<div style="background:var(--surface2);border:1px solid var(--border);padding:16px;margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--accent)">📅 Sales by Day & Hour</div>
+      <div style="font-size:10px;color:var(--muted)">Best day: <span style="color:var(--good);font-weight:600">${days[bestDay]}</span></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:1px;overflow-x:auto">${cells}</div>
+    <div style="position:relative;height:14px;margin-top:4px;margin-left:0">${hourLabels}</div>
+    <div style="display:flex;gap:6px;align-items:center;margin-top:8px">
+      <span style="font-size:9px;color:var(--muted)">Less</span>
+      ${[0, 0.25, 0.5, 0.75, 1].map(i => `<div style="width:${cellSize}px;height:${cellSize}px;background:${i === 0 ? 'var(--border)' : `rgba(87,255,154,${0.15 + i * 0.85})`};border-radius:2px"></div>`).join('')}
+      <span style="font-size:9px;color:var(--muted)">More</span>
+    </div>
+  </div>`;
+}
+
+// ── Weekly Sales Trend ───────────────────────────────────────────────────────
+function _buildWeeklyTrend(salesData, getItem) {
+  if (salesData.length < 3) return '';
+  const now = Date.now();
+  const msWeek = 7 * 86400000;
+  const weeks = [];
+
+  // Last 12 weeks
+  for (let i = 11; i >= 0; i--) {
+    const weekStart = now - (i + 1) * msWeek;
+    const weekEnd = now - i * msWeek;
+    const weekSales = salesData.filter(s => {
+      const t = new Date(s.date).getTime();
+      return t >= weekStart && t < weekEnd;
+    });
+    const revenue = weekSales.reduce((a, s) => a + (s.price || 0) * (s.qty || 0), 0);
+    const profit = weekSales.reduce((a, s) => {
+      const it = getItem(s.itemId);
+      return a + (s.price || 0) * (s.qty || 0) - (it ? (it.cost || 0) * (s.qty || 0) : 0) - (s.fees || 0) - (s.ship || 0);
+    }, 0);
+    const units = weekSales.reduce((a, s) => a + (s.qty || 0), 0);
+    const label = new Date(weekStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    weeks.push({ label, revenue, profit, units, count: weekSales.length });
+  }
+
+  const maxRev = Math.max(...weeks.map(w => w.revenue), 1);
+  const maxUnits = Math.max(...weeks.map(w => w.units), 1);
+
+  // Trend arrow
+  const recent4Rev = weeks.slice(-4).reduce((a, w) => a + w.revenue, 0);
+  const prev4Rev = weeks.slice(-8, -4).reduce((a, w) => a + w.revenue, 0);
+  const trendIcon = recent4Rev > prev4Rev * 1.1 ? '↑' : recent4Rev < prev4Rev * 0.9 ? '↓' : '→';
+  const trendColor = recent4Rev > prev4Rev * 1.1 ? 'var(--good)' : recent4Rev < prev4Rev * 0.9 ? 'var(--danger)' : 'var(--muted)';
+
+  return `<div style="background:var(--surface2);border:1px solid var(--border);padding:16px;margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--accent3)">📊 Weekly Sales Trend</div>
+      <div style="font-size:10px;color:var(--muted)">12 weeks · Trend: <span style="color:${trendColor};font-weight:600">${trendIcon}</span></div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:3px;height:90px">
+      ${weeks.map(w => {
+        const h = Math.max(3, Math.round(w.revenue / maxRev * 100));
+        const color = w.profit >= 0 ? 'var(--accent3)' : 'var(--danger)';
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px" title="${w.label}: ${w.count} sales, $${w.revenue.toFixed(0)} rev, $${w.profit.toFixed(0)} profit">
+          <div style="font-size:7px;color:var(--muted);font-family:'DM Mono',monospace">${w.units}</div>
+          <div style="width:100%;height:${h}%;background:${color};border-radius:2px 2px 0 0;min-height:3px;opacity:${w.revenue > 0 ? 1 : 0.3}"></div>
+          <div style="font-size:7px;color:var(--muted);writing-mode:vertical-rl;transform:rotate(180deg);height:32px;overflow:hidden">${w.label}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:10px;font-family:'DM Mono',monospace">
+      <span style="color:var(--muted)">Last 4 wk avg: ${(weeks.slice(-4).reduce((a, w) => a + w.revenue, 0) / 4).toFixed(0)}/wk</span>
+      <span style="color:var(--muted)">Total: ${weeks.reduce((a, w) => a + w.units, 0)} units · $${weeks.reduce((a, w) => a + w.revenue, 0).toFixed(0)} rev</span>
+    </div>
+  </div>`;
 }

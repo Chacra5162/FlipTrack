@@ -52,7 +52,7 @@ export const USPS_RATES = {
 };
 
 export const FLAT_RATE_OPTIONS = [
-  { name: 'Small Flat Rate Box', maxDim: { l: 11, w: 8.5, h: 5.5 }, price: 7.65 },
+  { name: 'Small Flat Rate Box', maxDim: { l: 8.625, w: 5.375, h: 1.625 }, price: 7.65 },
   { name: 'Medium Flat Rate Box', maxDim: { l: 11, w: 8.5, h: 5.5 }, price: 14.75 },
   { name: 'Large Flat Rate Box', maxDim: { l: 12, w: 12, h: 8 }, price: 20.85 },
 ];
@@ -126,8 +126,8 @@ export function suggestPackage(item) {
   // Calculate volume (rough cubic inches)
   const volume = dimL * dimW * dimH;
 
-  // If fits in small flat rate box (11 x 8.5 x 5.5)
-  if (dimL <= 11 && dimW <= 8.5 && dimH <= 5.5) {
+  // If fits in small flat rate box (8.625 x 5.375 x 1.625)
+  if (dimL <= 8.625 && dimW <= 5.375 && dimH <= 1.625) {
     return {
       name: 'Small Flat Rate',
       type: 'USPS Flat Rate',
@@ -137,7 +137,7 @@ export function suggestPackage(item) {
     };
   }
 
-  // If fits in medium flat rate box (11 x 8.5 x 5.5, same outer dims, larger inner)
+  // If fits in medium flat rate box (11 x 8.5 x 5.5)
   if (dimL <= 11 && dimW <= 8.5 && dimH <= 5.5) {
     return {
       name: 'Medium Flat Rate',

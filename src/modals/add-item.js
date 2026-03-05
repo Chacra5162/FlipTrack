@@ -16,7 +16,7 @@ import {
   clearBookFields,
   swapConditionTags
 } from './book-mode.js';
-import { getPlatforms, buildPlatPicker, getSelectedPlats } from '../features/platforms.js';
+import { getPlatforms, buildPlatPicker, getSelectedPlats, sanitizePlatforms } from '../features/platforms.js';
 import { refreshImgSlots } from '../features/images.js';
 import { clearDimForm, getDimsFromForm } from '../features/dimensions.js';
 import { uploadImageToStorage } from '../data/storage.js';
@@ -311,7 +311,7 @@ export function addItem(){
     }
   }
 
-  const selPlats=getSelectedPlats('f_plat_picker');
+  const selPlats=sanitizePlatforms(getSelectedPlats('f_plat_picker'));
   const platform=selPlats[0]||'Other';
   const newId = uid();
   const imagesToUpload = pendingAddImages.slice();

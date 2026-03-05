@@ -66,7 +66,11 @@ export function markDirty(table, id) {
     const e = expenses.find(x => x.id === id);
     if (e) e._localUpdatedAt = now;
   }
-  else if (table === 'supplies') _dirtySupplies.add(id);
+  else if (table === 'supplies') {
+    _dirtySupplies.add(id);
+    const sp = supplies.find(x => x.id === id);
+    if (sp) sp._localUpdatedAt = now;
+  }
 }
 
 /** Mark an item as deleted for cloud sync */
@@ -232,7 +236,7 @@ export const save = () => {
 function _schedulePersist() {
   clearTimeout(_saveDebounce);
   _saveDebounce = setTimeout(() => {
-    _persistPromise = _persistPromise.then(() => _persistToIDB()).catch(e => console.warn('FlipTrack: IDB persist chain error:', e.message));
+    _persistPromise = _persistPromise.then(() => _persistToIDB()).catch(e => { console.warn('FlipTrack: IDB persist chain error:', e.message); throw e; });
   }, 200);
 }
 
@@ -346,13 +350,15 @@ export function softDeleteItem(id) {
   markDeleted('ft_inventory', id);
 }
 
-export function restoreItem(trashIdx) {
-  const item = _trash[trashIdx];
+export function restoreItem(trashIdxOrId) {
+  // Support both index (legacy) and ID (preferred)
+  let idx = typeof trashIdxOrId === 'number' ? trashIdxOrId : _trash.findIndex(t => t.id === trashIdxOrId);
+  const item = _trash[idx];
   if (!item) return;
   const { deletedAt, ...restored } = item;
   inv.push(restored);
   markDirty('inv', restored.id);
-  _trash.splice(trashIdx, 1);
+  _trash.splice(idx, 1);
   saveTrash();
   save();
   refresh();
