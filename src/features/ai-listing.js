@@ -13,6 +13,14 @@ import { getPlatforms } from './platforms.js';
 let _sb = null;
 let _generating = false;
 
+// Platform description character limits (hard guard — truncates if AI overshoots)
+const _PLATFORM_DESC_LIMITS = {
+  'Depop': 1000,
+  'Mercari': 1000,
+  'Poshmark': 1500,
+  'eBay': 4000,
+};
+
 /**
  * Initialize with Supabase client for auth headers.
  * @param {Object} supabaseClient
@@ -104,7 +112,14 @@ DESCRIPTION should be:
 5. End with "Ships fast! Message me with any questions."
 TONE: Casual, direct, trustworthy. No hype — just honest details.
 Keep it under 150 words. Mercari shoppers skim quickly.`,
-    'Depop': 'Depop: trendy, hashtag-friendly. Use Gen-Z friendly language. Include style/aesthetic references. Add 5+ hashtags at the end.',
+    'Depop': `Depop: max 80 char title, brand + vibe + size.
+STRICT LIMIT: Description MUST be under 1000 characters total (including hashtags and spaces).
+DESCRIPTION format:
+1. One punchy sentence about the item — capture the vibe/aesthetic
+2. Key details on separate lines: brand, size, color, condition (use Depop lingo: NWT, NWOT, EUC, GUC)
+3. End with 5-8 hashtags on one line (e.g. #vintage #streetwear #y2k)
+TONE: Trendy, Gen-Z, casual. Use aesthetic references (cottagecore, Y2K, streetwear, minimalist, etc.).
+Keep it SHORT — Depop has a 1000 character limit. Aim for 80-120 words max.`,
     'Etsy': 'Etsy: include relevant search terms. Description should tell a story about the item. Emphasize uniqueness.',
     'Facebook Marketplace': 'Facebook Marketplace: casual, local-friendly. Mention pickup/shipping availability.',
     'Amazon': 'Amazon: bullet-point style features. Focus on product specifications and condition details.',
@@ -122,7 +137,7 @@ TONE: ${tone}
 
 REQUIREMENTS:
 - Generate a compelling title (under 80 characters)
-- Generate a detailed description (150-300 words)
+- Generate a description appropriate for the platform${platform === 'Depop' ? ' (MUST be under 1000 characters total)' : platform === 'Mercari' ? ' (under 150 words)' : ' (150-300 words)'}
 ${includeKeywords ? '- Include 5-8 relevant search keywords' : ''}
 - Include condition details and any flaws
 - End with a call to action
@@ -278,6 +293,12 @@ export async function generateForPlatform(itemId, platform, force = false) {
 
   toast(`Generating ${platform} listing…`);
   const result = await generateListing(item, { platform });
+
+  // Enforce platform character limits as a hard guard
+  const descLimit = _PLATFORM_DESC_LIMITS[platform];
+  if (descLimit && result.description.length > descLimit) {
+    result.description = result.description.slice(0, descLimit - 3).replace(/\s\S*$/, '') + '...';
+  }
 
   // Cache on item
   item.crosslistCache[platform] = {
