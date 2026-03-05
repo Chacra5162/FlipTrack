@@ -15,6 +15,8 @@ import { logSalePrice } from './price-history.js';
 import { toast } from '../utils/dom.js';
 import { getMeta, setMeta } from '../data/idb.js';
 import { escHtml } from '../utils/format.js';
+import { addNotification } from './notification-center.js';
+import { sfx } from '../utils/sfx.js';
 
 // ── CONSTANTS ──────────────────────────────────────────────────────────────
 
@@ -215,6 +217,13 @@ async function _syncEtsyReceipts(shopId) {
             logSalePrice(local.id, price, 'Etsy');
           }
           markDirty('inv', local.id);
+
+          // 🎉 Notify user of the sale
+          const label = local.name || local.sku || 'Item';
+          const priceStr = price > 0 ? ` for $${price.toFixed(2)}` : '';
+          toast(`🎉 Etsy Sale! ${label}${priceStr}`);
+          addNotification('sale', 'Etsy Sale', `${label} sold${priceStr}`, local.id);
+          try { sfx.sale(); } catch (_) {}
         }
       }
     }

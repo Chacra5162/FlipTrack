@@ -15,6 +15,8 @@ import { toast } from '../utils/dom.js';
 import { getMeta, setMeta } from '../data/idb.js';
 import { escHtml } from '../utils/format.js';
 import { generateListing } from './ai-listing.js';
+import { addNotification } from './notification-center.js';
+import { sfx } from '../utils/sfx.js';
 
 // ── CONSTANTS ──────────────────────────────────────────────────────────────
 const INVENTORY_API = '/sell/inventory/v1';
@@ -203,6 +205,13 @@ async function _syncEBayOrders() {
             logSalePrice(local.id, price, 'eBay');
           }
           markDirty('inv', local.id);
+
+          // 🎉 Notify user of the sale
+          const label = local.name || local.sku || 'Item';
+          const priceStr = price > 0 ? ` for $${price.toFixed(2)}` : '';
+          toast(`🎉 eBay Sale! ${label}${priceStr}`);
+          addNotification('sale', 'eBay Sale', `${label} sold${priceStr}`, local.id);
+          try { sfx.sale(); } catch (_) {}
         }
       }
     }
