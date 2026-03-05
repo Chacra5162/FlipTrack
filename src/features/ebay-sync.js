@@ -515,13 +515,21 @@ export async function pushItemToEBay(itemId) {
   await _ensureDescription(item);
   const payload = _buildInventoryPayload(item);
 
-  // Auto-detect category and fill required aspects
+  // Auto-detect category, validate condition, and fill required aspects
   try {
     const catId = await _suggestCategory(item.name || 'item');
-    if (catId && payload.product?.aspects) {
-      await _fillMissingAspects(payload.product.aspects, catId, item);
+    if (catId) {
+      // Validate condition is accepted for this category
+      const validEnum = await _getValidCondition(catId, payload.condition);
+      if (validEnum !== payload.condition) {
+        console.log('[eBay] Condition', payload.condition, 'not valid for category', catId, '→ using', validEnum);
+        payload.condition = String(validEnum);
+      }
+      if (payload.product?.aspects) {
+        await _fillMissingAspects(payload.product.aspects, catId, item);
+      }
     }
-  } catch (e) { console.warn('[eBay] Aspect pre-fill skipped:', e.message); }
+  } catch (e) { console.warn('[eBay] Pre-fill skipped:', e.message); }
 
   console.log('[eBay] Inventory payload:', JSON.stringify(payload, null, 2));
 
@@ -569,13 +577,20 @@ export async function updateEBayListing(itemId) {
   await _ensureDescription(item);
   const payload = _buildInventoryPayload(item);
 
-  // Auto-detect category and fill required aspects before pushing
+  // Auto-detect category, validate condition, and fill required aspects before pushing
   try {
     const catId = await _suggestCategory(item.name || 'item');
-    if (catId && payload.product?.aspects) {
-      await _fillMissingAspects(payload.product.aspects, catId, item);
+    if (catId) {
+      const validEnum = await _getValidCondition(catId, payload.condition);
+      if (validEnum !== payload.condition) {
+        console.log('[eBay] Condition', payload.condition, 'not valid for category', catId, '→ using', validEnum);
+        payload.condition = String(validEnum);
+      }
+      if (payload.product?.aspects) {
+        await _fillMissingAspects(payload.product.aspects, catId, item);
+      }
     }
-  } catch (e) { console.warn('[eBay] Aspect pre-fill skipped:', e.message); }
+  } catch (e) { console.warn('[eBay] Pre-fill skipped:', e.message); }
 
   console.log('[eBay] Updating inventory item:', sku);
   await _putInventoryWithRetry(sku, payload, item);
