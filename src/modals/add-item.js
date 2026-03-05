@@ -26,6 +26,7 @@ import { getCurrentUser } from '../data/auth.js';
 import { openDrawer, closeDrawer, loadCondTag, syncAddSubcat } from './drawer.js';
 import { isEBayConnected } from '../features/ebay-auth.js';
 import { pushItemToEBay, publishEBayListing } from '../features/ebay-sync.js';
+import { generateForPlatform } from '../features/ai-listing.js';
 
 let pendingAddImages = [];
 
@@ -354,11 +355,16 @@ export function addItem(){
         if (window.renderInv) window.renderInv();
         // Auto-list to eBay after images are uploaded (eBay needs http URLs)
         if (wantsEbay) _autoListEBay(newId);
+        // Pre-generate AI listings for non-API platforms
+        _autoGenCrosslistCache(newId, selPlats);
       });
     }
   } else if (wantsEbay) {
     // No images to upload — list immediately
     _autoListEBay(newId);
+    _autoGenCrosslistCache(newId, selPlats);
+  } else {
+    _autoGenCrosslistCache(newId, selPlats);
   }
 }
 
@@ -378,5 +384,26 @@ async function _autoListEBay(itemId) {
   } catch (e) {
     console.warn('[eBay] Auto-list failed:', e.message);
     toast(`eBay auto-list: ${e.message}`, true);
+  }
+}
+
+/**
+ * Pre-generate AI listings for non-API platforms (Poshmark, Mercari, etc.)
+ * so the copy button works instantly in the crosslist dashboard.
+ * Runs sequentially in the background — errors are silent.
+ */
+const _NO_API_PLATFORMS = new Set([
+  'Poshmark','Mercari','Depop','Grailed','Facebook Marketplace',
+  'StockX','GOAT','Vinted','Craigslist','OfferUp'
+]);
+async function _autoGenCrosslistCache(itemId, platforms) {
+  const targets = platforms.filter(p => _NO_API_PLATFORMS.has(p));
+  if (!targets.length) return;
+  for (const platform of targets) {
+    try {
+      await generateForPlatform(itemId, platform);
+    } catch (e) {
+      console.warn(`[Crosslist] AI gen failed for ${platform}:`, e.message);
+    }
   }
 }

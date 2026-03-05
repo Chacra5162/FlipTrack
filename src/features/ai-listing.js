@@ -76,11 +76,35 @@ function _buildPrompt(item, platform, tone, includeKeywords) {
   }
   if (item.weight) details.push(`Weight: ${item.weight} ${item.dimUnit === 'cm' ? 'kg' : 'lb'}`);
 
+  // Add brand/color/size/material to details for richer descriptions
+  if (item.brand && item.brand !== 'Unbranded') details.push(`Brand: ${item.brand}`);
+  if (item.color) details.push(`Color: ${item.color}`);
+  if (item.size) details.push(`Size: ${item.size}`);
+  if (item.material) details.push(`Material: ${item.material}`);
+  if (item.style) details.push(`Style: ${item.style}`);
+  if (item.model) details.push(`Model: ${item.model}`);
+
   const platformRules = {
-    'eBay': 'eBay: max 80 char title, include brand/model/key specs. Description should be detailed with condition notes.',
-    'Poshmark': 'Poshmark: max 80 char title. Description should mention fit, fabric, measurements. Casual friendly tone.',
-    'Mercari': 'Mercari: short catchy title. Description should be concise and honest about condition.',
-    'Depop': 'Depop: trendy, hashtag-friendly. Use Gen-Z friendly language. Include style/aesthetic references.',
+    'eBay': 'eBay: max 80 char title, include brand/model/key specs. Description should be detailed HTML-safe text. Focus on product features and specifications.',
+    'Poshmark': `Poshmark: max 80 char title with brand name first.
+DESCRIPTION MUST include these sections in this order:
+1. Opening hook — 1-2 sentences about the item (e.g. "Gorgeous [brand] [item]!")
+2. Details — bullet style with brand, size, color, material, measurements if known
+3. Condition — honest, specific (NWT, NWOT, EUC, GUC, etc.)
+4. Style tip — suggest how to wear/style it
+5. Closing — "Bundle for a discount!" or similar Poshmark-style CTA
+TONE: Friendly, enthusiastic, like a boutique owner. Use phrases like "So cute!", "Gorgeous!", "Perfect for..."
+DO NOT use hashtags. Poshmark uses style tags separately.`,
+    'Mercari': `Mercari: max 80 char title, brand + key detail + size.
+DESCRIPTION should be:
+1. Short and honest — Mercari buyers value transparency
+2. Start with what the item is in 1 sentence
+3. List key details: brand, size, color, material, condition
+4. Mention any flaws honestly — builds trust and prevents returns
+5. End with "Ships fast! Message me with any questions."
+TONE: Casual, direct, trustworthy. No hype — just honest details.
+Keep it under 150 words. Mercari shoppers skim quickly.`,
+    'Depop': 'Depop: trendy, hashtag-friendly. Use Gen-Z friendly language. Include style/aesthetic references. Add 5+ hashtags at the end.',
     'Etsy': 'Etsy: include relevant search terms. Description should tell a story about the item. Emphasize uniqueness.',
     'Facebook Marketplace': 'Facebook Marketplace: casual, local-friendly. Mention pickup/shipping availability.',
     'Amazon': 'Amazon: bullet-point style features. Focus on product specifications and condition details.',
@@ -232,6 +256,57 @@ export async function copyAIListing(itemId) {
     toast('AI listing copied to clipboard ✓');
   } catch (e) {
     toast('Copy failed', true);
+  }
+}
+
+/**
+ * Generate an AI listing for a specific platform and cache it on the item.
+ * If already cached for that platform, returns the cached version.
+ * @param {string} itemId
+ * @param {string} platform - e.g. 'Poshmark', 'Mercari'
+ * @param {boolean} [force=false] - regenerate even if cached
+ * @returns {Promise<{ title: string, description: string, keywords: string[] }>}
+ */
+export async function generateForPlatform(itemId, platform, force = false) {
+  const item = getInvItem(itemId);
+  if (!item) throw new Error('Item not found');
+
+  // Check cache
+  if (!item.crosslistCache) item.crosslistCache = {};
+  const cached = item.crosslistCache[platform];
+  if (cached && !force) return cached;
+
+  toast(`Generating ${platform} listing…`);
+  const result = await generateListing(item, { platform });
+
+  // Cache on item
+  item.crosslistCache[platform] = {
+    title: result.title,
+    description: result.description,
+    keywords: result.keywords,
+    generatedAt: new Date().toISOString(),
+  };
+  markDirty('inv', itemId);
+  save();
+
+  toast(`${platform} listing ready ✓`);
+  return item.crosslistCache[platform];
+}
+
+/**
+ * Copy a platform-specific listing to clipboard.
+ * Generates via AI if not cached yet.
+ * @param {string} itemId
+ * @param {string} platform
+ */
+export async function copyPlatformListing(itemId, platform) {
+  try {
+    const listing = await generateForPlatform(itemId, platform);
+    const text = `${listing.title}\n\n${listing.description}`;
+    await navigator.clipboard.writeText(text);
+    toast(`${platform} listing copied ✓`);
+  } catch (e) {
+    toast(`Failed: ${e.message}`, true);
   }
 }
 

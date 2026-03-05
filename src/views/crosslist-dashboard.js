@@ -44,6 +44,7 @@ import {
   calcShowTrends, calcTopPerformingItems, calcWorstPerformingItems, calcOverallStats,
   suggestShowItems, suggestShowSize, suggestCategoryMix
 } from '../features/whatnot-analytics.js';
+import { copyPlatformListing } from '../features/ai-listing.js';
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 
@@ -361,6 +362,11 @@ function renderMatrixTab(inStock) {
       const ebayStatusLabel = needsEbayPush ? 'Not on eBay yet'
         : needsEbayPublish ? 'Draft — not published'
         : (STATUS_LABELS[st] || st);
+      // Platforms without direct API get an "AI Copy" button for smart crosslisting
+      const noApiPlats = ['Poshmark','Mercari','Depop','Grailed','Facebook Marketplace','StockX','GOAT','Vinted'];
+      const isNoApi = noApiPlats.includes(p);
+      const hasCached = item.crosslistCache?.[p];
+
       html += `<div class="cl-plat-row">
           <div class="cl-plat-info">
             <span class="cl-plat-dot" style="background:${needsEbayPush || needsEbayPublish ? 'var(--warn)' : (STATUS_COLORS[st] || 'var(--muted)')}"></span>
@@ -371,6 +377,7 @@ function renderMatrixTab(inStock) {
           <div class="cl-plat-actions">
             ${needsEbayPush ? `<button class="btn-xs btn-accent" onclick="clPushToEBay('${item.id}')">List on eBay</button>` : ''}
             ${needsEbayPublish ? `<button class="btn-xs btn-accent" onclick="clPublishOnEBay('${item.id}')">Publish</button>` : ''}
+            ${isNoApi ? `<button class="btn-xs btn-accent" onclick="clAICopy('${item.id}','${escHtml(p)}')" title="Generate AI listing optimized for ${escHtml(p)} and copy to clipboard">✨ ${hasCached ? 'Copy' : 'AI Copy'}</button>` : ''}
             <button class="btn-xs" onclick="clCycleStatus('${item.id}','${escHtml(p)}')" title="Change status">⟳</button>
             <button class="btn-xs" onclick="clCopyListing('${item.id}')" title="Copy listing text">📋</button>
             <button class="btn-xs" onclick="clOpenLink('${escHtml(p)}','${item.id}')" title="Open platform">↗</button>

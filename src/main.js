@@ -238,7 +238,8 @@ import {
   executeBatchList, generateBatchText, copyBatchText, renderBatchListPanel, clearBatchList
 } from './features/batch-list.js';
 import {
-  initAIListing, generateListing, generateAndApply, renderAIListingPanel, copyAIListing, isGenerating
+  initAIListing, generateListing, generateAndApply, renderAIListingPanel, copyAIListing, isGenerating,
+  copyPlatformListing
 } from './features/ai-listing.js';
 import { getInventoryValueData, renderInventoryValueDashboard } from './features/inventory-value.js';
 import { initDemoTrigger, loadDemoData, clearDemoData } from './features/demo-data.js';
@@ -587,6 +588,9 @@ Object.assign(window, {
   },
   aiRegenerate: (itemId) => window.aiGenerate(itemId),
   aiCopyListing: copyAIListing,
+  clAICopy: (itemId, platform) => {
+    copyPlatformListing(itemId, platform).catch(e => toast(e.message, true));
+  },
   aiGenerateDesc: async (mode) => {
     // Gather item details from the visible form (drawer or add-item)
     const pfx = mode === 'drawer' ? 'd_' : 'f_';
