@@ -132,6 +132,15 @@
   text-transform: uppercase;
   white-space: nowrap;
 }
+.tier-card-action {
+  margin-top: auto;
+  padding-top: 12px;
+}
+.tier-card-action button {
+  width: 100%;
+  font-size: 11px;
+  padding: 8px 0;
+}
 .tier-name {
   font-family: 'Syne', sans-serif;
   font-weight: 700;

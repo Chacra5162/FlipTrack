@@ -74,6 +74,28 @@ export function showUpgradePrompt(viewName) {
   const card = ov.querySelector(`.tier-card[data-tier="${required}"]`);
   if (card) card.classList.add('highlighted');
 
+  // Update tier card buttons based on current plan
+  const tierOrder = { free: 0, pro: 1, unlimited: 2 };
+  const userLevel = tierOrder[_userTier] || 0;
+  ov.querySelectorAll('.tier-card').forEach(c => {
+    const t = c.getAttribute('data-tier');
+    const level = tierOrder[t] || 0;
+    const actionDiv = c.querySelector('.tier-card-action');
+    if (!actionDiv) return;
+    if (t === _userTier) {
+      actionDiv.innerHTML = '<button class="btn-ghost" disabled>Current Plan</button>';
+    } else if (level > userLevel) {
+      const label = t === 'pro' ? 'Upgrade to Pro' : 'Upgrade to Unlimited';
+      actionDiv.innerHTML = `<button class="btn-primary" onclick="startCheckout('${t}')">${label}</button>`;
+    } else {
+      actionDiv.innerHTML = '<button class="btn-ghost" disabled>Included</button>';
+    }
+  });
+
+  // Show "Manage Plan" if user has a paid subscription
+  const manageBtn = document.getElementById('managePlanBtn');
+  if (manageBtn) manageBtn.style.display = userLevel > 0 ? '' : 'none';
+
   ov.classList.add('on');
 }
 
@@ -81,6 +103,77 @@ export function showUpgradePrompt(viewName) {
 export function closeUpgradePrompt() {
   const ov = document.getElementById('upgradeOv');
   if (ov) ov.classList.remove('on');
+}
+
+// ── Stripe Checkout Integration ─────────────────────────────────────────────
+
+/** Redirect user to Stripe Checkout for a given tier */
+export async function startCheckout(tier) {
+  const user = getCurrentUser();
+  if (!user) { alert('Please sign in first.'); return; }
+
+  const btn = document.querySelector('#upgradeOv .btn-primary');
+  const origText = btn?.textContent;
+  if (btn) { btn.textContent = 'Redirecting…'; btn.disabled = true; }
+
+  try {
+    const sb = getSupabaseClient();
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session?.access_token) throw new Error('No active session');
+
+    const res = await fetch(
+      `${sb.supabaseUrl}/functions/v1/create-checkout`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': sb.supabaseKey,
+        },
+        body: JSON.stringify({ tier }),
+      }
+    );
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    if (data.url) window.location.href = data.url;
+  } catch (e) {
+    console.error('Checkout error:', e);
+    alert('Could not start checkout: ' + e.message);
+    if (btn) { btn.textContent = origText; btn.disabled = false; }
+  }
+}
+
+/** Open Stripe Billing Portal for managing subscription */
+export async function openBillingPortal() {
+  const user = getCurrentUser();
+  if (!user) return;
+
+  try {
+    const sb = getSupabaseClient();
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session?.access_token) throw new Error('No active session');
+
+    const res = await fetch(
+      `${sb.supabaseUrl}/functions/v1/billing-portal`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': sb.supabaseKey,
+        },
+        body: JSON.stringify({}),
+      }
+    );
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    if (data.url) window.location.href = data.url;
+  } catch (e) {
+    console.error('Billing portal error:', e);
+    alert('Could not open billing portal: ' + e.message);
+  }
 }
 
 // ── Nav Lock Icons ───────────────────────────────────────────────────────────
@@ -98,6 +191,20 @@ export function applyNavLocks() {
     }
   });
 
+  // Update account menu plan label
+  const planLabel = document.getElementById('acctPlanLabel');
+  const planBtn = document.getElementById('acctPlanBtn');
+  if (planLabel && planBtn) {
+    const display = TIER_DISPLAY[_userTier];
+    if (_userTier === 'free') {
+      planLabel.textContent = 'Free Plan — Upgrade';
+      planBtn.onclick = () => { window.closeAccountMenu?.(); showUpgradePrompt('dashboard'); };
+    } else {
+      planLabel.textContent = (display?.name || 'Pro') + ' Plan — Manage';
+      planBtn.onclick = () => { window.closeAccountMenu?.(); openBillingPortal(); };
+    }
+  }
+
   // Lock tool buttons
   for (const [btnId, required] of Object.entries(TOOL_TIER_MAP)) {
     const btn = document.getElementById(btnId);
@@ -113,5 +220,5 @@ export function applyNavLocks() {
 }
 
 // ── Expose to window for inline handlers & sync access from switchView ───────
-Object.assign(window, { closeUpgradePrompt, applyNavLocks });
+Object.assign(window, { closeUpgradePrompt, applyNavLocks, startCheckout, openBillingPortal, showUpgradePrompt });
 window.__gateUtils = { isViewGated, showUpgradePrompt, getUserTier };

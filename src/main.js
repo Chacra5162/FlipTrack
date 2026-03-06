@@ -1061,6 +1061,26 @@ setTimeout(_killSplash, 3000);
   // Boot auth (connects Supabase, starts realtime) — MUST await to prevent race conditions
   try { await initAuth(); } catch (e) { console.warn('FlipTrack: auth init error:', e.message); }
 
+  // Handle post-checkout redirect — re-fetch tier and show success toast
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('upgrade') === 'success') {
+    // Clean URL
+    window.history.replaceState({}, '', window.location.pathname);
+    // Re-load tier after a short delay (Stripe webhook may still be processing)
+    setTimeout(async () => {
+      try {
+        const { loadUserTier, applyNavLocks, getUserTier } = await import('./utils/gate.js');
+        await loadUserTier();
+        applyNavLocks();
+        const tier = getUserTier();
+        const names = { pro: 'Pro', unlimited: 'Unlimited' };
+        toast(`Welcome to FlipTrack ${names[tier] || tier}! All features are now unlocked.`);
+      } catch (e) { console.warn('Post-checkout tier refresh:', e.message); }
+    }, 2000);
+  } else if (urlParams.get('upgrade') === 'cancelled') {
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
   // Set up offline mutation queue auto-replay
   try { initOfflineQueue(); } catch (e) { console.warn('FlipTrack: offline queue init error:', e.message); }
 
