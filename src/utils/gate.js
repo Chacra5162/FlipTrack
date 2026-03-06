@@ -5,6 +5,7 @@
  */
 
 import { getSupabaseClient, getCurrentUser } from '../data/auth.js';
+import { SB_URL, SB_KEY } from '../config/constants.js';
 import {
   canAccess, VIEW_TIER_MAP, TOOL_TIER_MAP,
   TIER_DISPLAY, VIEW_LABELS
@@ -122,21 +123,29 @@ export async function startCheckout(tier) {
     if (!session?.access_token) throw new Error('No active session');
 
     const res = await fetch(
-      `${sb.supabaseUrl}/functions/v1/create-checkout`,
+      `${SB_URL}/functions/v1/create-checkout`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
-          'apikey': sb.supabaseKey,
+          'apikey': SB_KEY,
         },
         body: JSON.stringify({ tier }),
       }
     );
 
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || errData.msg || `Server error ${res.status}`);
+    }
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-    if (data.url) window.location.href = data.url;
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      throw new Error('No checkout URL returned');
+    }
   } catch (e) {
     console.error('Checkout error:', e);
     alert('Could not start checkout: ' + e.message);
@@ -155,21 +164,29 @@ export async function openBillingPortal() {
     if (!session?.access_token) throw new Error('No active session');
 
     const res = await fetch(
-      `${sb.supabaseUrl}/functions/v1/billing-portal`,
+      `${SB_URL}/functions/v1/billing-portal`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
-          'apikey': sb.supabaseKey,
+          'apikey': SB_KEY,
         },
         body: JSON.stringify({}),
       }
     );
 
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || errData.msg || `Server error ${res.status}`);
+    }
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-    if (data.url) window.location.href = data.url;
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      throw new Error('No portal URL returned');
+    }
   } catch (e) {
     console.error('Billing portal error:', e);
     alert('Could not open billing portal: ' + e.message);
