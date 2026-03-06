@@ -211,6 +211,15 @@ async function _startSession(user) {
     // Pull supplies from cloud (separate table)
     pullSupplies().catch(e => console.warn('FlipTrack: supplies pull error:', e.message));
 
+    // Load subscription tier & apply nav locks
+    try {
+      const { loadUserTier, applyNavLocks } = await import('../utils/gate.js');
+      await loadUserTier();
+      applyNavLocks();
+    } catch (tierErr) {
+      console.warn('FlipTrack: tier init error:', tierErr.message);
+    }
+
     // Silently migrate any existing base64 images to Supabase Storage
     // This would be handled by a separate migration module
   } catch(e) {

@@ -6,6 +6,7 @@
 
 // ── CSS (Vite handles bundling) ───────────────────────────────────────────────
 import './styles/index.css';
+import './styles/gating.css';
 
 // ── Config ────────────────────────────────────────────────────────────────────
 import { SB_URL, SB_KEY, IMG_BUCKET } from './config/constants.js';
@@ -721,6 +722,13 @@ function clRelistFromDrawer(itemId, platform) {
 // ══════════════════════════════════════════════════════════════════════════════
 
 function switchView(name, el) {
+  // Subscription gating — block access to locked views
+  const { isViewGated, showUpgradePrompt } = window.__gateUtils || {};
+  if (isViewGated && isViewGated(name)) {
+    showUpgradePrompt(name);
+    return;
+  }
+
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + name)?.classList.add('active');
 

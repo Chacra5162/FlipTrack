@@ -318,6 +318,17 @@ export function renderInv() {
   } else {
     banner.style.display = 'none';
   }
+  // Inventory soft-cap banner for free tier
+  const capBanner = document.getElementById('invLimitBanner');
+  if (capBanner) {
+    const tier = window.__gateUtils?.getUserTier?.() || 'free';
+    if (tier === 'free' && inv.length >= 50) {
+      capBanner.style.display = 'flex';
+    } else {
+      capBanner.style.display = 'none';
+    }
+  }
+
   items=sortItems(items);
   document.getElementById('invCnt').textContent=`${items.length} of ${inv.length} items`;
   const tbody=document.getElementById('invBody');

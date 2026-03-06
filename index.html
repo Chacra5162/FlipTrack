@@ -247,6 +247,11 @@
     <span id="stockFilterLabel" style="font-size:12px;color:var(--warn);font-family:'DM Mono',monospace;flex:1"></span>
     <button onclick="clearStockFilt()" style="background:none;border:1px solid rgba(255,184,0,0.5);color:var(--warn);font-size:11px;padding:4px 10px;cursor:pointer;font-family:'DM Mono',monospace;letter-spacing:0.5px">✕ Clear Filter</button>
   </div>
+  <div id="invLimitBanner" class="inv-limit-banner" style="display:none;margin:0 16px 0 16px;margin-top:12px">
+    <span class="inv-limit-banner-icon">⚠️</span>
+    <span class="inv-limit-banner-text">You've reached the <strong>50-item limit</strong> on the Free plan. Upgrade for unlimited inventory.</span>
+    <button class="btn-primary" onclick="window.__gateUtils?.showUpgradePrompt?.('inventory')">Upgrade</button>
+  </div>
   <div class="panel" style="animation:none">
     <div class="inv-toolbar">
       <div class="search-wrap">
@@ -1650,6 +1655,65 @@
         <option>Reverb</option><option>Discogs</option><option>Other</option>
       </select>
       <button class="btn-primary" onclick="applyBulkPlatform()">Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- UPGRADE PROMPT MODAL -->
+<div id="upgradeOv">
+  <div class="upgrade-modal">
+    <div class="upgrade-hd">
+      <div class="upgrade-title">Upgrade Your Plan</div>
+      <button class="upgrade-x" onclick="closeUpgradePrompt()">✕</button>
+    </div>
+    <div class="upgrade-body">
+      <div class="upgrade-lock-icon">🔒</div>
+      <div class="upgrade-message" id="upgradeFeatName">This feature requires Pro</div>
+      <div class="upgrade-tier-note" id="upgradeTierNote">Your plan: Free → Pro</div>
+      <div class="upgrade-tiers">
+        <!-- Free -->
+        <div class="tier-card" data-tier="free">
+          <div class="tier-name">Free</div>
+          <div class="tier-price">$0/mo</div>
+          <ul class="tier-features">
+            <li>Up to 50 inventory items</li>
+            <li>Sales logging</li>
+            <li>Expense tracking</li>
+            <li>Basic dashboard & stats</li>
+            <li>CSV export</li>
+          </ul>
+        </div>
+        <!-- Pro -->
+        <div class="tier-card" data-tier="pro">
+          <div class="tier-card-badge">Most Popular</div>
+          <div class="tier-name">Pro</div>
+          <div class="tier-price">$12/mo</div>
+          <ul class="tier-features">
+            <li>Unlimited inventory</li>
+            <li>Advanced analytics & reports</li>
+            <li>Crosslisting tools & templates</li>
+            <li>AI Identify & Price Research</li>
+            <li>Sourcing, Shipping & Buyer CRM</li>
+          </ul>
+        </div>
+        <!-- Unlimited -->
+        <div class="tier-card" data-tier="unlimited">
+          <div class="tier-name">Unlimited</div>
+          <div class="tier-price">$25/mo</div>
+          <ul class="tier-features">
+            <li>Everything in Pro</li>
+            <li>eBay & Etsy API integrations</li>
+            <li>Whatnot show planning</li>
+            <li>Batch Scan & Batch List</li>
+            <li>Tax Center & repricing rules</li>
+            <li>Photo tools & PDF reports</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="upgrade-ft">
+      <button class="btn-ghost" onclick="closeUpgradePrompt()">Maybe Later</button>
+      <button class="btn-primary" onclick="closeUpgradePrompt()">View Pricing</button>
     </div>
   </div>
 </div>
