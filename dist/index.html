@@ -22,7 +22,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"></noscript>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
-  <script type="module" crossorigin src="./assets/index-o1I3Z1to.js"></script>
+  <script type="module" crossorigin src="./assets/index-SBGh08nI.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/vendor-supabase-jY4wIOEF.js">
   <link rel="stylesheet" crossorigin href="./assets/index-Rf2CqEVR.css">
 </head>
@@ -91,12 +91,19 @@
     <button class="fs-btn" onclick="toggleFsPopover()" title="Adjust text size" id="fsSizeBtn" aria-label="Font size settings">Aᴬ</button>
     <button class="fs-btn" onclick="toggleTheme()" title="Toggle light/dark theme" id="themeBtn" aria-label="Toggle light or dark mode">☀</button>
     <button class="fs-btn" id="notifBellBtn" onclick="toggleNotifCenter()" aria-label="Notifications">🔔<span id="notifBadge">0</span></button>
-    <button class="btn-secondary" onclick="openPriceResearch()" title="Look up prices by UPC barcode" aria-label="Open price research">🔍 Prices</button>
-    <button class="btn-secondary" onclick="exportAll()" aria-label="Export all data as CSV">↓ Export All</button>
-    <button class="btn-secondary" onclick="document.getElementById('csvImportInput').click()" aria-label="Import CSV file">↑ Import</button>
+    <div class="nav-group" data-group="tools">
+      <button class="nav-group-btn" onclick="toggleNavGroup('tools')" aria-label="Tools menu" style="font-size:11px;padding:6px 12px">
+        <span class="nav-group-icon">🛠</span> Tools <span class="nav-chevron">▾</span>
+      </button>
+      <div class="nav-group-menu" id="navGroupTools" style="right:0;left:auto;min-width:210px">
+        <button class="nav-menu-item" onclick="closeAllNavGroups();openPriceResearch()"><span class="nmi-icon">🔍</span> Price Research</button>
+        <button class="nav-menu-item" onclick="closeAllNavGroups();exportAll()"><span class="nmi-icon">↓</span> Export All</button>
+        <button class="nav-menu-item" onclick="closeAllNavGroups();document.getElementById('csvImportInput').click()"><span class="nmi-icon">↑</span> Import CSV</button>
+        <button class="nav-menu-item" id="headerIdBtn" onclick="closeAllNavGroups();openIdentify()"><span class="nmi-icon">📸</span> Identify Item</button>
+        <button class="nav-menu-item" id="headerBatchBtn" onclick="closeAllNavGroups();openBatchScan()"><span class="nmi-icon">⚡</span> Batch Scan</button>
+      </div>
+    </div>
     <input type="file" id="csvImportInput" accept=".csv,.tsv" style="display:none" onchange="importCSV(this.files[0])">
-    <button class="btn-primary" id="headerIdBtn" onclick="openIdentify()" style="background:transparent;color:var(--accent);border:1px solid var(--accent);font-size:12px;padding:6px 12px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700" aria-label="Snap and identify item">📸 Identify</button>
-    <button class="btn-primary" id="headerBatchBtn" onclick="openBatchScan()" style="background:transparent;color:var(--accent3);border:1px solid var(--accent3);font-size:12px;padding:6px 12px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700" aria-label="Open batch scanner">⚡ Batch</button>
     <button class="btn-primary" id="headerAddBtn" onclick="openAddModal()" aria-label="Add new inventory item">+ Add Item</button>
   </div>
 </header>
@@ -1311,7 +1318,7 @@
         <div class="fgrp full"><label>Buyer Name / Handle <span style="color:var(--muted);font-weight:400">(optional)</span></label><input type="text" id="s_buyer" placeholder="e.g. john_resells"></div>
       </div>
     </div>
-    <div class="modal-ft"><button class="btn-secondary" onclick="closeSold()">Cancel</button><button class="btn-primary" onclick="recSale()">Record Sale</button></div>
+    <div class="modal-ft"><button class="btn-secondary" onclick="closeSold()">Cancel</button><button class="btn-primary" id="recSaleBtn" onclick="recSale()">Record Sale</button></div>
   </div>
 </div>
 

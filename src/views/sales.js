@@ -184,38 +184,44 @@ export function closeSold() {
 // ── RECORD SALE ───────────────────────────────────────────────────────────────
 
 export function recSale() {
+  // Prevent double-click / duplicate submissions
+  const btn = document.getElementById('recSaleBtn');
+  if (btn?.disabled) return;
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  const reenableBtn = () => { if (btn) { btn.disabled = false; btn.textContent = 'Record Sale'; } };
+
   const item = inv.find(i => i.id === activeSoldId);
-  if (!item) { toast('Item not found — it may have been deleted', true); closeSold(); return; }
+  if (!item) { toast('Item not found — it may have been deleted', true); reenableBtn(); closeSold(); return; }
 
   // Validate numeric fields
   const priceEl = document.getElementById('s_price');
   const rawPrice = parseNum(priceEl.value, { fieldName: 'Price' });
   if (isNaN(rawPrice) && priceEl.value.trim() !== '') {
     validateNumericInput(priceEl, { fieldName: 'Price' });
-    return;
+    reenableBtn(); return;
   }
-  if (!rawPrice) { toast('Sold price required', true); return; }
+  if (!rawPrice) { toast('Sold price required', true); reenableBtn(); return; }
 
   const qtyEl = document.getElementById('s_qty');
   const qty = parseNum(qtyEl.value, { fieldName: 'Quantity', integer: true, min: 1 });
   if (isNaN(qty)) {
     validateNumericInput(qtyEl, { fieldName: 'Quantity', integer: true });
-    return;
+    reenableBtn(); return;
   }
-  if (qty > item.qty) { toast(`Only ${item.qty} available`, true); return; }
+  if (qty > item.qty) { toast(`Only ${item.qty} available`, true); reenableBtn(); return; }
 
   const feesEl = document.getElementById('s_fees');
   const fees = parseNum(feesEl.value, { fieldName: 'Fees', allowZero: true });
   if (isNaN(fees) && feesEl.value.trim() !== '') {
     validateNumericInput(feesEl, { fieldName: 'Fees' });
-    return;
+    reenableBtn(); return;
   }
 
   const shipEl = document.getElementById('s_ship');
   const ship = parseNum(shipEl.value, { fieldName: 'Shipping', allowZero: true });
   if (isNaN(ship) && shipEl.value.trim() !== '') {
     validateNumericInput(shipEl, { fieldName: 'Shipping' });
-    return;
+    reenableBtn(); return;
   }
 
   // Convert to per-unit price for storage
