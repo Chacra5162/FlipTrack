@@ -41,6 +41,13 @@ header {
 .nav-tab:hover { color: var(--text); border-color: var(--border); }
 .nav-tab.active { color: var(--accent); border-color: var(--accent); background: rgba(87,200,255,0.06); }
 
+/* Desktop "More" dropdown in header nav */
+.nav-more-wrap { position: relative; }
+.nav-more-menu { display:none; position:absolute; top:calc(100% + 4px); right:0; background:var(--surface2,var(--surface)); border:1px solid var(--border); border-radius:8px; min-width:180px; padding:4px 0; z-index:999; box-shadow:0 8px 24px rgba(0,0,0,0.25); }
+.nav-more-menu.open { display:block; }
+.nav-more-menu button { display:block; width:100%; text-align:left; padding:10px 16px; background:none; border:none; color:var(--text); font-size:12px; font-family:'Syne',sans-serif; font-weight:600; cursor:pointer; transition:background 0.15s; letter-spacing:0.3px; }
+.nav-more-menu button:hover { background:rgba(87,200,255,0.08); }
+
 .header-right { display: flex; align-items: center; gap: 10px; }
 
 main { padding: 24px 32px; max-width: 1440px; margin: 0 auto; }

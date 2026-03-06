@@ -22,9 +22,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"></noscript>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
-  <script type="module" crossorigin src="./assets/index-5Pomdvu2.js"></script>
+  <script type="module" crossorigin src="./assets/index-6Uot-8il.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/vendor-supabase-jY4wIOEF.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-DviadB0e.css">
+  <link rel="stylesheet" crossorigin href="./assets/index-B4Fq2r9x.css">
 </head>
 <body>
 <!-- SPLASH / LOADING SCREEN — removed by main.js on init -->
@@ -55,6 +55,15 @@
     <div class="nav-tab" onclick="switchView('reports',this)" role="tab" tabindex="-1" aria-selected="false">Reports</div>
     <div class="nav-tab" onclick="switchView('breakdown',this)" role="tab" tabindex="-1" aria-selected="false">Value Breakdown</div>
     <div class="nav-tab" onclick="switchView('crosslist',this)" role="tab" tabindex="-1" aria-selected="false">Crosslist</div>
+    <div class="nav-more-wrap">
+      <div class="nav-tab nav-more-btn" onclick="toggleDesktopMore()" role="tab" tabindex="-1" aria-selected="false">More ▾</div>
+      <div class="nav-more-menu" id="desktopMoreMenu">
+        <button onclick="switchView('shipping',null);closeDesktopMore()">📦 Shipping</button>
+        <button onclick="switchView('sourcing',null);closeDesktopMore()">🛍 Sourcing</button>
+        <button onclick="switchView('tax',null);closeDesktopMore()">📄 Tax Center</button>
+        <button onclick="switchView('buyers',null);closeDesktopMore()">👥 Buyers</button>
+      </div>
+    </div>
   </nav>
   <div class="header-right">
     <div class="date-badge" id="currentDate"></div>

@@ -745,6 +745,26 @@ function switchView(name, el) {
 }
 window.switchView = switchView;
 
+// ── Desktop "More" dropdown ─────────────────────────────────────────────────
+function toggleDesktopMore() {
+  const menu = document.getElementById('desktopMoreMenu');
+  if (!menu) return;
+  const isOpen = menu.classList.toggle('open');
+  if (isOpen) {
+    const close = (e) => {
+      if (!menu.contains(e.target) && !e.target.classList.contains('nav-more-btn')) {
+        menu.classList.remove('open');
+        document.removeEventListener('click', close);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', close), 0);
+  }
+}
+function closeDesktopMore() {
+  document.getElementById('desktopMoreMenu')?.classList.remove('open');
+}
+Object.assign(window, { toggleDesktopMore, closeDesktopMore });
+
 function goToBreakdown() {
   const tab = document.querySelectorAll('.nav-tab')[8];
   switchView('breakdown', tab);
