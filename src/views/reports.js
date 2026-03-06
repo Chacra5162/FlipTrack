@@ -567,16 +567,63 @@ export function goToAddExpense() {
   setDefaultExpDate();
 }
 
-// ── DELETE SALE (restores stock)
+// ── DELETE SALE (soft-delete with undo) ──────────────────────────────────────
+let _deletedSale = null;
+let _deletedSaleTimer = null;
+
 export async function delSale(id){
   if(!confirm('Remove this sale? Stock will be restored.'))return;
   const s=sales.find(x=>x.id===id);
-  if(s){const it=getInvItem(s.itemId);if(it){it.qty+=(s.qty||0);markDirty('inv',it.id);}}
+  if(!s)return;
+
+  // Stash sale + restore qty
+  _deletedSale = { ...s };
+  const it=getInvItem(s.itemId);
+  if(it){it.qty+=(s.qty||0);markDirty('inv',it.id);}
+
   const idx = sales.findIndex(x => x.id === id);
   if (idx !== -1) sales.splice(idx, 1);
-  save(); refresh(); renderInv(); renderSalesView(); toast('Sale removed, stock restored');
-  // Delete sale from cloud, then immediately push the restored inventory
-  // (don't rely on debounced autoSync — user may refresh before it fires)
+  save(); refresh(); renderInv(); renderSalesView();
+
+  // Show undo toast (auto-commits after 8 seconds)
+  _showSaleUndoToast();
+  clearTimeout(_deletedSaleTimer);
+  _deletedSaleTimer = setTimeout(() => _commitSaleDeletion(), 8000);
+}
+
+function _showSaleUndoToast() {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = '';
+  const span = document.createElement('span');
+  span.textContent = 'Sale removed, stock restored ';
+  const btn = document.createElement('button');
+  btn.textContent = 'Undo';
+  btn.style.cssText = 'margin-left:10px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:3px 12px;border-radius:4px;cursor:pointer;font-family:Syne,sans-serif;font-weight:700;font-size:11px';
+  btn.onclick = () => undoSaleDeletion();
+  t.appendChild(span);
+  t.appendChild(btn);
+  t.classList.add('on');
+  t.classList.remove('err');
+}
+
+export function undoSaleDeletion() {
+  if (!_deletedSale) return;
+  clearTimeout(_deletedSaleTimer);
+  // Restore sale
+  sales.push(_deletedSale);
+  // Re-deduct qty
+  const it = getInvItem(_deletedSale.itemId);
+  if (it) { it.qty -= (_deletedSale.qty || 0); if (it.qty < 0) it.qty = 0; markDirty('inv', it.id); }
+  _deletedSale = null;
+  save(); refresh(); renderInv(); renderSalesView();
+  toast('Sale restored ✓');
+}
+
+async function _commitSaleDeletion() {
+  if (!_deletedSale) return;
+  const id = _deletedSale.id;
+  _deletedSale = null;
   await pushDeleteToCloud('ft_sales',[id]);
   try { await pushToCloud(); } catch(e) { console.warn('FlipTrack: inv push after sale delete failed:', e.message); }
 }

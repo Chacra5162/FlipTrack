@@ -88,7 +88,7 @@ import {
 import {
   renderReports, showPLReport, renderPLStatement,
   setReportMode, shiftPeriod, goToAddExpense,
-  delSale, delItem
+  delSale, delItem, undoSaleDeletion
 } from './views/reports.js';
 import {
   renderBreakdown, toggleBdSubs, filterToCat, filterToSubcat
@@ -335,6 +335,8 @@ const batchAddAll = _lw(lazyBatchScan, 'batchAddAll');
 const exportCSV = _lw(lazyCSV, 'exportCSV');
 const exportAll = _lw(lazyCSV, 'exportAll');
 const importCSV = _lw(lazyCSV, 'importCSV');
+const closeCsvMapper = _lw(lazyCSV, 'closeCsvMapper');
+const applyCsvMapping = _lw(lazyCSV, 'applyCsvMapping');
 
 // Barcodes
 const printStickers = _lw(lazyBarcodes, 'printStickers');
@@ -418,7 +420,7 @@ Object.assign(window, {
 Object.assign(window, {
   openSoldModal, closeSold, sPriceType, onSoldItemPick,
   updateSalePriceHint, updateFeeEstimate,
-  recSale, renderSalesView, delSale,
+  recSale, renderSalesView, delSale, undoSaleDeletion,
   setSalesSearch, setSalesDateFrom, setSalesDateTo, clearSalesFilters
 });
 
@@ -460,7 +462,7 @@ Object.assign(window, {
 Object.assign(window, {
   openBatchScan, closeBatchScan,
   batchAddScanned, batchManualAdd, batchRemoveItem, batchAddAll,
-  printStickers, exportAll, exportCSV, importCSV
+  printStickers, exportAll, exportCSV, importCSV, closeCsvMapper, applyCsvMapping
 });
 
 // Features: Book mode, Dimensions
@@ -859,6 +861,113 @@ function setFont(font, doSave = true) {
   }
   if (doSave) localStorage.setItem('ft_font', font);
 }
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// GLOBAL SEARCH
+// ══════════════════════════════════════════════════════════════════════════════
+
+let _gsOpen = false;
+
+function toggleGlobalSearch() {
+  _gsOpen ? closeGlobalSearch() : openGlobalSearch();
+}
+
+function openGlobalSearch() {
+  _gsOpen = true;
+  document.getElementById('globalSearchPanel')?.classList.add('on');
+  document.getElementById('gsBackdrop')?.classList.add('on');
+  const inp = document.getElementById('globalSearchInput');
+  if (inp) { inp.value = ''; inp.focus(); }
+  document.getElementById('globalSearchResults').innerHTML = '';
+}
+
+function closeGlobalSearch() {
+  _gsOpen = false;
+  document.getElementById('globalSearchPanel')?.classList.remove('on');
+  document.getElementById('gsBackdrop')?.classList.remove('on');
+}
+
+function _globalSearch(q) {
+  const el = document.getElementById('globalSearchResults');
+  if (!el) return;
+  if (!q || q.length < 2) { el.innerHTML = ''; return; }
+  const ql = q.toLowerCase();
+  const results = [];
+
+  // Search inventory
+  const invMatches = inv.filter(i =>
+    i.name?.toLowerCase().includes(ql) ||
+    (i.sku||'').toLowerCase().includes(ql) ||
+    (i.upc||'').toLowerCase().includes(ql) ||
+    (i.category||'').toLowerCase().includes(ql)
+  ).slice(0, 5);
+  if (invMatches.length) {
+    results.push('<div class="gs-group-label">Inventory</div>');
+    for (const i of invMatches) {
+      const { m } = calc(i);
+      results.push(`<div class="gs-item" onclick="closeGlobalSearch();navTo('inventory');setTimeout(()=>{document.getElementById('invSearch').value='${escHtml(i.name.replace(/'/g,""))}';_debouncedRenderInv()},50)">
+        <span class="gs-item-icon">📦</span>
+        <div class="gs-item-info"><div class="gs-item-title">${escHtml(i.name)}</div><div class="gs-item-sub">${escHtml(i.sku||'')} · ${escHtml(i.category||'Uncategorized')}</div></div>
+        <span class="gs-item-badge" style="background:rgba(87,200,255,0.1);color:var(--accent)">${fmt(i.price)}</span>
+      </div>`);
+    }
+  }
+
+  // Search sales
+  const saleMatches = sales.filter(s => {
+    const it = inv.find(i => i.id === s.itemId);
+    return it?.name?.toLowerCase().includes(ql) || (s.platform||'').toLowerCase().includes(ql);
+  }).slice(0, 5);
+  if (saleMatches.length) {
+    results.push('<div class="gs-group-label">Sales</div>');
+    for (const s of saleMatches) {
+      const it = inv.find(i => i.id === s.itemId);
+      results.push(`<div class="gs-item" onclick="closeGlobalSearch();navTo('sales')">
+        <span class="gs-item-icon">💸</span>
+        <div class="gs-item-info"><div class="gs-item-title">${escHtml(it?.name||'Deleted Item')}</div><div class="gs-item-sub">${escHtml(s.platform||'')} · ${s.date||''}</div></div>
+        <span class="gs-item-badge" style="background:rgba(0,200,136,0.1);color:var(--good)">${fmt(s.price)}</span>
+      </div>`);
+    }
+  }
+
+  // Search expenses
+  const expMatches = expenses.filter(ex =>
+    (ex.description||'').toLowerCase().includes(ql) ||
+    (ex.category||'').toLowerCase().includes(ql)
+  ).slice(0, 3);
+  if (expMatches.length) {
+    results.push('<div class="gs-group-label">Expenses</div>');
+    for (const ex of expMatches) {
+      results.push(`<div class="gs-item" onclick="closeGlobalSearch();navTo('expenses')">
+        <span class="gs-item-icon">🧾</span>
+        <div class="gs-item-info"><div class="gs-item-title">${escHtml(ex.description||'Expense')}</div><div class="gs-item-sub">${escHtml(ex.category||'')} · ${ex.date||''}</div></div>
+        <span class="gs-item-badge" style="background:rgba(255,107,107,0.1);color:var(--bad)">-${fmt(ex.amount)}</span>
+      </div>`);
+    }
+  }
+
+  if (!results.length) {
+    el.innerHTML = '<div class="gs-no-results">No results for "' + escHtml(q) + '"</div>';
+  } else {
+    el.innerHTML = results.join('');
+  }
+}
+
+const globalSearchDebounced = debounce((q) => _globalSearch(q), 200);
+
+// Ctrl+K / Cmd+K shortcut for global search
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    toggleGlobalSearch();
+  }
+  if (e.key === 'Escape' && _gsOpen) {
+    closeGlobalSearch();
+  }
+});
+
+Object.assign(window, { toggleGlobalSearch, openGlobalSearch, closeGlobalSearch, globalSearchDebounced });
 
 
 // ══════════════════════════════════════════════════════════════════════════════

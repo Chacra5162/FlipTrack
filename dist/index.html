@@ -22,9 +22,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"></noscript>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
-  <script type="module" crossorigin src="./assets/index-SBGh08nI.js"></script>
+  <script type="module" crossorigin src="./assets/index-CaxeELPM.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/vendor-supabase-jY4wIOEF.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-Rf2CqEVR.css">
+  <link rel="stylesheet" crossorigin href="./assets/index-CVSSMcpK.css">
 </head>
 <body>
 <!-- SPLASH / LOADING SCREEN — removed by main.js on init -->
@@ -91,6 +91,17 @@
     <button class="fs-btn" onclick="toggleFsPopover()" title="Adjust text size" id="fsSizeBtn" aria-label="Font size settings">Aᴬ</button>
     <button class="fs-btn" onclick="toggleTheme()" title="Toggle light/dark theme" id="themeBtn" aria-label="Toggle light or dark mode">☀</button>
     <button class="fs-btn" id="notifBellBtn" onclick="toggleNotifCenter()" aria-label="Notifications">🔔<span id="notifBadge">0</span></button>
+    <div class="global-search-wrap">
+      <button class="fs-btn" id="globalSearchBtn" onclick="toggleGlobalSearch()" aria-label="Search everything" title="Search everything (Ctrl+K)">⌕</button>
+      <div class="global-search-panel" id="globalSearchPanel">
+        <div class="gs-input-row">
+          <span class="gs-icon">⌕</span>
+          <input type="text" id="globalSearchInput" placeholder="Search items, sales, buyers, expenses…" oninput="globalSearchDebounced(this.value)" autocomplete="off">
+          <kbd class="gs-kbd">Esc</kbd>
+        </div>
+        <div id="globalSearchResults" class="gs-results"></div>
+      </div>
+    </div>
     <div class="nav-group" data-group="tools">
       <button class="nav-group-btn" onclick="toggleNavGroup('tools')" aria-label="Tools menu" style="font-size:11px;padding:6px 12px">
         <span class="nav-group-icon">🛠</span> Tools <span class="nav-chevron">▾</span>
@@ -339,7 +350,17 @@
       <div id="invPagination"></div>
       <div id="invEmpty" class="empty-state" style="display:none">
         <div class="empty-icon">📦</div>
-        <p>No items match your filters.<br>Try adjusting search or add new inventory.</p>
+        <h3 class="empty-title">No items yet</h3>
+        <p>Your inventory is empty. Add your first item to start tracking.</p>
+        <div class="empty-actions">
+          <button class="btn-primary empty-cta" onclick="openAddModal()">+ Add Your First Item</button>
+          <button class="btn-ghost empty-cta-secondary" onclick="document.getElementById('csvImportInput').click()">Import CSV</button>
+        </div>
+      </div>
+      <div id="invFilterEmpty" class="empty-state" style="display:none">
+        <div class="empty-icon">🔍</div>
+        <p>No items match your filters.<br>Try adjusting your search or filters.</p>
+        <button class="btn-ghost empty-cta-secondary" onclick="document.getElementById('invSearch').value='';clearStockFilt();renderInv()">Clear Filters</button>
       </div>
     </div>
   </div>
@@ -364,7 +385,12 @@
       </table>
       <div id="salesEmpty" class="empty-state" style="display:none">
         <div class="empty-icon">💸</div>
-        <p>No sales recorded yet.<br>Mark items as sold from the Inventory view.</p>
+        <h3 class="empty-title">No sales yet</h3>
+        <p>When you sell an item, record it here to track profit and analytics.</p>
+        <div class="empty-actions">
+          <button class="btn-primary empty-cta" onclick="openSoldModal()">Record a Sale</button>
+          <button class="btn-ghost empty-cta-secondary" onclick="navTo('inventory')">Go to Inventory</button>
+        </div>
       </div>
       <div id="salesPagination"></div>
     </div>
@@ -416,8 +442,10 @@
         <tbody id="supBody"></tbody>
       </table>
       <div id="supEmpty" class="empty-state" style="display:none">
-        <div class="empty-icon">📦</div>
-        <p>No supplies added yet.<br>Track boxes, mailers, tape and other packaging materials here.</p>
+        <div class="empty-icon">📋</div>
+        <h3 class="empty-title">No supplies tracked</h3>
+        <p>Keep tabs on your shipping materials — boxes, mailers, tape, labels, and more.</p>
+        <button class="btn-primary empty-cta" onclick="document.getElementById('sup_name').focus()">+ Add Your First Supply</button>
       </div>
     </div>
   </div>
@@ -504,7 +532,9 @@
       </table>
       <div id="expEmpty" class="empty-state" style="display:none">
         <div class="empty-icon">🧾</div>
-        <p>No expenses yet.<br>Add shipping supplies, fees, and other costs above.</p>
+        <h3 class="empty-title">No expenses yet</h3>
+        <p>Track shipping costs, platform fees, supplies, and other business expenses for tax time.</p>
+        <button class="btn-primary empty-cta" onclick="document.getElementById('exp_desc').focus()">+ Add First Expense</button>
       </div>
     </div>
   </div>
@@ -1627,5 +1657,6 @@
   </div>
 </div>
 
+<div class="gs-backdrop" id="gsBackdrop" onclick="closeGlobalSearch()"></div>
 </body>
 </html>

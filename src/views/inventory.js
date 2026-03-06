@@ -321,9 +321,17 @@ export function renderInv() {
   items=sortItems(items);
   document.getElementById('invCnt').textContent=`${items.length} of ${inv.length} items`;
   const tbody=document.getElementById('invBody');
-  const empty=document.getElementById('invEmpty');
-  if(!items.length){tbody.innerHTML='';empty.style.display='block';syncBulk();return;}
-  empty.style.display='none';
+  const emptyNew=document.getElementById('invEmpty');
+  const emptyFilt=document.getElementById('invFilterEmpty');
+  if(!items.length){
+    tbody.innerHTML='';
+    const hasAnyItems = inv.length > 0;
+    if (emptyNew) emptyNew.style.display = hasAnyItems ? 'none' : 'block';
+    if (emptyFilt) emptyFilt.style.display = hasAnyItems ? 'block' : 'none';
+    syncBulk();return;
+  }
+  if (emptyNew) emptyNew.style.display='none';
+  if (emptyFilt) emptyFilt.style.display='none';
   // Pagination
   const totalFiltered = items.length;
   const totalPages = Math.max(1, Math.ceil(totalFiltered / _invPageSize));
