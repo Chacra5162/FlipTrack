@@ -563,8 +563,7 @@ export function shiftPeriod(dir) {
 }
 
 export function goToAddExpense() {
-  const tab = document.querySelectorAll('.nav-tab')[4];
-  switchView('expenses', tab);
+  switchView('expenses', null);
   setDefaultExpDate();
 }
 

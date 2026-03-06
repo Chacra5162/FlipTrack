@@ -22,9 +22,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"></noscript>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
-  <script type="module" crossorigin src="./assets/index-6Uot-8il.js"></script>
+  <script type="module" crossorigin src="./assets/index-o1I3Z1to.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/vendor-supabase-jY4wIOEF.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-B4Fq2r9x.css">
+  <link rel="stylesheet" crossorigin href="./assets/index-Rf2CqEVR.css">
 </head>
 <body>
 <!-- SPLASH / LOADING SCREEN — removed by main.js on init -->
@@ -44,24 +44,40 @@
 <!-- HEADER -->
 <header role="banner">
   <div class="logo" aria-label="FlipTrack">Flip<span>Track</span></div>
-  <nav class="header-center" role="tablist" aria-label="Main navigation">
-    <div class="nav-tab active" onclick="switchView('dashboard',this)" role="tab" tabindex="0" aria-selected="true">Dashboard</div>
-    <div class="nav-tab" onclick="switchView('profit',this)" role="tab" tabindex="-1" aria-selected="false">Profit</div>
-    <div class="nav-tab" onclick="switchView('inventory',this)" role="tab" tabindex="-1" aria-selected="false">Inventory</div>
-    <div class="nav-tab" onclick="switchView('sales',this)" role="tab" tabindex="-1" aria-selected="false">Sales Log</div>
-    <div class="nav-tab" onclick="switchView('expenses',this)" role="tab" tabindex="-1" aria-selected="false">Expenses</div>
-    <div class="nav-tab" onclick="switchView('supplies',this)" role="tab" tabindex="-1" aria-selected="false">Supplies</div>
-    <div class="nav-tab" onclick="switchView('insights',this)" role="tab" tabindex="-1" aria-selected="false">Insights</div>
-    <div class="nav-tab" onclick="switchView('reports',this)" role="tab" tabindex="-1" aria-selected="false">Reports</div>
-    <div class="nav-tab" onclick="switchView('breakdown',this)" role="tab" tabindex="-1" aria-selected="false">Value Breakdown</div>
-    <div class="nav-tab" onclick="switchView('crosslist',this)" role="tab" tabindex="-1" aria-selected="false">Crosslist</div>
-    <div class="nav-more-wrap">
-      <div class="nav-tab nav-more-btn" onclick="toggleDesktopMore()" role="tab" tabindex="-1" aria-selected="false">More ▾</div>
-      <div class="nav-more-menu" id="desktopMoreMenu">
-        <button onclick="switchView('shipping',null);closeDesktopMore()">📦 Shipping</button>
-        <button onclick="switchView('sourcing',null);closeDesktopMore()">🛍 Sourcing</button>
-        <button onclick="switchView('tax',null);closeDesktopMore()">📄 Tax Center</button>
-        <button onclick="switchView('buyers',null);closeDesktopMore()">👥 Buyers</button>
+  <nav class="header-center" role="navigation" aria-label="Main navigation">
+    <div class="nav-group has-active" data-group="business">
+      <button class="nav-group-btn" onclick="toggleNavGroup('business')">
+        <span class="nav-group-icon">📊</span> Business <span class="nav-chevron">▾</span>
+      </button>
+      <div class="nav-group-menu" id="navGroupBusiness">
+        <button class="nav-menu-item active" data-view="dashboard" onclick="navTo('dashboard',this)"><span class="nmi-icon">📊</span> Dashboard</button>
+        <button class="nav-menu-item" data-view="profit" onclick="navTo('profit',this)"><span class="nmi-icon">💰</span> Profit</button>
+        <button class="nav-menu-item" data-view="insights" onclick="navTo('insights',this)"><span class="nmi-icon">🔍</span> Insights</button>
+        <button class="nav-menu-item" data-view="reports" onclick="navTo('reports',this)"><span class="nmi-icon">📑</span> Reports</button>
+        <button class="nav-menu-item" data-view="expenses" onclick="navTo('expenses',this)"><span class="nmi-icon">💸</span> Expenses</button>
+        <button class="nav-menu-item" data-view="tax" onclick="navTo('tax',this)"><span class="nmi-icon">📄</span> Tax Center</button>
+      </div>
+    </div>
+    <div class="nav-group" data-group="inventory">
+      <button class="nav-group-btn" onclick="toggleNavGroup('inventory')">
+        <span class="nav-group-icon">📦</span> Inventory <span class="nav-chevron">▾</span>
+      </button>
+      <div class="nav-group-menu" id="navGroupInventory">
+        <button class="nav-menu-item" data-view="inventory" onclick="navTo('inventory',this)"><span class="nmi-icon">📦</span> All Items</button>
+        <button class="nav-menu-item" data-view="supplies" onclick="navTo('supplies',this)"><span class="nmi-icon">📋</span> Supplies</button>
+        <button class="nav-menu-item" data-view="breakdown" onclick="navTo('breakdown',this)"><span class="nmi-icon">📈</span> Value Breakdown</button>
+        <button class="nav-menu-item" data-view="sourcing" onclick="navTo('sourcing',this)"><span class="nmi-icon">🛍</span> Sourcing &amp; Hauls</button>
+      </div>
+    </div>
+    <div class="nav-group" data-group="selling">
+      <button class="nav-group-btn" onclick="toggleNavGroup('selling')">
+        <span class="nav-group-icon">🛒</span> Selling <span class="nav-chevron">▾</span>
+      </button>
+      <div class="nav-group-menu" id="navGroupSelling">
+        <button class="nav-menu-item" data-view="sales" onclick="navTo('sales',this)"><span class="nmi-icon">🧾</span> Sales Log</button>
+        <button class="nav-menu-item" data-view="crosslist" onclick="navTo('crosslist',this)"><span class="nmi-icon">🔗</span> Crosslist</button>
+        <button class="nav-menu-item" data-view="shipping" onclick="navTo('shipping',this)"><span class="nmi-icon">📦</span> Shipping</button>
+        <button class="nav-menu-item" data-view="buyers" onclick="navTo('buyers',this)"><span class="nmi-icon">👥</span> Buyers</button>
       </div>
     </div>
   </nav>

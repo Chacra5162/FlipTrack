@@ -25,7 +25,7 @@ export function initKeyboardShortcuts() {
       if (e.key === 'f' || e.key === 'F') {
         if (!inInput) {
           e.preventDefault();
-          switchView('inventory', document.querySelectorAll('.nav-tab')[2]);
+          switchView('inventory', null);
           setTimeout(() => document.getElementById('invSearch')?.focus(), 100);
         }
         return;

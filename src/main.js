@@ -720,9 +720,23 @@ function clRelistFromDrawer(itemId, platform) {
 
 function switchView(name, el) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); t.setAttribute('tabindex', '-1'); });
   document.getElementById('view-' + name)?.classList.add('active');
-  if (el) { el.classList.add('active'); el.setAttribute('aria-selected', 'true'); el.setAttribute('tabindex', '0'); }
+
+  // Update grouped nav: clear all active menu items, set new one, update group highlights
+  document.querySelectorAll('.nav-menu-item').forEach(mi => mi.classList.remove('active'));
+  const activeItem = document.querySelector(`.nav-menu-item[data-view="${name}"]`);
+  if (activeItem) activeItem.classList.add('active');
+
+  // Mark parent group as having an active child
+  document.querySelectorAll('.nav-group').forEach(g => g.classList.remove('has-active'));
+  if (activeItem) {
+    const parentGroup = activeItem.closest('.nav-group');
+    if (parentGroup) parentGroup.classList.add('has-active');
+  }
+
+  // Legacy .nav-tab support (mobile bottom nav)
+  document.querySelectorAll('.nav-tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); t.setAttribute('tabindex', '-1'); });
+  if (el && el.classList.contains('nav-tab')) { el.classList.add('active'); el.setAttribute('aria-selected', 'true'); el.setAttribute('tabindex', '0'); }
 
   if (name === 'inventory') renderInv();
   else if (name === 'sales') renderSalesView();
@@ -745,42 +759,47 @@ function switchView(name, el) {
 }
 window.switchView = switchView;
 
-// ── Desktop "More" dropdown ─────────────────────────────────────────────────
-function toggleDesktopMore() {
-  const menu = document.getElementById('desktopMoreMenu');
-  if (!menu) return;
-  const isOpen = menu.classList.toggle('open');
-  if (isOpen) {
+// ── Grouped nav dropdown logic ──────────────────────────────────────────────
+function toggleNavGroup(groupName) {
+  const group = document.querySelector(`.nav-group[data-group="${groupName}"]`);
+  if (!group) return;
+  const wasOpen = group.classList.contains('open');
+  // Close all groups first
+  closeAllNavGroups();
+  if (!wasOpen) {
+    group.classList.add('open');
+    // Close on outside click
     const close = (e) => {
-      if (!menu.contains(e.target) && !e.target.classList.contains('nav-more-btn')) {
-        menu.classList.remove('open');
+      if (!group.contains(e.target)) {
+        group.classList.remove('open');
         document.removeEventListener('click', close);
       }
     };
     setTimeout(() => document.addEventListener('click', close), 0);
   }
 }
-function closeDesktopMore() {
-  document.getElementById('desktopMoreMenu')?.classList.remove('open');
+function closeAllNavGroups() {
+  document.querySelectorAll('.nav-group').forEach(g => g.classList.remove('open'));
 }
-Object.assign(window, { toggleDesktopMore, closeDesktopMore });
+function navTo(viewName, btnEl) {
+  closeAllNavGroups();
+  switchView(viewName, null);
+}
+Object.assign(window, { toggleNavGroup, closeAllNavGroups, navTo });
 
 function goToBreakdown() {
-  const tab = document.querySelectorAll('.nav-tab')[8];
-  switchView('breakdown', tab);
+  switchView('breakdown', null);
   bnav('bn-more-breakdown');
 }
 
 function goToReports() {
-  const tab = document.querySelectorAll('.nav-tab')[7];
-  switchView('reports', tab);
+  switchView('reports', null);
   bnav('bn-more-reports');
 }
 
 function goToStockAlert() {
   setStockFilt('low');
-  const tab = document.querySelectorAll('.nav-tab')[2];
-  switchView('inventory', tab);
+  switchView('inventory', null);
   bnav('bn-inventory');
 }
 
