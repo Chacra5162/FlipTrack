@@ -13,7 +13,7 @@ export function initKeyboardShortcuts() {
       if (document.getElementById('batchOv')?.classList.contains('on')) { closeBatchScan(); return; }
       if (document.getElementById('scannerOv')?.classList.contains('on')) { closeScanner(); return; }
       if (document.getElementById('drawer')?.classList.contains('on')) { closeDrawer(); return; }
-      if (document.getElementById('addOv')?.classList.contains('on')) { closeAdd(); return; }
+      // Add modal excluded — only closes via Cancel or item creation
       if (document.getElementById('soldOv')?.classList.contains('on')) { closeSold(); return; }
       if (document.getElementById('trashOv')?.classList.contains('on')) { closeTrashModal(); return; }
       if (document.getElementById('idOv')?.classList.contains('on')) { closeIdentify(); return; }
