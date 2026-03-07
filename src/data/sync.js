@@ -60,6 +60,11 @@ export async function pushToCloud() {
   const dirty = getDirtyItems();
 
   try {
+    // ── Upload any pending base64 images to Storage before push ──
+    try { await migrateImagesToStorage(); } catch (e) {
+      console.warn('FlipTrack: image migration skipped:', e.message);
+    }
+
     // ── Push changed inventory rows ──
     if (dirty.inv.length) {
       const rows = dirty.inv.map(i => {
@@ -146,6 +151,11 @@ export async function pushAllToCloud() {
   if (!_sb || !_currentUser) return;
 
   const accountId = _currentUser.id;
+
+  // Upload any pending base64 images before full push
+  try { await migrateImagesToStorage(); } catch (e) {
+    console.warn('FlipTrack: image migration skipped:', e.message);
+  }
 
   const invRows = inv.map(i => {
     const d = { ...i };

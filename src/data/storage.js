@@ -9,6 +9,20 @@ import { getCurrentUser, getSupabaseClient } from './auth.js';
 // ── STORAGE CONFIGURATION ──────────────────────────────────────────────────
 const IMG_BUCKET = 'item-images';
 
+// ── BASE64 → BLOB (robust, works on all browsers including mobile Safari) ──
+function dataUrlToBlob(dataUrl) {
+  try {
+    const [header, b64] = dataUrl.split(',');
+    const mime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new Blob([bytes], { type: mime });
+  } catch (e) {
+    throw new Error('Failed to convert image: ' + e.message);
+  }
+}
+
 // ── UPLOAD IMAGE TO STORAGE ───────────────────────────────────────────────
 export async function uploadImageToStorage(dataUrl, itemId, slotIdx) {
   const _sb = getSupabaseClient();
@@ -16,8 +30,7 @@ export async function uploadImageToStorage(dataUrl, itemId, slotIdx) {
 
   if (!_sb || !_currentUser) throw new Error('Not authenticated');
 
-  const res = await fetch(dataUrl);
-  const blob = await res.blob();
+  const blob = dataUrlToBlob(dataUrl);
   const userId = _currentUser.id;
   const filename = `${itemId}_${slotIdx}_${Date.now()}.jpg`;
   const path = `${userId}/${filename}`;
@@ -93,9 +106,10 @@ export async function migrateImagesToStorage() {
 
   if (migrated > 0) {
     save();
-    // Would call renderInv() here
-    // Would call toast(`Migrated ${migrated} photo${migrated > 1 ? 's' : ''} to cloud storage ✓`)
+    if (window.renderInv) window.renderInv();
+    console.log(`FlipTrack: Migrated ${migrated} photo${migrated > 1 ? 's' : ''} to cloud storage`);
   }
+  return migrated;
 }
 
 // ── HELPER: GET ITEM IMAGES ────────────────────────────────────────────────
