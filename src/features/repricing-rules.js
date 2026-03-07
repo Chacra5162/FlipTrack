@@ -156,7 +156,7 @@ export function evaluateRules() {
 
       // Check category filter
       if (rule.categories.length > 0) {
-        if (!rule.categories.includes(item.category)) return;
+        if (!rule.categories.some(c => c.toLowerCase() === (item.category||'').toLowerCase())) return;
       }
 
       const { daysListed, noSalesDays, priceAbove, priceBelow, showsWithoutSale } = rule.condition;

@@ -115,7 +115,16 @@ export function buildChips(forceRebuild) {
   // subcategory row — only show when exactly one category is active and has defined subcats
   const subcatBar  = document.getElementById('subcatToolbar');
   const singleCat  = catFilt.size === 1 ? [...catFilt][0] : null;
-  const subcatDefs = singleCat ? SUBCATS[singleCat] : null;
+  // Case-insensitive SUBCATS lookup
+  let subcatDefs = null;
+  if (singleCat) {
+    subcatDefs = SUBCATS[singleCat] || null;
+    if (!subcatDefs) {
+      const lower = singleCat.toLowerCase();
+      const key = Object.keys(SUBCATS).find(k => k.toLowerCase() === lower);
+      if (key) subcatDefs = SUBCATS[key];
+    }
+  }
   if (subcatDefs) {
     const _sc=singleCat.toLowerCase(); const usedSubs = [...new Set(inv.filter(i=>(i.category||'').toLowerCase()===_sc).map(i=>i.subcategory||'').filter(Boolean))];
     const allSubs  = [...new Set([...subcatDefs, ...usedSubs])];

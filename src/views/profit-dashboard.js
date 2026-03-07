@@ -101,7 +101,7 @@ function _calcItemStats(filtSales) {
     results = results.filter(r => r.platforms.has(_platFilter));
   }
   if (_catFilter) {
-    results = results.filter(r => (r.item.category || '') === _catFilter);
+    results = results.filter(r => (r.item.category || '').toLowerCase() === _catFilter.toLowerCase());
   }
 
   // Calc derived fields

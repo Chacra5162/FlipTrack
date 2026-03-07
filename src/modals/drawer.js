@@ -31,8 +31,17 @@ import { loadDimsToForm, getDimsFromForm, suggestPackaging } from '../features/d
 import { renderDrawerBarcode } from '../features/barcodes.js';
 import { toggleBulkFields, getSmokeValue, loadSmokeSlider, getCoverValue, loadCoverSlider } from './add-item.js';
 
+// Case-insensitive SUBCATS lookup — "books" matches "Books", etc.
+function getSubcats(cat) {
+  if (!cat) return [];
+  if (SUBCATS[cat]) return SUBCATS[cat];
+  const lower = cat.toLowerCase();
+  const key = Object.keys(SUBCATS).find(k => k.toLowerCase() === lower);
+  return key ? SUBCATS[key] : [];
+}
+
 export function populateSubcatSelect(selectId, category, currentValue) {
-  const subs = SUBCATS[category] || [];
+  const subs = getSubcats(category);
   const sel = document.getElementById(selectId);
   if (!sel) return;
   const grpId = selectId === 'd_subcat' ? 'd_subcat_grp' : 'f_subcat_grp';
@@ -98,7 +107,7 @@ export function populateSubtypeSelect(prefix, subcategory, currentValue) {
 export function syncDrawerSubcat() {
   const cat = document.getElementById('d_cat').value.trim();
   // Populate datalist with known subcats for this category
-  const subs = SUBCATS[cat] || [];
+  const subs = getSubcats(cat);
   const dl = document.getElementById('d_subcat_dl');
   if (dl) dl.innerHTML = subs.map(s => `<option value="${s}">`).join('');
   // Keep the hidden select in sync for legacy data reads
@@ -108,12 +117,13 @@ export function syncDrawerSubcat() {
 }
 
 export function syncDrawerSubtype() {
-  populateSubtypeSelect('d', (document.getElementById('d_subcat_txt').value||'').trim(), '');
+  const current = (document.getElementById('d_subtype_txt')?.value) || '';
+  populateSubtypeSelect('d', (document.getElementById('d_subcat_txt').value||'').trim(), current);
 }
 
 export function syncAddSubcat() {
   const cat = document.getElementById('f_cat').value.trim();
-  const subs = SUBCATS[cat] || [];
+  const subs = getSubcats(cat);
   const dl = document.getElementById('f_subcat_dl');
   if (dl) dl.innerHTML = subs.map(s => `<option value="${s}">`).join('');
   populateSubcatSelect('f_subcat', cat, document.getElementById('f_subcat_txt').value);
@@ -122,7 +132,8 @@ export function syncAddSubcat() {
 }
 
 export function syncAddSubtype() {
-  populateSubtypeSelect('f', (document.getElementById('f_subcat_txt').value||'').trim(), '');
+  const current = (document.getElementById('f_subtype_txt')?.value) || '';
+  populateSubtypeSelect('f', (document.getElementById('f_subcat_txt').value||'').trim(), current);
 }
 
 export function openDrawer(id) {
@@ -147,7 +158,7 @@ export function openDrawer(id) {
   // Populate subcategory text input and datalist suggestions
   const subcatTxt = document.getElementById('d_subcat_txt');
   if (subcatTxt) subcatTxt.value = item.subcategory || '';
-  const subs = SUBCATS[item.category||''] || [];
+  const subs = getSubcats(item.category||'');
   const dl = document.getElementById('d_subcat_dl');
   if (dl) dl.innerHTML = subs.map(s => `<option value="${s}">`).join('');
   // Bulk toggle

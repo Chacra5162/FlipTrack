@@ -290,7 +290,7 @@ export function renderInsights() {
 
   // Category ROI
   const catROI = Object.entries(catMap).map(([cat, d]) => {
-    const catCost = inv.filter(i => (i.category || 'Uncategorized') === cat)
+    const catCost = inv.filter(i => (i.category || 'Uncategorized').toLowerCase() === cat.toLowerCase())
       .reduce((a, i) => a + (i.cost || 0) * ((i.qty || 0) + sales.filter(s => s.itemId === i.id).reduce((t, s) => t + (s.qty || 0), 0)), 0);
     const roi = catCost > 0 ? d.profit / catCost : 0;
     return { name: cat, profit: d.profit, cost: catCost, roi, units: d.units };

@@ -221,9 +221,17 @@ export function clearBookFields(prefix) {
 }
 
 // Import for ISBN lookup functionality
+function _getSubcats(cat) {
+  if (!cat) return [];
+  if (SUBCATS[cat]) return SUBCATS[cat];
+  const lower = cat.toLowerCase();
+  const key = Object.keys(SUBCATS).find(k => k.toLowerCase() === lower);
+  return key ? SUBCATS[key] : [];
+}
+
 function syncAddSubcat() {
   const cat = document.getElementById('f_cat').value.trim();
-  const subs = SUBCATS[cat] || [];
+  const subs = _getSubcats(cat);
   const dl = document.getElementById('f_subcat_dl');
   if (dl) dl.innerHTML = subs.map(s => `<option value="${s}">`).join('');
   // populateSubcatSelect('f_subcat', cat, document.getElementById('f_subcat_txt').value);
@@ -233,7 +241,7 @@ function syncAddSubcat() {
 
 function syncDrawerSubcat() {
   const cat = document.getElementById('d_cat').value.trim();
-  const subs = SUBCATS[cat] || [];
+  const subs = _getSubcats(cat);
   const dl = document.getElementById('d_subcat_dl');
   if (dl) dl.innerHTML = subs.map(s => `<option value="${s}">`).join('');
   // populateSubcatSelect('d_subcat', cat, document.getElementById('d_subcat_txt').value);
