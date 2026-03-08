@@ -369,7 +369,7 @@
     padding-top: calc(10px + env(safe-area-inset-top));
     gap: 6px;
     flex-wrap: nowrap;
-    overflow: hidden;       /* prevent any horizontal overflow */
+    overflow: visible;      /* allow dropdown menus to extend below header */
   }
   .logo  { font-size: 17px; white-space: nowrap; flex-shrink: 0; }
   .date-badge { display: none; }

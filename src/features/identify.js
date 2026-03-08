@@ -5,6 +5,7 @@ import { toast } from '../utils/dom.js';
 import { getAccountId, getSupabaseClient, getCurrentUser } from '../data/auth.js';
 import { refreshImgSlots } from '../features/images.js';
 import { buildPlatPicker } from '../features/platforms.js';
+import { setPendingAddImages } from '../modals/add-item.js';
 
 let _idImageData = null;   // base64 image (no prefix)
 let _idMediaType = 'image/jpeg';
@@ -229,10 +230,11 @@ export function idAddToInventory() {
       const priceEl = document.getElementById('f_price');
       if (priceEl && r.estimatedMid) priceEl.value = r.estimatedMid;
 
-      // If we have the photo, set it as the item image
+      // If we have the photo, set it as the item's first image
       if (imgData) {
         const dataUrl = 'data:' + imgType + ';base64,' + imgData;
-        refreshImgSlots('f', [dataUrl]);
+        setPendingAddImages([dataUrl]);   // seed the save-ready array
+        refreshImgSlots('f', [dataUrl]);  // update visual slots
       }
 
       if (window.prevProfit) window.prevProfit();

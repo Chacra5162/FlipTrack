@@ -30,6 +30,9 @@ import { generateForPlatform } from '../features/ai-listing.js';
 
 let pendingAddImages = [];
 
+/** Allow external code (e.g. identify) to seed the add-form image list */
+export function setPendingAddImages(imgs) { pendingAddImages = imgs; }
+
 // ── SMOKE EXPOSURE 3-POSITION SLIDER ─────────────────────────────────────────
 export function updateSmokeSlider(pfx) {
   const slider = document.getElementById(pfx + '_smoke');
@@ -312,7 +315,7 @@ export function addItem(){
   }
 
   const selPlats=sanitizePlatforms(getSelectedPlats('f_plat_picker'));
-  const platform=selPlats[0]||'Other';
+  const platform=selPlats[0]||'';
   const newId = uid();
   const imagesToUpload = pendingAddImages.slice();
   const smokeVal = getSmokeValue('f');

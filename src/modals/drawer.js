@@ -353,7 +353,7 @@ export function saveDrawer(){
   item.subtype = _dSubtypeTxt ? (_dSubtypeTxt.value||'').trim() : (item.subtype||'');
   if (item.subcategory && item.subtype) saveCustomType(item.subcategory, item.subtype);
   item.platforms=getSelectedPlats('d_plat_picker');
-  item.platform =(item.platforms[0]||'Other'); // keep legacy field for compat
+  item.platform =(item.platforms[0]||''); // keep legacy field for compat
   item.platformStatus = getListingStatusFromDrawer();
   item.cost    =isNaN(cost)?0:cost;
   item.price   =isNaN(price)?0:price;
