@@ -161,6 +161,12 @@ export async function authSignOut() {
 
 // ── MODAL MANAGEMENT ───────────────────────────────────────────────────────
 export function showAuthModal() {
+  // If no hash anchor (not arriving from landing page), redirect to landing page
+  const hash = window.location.hash;
+  if (!hash || (hash !== '#signup' && hash !== '#signin')) {
+    window.location.href = './';
+    return;
+  }
   const ov = document.getElementById('authOv');
   if (ov) {
     ov.style.display = 'flex';
@@ -169,6 +175,12 @@ export function showAuthModal() {
     if (emailEl) emailEl.value = '';
     if (passEl) passEl.value = '';
     setAuthMsg('', '');
+    // Auto-switch to the correct tab based on hash
+    if (hash === '#signup') {
+      switchAuthTab('signup');
+    } else {
+      switchAuthTab('login');
+    }
   }
 }
 

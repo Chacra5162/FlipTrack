@@ -2,7 +2,7 @@
   "name": "FlipTrack — Reseller Dashboard",
   "short_name": "FlipTrack",
   "description": "Track inventory, sales, expenses, and shipping for your reselling business.",
-  "start_url": "./",
+  "start_url": "./app.html",
   "display": "standalone",
   "background_color": "#0a0a0f",
   "theme_color": "#0a0a0f",

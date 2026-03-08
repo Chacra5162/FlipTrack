@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import { resolve } from 'path';
 
 export default defineConfig({
   base: './',  // Relative paths for GitHub Pages compatibility
@@ -7,6 +8,10 @@ export default defineConfig({
     emptyOutDir: true,
     sourcemap: false,
     rollupOptions: {
+      input: {
+        app: resolve(__dirname, 'app.html'),
+        index: resolve(__dirname, 'index.html'),
+      },
       output: {
         // Code splitting: separate heavy dependencies into their own chunks
         manualChunks: {
