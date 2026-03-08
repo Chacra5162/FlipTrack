@@ -40,11 +40,11 @@ function closeBnavMore() {
   backdrop.style.display = 'none';
 }
 
-// Show bottom nav only on phones (≤600px)
+// Show bottom nav when header tabs are hidden (≤820px)
 function updateBnavVisibility() {
   const nav = document.getElementById('bottomNav');
   if (!nav) return;
-  nav.style.display = window.innerWidth <= 600 ? 'grid' : 'none';
+  nav.style.display = window.innerWidth <= 820 ? 'grid' : 'none';
 }
 updateBnavVisibility();
 window.addEventListener('resize', updateBnavVisibility);
