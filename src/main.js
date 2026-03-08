@@ -401,6 +401,8 @@ Object.assign(window, {
   _debouncedRenderInv,
   setSmokeFilt, setConditionFilt, daysListed
 });
+// Wire up the debounced inventory search (placeholder in store.js starts as no-op)
+window._debouncedRenderInv = debounce(renderInv, 200);
 
 // Drawer & editing
 Object.assign(window, {
