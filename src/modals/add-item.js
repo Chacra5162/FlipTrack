@@ -22,6 +22,7 @@ import { clearDimForm, getDimsFromForm } from '../features/dimensions.js';
 import { uploadImageToStorage } from '../data/storage.js';
 import { getSupabaseClient } from '../data/auth.js';
 import { getCurrentUser } from '../data/auth.js';
+import { refreshAutocompleteLists, saveAutocompleteEntry } from '../utils/autocomplete.js';
 
 import { openDrawer, closeDrawer, loadCondTag, syncAddSubcat } from './drawer.js';
 import { isEBayConnected } from '../features/ebay-auth.js';
@@ -190,6 +191,8 @@ export function openAddModal(){
   if (modal) modal.scrollTop = 0;
   setTimeout(() => trapFocus('#addOv .modal'), 100);
   addFormTab('basic', document.querySelector('.add-form-tab'));
+  // Refresh autocomplete suggestions for Source & Brand
+  refreshAutocompleteLists().catch(() => {});
 }
 
 export function closeAdd(){
@@ -339,6 +342,9 @@ export function addItem(){
   inv.push({id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:subcatVal,subtype:subtypeVal,platform,platforms:selPlats,cost:isNaN(cost)?0:cost,price,qty,bulk:isBulk,fees:isNaN(fees)?0:fees,ship:isNaN(ship)?0:ship,lowAlert,notes:document.getElementById('f_notes').value.trim(),source:document.getElementById('f_source').value.trim(),condition:document.getElementById('f_condition').value.trim(),smoke:smokeVal,coverType:isBookCat(cat)?coverVal:null,brand,color,size,sizeType,department,material,mpn,model,style,pattern,ebayDesc,images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),...(isBookCat(cat) ? getBookFields('f') : {}),added:new Date().toISOString()});
   markDirty('inv', newId);
   save(); closeAdd(); refresh(); _sfx.create(); toast('Item added ✓');
+  // Persist source & brand for future autocomplete
+  const addedItem = inv.find(i => i.id === newId);
+  if (addedItem) saveAutocompleteEntry(addedItem.source, addedItem.brand).catch(() => {});
 
   const wantsEbay = selPlats.includes('eBay') && isEBayConnected();
 

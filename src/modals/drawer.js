@@ -33,6 +33,7 @@ import { PLATFORM_FEES, calcPlatformFee } from '../config/platforms.js';
 import { loadDimsToForm, getDimsFromForm, suggestPackaging } from '../features/dimensions.js';
 import { renderDrawerBarcode } from '../features/barcodes.js';
 import { toggleBulkFields, getSmokeValue, loadSmokeSlider, getCoverValue, loadCoverSlider } from './add-item.js';
+import { refreshAutocompleteLists, saveAutocompleteEntry } from '../utils/autocomplete.js';
 
 // Case-insensitive SUBCATS lookup — "books" matches "Books", etc.
 function getSubcats(cat) {
@@ -143,6 +144,8 @@ export function openDrawer(id) {
   setActiveDrawId(id);
   const item=inv.find(i=>i.id===id); if(!item) return;
   _drawerSnapshot = snapshotItem(item);
+  // Refresh autocomplete suggestions for Source & Brand
+  refreshAutocompleteLists().catch(() => {});
   document.getElementById('dName').textContent=item.name;
   document.getElementById('dSku').textContent=item.sku?`SKU: ${item.sku}`:'No SKU';
   const {pu,m,roi}=calc(item);
@@ -402,6 +405,8 @@ export function saveDrawer(){
   // Log field modifications to item history (compares against snapshot taken on drawer open)
   logItemChanges(item.id, _drawerSnapshot);
   _drawerSnapshot = null;
+  // Persist source & brand for future autocomplete
+  saveAutocompleteEntry(item.source, item.brand).catch(() => {});
   markDirty('inv', item.id);
   save(); closeDrawer(); refresh(); _sfx.edit(); toast('Changes saved ✓');
 }
