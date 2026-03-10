@@ -68,6 +68,7 @@ export function logItemChanges(itemId, snapshot) {
 
   if (changes.length === 0) return;
 
+  if (!Array.isArray(item.itemHistory)) item.itemHistory = [];
   item.itemHistory.push({
     date: Date.now(),
     type: 'edit',

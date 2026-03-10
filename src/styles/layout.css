@@ -3,7 +3,9 @@ header {
   align-items: center;
   justify-content: space-between;
   padding: 18px 32px;
-  padding-top: calc(18px + env(safe-area-inset-top));
+  @supports (padding-top: env(safe-area-inset-top)) {
+    padding-top: calc(18px + env(safe-area-inset-top));
+  }
   border-bottom: 1px solid var(--border);
   background: rgba(10,10,15,0.9);
   backdrop-filter: blur(16px);

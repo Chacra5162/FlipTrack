@@ -289,10 +289,19 @@ export async function copyAIListing(itemId) {
 
   const text = `${item.aiListing.title}\n\n${item.aiListing.description}`;
   try {
-    await navigator.clipboard.writeText(text);
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      // Fallback for non-HTTPS or iframe contexts
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
     toast('AI listing copied to clipboard ✓');
   } catch (e) {
-    toast('Copy failed', true);
+    toast('Copy failed — try selecting the text manually', true);
   }
 }
 

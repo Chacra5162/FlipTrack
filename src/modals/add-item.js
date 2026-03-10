@@ -311,6 +311,7 @@ export function addItem(){
     if (existing) {
       const proceed = confirm(`An item with UPC "${upc}" already exists:\n\n"${existing.name}" (Qty: ${existing.qty})\n\nAdd as a new item anyway, or cancel to update the existing one?`);
       if (!proceed) {
+        closeAdd();
         if (typeof window.openDrawer === 'function') window.openDrawer(existing.id);
         return;
       }

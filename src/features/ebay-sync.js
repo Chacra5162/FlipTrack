@@ -904,7 +904,7 @@ async function _getValidCondition(categoryId, preferredEnum) {
     }
 
     // Last resort — use whatever eBay says is first valid
-    if (condArr.length > 0) {
+    if (condArr.length > 0 && condArr[0]?.conditionId) {
       const firstValid = allConds.find(c => c.id === parseInt(condArr[0].conditionId));
       if (firstValid) return firstValid.enumVal;
     }

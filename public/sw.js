@@ -14,6 +14,7 @@ const MAX_CACHE_ENTRIES = 120;
 const PRECACHE = [
   './',
   './index.html',
+  './app.html',
   './manifest.json',
   './favicon.ico',
   './icons/icon-192.png',

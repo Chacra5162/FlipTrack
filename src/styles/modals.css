@@ -1,5 +1,5 @@
 /* MODALS */
-.overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.72); backdrop-filter:blur(6px); z-index:400; align-items:center; justify-content:center; }
+.overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.72); backdrop-filter:blur(6px); z-index:400; align-items:center; justify-content:center; padding:max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
 .overlay.on { display:flex; }
 .modal { background:var(--surface2); border:1px solid var(--border); width:480px; max-width:96vw; max-height:90vh; overflow-y:auto; animation:slideIn 0.22s ease; }
 @keyframes slideIn { from{opacity:0;transform:scale(0.96) translateY(10px)} to{opacity:1;transform:scale(1) translateY(0)} }
@@ -75,7 +75,7 @@
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.92);
-  z-index: 9500;
+  z-index: var(--z-splash);
   align-items: center;
   justify-content: center;
   flex-direction: column;
@@ -189,7 +189,7 @@
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.94);
-  z-index: 9100;
+  z-index: var(--z-splash);
   flex-direction: column;
   overflow: hidden;
 }
@@ -514,7 +514,7 @@
 /* ── AI IDENTIFY OVERLAY ────────────────────────────────────────────────── */
 .id-overlay {
   display: none;
-  position: fixed; inset: 0; z-index: 4000;
+  position: fixed; inset: 0; z-index: var(--z-lightbox);
   background: var(--bg);
   flex-direction: column;
   overflow-y: auto;
@@ -648,7 +648,7 @@
 
 /* ── BATCH SCAN ─────────────────────────────────────────────────────── */
 .batch-overlay {
-  position: fixed; inset: 0; z-index: 5000;
+  position: fixed; inset: 0; z-index: var(--z-modal-overlay);
   background: var(--bg); display: none; flex-direction: column;
 }
 .batch-overlay.on { display: flex; }

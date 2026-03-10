@@ -230,16 +230,21 @@
   /* Compact dashboard panels */
   .panel-header { padding: 10px 14px; }
   .panel-title { font-size: 12px; }
+
+  /* Prevent iOS Safari auto-zoom on input focus (requires >= 16px) */
+  input, select, textarea { font-size: 16px !important; }
 }
 
 /* Touch — ensure minimum 44px tap targets */
 @media (hover: none) and (pointer: coarse) {
   .filter-chip   { padding: 8px 12px; font-size: 11px; min-height: 36px; }
-  .act-btn       { min-height: 36px; }
+  .act-btn       { min-height: 36px; min-width: 36px; }
   .btn-primary   { min-height: 40px; padding: 10px 20px; }
   .btn-secondary { min-height: 36px; }
-  .btn-danger    { min-height: 36px; }
+  .btn-danger    { min-height: 40px; }
   .nav-tab       { min-height: 40px; display: flex; align-items: center; }
+  .stepper-btn   { width: 36px; height: 36px; font-size: 18px; }
+  .modal-x, .drawer-x, .close-x { min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; }
   input, select, textarea { font-size: 16px !important; } /* prevent iOS zoom */
 }
 /* ── BOTTOM NAV (tablet portrait + mobile) ── */

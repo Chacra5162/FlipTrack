@@ -131,6 +131,8 @@ export async function queueSize() {
 /**
  * Replay all queued mutations against Supabase.
  * Call this when connectivity is restored.
+ * NOTE: Uses last-write-wins semantics. If another device modified the same
+ * item while this device was offline, queued mutations will overwrite those changes.
  * @param {Object} sb - Supabase client
  * @param {string} accountId - Current user's account ID
  * @returns {Promise<{ok:number, failed:number, dropped:number}>}

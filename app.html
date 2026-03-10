@@ -407,8 +407,8 @@
     </div>
     <div class="panel-body">
       <div class="form-grid">
-        <div class="fgrp full"><label>Supply Name *</label><input type="text" id="sup_name" placeholder="e.g. 6×9 Poly Mailer, 8×8×6 Box, Bubble Wrap Roll…"></div>
-        <div class="fgrp"><label>Category</label>
+        <div class="fgrp full"><label for="sup_name">Supply Name *</label><input type="text" id="sup_name" placeholder="e.g. 6×9 Poly Mailer, 8×8×6 Box, Bubble Wrap Roll…"></div>
+        <div class="fgrp"><label for="sup_cat">Category</label>
           <select id="sup_cat">
             <option value="Boxes">Boxes</option>
             <option value="Mailers">Mailers</option>
@@ -420,10 +420,10 @@
             <option value="Other">Other</option>
           </select>
         </div>
-        <div class="fgrp"><label>Quantity on Hand *</label><input type="number" id="sup_qty" placeholder="0" min="0"></div>
-        <div class="fgrp"><label>Unit Cost ($)</label><input type="number" id="sup_cost" placeholder="0.00" step="0.01"></div>
-        <div class="fgrp"><label>Low Stock Alert (qty)</label><input type="number" id="sup_alert" placeholder="5" min="0"></div>
-        <div class="fgrp"><label>Notes</label><input type="text" id="sup_notes" placeholder="e.g. Amazon ASIN, supplier…"></div>
+        <div class="fgrp"><label for="sup_qty">Quantity on Hand *</label><input type="number" id="sup_qty" placeholder="0" min="0"></div>
+        <div class="fgrp"><label for="sup_cost">Unit Cost ($)</label><input type="number" id="sup_cost" placeholder="0.00" step="0.01"></div>
+        <div class="fgrp"><label for="sup_alert">Low Stock Alert (qty)</label><input type="number" id="sup_alert" placeholder="5" min="0"></div>
+        <div class="fgrp"><label for="sup_notes">Notes</label><input type="text" id="sup_notes" placeholder="e.g. Amazon ASIN, supplier…"></div>
       </div>
       <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
         <button class="btn-primary" onclick="addSupply()">Add Supply</button>
@@ -467,11 +467,11 @@
     </div>
     <div style="padding:16px 18px;display:flex;flex-direction:column;gap:10px;box-sizing:border-box;width:100%;overflow:hidden">
       <div class="fgrp" style="margin:0;width:100%;overflow:hidden">
-        <label>Date</label>
+        <label for="exp_date">Date</label>
         <input type="date" id="exp_date" style="display:block;width:100%;max-width:100%;box-sizing:border-box;-webkit-appearance:none;appearance:none">
       </div>
       <div class="fgrp" style="margin:0;width:100%;overflow:hidden">
-        <label>Category</label>
+        <label for="exp_cat">Category</label>
         <select id="exp_cat" style="display:block;width:100%;max-width:100%;box-sizing:border-box">
           <option value="Shipping Supplies">Shipping Supplies</option>
           <option value="Packaging Materials">Packaging Materials</option>
@@ -487,11 +487,11 @@
         </select>
       </div>
       <div class="fgrp" style="margin:0;width:100%;overflow:hidden">
-        <label>Description</label>
+        <label for="exp_desc">Description</label>
         <input type="text" id="exp_desc" placeholder="e.g. Poly mailers 200-pack from Amazon" style="display:block;width:100%;max-width:100%;box-sizing:border-box;-webkit-appearance:none;appearance:none">
       </div>
       <div class="fgrp" style="margin:0;width:100%;overflow:hidden">
-        <label>Amount ($)</label>
+        <label for="exp_amt">Amount ($)</label>
         <input type="number" id="exp_amt" step="0.01" min="0" placeholder="0.00" style="display:block;width:100%;max-width:100%;box-sizing:border-box;-webkit-appearance:none;appearance:none">
       </div>
       <button class="btn-primary" style="display:block;width:100%;box-sizing:border-box" onclick="addExpense()">+ Add Expense</button>
@@ -981,7 +981,7 @@
   </div>
 </div>
 <!-- AUTH MODAL — Login / Sign Up -->
-<div class="overlay" id="authOv" style="display:flex;padding-top:env(safe-area-inset-top)">
+<div class="overlay" id="authOv" role="dialog" aria-modal="true" aria-label="Sign in" style="display:flex;padding-top:env(safe-area-inset-top)">
   <div class="modal" style="max-width:400px;width:92vw">
     <div class="modal-hd" style="border-bottom:none;padding-bottom:8px">
       <div style="display:flex;flex-direction:column;gap:2px">
@@ -1006,14 +1006,14 @@
       <div id="authOk"  style="display:none;margin-bottom:14px;padding:10px 14px;background:rgba(87,255,154,0.08);border:1px solid rgba(87,255,154,0.3);font-size:12px;font-family:'DM Mono',monospace;color:var(--good)"></div>
 
       <div class="fgrp" style="margin-bottom:12px">
-        <label>Email</label>
+        <label for="authEmail">Email</label>
         <input type="email" id="authEmail" placeholder="you@example.com"
           autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false"
           style="width:100%;box-sizing:border-box;-webkit-appearance:none"
           onkeydown="if(event.key==='Enter')authSubmit()">
       </div>
       <div class="fgrp" style="margin-bottom:20px">
-        <label>Password</label>
+        <label for="authPass">Password</label>
         <input type="password" id="authPass" placeholder="••••••••"
           autocomplete="current-password"
           style="width:100%;box-sizing:border-box;-webkit-appearance:none"
@@ -1034,7 +1034,7 @@
 </div>
 
 <!-- ACCOUNT MENU -->
-<div class="overlay" id="accountMenuOv" style="display:none;align-items:flex-start;justify-content:flex-end;padding:70px 16px 0">
+<div class="overlay" id="accountMenuOv" role="dialog" aria-modal="true" aria-label="Account menu" style="display:none;align-items:flex-start;justify-content:flex-end;padding:70px 16px 0">
   <div style="background:var(--surface2);border:1px solid var(--border);min-width:220px;box-shadow:0 8px 32px rgba(0,0,0,0.4)">
     <div style="padding:14px 16px;border-bottom:1px solid var(--border)">
       <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Signed in as</div>
@@ -1078,17 +1078,17 @@
         <button class="add-form-tab" onclick="addFormTab('details',this)" style="flex:1;padding:9px 8px;background:transparent;border:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;cursor:pointer;border-bottom:2px solid transparent">Details</button>
       </div>
       <div class="form-grid">
-        <div class="fgrp full"><label>Item Name *</label><input type="text" id="f_name" placeholder="e.g. Vintage Levi's 501 Jeans"></div>
-        <div class="fgrp"><label>SKU / ID</label><input type="text" id="f_sku" placeholder="auto if blank"></div>
+        <div class="fgrp full"><label for="f_name">Item Name *</label><input type="text" id="f_name" placeholder="e.g. Vintage Levi's 501 Jeans"></div>
+        <div class="fgrp"><label for="f_sku">SKU / ID</label><input type="text" id="f_sku" placeholder="auto if blank"></div>
         <div class="fgrp">
-          <label>UPC / Barcode</label>
+          <label for="f_upc">UPC / Barcode</label>
           <div class="upc-input-row">
             <input type="text" id="f_upc" placeholder="Scan or enter barcode…" style="font-family:'DM Mono',monospace;font-size:12px">
             <button type="button" class="upc-scan-btn" onclick="openScanner('f_upc')" title="Scan with camera">📷</button>
           </div>
         </div>
-        <div class="fgrp"><label>Category</label><input type="text" id="f_cat" placeholder="e.g. Clothing" oninput="syncAddSubcat()"></div>
-        <div class="fgrp"><label>Source</label><input type="text" id="f_source" placeholder="e.g. Goodwill, Garage Sale" list="sourceList"></div>
+        <div class="fgrp"><label for="f_cat">Category</label><input type="text" id="f_cat" placeholder="e.g. Clothing" oninput="syncAddSubcat()"></div>
+        <div class="fgrp"><label for="f_source">Source</label><input type="text" id="f_source" placeholder="e.g. Goodwill, Garage Sale" list="sourceList"></div>
         <datalist id="sourceList">
           <option value="Goodwill">
           <option value="Salvation Army">
@@ -1109,11 +1109,11 @@
           <option value="Personal Collection">
           <option value="Other">
         </datalist>
-        <div class="fgrp"><label>Subcategory</label><input type="text" id="f_subcat_txt" placeholder="e.g. Sneakers, Men's…" list="f_subcat_dl"><datalist id="f_subcat_dl"></datalist></div>
+        <div class="fgrp"><label for="f_subcat_txt">Subcategory</label><input type="text" id="f_subcat_txt" placeholder="e.g. Sneakers, Men's…" list="f_subcat_dl"><datalist id="f_subcat_dl"></datalist></div>
         <select id="f_subcat" style="display:none"></select>
-        <div class="fgrp" id="f_subtype_grp"><label id="f_subtype_lbl">Type</label><input type="text" id="f_subtype_txt" placeholder="e.g. Shirts, Sci-Fi…" list="f_subtype_dl" oninput="syncAddSubtype()"><datalist id="f_subtype_dl"></datalist></div>
+        <div class="fgrp" id="f_subtype_grp"><label id="f_subtype_lbl" for="f_subtype_txt">Type</label><input type="text" id="f_subtype_txt" placeholder="e.g. Shirts, Sci-Fi…" list="f_subtype_dl" oninput="syncAddSubtype()"><datalist id="f_subtype_dl"></datalist></div>
         <div class="fgrp full">
-          <label>Platforms * <span style="color:var(--muted);font-weight:400;font-size:10px">— select all that apply</span></label>
+          <label for="f_plat_picker">Platforms * <span style="color:var(--muted);font-weight:400;font-size:10px">— select all that apply</span></label>
           <div class="plat-picker" id="f_plat_picker"></div>
         </div>
         <div class="fgrp full">
@@ -1124,17 +1124,17 @@
         </div>
         <div id="f_bulk_fields" style="display:none;grid-column:1/-1;display:none">
           <div class="form-grid" style="margin-top:0">
-            <div class="fgrp"><label>Quantity *</label><input type="number" id="f_qty" value="1" min="1"></div>
-            <div class="fgrp"><label>Low Stock Alert</label><input type="number" id="f_alert" placeholder="2" min="0"></div>
+            <div class="fgrp"><label for="f_qty">Quantity *</label><input type="number" id="f_qty" value="1" min="1"></div>
+            <div class="fgrp"><label for="f_alert">Low Stock Alert</label><input type="number" id="f_alert" placeholder="2" min="0"></div>
           </div>
         </div>
         <input type="hidden" id="f_qty_single" value="1">
-        <div class="fgrp"><label>Cost ($) *</label><input type="number" id="f_cost" placeholder="0.00" step="0.01" oninput="prevProfit()"></div>
-        <div class="fgrp"><label>List Price ($) *</label><input type="number" id="f_price" placeholder="0.00" step="0.01" oninput="prevProfit()"></div>
-        <div class="fgrp"><label>Fees ($)</label><input type="number" id="f_fees" placeholder="0.00" step="0.01" oninput="prevProfit()"></div>
-        <div class="fgrp"><label>Shipping ($)</label><input type="number" id="f_ship" placeholder="0.00" step="0.01" oninput="prevProfit()"></div>
+        <div class="fgrp"><label for="f_cost">Cost ($) *</label><input type="number" id="f_cost" placeholder="0.00" step="0.01" oninput="prevProfit()"></div>
+        <div class="fgrp"><label for="f_price">List Price ($) *</label><input type="number" id="f_price" placeholder="0.00" step="0.01" oninput="prevProfit()"></div>
+        <div class="fgrp"><label for="f_fees">Fees ($)</label><input type="number" id="f_fees" placeholder="0.00" step="0.01" oninput="prevProfit()"></div>
+        <div class="fgrp"><label for="f_ship">Shipping ($)</label><input type="number" id="f_ship" placeholder="0.00" step="0.01" oninput="prevProfit()"></div>
         <div class="fgrp full">
-          <label>Condition</label>
+          <label for="f_cond_picker">Condition</label>
           <div id="f_cond_picker" style="display:flex;gap:6px;flex-wrap:wrap">
             <button type="button" class="cond-tag" onclick="setCondTag('f','NWT',this)">NWT</button>
             <button type="button" class="cond-tag" onclick="setCondTag('f','NWOT',this)">NWOT</button>
@@ -1149,7 +1149,7 @@
         </div>
         <!-- Smoke Exposure slider -->
         <div class="fgrp full">
-          <label>Smoke Exposure</label>
+          <label for="f_smoke">Smoke Exposure</label>
           <div class="smoke-slider-wrap">
             <span class="smoke-lbl smoke-lbl-free" id="f_smoke_lbl_free">Smoke Free</span>
             <input type="range" id="f_smoke" class="smoke-slider" min="0" max="2" value="1" oninput="updateSmokeSlider('f')">
@@ -1162,7 +1162,7 @@
           <div class="bf-grid">
             <!-- Cover Type slider -->
             <div class="fgrp full">
-              <label>Cover Type</label>
+              <label for="f_cover">Cover Type</label>
               <div class="cover-slider-wrap">
                 <span class="cover-lbl cover-lbl-soft" id="f_cover_lbl_soft">Soft Cover</span>
                 <input type="range" id="f_cover" class="cover-slider" min="0" max="2" value="1" oninput="updateCoverSlider('f')">
@@ -1170,26 +1170,26 @@
               </div>
             </div>
             <div class="fgrp full">
-              <label>ISBN</label>
+              <label for="f_isbn">ISBN</label>
               <div class="isbn-row">
                 <input type="text" id="f_isbn" placeholder="ISBN-10 or ISBN-13" oninput="this.value=this.value.replace(/[^0-9Xx-]/g,'')">
                 <button type="button" class="isbn-scan-btn" onclick="scanISBN('f')" title="Scan ISBN barcode">📷</button>
                 <button type="button" class="isbn-lookup-btn" id="f_isbn_btn" onclick="lookupISBN('f')">🔍 Lookup</button>
               </div>
             </div>
-            <div class="fgrp"><label>Author</label><input type="text" id="f_author" placeholder="Author name"></div>
-            <div class="fgrp"><label>Publisher</label><input type="text" id="f_publisher" placeholder="Publisher"></div>
-            <div class="fgrp"><label>Edition</label><input type="text" id="f_edition" placeholder="e.g. 1st, 2nd, Revised"></div>
-            <div class="fgrp"><label>Printing</label><input type="text" id="f_printing" placeholder="e.g. 1st, 3rd"></div>
-            <div class="fgrp"><label>Year Published</label><input type="number" id="f_pub_year" placeholder="e.g. 1985" min="1400" max="2030"></div>
+            <div class="fgrp"><label for="f_author">Author</label><input type="text" id="f_author" placeholder="Author name"></div>
+            <div class="fgrp"><label for="f_publisher">Publisher</label><input type="text" id="f_publisher" placeholder="Publisher"></div>
+            <div class="fgrp"><label for="f_edition">Edition</label><input type="text" id="f_edition" placeholder="e.g. 1st, 2nd, Revised"></div>
+            <div class="fgrp"><label for="f_printing">Printing</label><input type="text" id="f_printing" placeholder="e.g. 1st, 3rd"></div>
+            <div class="fgrp"><label for="f_pub_year">Year Published</label><input type="number" id="f_pub_year" placeholder="e.g. 1985" min="1400" max="2030"></div>
             <div class="fgrp">
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer" for="f_signed">
                 <input type="checkbox" id="f_signed" style="width:16px;height:16px;accent-color:var(--accent3);flex-shrink:0">
                 <span>Signed Copy</span>
               </label>
             </div>
             <div class="fgrp full">
-              <label>Amazon Sales Rank</label>
+              <label for="f_sales_rank">Amazon Sales Rank</label>
               <input type="number" id="f_sales_rank" placeholder="e.g. 245000" min="1" oninput="updateRankDisplay('f')">
               <div class="rank-display" id="f_rank_display"></div>
             </div>
@@ -1206,27 +1206,27 @@
         <div class="fgrp full" id="f_ebay_fields" style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
           <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:8px;display:block">eBay Listing Details</label>
           <div class="form-grid" style="margin-top:0">
-            <div class="fgrp"><label>Brand</label><input type="text" id="f_brand" placeholder="e.g. Nike, Unbranded" list="brandList"></div>
-            <div class="fgrp"><label>Color</label><input type="text" id="f_color" placeholder="e.g. Black, Red/Blue" list="colorList"></div>
-            <div class="fgrp"><label>Size</label><input type="text" id="f_size" placeholder="e.g. Large, 10, 32x30"></div>
-            <div class="fgrp"><label>Size Type</label>
+            <div class="fgrp"><label for="f_brand">Brand</label><input type="text" id="f_brand" placeholder="e.g. Nike, Unbranded" list="brandList"></div>
+            <div class="fgrp"><label for="f_color">Color</label><input type="text" id="f_color" placeholder="e.g. Black, Red/Blue" list="colorList"></div>
+            <div class="fgrp"><label for="f_size">Size</label><input type="text" id="f_size" placeholder="e.g. Large, 10, 32x30"></div>
+            <div class="fgrp"><label for="f_sizeType">Size Type</label>
               <select id="f_sizeType">
                 <option value="">—</option><option value="Regular">Regular</option><option value="Plus">Plus</option>
                 <option value="Petite">Petite</option><option value="Big">Big</option><option value="Tall">Tall</option>
                 <option value="Big & Tall">Big & Tall</option><option value="Junior">Junior</option><option value="Husky">Husky</option>
               </select>
             </div>
-            <div class="fgrp"><label>Department</label>
+            <div class="fgrp"><label for="f_department">Department</label>
               <select id="f_department">
                 <option value="">—</option><option value="Men's">Men's</option><option value="Women's">Women's</option>
                 <option value="Boys'">Boys'</option><option value="Girls'">Girls'</option><option value="Unisex Kids">Unisex Kids</option>
                 <option value="Unisex Adults">Unisex Adults</option>
               </select>
             </div>
-            <div class="fgrp"><label>Material</label><input type="text" id="f_material" placeholder="e.g. Cotton, Leather" list="materialList"></div>
-            <div class="fgrp"><label>MPN</label><input type="text" id="f_mpn" placeholder="Mfr Part Number"></div>
-            <div class="fgrp"><label>Model</label><input type="text" id="f_model" placeholder="e.g. Air Max 90"></div>
-            <div class="fgrp"><label>Style</label><input type="text" id="f_style" placeholder="e.g. Casual, Athletic"></div>
+            <div class="fgrp"><label for="f_material">Material</label><input type="text" id="f_material" placeholder="e.g. Cotton, Leather" list="materialList"></div>
+            <div class="fgrp"><label for="f_mpn">MPN</label><input type="text" id="f_mpn" placeholder="Mfr Part Number"></div>
+            <div class="fgrp"><label for="f_model">Model</label><input type="text" id="f_model" placeholder="e.g. Air Max 90"></div>
+            <div class="fgrp"><label for="f_style">Style</label><input type="text" id="f_style" placeholder="e.g. Casual, Athletic"></div>
             <div class="fgrp"><label>Type / Pattern</label><input type="text" id="f_pattern" placeholder="e.g. Solid, Striped"></div>
           </div>
           <datalist id="brandList">
@@ -1607,9 +1607,9 @@
 </div>
 
 <!-- ── Bulk Price Adjust Overlay ── -->
-<div class="overlay" id="bulkPriceOv" onclick="if(event.target===this)closeBulkPrice()">
+<div class="overlay" id="bulkPriceOv" role="dialog" aria-modal="true" aria-label="Adjust prices" onclick="if(event.target===this)closeBulkPrice()">
   <div class="modal" style="max-width:360px">
-    <div class="modal-hdr"><h3>Adjust Prices</h3><button class="close-x" onclick="closeBulkPrice()">✕</button></div>
+    <div class="modal-hd"><h3>Adjust Prices</h3><button class="close-x" aria-label="Close" onclick="closeBulkPrice()">✕</button></div>
     <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
       <div style="display:flex;gap:8px">
         <select id="bulkPriceDir" class="fgrp" style="flex:1" onchange="previewBulkPrice()">
@@ -1629,9 +1629,9 @@
 </div>
 
 <!-- ── Bulk Category Overlay ── -->
-<div class="overlay" id="bulkCatOv" onclick="if(event.target===this)closeBulkCategory()">
+<div class="overlay" id="bulkCatOv" role="dialog" aria-modal="true" aria-label="Set category" onclick="if(event.target===this)closeBulkCategory()">
   <div class="modal" style="max-width:340px">
-    <div class="modal-hdr"><h3>Set Category</h3><button class="close-x" onclick="closeBulkCategory()">✕</button></div>
+    <div class="modal-hd"><h3>Set Category</h3><button class="close-x" aria-label="Close" onclick="closeBulkCategory()">✕</button></div>
     <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
       <div id="bulkCatCount" style="font-size:12px;color:var(--muted);text-align:center"></div>
       <select id="bulkCatSelect" class="fgrp"></select>
@@ -1641,9 +1641,9 @@
 </div>
 
 <!-- ── Bulk Platform Overlay ── -->
-<div class="overlay" id="bulkPlatOv" onclick="if(event.target===this)closeBulkPlatform()">
+<div class="overlay" id="bulkPlatOv" role="dialog" aria-modal="true" aria-label="Add or remove platform" onclick="if(event.target===this)closeBulkPlatform()">
   <div class="modal" style="max-width:340px">
-    <div class="modal-hdr"><h3>Add / Remove Platform</h3><button class="close-x" onclick="closeBulkPlatform()">✕</button></div>
+    <div class="modal-hd"><h3>Add / Remove Platform</h3><button class="close-x" aria-label="Close" onclick="closeBulkPlatform()">✕</button></div>
     <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
       <div id="bulkPlatCount" style="font-size:12px;color:var(--muted);text-align:center"></div>
       <select id="bulkPlatAction" class="fgrp">

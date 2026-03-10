@@ -31,7 +31,7 @@ async function loadCustomEntries() {
   try {
     const data = await getMeta(IDB_KEY);
     return data || { sources: [], brands: [] };
-  } catch { return { sources: [], brands: [] }; }
+  } catch (e) { console.warn('FlipTrack: autocomplete IDB load failed:', e.message); return { sources: [], brands: [] }; }
 }
 
 /** Save new custom entries to IDB (only values not in defaults or already saved) */

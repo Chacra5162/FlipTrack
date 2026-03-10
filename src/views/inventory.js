@@ -424,7 +424,7 @@ export function startPriceEdit(span, id) {
   const inp=document.createElement('input');
   inp.className='price-inp'; inp.type='number'; inp.step='0.01'; inp.value=item.price||0;
   span.replaceWith(inp); inp.focus(); inp.select();
-  const commit=()=>{const v=parseFloat(inp.value);if(!isNaN(v)&&v>=0){const oldP=item.price||0;item.price=v;markDirty('inv',item.id);save();refresh();renderInv();toast('Price updated ✓');if(v!==oldP&&v>0){logPriceChange(item.id,v,'manual');if(item.ebayItemId&&isEBayConnected()){pushEBayPrice(item.id).then(r=>{if(r.success)toast('eBay price synced ✓');}).catch(e=>console.warn('[eBay] Price push:',e.message));}}}else renderInv();};
+  let committed=false;const commit=()=>{if(committed)return;committed=true;const v=parseFloat(inp.value);if(!isNaN(v)&&v>=0){const oldP=item.price||0;item.price=v;markDirty('inv',item.id);save();refresh();renderInv();toast('Price updated ✓');if(v!==oldP&&v>0){logPriceChange(item.id,v,'manual');if(item.ebayItemId&&isEBayConnected()){pushEBayPrice(item.id).then(r=>{if(r.success)toast('eBay price synced ✓');}).catch(e=>console.warn('[eBay] Price push:',e.message));}}}else renderInv();};
   inp.addEventListener('blur',commit);
   inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();inp.blur();}if(e.key==='Escape'){inp.removeEventListener('blur',commit);renderInv();}});
 }
@@ -450,13 +450,13 @@ export function dDrop(e,id){e.preventDefault();document.querySelectorAll('#invBo
 
 // ── SELECTION ─────────────────────────────────────────────────────────────────
 
-export function toggleSel(id,cb){cb.checked?sel.add(id):sel.delete(id);cb.closest('tr').classList.toggle('sel',cb.checked);syncBulk();const all=document.querySelectorAll('#invBody input[type=checkbox]');document.getElementById('selAll').checked=all.length&&[...all].every(c=>c.checked);}
+export function toggleSel(id,cb){cb.checked?sel.add(id):sel.delete(id);cb.closest('tr').classList.toggle('sel',cb.checked);syncBulk();const all=document.querySelectorAll('#invBody input[type=checkbox]');const selAllEl=document.getElementById('selAll');if(selAllEl)selAllEl.checked=all.length&&[...all].every(c=>c.checked);}
 
 export function toggleAll(cb){document.querySelectorAll('#invBody tr[data-id]').forEach(r=>{const id=r.dataset.id;const rc=r.querySelector('input[type=checkbox]');if(cb.checked){sel.add(id);rc.checked=true;r.classList.add('sel');}else{sel.delete(id);rc.checked=false;r.classList.remove('sel');}});syncBulk();}
 
-export function clearSel(){sel.clear();document.getElementById('selAll').checked=false;renderInv();}
+export function clearSel(){sel.clear();const selAllEl=document.getElementById('selAll');if(selAllEl)selAllEl.checked=false;renderInv();}
 
-export function syncBulk(){const b=document.getElementById('bulkBar');b.classList.toggle('on',sel.size>0);document.getElementById('bulkCnt').textContent=sel.size+' selected';}
+export function syncBulk(){const b=document.getElementById('bulkBar');if(b)b.classList.toggle('on',sel.size>0);const cnt=document.getElementById('bulkCnt');if(cnt)cnt.textContent=sel.size+' selected';}
 
 // ── BULK OPERATIONS ───────────────────────────────────────────────────────────
 

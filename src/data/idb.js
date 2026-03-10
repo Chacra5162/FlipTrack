@@ -190,10 +190,10 @@ export async function putAll(storeName, items) {
         };
 
         clearRequest.onsuccess = () => {
-          // Add all items
+          // Add all items — use put() for upsert behavior to avoid duplicate key errors
           items.forEach((item) => {
             try {
-              store.add(item);
+              store.put(item);
             } catch (error) {
               logError(`putAll add ${storeName}`, error);
             }

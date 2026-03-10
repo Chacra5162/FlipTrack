@@ -38,8 +38,11 @@ export function updateStats() {
     if (!it.added) continue;
     const itemSales = sales.filter(s => s.itemId === it.id);
     if (!itemSales.length) continue;
-    const firstSale = new Date(Math.min(...itemSales.map(s => new Date(s.date))));
+    const saleDates = itemSales.map(s => new Date(s.date).getTime()).filter(t => !isNaN(t));
+    if (!saleDates.length) continue;
+    const firstSale = new Date(Math.min(...saleDates));
     const added = new Date(it.added);
+    if (isNaN(firstSale) || isNaN(added)) continue;
     const days = Math.max(0, Math.floor((firstSale - added) / 86400000));
     daysArr.push(days);
   }

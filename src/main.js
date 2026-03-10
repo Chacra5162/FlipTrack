@@ -1124,13 +1124,13 @@ setTimeout(_killSplash, 3000);
   if (_sbClient) {
     initEBayAuth(_sbClient).then(() => {
       if (isEBayConnected()) startEBaySyncInterval();
-    }).catch(e => console.warn('eBay init:', e.message));
+    }).catch(e => { console.warn('eBay init:', e.message); if (typeof toast === 'function') toast('eBay connection failed — reconnect in Settings', true); });
     initEtsyAuth(_sbClient).then(() => {
       if (isEtsyConnected()) {
         startEtsySyncInterval();
         syncEtsyExpenses().catch(e => console.warn('Etsy expense sync:', e.message));
       }
-    }).catch(e => console.warn('Etsy init:', e.message));
+    }).catch(e => { console.warn('Etsy init:', e.message); if (typeof toast === 'function') toast('Etsy connection failed — reconnect in Settings', true); });
     initAIListing(_sbClient);
   }
 
