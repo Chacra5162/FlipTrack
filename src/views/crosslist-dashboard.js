@@ -17,7 +17,7 @@ import {
   enableAutoRelist, disableAutoRelist, isAutoRelistEnabled, runAutoRelist, getAutoRelistCandidates, bulkRelistPlatform, bulkPriceAdjust
 } from '../features/crosslist.js';
 import { generateListingLink, copyListingText, generateListingText } from '../features/deep-links.js';
-import { getTemplatesForCategory } from '../features/listing-templates.js';
+import { getTemplatesForCategory, addTemplate, deleteTemplate } from '../features/listing-templates.js';
 import { isEBayConnected, isEBayStatusVerified, getEBayUsername, connectEBay, disconnectEBay, checkEBayStatus } from '../features/ebay-auth.js';
 import { pullEBayListings, pushItemToEBay, publishEBayListing, endEBayListing, isEBaySyncing, getLastEBaySyncTime } from '../features/ebay-sync.js';
 import { isEtsyConnected, getEtsyShopName, connectEtsy, disconnectEtsy } from '../features/etsy-auth.js';
@@ -562,19 +562,16 @@ export async function clSaveTemplate(modalId) {
 
   document.getElementById(modalId)?.remove();
 
-  const mod = await import('../features/listing-templates.js');
-  mod.addTemplate({ name, category, titleFormula, descriptionTemplate: descTemplate });
+  addTemplate({ name, category, titleFormula, descriptionTemplate: descTemplate });
   toast('Template created ✓');
   renderCrosslistDashboard();
 }
 
 export function clDeleteTemplate(id) {
   if (!confirm('Delete this template?')) return;
-  import('../features/listing-templates.js').then(mod => {
-    mod.deleteTemplate(id);
-    toast('Template deleted');
-    renderCrosslistDashboard();
-  });
+  deleteTemplate(id);
+  toast('Template deleted');
+  renderCrosslistDashboard();
 }
 
 // ── Etsy INTEGRATION PANEL ────────────────────────────────────────────────

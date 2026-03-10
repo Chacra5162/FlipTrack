@@ -1078,6 +1078,17 @@ setTimeout(_killSplash, 3000);
         const tier = getUserTier();
         const names = { pro: 'Pro', unlimited: 'Unlimited' };
         toast(`Welcome to FlipTrack ${names[tier] || tier}! All features are now unlocked.`);
+        // Initialize Pro features that were deferred for Free tier
+        if (tier !== 'free') {
+          try {
+            await Promise.all([
+              initHauls(), initMileageLog(), initRepricingRules(),
+              initBuyers(), initOffers(), initPackingSlipSettings(),
+              initWhatnotShows(), initPhotoSettings(), initShipLabels(),
+            ]);
+            initShippingModals();
+          } catch (_e) { /* already logged */ }
+        }
       } catch (e) { console.warn('Post-checkout tier refresh:', e.message); }
     }, 2000);
   } else if (urlParams.get('upgrade') === 'cancelled') {
@@ -1091,23 +1102,30 @@ setTimeout(_killSplash, 3000);
   try { await initTemplates(); } catch (e) { console.warn('FlipTrack: templates init error:', e.message); }
   try { initListingDates(); checkExpiredListings(); } catch (e) { console.warn('FlipTrack: listing dates error:', e.message); }
 
-  // Initialize new feature modules
+  // Initialize feature modules (Pro/Unlimited features deferred for Free tier)
+  const _tier = window.__gateUtils?.getUserTier?.() || 'free';
   try {
-    await Promise.all([
-      initHauls(),
-      initMileageLog(),
-      initRepricingRules(),
-      initBuyers(),
-      initOffers(),
-      initPackingSlipSettings(),
-      initEBaySync(),
-      initEtsySync(),
-      initWhatnotShows(),
-      initPhotoSettings(),
-      initShipLabels(),
-    ]);
+    // Core features — always init
+    const coreInits = [initEBaySync(), initEtsySync()];
+    // Pro+ features — only init for paid tiers
+    if (_tier !== 'free') {
+      coreInits.push(
+        initHauls(),
+        initMileageLog(),
+        initRepricingRules(),
+        initBuyers(),
+        initOffers(),
+        initPackingSlipSettings(),
+        initWhatnotShows(),
+        initPhotoSettings(),
+        initShipLabels(),
+      );
+    }
+    await Promise.all(coreInits);
   } catch (e) { console.warn('FlipTrack: feature module init error:', e.message); }
-  try { initShippingModals(); } catch (e) { console.warn('FlipTrack: shipping modals error:', e.message); }
+  if (_tier !== 'free') {
+    try { initShippingModals(); } catch (e) { console.warn('FlipTrack: shipping modals error:', e.message); }
+  }
 
   // Demo data trigger removed — was causing unwanted prompts
 
