@@ -1144,10 +1144,13 @@ setTimeout(_killSplash, 3000);
     initEBayAuth(_sbClient).then(() => {
       if (isEBayConnected()) startEBaySyncInterval();
     }).catch(e => { console.warn('eBay init:', e.message); if (typeof toast === 'function') toast('eBay connection failed — reconnect in Settings', true); });
-    initEtsyAuth(_sbClient).then(() => {
-      if (isEtsyConnected()) {
+    initEtsyAuth(_sbClient).then(async () => {
+      const { getEtsyShopId } = await import('./features/etsy-auth.js');
+      if (isEtsyConnected() && getEtsyShopId()) {
         startEtsySyncInterval();
         syncEtsyExpenses().catch(e => console.warn('Etsy expense sync:', e.message));
+      } else if (isEtsyConnected() && !getEtsyShopId()) {
+        console.warn('Etsy connected but no shop ID cached — sync deferred until status verified.');
       }
     }).catch(e => { console.warn('Etsy init:', e.message); if (typeof toast === 'function') toast('Etsy connection failed — reconnect in Settings', true); });
     initAIListing(_sbClient);

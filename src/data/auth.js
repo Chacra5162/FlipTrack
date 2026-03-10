@@ -15,6 +15,7 @@ let _currentUser = null;
 let _syncDebounce = null;
 let _authTab = 'login'; // 'login' | 'signup'
 let _sessionStarting = false;
+let _authReady = false; // true once initAuth() has created _sb
 
 // Token refresh mutex — prevents concurrent refresh attempts from racing
 let _refreshPromise = null;
@@ -89,7 +90,7 @@ export async function authSubmit() {
   }
 
   // Guard: Supabase client must be initialized
-  if (!_sb) {
+  if (!_sb || !_authReady) {
     setAuthMsg('App is still loading — please wait a moment and try again.', 'err');
     return;
   }
@@ -102,8 +103,11 @@ export async function authSubmit() {
 
   try {
     if (_authTab === 'login') {
-      // Clear any stale session before fresh login attempt
-      try { await _sb.auth.signOut({ scope: 'local' }); } catch (_) { /* ignore */ }
+      // Only clear session if a DIFFERENT user is currently authenticated
+      // (avoids wiping the stored refresh token on every login attempt)
+      if (_currentUser && _currentUser.email !== email) {
+        try { await _sb.auth.signOut({ scope: 'local' }); } catch (_) { /* ignore */ }
+      }
       const { error } = await _sb.auth.signInWithPassword({ email, password: pass });
       if (error) throw error;
       // Success — onAuthStateChange will fire SIGNED_IN and call _startSession
@@ -245,6 +249,11 @@ async function _startSession(user) {
 // ── BOOTSTRAP AUTH ON LOAD ─────────────────────────────────────────────────
 export async function initAuth() {
   _sb = createClient(SB_URL, SB_KEY);
+  _authReady = true;
+
+  // Enable Sign In button now that Supabase client is ready
+  const authBtn = document.getElementById('authSubmitBtn');
+  if (authBtn) { authBtn.disabled = false; authBtn.textContent = _authTab === 'login' ? 'Sign In' : 'Create Account'; }
 
   // Only handle explicit user-triggered events — NOT INITIAL_SESSION (handled via getSession below)
   _sb.auth.onAuthStateChange((event, session) => {

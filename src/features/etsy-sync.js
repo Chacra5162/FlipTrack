@@ -41,6 +41,7 @@ const LISTING_TYPE = 'physical';
 let _lastSyncTime = null;
 let _syncing = false;
 let _syncInterval = null;
+let _noShopIdWarned = false; // throttle repeated "No shop ID" warnings
 
 // ── INITIALIZATION ─────────────────────────────────────────────────────────
 
@@ -79,7 +80,17 @@ export async function pullEtsyListings() {
   _syncing = true;
 
   const shopId = getEtsyShopId();
-  if (!shopId) { _syncing = false; throw new Error('No shop ID available. Please reconnect Etsy.'); }
+  if (!shopId) {
+    _syncing = false;
+    // Log once to avoid console spam from the 5-minute interval
+    if (!_noShopIdWarned) {
+      console.warn('Etsy sync: No shop ID available — skipping until reconnected.');
+      _noShopIdWarned = true;
+    }
+    return { matched: 0, unmatched: 0, updated: 0 };
+  }
+  // Reset warning flag on successful shop ID retrieval
+  _noShopIdWarned = false;
 
   try {
     let matched = 0, unmatched = 0, updated = 0;

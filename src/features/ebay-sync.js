@@ -51,6 +51,7 @@ let _syncInterval = null;
 let _policiesCache = null;
 let _locationKeyCache = null;
 let _aspectsCache = {};  // categoryId → { required: [...], timestamp }
+let _orderSyncErrorLogged = false; // throttle repeated order-sync warnings
 
 // ── INITIALIZATION ─────────────────────────────────────────────────────────
 
@@ -180,11 +181,18 @@ export async function pullEBayListings() {
 async function _syncEBayOrders() {
   try {
     // Get orders from last 24 hours (or since last sync)
-    const since = _lastSyncTime
-      ? new Date(_lastSyncTime).toISOString()
-      : new Date(Date.now() - 86400000).toISOString();
+    // eBay Fulfillment API expects ISO 8601 with explicit 'T' and 'Z' — strip milliseconds
+    // to avoid timezone parsing issues on eBay's end
+    const sinceRaw = _lastSyncTime
+      ? new Date(_lastSyncTime)
+      : new Date(Date.now() - 86400000);
+    const nowRaw = new Date();
 
-    const now = new Date().toISOString();
+    // Format as yyyy-MM-ddTHH:mm:ssZ (no milliseconds — eBay chokes on .000Z)
+    const fmtDate = d => d.toISOString().replace(/\.\d{3}Z$/, 'Z');
+    const since = fmtDate(sinceRaw);
+    const now = fmtDate(nowRaw);
+
     const filter = `creationdate:[${since}..${now}]`;
     const resp = await ebayAPI('GET',
       `${FULFILLMENT_API}/order?filter=${encodeURIComponent(filter)}&limit=50`
@@ -223,9 +231,14 @@ async function _syncEBayOrders() {
         }
       }
     }
+    // Reset error throttle on success
+    _orderSyncErrorLogged = false;
   } catch (e) {
-    // Non-critical — orders sync is best-effort
-    console.warn('eBay orders sync error:', e.message);
+    // Non-critical — orders sync is best-effort; log once to avoid console spam
+    if (!_orderSyncErrorLogged) {
+      console.warn('eBay orders sync error:', e.message);
+      _orderSyncErrorLogged = true;
+    }
   }
 }
 
