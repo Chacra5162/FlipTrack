@@ -357,6 +357,7 @@ export function addItem(){
           return b64;
         })
       )).then(results => {
+        if (!Array.isArray(results) || !results.length) return;
         newItem.images = results;
         newItem.image  = results[0] || null;
         markDirty('inv', newItem.id);
@@ -366,6 +367,8 @@ export function addItem(){
         if (wantsEbay) _autoListEBay(newId);
         // Pre-generate AI listings for non-API platforms
         _autoGenCrosslistCache(newId, selPlats);
+      }).catch(e => {
+        console.error('FlipTrack: image upload chain failed:', e.message);
       });
     }
   } else if (wantsEbay) {

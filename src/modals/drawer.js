@@ -314,7 +314,7 @@ export function getListingStatusFromDrawer() {
   return status;
 }
 
-export function saveDrawer(){
+export async function saveDrawer(){
   const item=inv.find(i=>i.id===activeDrawId); if(!item) return;
 
   // Validate numeric fields
@@ -393,14 +393,23 @@ export function saveDrawer(){
     logPriceChange(item.id, item.price, 'manual');
     // Auto-push price to Etsy if item has an Etsy listing
     if (item.etsyListingId) {
-      pushEtsyPrice(item.id).catch(e => console.warn('Etsy price sync:', e.message));
+      try {
+        await pushEtsyPrice(item.id);
+      } catch (e) {
+        console.warn('Etsy price sync:', e.message);
+        toast('Etsy price sync failed — will retry next sync', true);
+      }
     }
   }
   // Auto-push updates to live eBay listing (inventory item + re-publish offer)
   if (item.ebayItemId && isEBayConnected()) {
-    updateEBayListing(item.id)
-      .then(() => toast('eBay listing updated ✓'))
-      .catch(e => console.warn('[eBay] Auto-update failed:', e.message));
+    try {
+      await updateEBayListing(item.id);
+      toast('eBay listing updated ✓');
+    } catch (e) {
+      console.warn('[eBay] Auto-update failed:', e.message);
+      toast('eBay sync failed — will retry next sync', true);
+    }
   }
   // Log field modifications to item history (compares against snapshot taken on drawer open)
   logItemChanges(item.id, _drawerSnapshot);

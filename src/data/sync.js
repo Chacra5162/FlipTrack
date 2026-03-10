@@ -299,10 +299,15 @@ export async function pullSupplies() {
 // FULL SYNC (PULL → PUSH)
 // ══════════════════════════════════════════════════════════════════════════
 
+let _isSyncing = false;
+
 export async function syncNow() {
+  if (_isSyncing) return;          // Re-entrancy guard
+  _isSyncing = true;
+
   const _sb = getSupabaseClient();
   const _currentUser = getCurrentUser();
-  if (!_sb || !_currentUser) return;
+  if (!_sb || !_currentUser) { _isSyncing = false; return; }
 
   // Wait for any in-flight IDB persist before starting sync
   await waitForPersist();
@@ -316,6 +321,8 @@ export async function syncNow() {
     refresh();
   } catch (e) {
     setSyncStatus('error', e.message);
+  } finally {
+    _isSyncing = false;
   }
 }
 
