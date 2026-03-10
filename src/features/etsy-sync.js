@@ -204,9 +204,13 @@ async function _syncEtsyReceipts(shopId) {
         );
 
         if (local && local.platformStatus?.Etsy !== 'sold') {
+          // Decrement quantity by sold amount
+          const soldQty = parseInt(txn.quantity, 10) || 1;
+          local.qty = Math.max(0, (local.qty || 1) - soldQty);
+
           markPlatformStatus(local.id, 'Etsy', 'sold');
-          // Auto-delist on other platforms if qty=0
-          if ((local.qty || 0) <= 0) {
+          // Auto-delist on other platforms if fully sold out
+          if (local.qty <= 0) {
             autoDlistOnSale(local.id, 'Etsy');
           }
           // Log sale price

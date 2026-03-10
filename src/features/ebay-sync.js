@@ -198,9 +198,13 @@ async function _syncEBayOrders() {
 
         const local = inv.find(i => i.ebayItemId === sku || i.sku === sku);
         if (local && local.platformStatus?.eBay !== 'sold') {
+          // Decrement quantity by sold amount
+          const soldQty = parseInt(lineItem.quantity, 10) || 1;
+          local.qty = Math.max(0, (local.qty || 1) - soldQty);
+
           markPlatformStatus(local.id, 'eBay', 'sold');
-          // Auto-delist on other platforms if qty=0
-          if ((local.qty || 0) <= 0) {
+          // Auto-delist on other platforms if fully sold out
+          if (local.qty <= 0) {
             autoDlistOnSale(local.id, 'eBay');
           }
           // Log sale price
