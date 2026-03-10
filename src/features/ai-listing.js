@@ -37,6 +37,18 @@ export async function generateListing(item, opts = {}) {
   if (_generating) throw new Error('Already generating — please wait');
   if (!_sb) throw new Error('Sign in to use AI features');
 
+  // Ensure we have a fresh session token before calling the Edge Function
+  try {
+    const { data: { session }, error: sessErr } = await _sb.auth.getSession();
+    if (sessErr || !session) {
+      // Try refreshing the session
+      const { error: refreshErr } = await _sb.auth.refreshSession();
+      if (refreshErr) throw new Error('Session expired — please sign in again');
+    }
+  } catch (authErr) {
+    throw new Error(authErr.message || 'Sign in to use AI features');
+  }
+
   _generating = true;
 
   try {
@@ -53,7 +65,17 @@ export async function generateListing(item, opts = {}) {
       },
     });
 
-    if (error) throw new Error(error.message || 'AI request failed');
+    if (error) {
+      // Try to extract the actual error message from the Edge Function response
+      let msg = 'AI request failed';
+      try {
+        if (error.context) {
+          const body = await error.context.json();
+          if (body?.error) msg = body.error;
+        }
+      } catch { /* use default msg */ }
+      throw new Error(msg);
+    }
     if (data?.error) throw new Error(data.error);
 
     const text = data?.content?.[0]?.text || '';
