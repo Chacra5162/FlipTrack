@@ -268,7 +268,7 @@ import {
   recordLabelCost, getShippingCostSummary, saveShipLabelSettings
 } from './features/ship-labels.js';
 
-// ── Features (lazy-loaded — heavy modules loaded on first use) ──────────────
+// ── Features (heavy modules — loaded on first use via lazy.js wrappers) ──────
 import {
   lazyScanner, lazyBatchScan, lazyPriceResearch,
   lazyIdentify, lazyImages, lazyBarcodes, lazyCSV
