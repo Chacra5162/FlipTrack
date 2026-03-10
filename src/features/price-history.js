@@ -1,11 +1,206 @@
 /**
  * price-history.js
- * Tracks price changes and sales history for items
- * Provides analytics on price trends and category-level pricing
+ * Tracks price changes, sales history, and field modifications for items.
+ * Provides analytics on price trends and category-level pricing.
  */
 
 import { inv, sales, save, markDirty } from '../data/store.js';
 import { fmt, ds, escHtml } from '../utils/format.js';
+
+// ── ITEM CHANGE HISTORY ─────────────────────────────────────────────────────
+
+/** Fields worth tracking in modification history */
+const TRACKED_FIELDS = {
+  name: 'Name', sku: 'SKU', upc: 'UPC', category: 'Category',
+  subcategory: 'Subcategory', subtype: 'Type', condition: 'Condition',
+  cost: 'Cost', price: 'Price', fees: 'Fees', ship: 'Shipping',
+  brand: 'Brand', color: 'Color', size: 'Size', material: 'Material',
+  model: 'Model', style: 'Style', pattern: 'Pattern', source: 'Source',
+  notes: 'Notes', url: 'URL', qty: 'Stock',
+};
+
+/**
+ * Snapshot an item's tracked fields before editing.
+ * Call this when opening the drawer or before any batch update.
+ * @param {Object} item - The inventory item
+ * @returns {Object} Snapshot of tracked field values
+ */
+export function snapshotItem(item) {
+  const snap = {};
+  for (const key of Object.keys(TRACKED_FIELDS)) {
+    snap[key] = item[key] ?? '';
+  }
+  // Also snapshot platforms as a string for diff
+  snap._platforms = (item.platforms || []).join(', ');
+  return snap;
+}
+
+/**
+ * Compare a snapshot to the current item and log any changes.
+ * @param {string} itemId - The item ID
+ * @param {Object} snapshot - The before-edit snapshot
+ */
+export function logItemChanges(itemId, snapshot) {
+  const item = inv.find(i => i.id === itemId);
+  if (!item || !snapshot) return;
+
+  if (!item.itemHistory) item.itemHistory = [];
+
+  const changes = [];
+  for (const [key, label] of Object.entries(TRACKED_FIELDS)) {
+    const oldVal = snapshot[key] ?? '';
+    const newVal = item[key] ?? '';
+    // Normalize numbers for comparison
+    const oldStr = typeof oldVal === 'number' ? String(oldVal) : String(oldVal).trim();
+    const newStr = typeof newVal === 'number' ? String(newVal) : String(newVal).trim();
+    if (oldStr !== newStr) {
+      // Skip price — already tracked in priceHistory
+      if (key === 'price') continue;
+      changes.push({ field: label, from: oldStr || '(empty)', to: newStr || '(empty)' });
+    }
+  }
+
+  // Check platforms change
+  const newPlats = (item.platforms || []).join(', ');
+  if (snapshot._platforms !== newPlats) {
+    changes.push({ field: 'Platforms', from: snapshot._platforms || '(none)', to: newPlats || '(none)' });
+  }
+
+  if (changes.length === 0) return;
+
+  item.itemHistory.push({
+    date: Date.now(),
+    type: 'edit',
+    changes,
+  });
+
+  // Keep to last 100 entries
+  if (item.itemHistory.length > 100) {
+    item.itemHistory = item.itemHistory.slice(-100);
+  }
+}
+
+/**
+ * Log a custom event to item history (e.g., listed on eBay, relisted, etc.)
+ * @param {string} itemId
+ * @param {string} eventType - e.g. 'listed', 'delisted', 'sold', 'created'
+ * @param {string} description - Human-readable description
+ */
+export function logItemEvent(itemId, eventType, description) {
+  const item = inv.find(i => i.id === itemId);
+  if (!item) return;
+  if (!item.itemHistory) item.itemHistory = [];
+  item.itemHistory.push({ date: Date.now(), type: eventType, description });
+  if (item.itemHistory.length > 100) {
+    item.itemHistory = item.itemHistory.slice(-100);
+  }
+}
+
+/**
+ * Get the combined timeline for an item (price history + item changes + sales).
+ * Returns a unified, reverse-chronological array.
+ * @param {string} itemId
+ * @returns {Array}
+ */
+export function getItemTimeline(itemId) {
+  const item = inv.find(i => i.id === itemId);
+  if (!item) return [];
+
+  const timeline = [];
+
+  // Price history entries
+  for (const entry of (item.priceHistory || [])) {
+    timeline.push({ date: entry.date, type: 'price', ...entry });
+  }
+
+  // Item change history entries
+  for (const entry of (item.itemHistory || [])) {
+    timeline.push({ date: entry.date, ...entry });
+  }
+
+  // Sales
+  const itemSales = sales.filter(s => s.itemId === itemId);
+  for (const s of itemSales) {
+    timeline.push({
+      date: typeof s.date === 'number' ? s.date : new Date(s.date).getTime(),
+      type: 'sale',
+      price: s.price,
+      qty: s.qty,
+      platform: s.platform,
+    });
+  }
+
+  // Sort newest first
+  timeline.sort((a, b) => (b.date || 0) - (a.date || 0));
+  return timeline;
+}
+
+/**
+ * Render the full item timeline as HTML for the drawer History tab.
+ * @param {string} itemId
+ * @returns {string} HTML
+ */
+export function renderItemTimeline(itemId) {
+  const tl = getItemTimeline(itemId);
+  if (!tl.length) {
+    return '<div style="padding:12px;color:var(--muted);font-size:12px">No history yet.</div>';
+  }
+
+  const rows = tl.slice(0, 50).map(entry => {
+    const time = `<span style="font-size:11px;color:var(--muted)">${ds(entry.date)}</span>`;
+
+    if (entry.type === 'price') {
+      const src = entry.source || 'manual';
+      let badge = '';
+      if (src === 'sold') {
+        badge = `<span style="font-size:10px;background:var(--danger);color:#fff;padding:2px 6px;border-radius:3px">${entry.platform || 'SOLD'}</span>`;
+      } else if (src === 'repricing') {
+        badge = '<span style="font-size:10px;background:var(--accent2);color:#fff;padding:2px 6px;border-radius:3px">AUTO</span>';
+      } else if (src === 'ebay-sync') {
+        badge = '<span style="font-size:10px;background:#3483fa;color:#fff;padding:2px 6px;border-radius:3px">eBay</span>';
+      } else {
+        badge = '<span style="font-size:10px;background:var(--surface3);color:var(--text);padding:2px 6px;border-radius:3px">Manual</span>';
+      }
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div><span style="font-size:12px;font-weight:500">Price → ${fmt(entry.price)}</span> ${badge}<br>${time}</div>
+      </div>`;
+    }
+
+    if (entry.type === 'sale') {
+      const total = (entry.price || 0) * (entry.qty || 1);
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div><span style="font-size:12px;font-weight:500;color:var(--good)">💰 Sold × ${entry.qty || 1}</span>
+          <span style="font-size:10px;background:var(--danger);color:#fff;padding:2px 6px;border-radius:3px;margin-left:4px">${entry.platform || ''}</span>
+          <br>${time}</div>
+        <div style="font-weight:600;color:var(--good)">${fmt(total)}</div>
+      </div>`;
+    }
+
+    if (entry.type === 'edit' && entry.changes) {
+      const changeTxt = entry.changes.map(c =>
+        `<span style="color:var(--muted)">${escHtml(c.field)}:</span> <s style="color:var(--danger);font-size:11px">${escHtml(c.from)}</s> → <span style="color:var(--good);font-size:11px">${escHtml(c.to)}</span>`
+      ).join('<br>');
+      return `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:12px;font-weight:500">✏️ Edited (${entry.changes.length} field${entry.changes.length > 1 ? 's' : ''})</div>
+        <div style="font-size:11px;margin:4px 0;line-height:1.6">${changeTxt}</div>
+        ${time}
+      </div>`;
+    }
+
+    // Generic events (listed, delisted, created, etc.)
+    if (entry.description) {
+      const icons = { listed: '📤', delisted: '🚫', created: '✨', relisted: '🔄' };
+      const icon = icons[entry.type] || '📋';
+      return `<div style="display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div><span style="font-size:12px">${icon} ${escHtml(entry.description)}</span><br>${time}</div>
+      </div>`;
+    }
+
+    return '';
+  }).join('');
+
+  return `<div style="max-height:400px;overflow-y:auto">${rows}</div>`;
+}
 
 /**
  * Log a price change to an item's history

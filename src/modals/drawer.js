@@ -21,7 +21,10 @@ import { softDeleteItem } from '../data/store.js';
 import { getDaysUntilExpiry, STATUS_LABELS, STATUS_COLORS, LISTING_STATUSES, markPlatformStatus, relistItem, setListingDate } from '../features/crosslist.js';
 import { generateListingLink, copyListingText } from '../features/deep-links.js';
 import { pushDeleteToCloud } from '../data/sync.js';
-import { logPriceChange } from '../features/price-history.js';
+import { logPriceChange, snapshotItem, logItemChanges, renderItemTimeline } from '../features/price-history.js';
+
+// Stores the item snapshot taken when drawer opens, for diff on save
+let _drawerSnapshot = null;
 import { pushEtsyPrice } from '../features/etsy-sync.js';
 import { updateEBayListing } from '../features/ebay-sync.js';
 import { isEBayConnected } from '../features/ebay-auth.js';
@@ -139,6 +142,7 @@ export function syncAddSubtype() {
 export function openDrawer(id) {
   setActiveDrawId(id);
   const item=inv.find(i=>i.id===id); if(!item) return;
+  _drawerSnapshot = snapshotItem(item);
   document.getElementById('dName').textContent=item.name;
   document.getElementById('dSku').textContent=item.sku?`SKU: ${item.sku}`:'No SKU';
   const {pu,m,roi}=calc(item);
@@ -195,8 +199,7 @@ export function openDrawer(id) {
     shipSummary.textContent = dims.length ? `Package: ${dims.join(' · ')}` : 'Add dimensions above to see package info';
   }
   const sh=document.getElementById('dHistory');
-  if(!iSales.length){sh.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px 0">No sales for this item yet.</div>';}
-  else{sh.innerHTML=[...iSales].reverse().map(s=>{const pr=(s.price||0)*(s.qty||0)-(item.cost||0)*(s.qty||0)-(s.fees||0)-(s.ship||0);return `<div class="shi"><div><div style="font-size:12px">${fmt(s.price)} × ${s.qty}</div><div class="shi-d">${ds(s.date)}</div></div><div class="shi-p ${pr>=0?'pos':'neg'}">${fmt(pr)}</div></div>`;}).join('');}
+  sh.innerHTML = renderItemTimeline(id);
   document.getElementById('drawerOv').classList.add('on');
   document.getElementById('drawer').classList.add('on');
   setTimeout(() => trapFocus('#drawer'), 100);
@@ -396,6 +399,9 @@ export function saveDrawer(){
       .then(() => toast('eBay listing updated ✓'))
       .catch(e => console.warn('[eBay] Auto-update failed:', e.message));
   }
+  // Log field modifications to item history (compares against snapshot taken on drawer open)
+  logItemChanges(item.id, _drawerSnapshot);
+  _drawerSnapshot = null;
   markDirty('inv', item.id);
   save(); closeDrawer(); refresh(); _sfx.edit(); toast('Changes saved ✓');
 }
