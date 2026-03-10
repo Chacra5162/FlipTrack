@@ -33,7 +33,7 @@
 
 /* KPI grid */
 .pd-kpi-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
   gap: 10px; margin-bottom: 16px;
 }
 .pd-kpi {
@@ -142,5 +142,10 @@
 }
 
 @media (max-width: 480px) {
-  .pd-kpi-grid { grid-template-columns: 1fr; }
+  .pd-kpi-grid { grid-template-columns: 1fr 1fr; }
+  .pd-kpi { padding: 10px 12px; }
+  .pd-kpi-value { font-size: 16px; }
+  .pd-chart { height: 120px; }
+  .pd-bar-col { min-width: 32px; }
+  .pd-table td, .pd-table th { padding: 6px; font-size: 10px; }
 }

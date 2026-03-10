@@ -50,6 +50,7 @@
 
   /* Inventory toolbar — stack rows more compactly */
   .inv-toolbar { padding: 10px 14px; gap: 8px; }
+  .search-wrap { width: 100%; flex-basis: 100%; }
   .search-wrap input { width: 100%; }
   .sort-select { font-size: 11px; padding: 5px 8px; }
 
@@ -185,10 +186,16 @@
   #view-inventory .inv-table thead th:nth-child(8),
   #view-inventory .inv-table tbody td:nth-child(8) { display: none; }
 
+  /* Force remaining columns to fit viewport */
+  #view-inventory .inv-table thead th:nth-child(6),
+  #view-inventory .inv-table tbody td:nth-child(6) { width: 90px; }    /* Stock — tighter */
+  #view-inventory .inv-table thead th:nth-child(10),
+  #view-inventory .inv-table tbody td:nth-child(10) { width: 80px; }   /* Actions — tighter */
+
   /* Tighter table cells on phone */
-  .inv-table tbody td { padding: 8px 6px; }
-  .inv-table thead th { padding: 8px 6px; font-size: 9px; }
-  .item-name { font-size: 12px; -webkit-line-clamp: 2; }
+  .inv-table tbody td { padding: 8px 4px; }
+  .inv-table thead th { padding: 8px 4px; font-size: 9px; }
+  .item-name { font-size: 11px; -webkit-line-clamp: 2; }
 
   /* Compact item meta — single line, hide subcategory tags */
   .item-meta { gap: 3px; }
@@ -196,13 +203,13 @@
   .item-meta .barcode-badge { display: none; }
 
   /* Smaller stock stepper on phone */
-  .stepper-btn { width: 26px; height: 26px; font-size: 14px; }
-  .stepper-val { font-size: 12px; min-width: 22px; }
+  .stepper-btn { width: 24px; height: 24px; font-size: 13px; min-width: 24px; min-height: 24px; }
+  .stepper-val { font-size: 11px; min-width: 18px; }
   .stock-bar { display: none; }
 
   /* Actions — icon-only, minimal */
-  .act-btn { padding: 4px 6px; font-size: 10px; }
-  .td-acts { gap: 3px; flex-wrap: nowrap; }
+  .act-btn { padding: 3px 5px; font-size: 9px; min-width: unset; min-height: 28px; }
+  .td-acts { gap: 2px; flex-wrap: nowrap; }
 
   /* Sales log — hide more columns on phone */
   #view-sales .inv-table thead th:nth-child(4),
@@ -234,8 +241,37 @@
   }
 
   /* Compact dashboard panels */
-  .panel-header { padding: 10px 14px; }
-  .panel-title { font-size: 12px; }
+  .panel-header { padding: 8px 10px; }
+  .panel-title { font-size: 11px; }
+
+  /* Dashboard table: hide platform + margin cols on phone */
+  #view-dashboard .inv-table thead th:nth-child(2),
+  #view-dashboard .inv-table tbody td:nth-child(2),
+  #view-dashboard .inv-table thead th:nth-child(4),
+  #view-dashboard .inv-table tbody td:nth-child(4) { display: none; }
+  #view-dashboard .inv-table tbody td { padding: 6px 4px; font-size: 11px; }
+  #view-dashboard .inv-table thead th { padding: 6px 4px; font-size: 9px; }
+
+  /* Report tabs: scrollable on phone */
+  .report-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .report-tabs::-webkit-scrollbar { display: none; }
+  .report-tab { padding: 6px 12px; font-size: 10px; white-space: nowrap; flex-shrink: 0; }
+
+  /* Period summary: 2-col on phone */
+  .period-summary-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .period-card { padding: 8px 10px; }
+  .period-card-val { font-size: 15px; }
+
+  /* Breakdown summary: tighter on phone */
+  .bd-summary-grid { gap: 6px; }
+  .bd-sum-card { padding: 8px 10px; }
+  .bd-sum-val { font-size: 14px; }
+
+  /* Feature showcase: 3-col on phone */
+  .feature-showcase { grid-template-columns: repeat(3, 1fr) !important; gap: 6px !important; }
+
+  /* Ensure all table wrappers can't overflow the viewport */
+  [style*="overflow-x:auto"] { max-width: 100%; }
 
   /* iOS zoom prevention moved to (hover: none) and (pointer: coarse) query below */
 }

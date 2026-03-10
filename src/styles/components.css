@@ -2522,7 +2522,7 @@ textarea { resize:vertical; min-height:70px; }
 
 /* ── SOCIAL PROOF / FEATURE SHOWCASE ──────────────────────────────────── */
 .feature-showcase {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
   gap: 12px; padding: 12px 0;
 }
 .feature-card {
@@ -2551,13 +2551,19 @@ textarea { resize:vertical; min-height:70px; }
   .tour-tooltip { max-width: calc(100vw - 24px) !important; max-height: calc(100vh - 24px) !important; }
 }
 @media (max-width: 480px) {
-  .stats-grid { grid-template-columns: 1fr !important; }
-  .stat-card { padding: 10px 12px !important; }
-  .stat-value { font-size: 22px !important; }
+  .stats-grid { grid-template-columns: 1fr 1fr !important; gap: 6px !important; }
+  .stat-card { padding: 8px 10px !important; }
+  .stat-value { font-size: 18px !important; }
+  .stat-label { font-size: 8px !important; letter-spacing: 1px !important; margin-bottom: 6px !important; }
+  .stat-sub { font-size: 9px !important; }
   .inv-toolbar { flex-wrap: wrap; }
   .kpi-modal { width: 95vw; padding: 16px; }
   #notifDropdown { width: calc(100vw - 20px); right: 10px; }
-  .feature-showcase { grid-template-columns: repeat(2, 1fr); }
+  .feature-showcase { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .feature-card { padding: 8px 6px; }
+  .feature-card-icon { font-size: 18px; margin-bottom: 4px; }
+  .feature-card-num { font-size: 16px; }
+  .feature-card-label { font-size: 8px; }
   }
 
 /* ── DAYS LISTED BADGE ─────────────────────────────────────────────────── */

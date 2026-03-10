@@ -112,14 +112,15 @@
   }
 
   /* ========== TOUCH TARGETS ========== */
+  /* NOTE: Only apply generous min-width to standalone buttons, NOT inline table action buttons.
+     .act-btn, .stepper-btn, .btn-xs etc. have their own compact sizing rules. */
 
-  button,
+  button:not(.act-btn):not(.stepper-btn):not(.btn-xs):not(.bnav-btn):not(.bnav-fab):not(.bulk-menu button):not(.nav-group-btn):not(.nav-menu-item):not(.report-tab):not(.filter-chip):not(.filter-toggle-btn):not(.exp-del-mobile):not(.drawer-tab):not(.period-nav-btn):not(.bd-cat-row),
   a[role="button"],
   input[type="button"],
   input[type="submit"],
   .touchable {
     min-height: 44px;
-    min-width: 44px;
     padding: 0.75rem 1rem;
     display: flex;
     align-items: center;
@@ -139,12 +140,14 @@
   }
 
   /* ========== SAFE AREA INSETS ========== */
+  /* Only apply vertical safe-area padding — horizontal padding is handled by
+     main/header padding to avoid double-padding that eats viewport width. */
 
   body {
-    padding-top: max(1rem, env(safe-area-inset-top));
-    padding-left: max(1rem, env(safe-area-inset-left));
-    padding-right: max(1rem, env(safe-area-inset-right));
-    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    padding-top: env(safe-area-inset-top);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   .bottom-sheet {
@@ -621,9 +624,9 @@
 /* Notch/Dynamic Island handling */
 @supports (padding: max(0px)) {
   body {
-    padding-top: max(1rem, env(safe-area-inset-top));
-    padding-left: max(1rem, env(safe-area-inset-left));
-    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-top: env(safe-area-inset-top);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
 
   .header {

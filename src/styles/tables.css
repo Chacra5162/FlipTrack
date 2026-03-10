@@ -235,6 +235,16 @@
   .exp-del-desktop { display: inline-flex !important; }
   .exp-desc-mobile { display: none; }
 }
+/* Phone: even tighter expense table */
+@media (max-width: 480px) {
+  .exp-table { table-layout: auto; }
+  .exp-table th:nth-child(1),
+  .exp-table td:nth-child(1) { width: auto !important; white-space: nowrap; font-size: 10px; }
+  .exp-table th:nth-child(2),
+  .exp-table td:nth-child(2) { width: auto !important; }
+  .exp-table tbody td { padding: 8px 6px; font-size: 11px; }
+  .exp-table thead th { padding: 6px; font-size: 8px; }
+}
 
 /* Report period tabs */
 .report-tabs {
