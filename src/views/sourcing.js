@@ -5,6 +5,7 @@
 
 import { inv, sales, save, refresh, markDirty } from '../data/store.js';
 import { getMeta, setMeta } from '../data/idb.js';
+import { getCurrentUser, getSupabaseClient } from '../data/auth.js';
 import { fmt, ds, uid, escHtml, pct } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { renderPagination } from '../utils/pagination.js';
@@ -21,9 +22,30 @@ let _srcPageSize = 25;
 // ── INITIALIZATION ─────────────────────────────────────────────────────────────
 
 /**
- * Initialize hauls from IDB meta store, or load from localStorage as fallback
+ * Initialize hauls — pull from Supabase (cloud-first), then IDB/localStorage as fallback
  */
 export async function initHauls() {
+  // Try cloud first
+  try {
+    const _sb = getSupabaseClient();
+    const user = getCurrentUser();
+    if (_sb && user) {
+      const { data, error } = await _sb.from('ft_hauls')
+        .select('id, data')
+        .eq('account_id', user.id);
+      if (!error && data && data.length > 0) {
+        _hauls = data.map(row => ({ id: row.id, ...row.data }));
+        // Persist to IDB/localStorage for offline use
+        await setMeta('hauls', _hauls);
+        localStorage.setItem('ft_hauls', JSON.stringify(_hauls));
+        return;
+      }
+    }
+  } catch (e) {
+    console.warn('FlipTrack: Hauls cloud pull failed, using local:', e.message);
+  }
+
+  // Fallback: IDB then localStorage
   try {
     _hauls = await getMeta('hauls');
     if (!_hauls) _hauls = [];
@@ -31,14 +53,53 @@ export async function initHauls() {
     console.warn('FlipTrack: Hauls IDB load failed, using localStorage:', e.message);
     try { _hauls = JSON.parse(localStorage.getItem('ft_hauls') || '[]'); } catch (_) { _hauls = []; }
   }
+
+  // If we have local hauls but they weren't in the cloud, push them up
+  if (_hauls.length > 0) {
+    _pushHaulsToCloud().catch(e => console.warn('FlipTrack: Hauls initial push error:', e.message));
+  }
 }
 
 /**
- * Persist hauls to IDB and localStorage
+ * Persist hauls to IDB, localStorage, and Supabase cloud
  */
 async function saveHauls() {
   await setMeta('hauls', _hauls);
   localStorage.setItem('ft_hauls', JSON.stringify(_hauls));
+  // Non-blocking cloud push
+  _pushHaulsToCloud().catch(e => console.warn('FlipTrack: Hauls cloud save error:', e.message));
+}
+
+/**
+ * Push all hauls to Supabase (full overwrite strategy — hauls are small datasets)
+ */
+async function _pushHaulsToCloud() {
+  const _sb = getSupabaseClient();
+  const user = getCurrentUser();
+  if (!_sb || !user || !navigator.onLine) return;
+
+  const accountId = user.id;
+  const rows = _hauls.map(h => {
+    const { id, ...data } = h;
+    return { id, account_id: accountId, data, updated_at: new Date().toISOString() };
+  });
+
+  if (rows.length > 0) {
+    const { error } = await _sb.from('ft_hauls').upsert(rows, { onConflict: 'id' });
+    if (error) throw new Error(error.message);
+  }
+
+  // Clean up deleted hauls: remove cloud rows that no longer exist locally
+  const localIds = _hauls.map(h => h.id);
+  const { data: cloudRows } = await _sb.from('ft_hauls')
+    .select('id')
+    .eq('account_id', accountId);
+  if (cloudRows) {
+    const orphanIds = cloudRows.filter(r => !localIds.includes(r.id)).map(r => r.id);
+    if (orphanIds.length > 0) {
+      await _sb.from('ft_hauls').delete().in('id', orphanIds);
+    }
+  }
 }
 
 // ── MAIN RENDER ────────────────────────────────────────────────────────────────
