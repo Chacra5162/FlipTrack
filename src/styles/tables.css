@@ -43,6 +43,7 @@
   background:var(--surface); border:1px solid var(--border); color:var(--muted);
   padding:6px 10px; font-family:'DM Mono',monospace; font-size:11px; outline:none; cursor:pointer;
 }
+.sort-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .sort-select option { background:var(--surface2); }
 .toolbar-spacer { flex:1; }
 
@@ -69,6 +70,7 @@
   font-family:'DM Mono',monospace; cursor:pointer; transition:background 0.15s;
 }
 .bulk-menu button:hover { background:rgba(87,200,255,0.08); }
+.bulk-menu button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
 /* TABLE */
 .inv-table { width:100%; border-collapse:collapse; }
