@@ -1108,8 +1108,7 @@ setTimeout(_killSplash, 3000);
   } catch (e) { console.warn('FlipTrack: feature module init error:', e.message); }
   try { initShippingModals(); } catch (e) { console.warn('FlipTrack: shipping modals error:', e.message); }
 
-  // Demo data trigger (triple-tap logo)
-  initDemoTrigger();
+  // Demo data trigger removed — was causing unwanted prompts
 
   // Stock alert notifications (if enabled)
   startStockAlertChecks();
