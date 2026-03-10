@@ -109,7 +109,8 @@ export function renderDeathPile() {
   if (!el) return;
 
   const stats = getDeathPileStats();
-  if (!stats.totalItems) { el.style.display = 'none'; return; }
+  if (!stats || !stats.totalItems) { el.style.display = 'none'; return; }
+  if (!Array.isArray(stats.items)) { el.style.display = 'none'; return; }
 
   const shown = stats.items.slice(0, 6);
   const more = stats.totalItems - shown.length;

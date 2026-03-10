@@ -50,7 +50,6 @@ export async function generateListing(item, opts = {}) {
   }
 
   _generating = true;
-
   try {
     const platform = opts.platform || getPlatforms(item)[0] || 'eBay';
     const tone = opts.tone || 'professional';

@@ -9,7 +9,7 @@
   --accent2: #ff6b35;
   --accent3: #7b61ff;
   --text: #e8e8f0;
-  --muted: #6b6b80;
+  --muted: #7d7d95;
   --muted2: #9090a8;
   --danger: #ff4757;
   --warn: #ffb800;
@@ -76,6 +76,13 @@ body::before {
 }
 
 .shell { position: relative; z-index: 1; }
+
+/* Screen-reader only utility */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
 
 .date-badge { font-size: 11px; color: var(--muted); letter-spacing: 0.5px; white-space: nowrap; }
 

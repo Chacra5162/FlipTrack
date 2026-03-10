@@ -107,9 +107,9 @@ export function buildChips(forceRebuild) {
   const cats=['all',...[..._catMap.values()].sort()];
   const catEl=document.getElementById('catChips');
   catEl.innerHTML=cats.map(c=>{
-    const safe=c.replace(/'/g,"\\'");
+    const safe=escHtml(c).replace(/'/g,'&#39;');
     const isActive = c==='all' ? catFilt.size===0 : [...catFilt].some(f=>f.toLowerCase()===c.toLowerCase());
-    return `<span class="filter-chip cat-chip ${isActive?'active':''}" role="button" tabindex="0" onclick="setCatFilt('${safe}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${c==='all'?'All Categories':c}</span>`;
+    return `<span class="filter-chip cat-chip ${isActive?'active':''}" role="button" tabindex="0" data-cat="${escHtml(c)}" onclick="setCatFilt('${safe}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${c==='all'?'All Categories':escHtml(c)}</span>`;
   }).join('');
 
   // hide category row if no categories set yet
@@ -133,8 +133,8 @@ export function buildChips(forceRebuild) {
     const allSubs  = [...new Set([...subcatDefs, ...usedSubs])];
     document.getElementById('subcatChips').innerHTML=
       ['all',...allSubs].map(s=>{
-        const safe=s.replace(/'/g,"\\'");
-        return `<span class="filter-chip subcat-chip ${subcatFilt===s?'active':''}" role="button" tabindex="0" onclick="setSubcatFilt('${safe}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${s==='all'?'All':s}</span>`;
+        const safe=escHtml(s).replace(/'/g,'&#39;');
+        return `<span class="filter-chip subcat-chip ${subcatFilt===s?'active':''}" role="button" tabindex="0" data-subcat="${escHtml(s)}" onclick="setSubcatFilt('${safe}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${s==='all'?'All':escHtml(s)}</span>`;
       }).join('');
     subcatBar.style.display='flex';
   } else {
@@ -467,19 +467,26 @@ export function bulkSold(){if(!sel.size)return;const ok=[...sel].filter(id=>{con
 // ── ADVANCED BULK OPERATIONS ─────────────────────────────────────────────────
 
 /** Show/hide the bulk actions dropdown */
+let _bulkMenuCloseHandler = null;
 export function toggleBulkMenu() {
   const menu = document.getElementById('bulkMenu');
   if (!menu) return;
+  // Remove any existing outside-click handler first
+  if (_bulkMenuCloseHandler) {
+    document.removeEventListener('click', _bulkMenuCloseHandler);
+    _bulkMenuCloseHandler = null;
+  }
   menu.classList.toggle('open');
   // Close on outside click
   if (menu.classList.contains('open')) {
-    const close = (e) => {
+    _bulkMenuCloseHandler = (e) => {
       if (!menu.contains(e.target) && e.target.id !== 'bulkMoreBtn') {
         menu.classList.remove('open');
-        document.removeEventListener('click', close);
+        document.removeEventListener('click', _bulkMenuCloseHandler);
+        _bulkMenuCloseHandler = null;
       }
     };
-    setTimeout(() => document.addEventListener('click', close), 0);
+    setTimeout(() => document.addEventListener('click', _bulkMenuCloseHandler), 0);
   }
 }
 

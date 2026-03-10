@@ -365,19 +365,19 @@ export function addItem(){
         save();
         if (window.renderInv) window.renderInv();
         // Auto-list to eBay after images are uploaded (eBay needs http URLs)
-        if (wantsEbay) _autoListEBay(newId);
+        if (wantsEbay) _autoListEBay(newId).catch(e => console.warn('FlipTrack: auto eBay list failed:', e.message));
         // Pre-generate AI listings for non-API platforms
-        _autoGenCrosslistCache(newId, selPlats);
+        _autoGenCrosslistCache(newId, selPlats).catch(e => console.warn('FlipTrack: crosslist cache failed:', e.message));
       }).catch(e => {
         console.error('FlipTrack: image upload chain failed:', e.message);
       });
     }
   } else if (wantsEbay) {
     // No images to upload — list immediately
-    _autoListEBay(newId);
-    _autoGenCrosslistCache(newId, selPlats);
+    _autoListEBay(newId).catch(e => console.warn('FlipTrack: auto eBay list failed:', e.message));
+    _autoGenCrosslistCache(newId, selPlats).catch(e => console.warn('FlipTrack: crosslist cache failed:', e.message));
   } else {
-    _autoGenCrosslistCache(newId, selPlats);
+    _autoGenCrosslistCache(newId, selPlats).catch(e => console.warn('FlipTrack: crosslist cache failed:', e.message));
   }
 }
 

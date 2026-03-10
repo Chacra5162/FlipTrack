@@ -448,7 +448,10 @@ export async function pollOnce() {
 
 
 // ── PAGE VISIBILITY HANDLING ───────────────────────────────────────────────
+let _syncListenersInitialized = false;
 export function setupSyncEventListeners() {
+  if (_syncListenersInitialized) return;
+  _syncListenersInitialized = true;
   document.addEventListener('visibilitychange', () => {
     const _sb = getSupabaseClient();
     const _currentUser = getCurrentUser();

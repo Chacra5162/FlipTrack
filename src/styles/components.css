@@ -2883,6 +2883,24 @@ textarea { resize:vertical; min-height:70px; }
 
 /* ── Run Sheet (print-friendly) ──────────────────────────────────────── */
 @media print {
+  /* Global print rules — hide non-printable UI */
+  .top-bar, .bottom-nav, .toast-wrap, .overlay, .drawer-overlay,
+  .drawer, .lightbox, .batch-overlay, .fab, .upgrade-banner,
+  #offlineBanner, .stat-info-icon, .stat-tooltip,
+  .filter-toggle-btn, .btn-primary, .btn-secondary, .btn-ghost,
+  .btn-danger, .stepper-btn, .img-slot-rm, .inv-actions-cell button {
+    display: none !important;
+  }
+  body { background: #fff; color: #000; }
+  body::before { display: none; }
+  .shell { padding: 0; }
+  .stat-card { border: 1px solid #ccc; background: #fff; color: #000; box-shadow: none; }
+  .stat-card::after { display: none; }
+  .stat-value, .stat-label, .stat-sub { color: #000; text-shadow: none; }
+  .inv-table { border-collapse: collapse; width: 100%; }
+  .inv-table th, .inv-table td { border: 1px solid #ccc; padding: 6px 8px; color: #000; background: #fff; }
+  .inv-table th { background: #f5f5f5; font-weight: 700; }
+  /* Whatnot run sheet */
   .wn-run-sheet { font-size: 12px; }
   .wn-run-sheet table { width: 100%; border-collapse: collapse; }
   .wn-run-sheet th, .wn-run-sheet td {

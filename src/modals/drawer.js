@@ -309,7 +309,11 @@ export function getListingStatusFromDrawer() {
   const badges = document.querySelectorAll('#d_listing_status .ls-badge-enhanced');
   const status = {};
   badges.forEach(b => {
-    status[b.getAttribute('data-plat')] = b.getAttribute('data-status');
+    const plat = b.getAttribute('data-plat');
+    const st = b.getAttribute('data-status');
+    if (plat && LISTING_STATUSES.includes(st)) {
+      status[plat] = st;
+    }
   });
   return status;
 }

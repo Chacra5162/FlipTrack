@@ -188,10 +188,15 @@ let _replayInProgress = false;
 
 /**
  * Set up event listeners to auto-replay queue when coming back online.
+ * Guarded against double-init — safe to call multiple times.
  * @param {Function} getClient - Returns { sb, accountId } or null
  * @param {Function} onComplete - Called after replay with { ok, failed }
  */
+let _offlineReplayInitialized = false;
 export function setupOfflineReplay(getClient, onComplete) {
+  if (_offlineReplayInitialized) return;
+  _offlineReplayInitialized = true;
+
   const tryReplay = async () => {
     if (_replayInProgress) return;
     const size = await queueSize();
