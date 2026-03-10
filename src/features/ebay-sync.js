@@ -10,7 +10,7 @@ import { inv, save, refresh, markDirty, getInvItem } from '../data/store.js';
 import { ebayAPI, isEBayConnected } from './ebay-auth.js';
 import { markPlatformStatus, setListingDate } from './crosslist.js';
 import { autoDlistOnSale } from './crosslist.js';
-import { logSalePrice } from './price-history.js';
+import { logSalePrice, logPriceChange } from './price-history.js';
 import { toast } from '../utils/dom.js';
 import { getMeta, setMeta } from '../data/idb.js';
 import { escHtml } from '../utils/format.js';
@@ -156,6 +156,10 @@ export async function pullEBayListings() {
       offset += limit;
     }
 
+    // Sync prices from eBay offers → local inventory
+    const priceUpdates = await _syncEBayPrices();
+    updated += priceUpdates;
+
     // Also check recent orders for sold items
     await _syncEBayOrders();
 
@@ -219,6 +223,63 @@ async function _syncEBayOrders() {
     // Non-critical — orders sync is best-effort
     console.warn('eBay orders sync error:', e.message);
   }
+}
+
+/**
+ * Sync prices from eBay offers back to local inventory.
+ * Fetches offers for all eBay-linked items and updates local prices
+ * if the eBay price has changed (e.g., revised in Seller Hub).
+ * @returns {number} Number of items updated
+ */
+async function _syncEBayPrices() {
+  let updated = 0;
+  try {
+    // Collect all eBay-linked items with active status
+    const ebayItems = inv.filter(i =>
+      i.ebayItemId && i.platformStatus?.eBay === 'active'
+    );
+    if (ebayItems.length === 0) return 0;
+
+    // Batch fetch offers by SKU (eBay allows one SKU per request)
+    // Process in parallel batches of 5 to avoid rate limits
+    const batchSize = 5;
+    for (let i = 0; i < ebayItems.length; i += batchSize) {
+      const batch = ebayItems.slice(i, i + batchSize);
+      const results = await Promise.allSettled(
+        batch.map(item =>
+          ebayAPI('GET', `${INVENTORY_API}/offer?sku=${encodeURIComponent(item.ebayItemId)}`)
+            .then(resp => ({ item, resp }))
+        )
+      );
+
+      for (const result of results) {
+        if (result.status !== 'fulfilled') continue;
+        const { item, resp } = result.value;
+        const offers = resp?.offers || [];
+        if (offers.length === 0) continue;
+
+        const ebayPrice = parseFloat(offers[0].pricingSummary?.price?.value || '0');
+        if (ebayPrice <= 0) continue;
+
+        const localPrice = item.price || 0;
+        // Only update if there's a meaningful difference (>1 cent)
+        if (Math.abs(ebayPrice - localPrice) >= 0.01) {
+          console.log(`[eBay] Price sync: "${item.name}" $${localPrice.toFixed(2)} → $${ebayPrice.toFixed(2)} (from eBay)`);
+          item.price = ebayPrice;
+          logPriceChange(item.id, ebayPrice, 'ebay-sync');
+          markDirty('inv', item.id);
+          updated++;
+        }
+      }
+    }
+
+    if (updated > 0) {
+      console.log(`[eBay] Synced ${updated} price(s) from eBay`);
+    }
+  } catch (e) {
+    console.warn('[eBay] Price sync error:', e.message);
+  }
+  return updated;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -570,8 +631,8 @@ export async function pushItemToEBay(itemId) {
 
 /**
  * Update an already-published eBay listing with latest item data.
- * Updates the inventory item (aspects, description, images, weight, etc.)
- * and re-publishes the offer so changes appear on the live listing.
+ * Updates the inventory item (aspects, description, images, weight, etc.),
+ * syncs the offer price, and re-publishes the offer so changes appear live.
  */
 export async function updateEBayListing(itemId) {
   if (!isEBayConnected()) throw new Error('eBay not connected');
@@ -605,11 +666,37 @@ export async function updateEBayListing(itemId) {
   await _putInventoryWithRetry(sku, payload, item);
   console.log('[eBay] Inventory item updated');
 
-  // 2. Find the existing offer and re-publish it to push changes live
+  // 2. Find the existing offer, update price + qty, and re-publish
   try {
     const existing = await ebayAPI('GET', `${INVENTORY_API}/offer?sku=${encodeURIComponent(sku)}`);
     if (existing?.offers?.length > 0) {
-      const offerId = existing.offers[0].offerId;
+      const offer = existing.offers[0];
+      const offerId = offer.offerId;
+      const currentPrice = item.price || 0;
+
+      // Update the offer with current price and quantity
+      if (currentPrice > 0) {
+        const offerUpdate = {
+          pricingSummary: {
+            price: {
+              value: currentPrice.toFixed(2),
+              currency: 'USD',
+            },
+          },
+          availableQuantity: item.qty || 1,
+        };
+
+        // Preserve existing offer fields that eBay requires
+        if (offer.categoryId) offerUpdate.categoryId = offer.categoryId;
+        if (offer.listingPolicies) offerUpdate.listingPolicies = offer.listingPolicies;
+        if (offer.merchantLocationKey) offerUpdate.merchantLocationKey = offer.merchantLocationKey;
+        if (offer.format) offerUpdate.format = offer.format;
+        if (offer.listingDuration) offerUpdate.listingDuration = offer.listingDuration;
+
+        console.log('[eBay] Updating offer price to $' + currentPrice.toFixed(2));
+        await ebayAPI('PUT', `${INVENTORY_API}/offer/${offerId}`, offerUpdate);
+      }
+
       console.log('[eBay] Re-publishing offer to push changes live:', offerId);
       const pubResp = await ebayAPI('POST', `${INVENTORY_API}/offer/${offerId}/publish`);
       console.log('[eBay] Listing updated live, listingId:', pubResp.listingId);
@@ -622,6 +709,71 @@ export async function updateEBayListing(itemId) {
   }
 
   return { success: true };
+}
+
+/**
+ * Push only the price to eBay (lightweight — no inventory item update).
+ * Used for inline price edits where we just need to sync the new price fast.
+ * @param {string} itemId - Local FlipTrack item ID
+ * @returns {Promise<{ success: boolean }>}
+ */
+export async function pushEBayPrice(itemId) {
+  if (!isEBayConnected()) return { success: false };
+
+  const item = getInvItem(itemId);
+  if (!item || !item.ebayItemId) return { success: false };
+  if (!item.price || item.price <= 0) return { success: false };
+
+  const sku = item.ebayItemId;
+
+  try {
+    // Fetch the existing offer for this SKU
+    const existing = await ebayAPI('GET', `${INVENTORY_API}/offer?sku=${encodeURIComponent(sku)}`);
+    if (!existing?.offers?.length) {
+      console.log('[eBay] No offer found for SKU', sku, '— skipping price push');
+      return { success: false };
+    }
+
+    const offer = existing.offers[0];
+    const offerId = offer.offerId;
+    const ebayPrice = parseFloat(offer.pricingSummary?.price?.value || '0');
+
+    // Only update if price actually changed
+    if (Math.abs(ebayPrice - item.price) < 0.01) {
+      console.log('[eBay] Price already in sync ($' + item.price.toFixed(2) + ')');
+      return { success: true };
+    }
+
+    // Build minimal offer update payload
+    const offerUpdate = {
+      pricingSummary: {
+        price: {
+          value: item.price.toFixed(2),
+          currency: 'USD',
+        },
+      },
+      availableQuantity: item.qty || 1,
+    };
+
+    // Preserve required offer fields
+    if (offer.categoryId) offerUpdate.categoryId = offer.categoryId;
+    if (offer.listingPolicies) offerUpdate.listingPolicies = offer.listingPolicies;
+    if (offer.merchantLocationKey) offerUpdate.merchantLocationKey = offer.merchantLocationKey;
+    if (offer.format) offerUpdate.format = offer.format;
+    if (offer.listingDuration) offerUpdate.listingDuration = offer.listingDuration;
+
+    console.log('[eBay] Pushing price update: $' + ebayPrice.toFixed(2) + ' → $' + item.price.toFixed(2));
+    await ebayAPI('PUT', `${INVENTORY_API}/offer/${offerId}`, offerUpdate);
+
+    // Re-publish to make it live
+    await ebayAPI('POST', `${INVENTORY_API}/offer/${offerId}/publish`);
+    console.log('[eBay] Price synced to eBay ✓');
+
+    return { success: true };
+  } catch (e) {
+    console.warn('[eBay] Price push failed:', e.message);
+    return { success: false };
+  }
 }
 
 /**
