@@ -248,7 +248,9 @@ export function renderPriceHistoryTable(itemId) {
       ? `<span style="font-size:10px;background:var(--danger);color:white;padding:2px 6px;border-radius:3px">${entry.platform || 'SOLD'}</span>`
       : entry.source === 'repricing'
         ? `<span style="font-size:10px;background:var(--accent2);color:white;padding:2px 6px;border-radius:3px">AUTO</span>`
-        : '';
+        : entry.source === 'ebay-sync'
+          ? `<span style="font-size:10px;background:#3483fa;color:white;padding:2px 6px;border-radius:3px">eBay</span>`
+          : '';
 
     return `
       <tr style="border-bottom:1px solid var(--border)">

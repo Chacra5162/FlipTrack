@@ -43,6 +43,9 @@ import { pushDeleteToCloud, autoSync } from '../data/sync.js';
 import { getPlatforms, renderPlatTags, sanitizePlatforms } from '../features/platforms.js';
 import { getItemImages } from '../features/images.js';
 import { renderPagination } from '../utils/pagination.js';
+import { logPriceChange } from '../features/price-history.js';
+import { pushEBayPrice } from '../features/ebay-sync.js';
+import { isEBayConnected } from '../features/ebay-auth.js';
 
 // Helper functions that need to be wired from other modules
 export function updateFiltersBadge() {
@@ -421,7 +424,7 @@ export function startPriceEdit(span, id) {
   const inp=document.createElement('input');
   inp.className='price-inp'; inp.type='number'; inp.step='0.01'; inp.value=item.price||0;
   span.replaceWith(inp); inp.focus(); inp.select();
-  const commit=()=>{const v=parseFloat(inp.value);if(!isNaN(v)&&v>=0){item.price=v;markDirty('inv',item.id);save();refresh();renderInv();toast('Price updated ✓');}else renderInv();};
+  const commit=()=>{const v=parseFloat(inp.value);if(!isNaN(v)&&v>=0){const oldP=item.price||0;item.price=v;markDirty('inv',item.id);save();refresh();renderInv();toast('Price updated ✓');if(v!==oldP&&v>0){logPriceChange(item.id,v,'manual');if(item.ebayItemId&&isEBayConnected()){pushEBayPrice(item.id).then(r=>{if(r.success)toast('eBay price synced ✓');}).catch(e=>console.warn('[eBay] Price push:',e.message));}}}else renderInv();};
   inp.addEventListener('blur',commit);
   inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();inp.blur();}if(e.key==='Escape'){inp.removeEventListener('blur',commit);renderInv();}});
 }
