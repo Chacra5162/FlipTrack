@@ -285,7 +285,10 @@ export async function initAuth() {
 }
 
 // ── ACCOUNT MENU BACKDROP CLICK HANDLER ────────────────────────────────────
+let _authEventsInit = false;
 export function setupAuthEventListeners() {
+  if (_authEventsInit) return;
+  _authEventsInit = true;
   const accountMenuOv = document.getElementById('accountMenuOv');
   if (accountMenuOv) {
     accountMenuOv.addEventListener('click', function(e) {

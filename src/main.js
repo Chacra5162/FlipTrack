@@ -1062,6 +1062,7 @@ setTimeout(_killSplash, 3000);
 
   // Boot auth (connects Supabase, starts realtime) — MUST await to prevent race conditions
   try { await initAuth(); } catch (e) { console.warn('FlipTrack: auth init error:', e.message); }
+  try { const { setupAuthEventListeners } = await import('./data/auth.js'); setupAuthEventListeners(); } catch (_) {}
 
   // Handle post-checkout redirect — re-fetch tier and show success toast
   const urlParams = new URLSearchParams(window.location.search);

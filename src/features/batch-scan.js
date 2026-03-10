@@ -10,6 +10,7 @@ let _batchActive = false;
 let _batchItems  = [];
 let _batchScannedCodes = new Set();
 let _batchRaf = null;
+let _batchTimer = null;
 
 export async function openBatchScan() {
   _batchItems = [];
@@ -42,7 +43,8 @@ export async function openBatchScan() {
 
 export function closeBatchScan() {
   _batchActive = false;
-  if (_batchRaf) cancelAnimationFrame(_batchRaf);
+  if (_batchTimer) { clearTimeout(_batchTimer); _batchTimer = null; }
+  if (_batchRaf) { cancelAnimationFrame(_batchRaf); _batchRaf = null; }
   if (_batchStream) { _batchStream.getTracks().forEach(t => t.stop()); _batchStream = null; }
   document.getElementById('batchOv').classList.remove('on');
 }
@@ -104,7 +106,7 @@ export function _runBatchQuagga(video) {
         }
       });
     }
-    setTimeout(() => { if (_batchActive) _batchRaf = requestAnimationFrame(tick); }, 500);
+    _batchTimer = setTimeout(() => { if (_batchActive) _batchRaf = requestAnimationFrame(tick); }, 500);
   }
   tick();
 }

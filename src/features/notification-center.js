@@ -224,7 +224,10 @@ export function getSalesVelocity() {
   })).sort((a, b) => (a.avgDaysToSell || 999) - (b.avgDaysToSell || 999));
 }
 
+let _notifInitialized = false;
 export function initNotificationCenter() {
+  if (_notifInitialized) return;
+  _notifInitialized = true;
   load();
   updateBadge();
   generateStockAlerts();

@@ -43,7 +43,7 @@
   <div class="logo" aria-label="FlipTrack" onclick="navTo('dashboard')" style="cursor:pointer" role="button" tabindex="0">Flip<span>Track</span></div>
   <nav class="header-center" role="navigation" aria-label="Main navigation">
     <div class="nav-group has-active" data-group="business">
-      <button class="nav-group-btn" onclick="toggleNavGroup('business')">
+      <button class="nav-group-btn" onclick="toggleNavGroup('business')" aria-expanded="false" aria-label="Business menu">
         <span class="nav-group-icon">📊</span> Business <span class="nav-chevron">▾</span>
       </button>
       <div class="nav-group-menu" id="navGroupBusiness">
@@ -56,7 +56,7 @@
       </div>
     </div>
     <div class="nav-group" data-group="inventory">
-      <button class="nav-group-btn" onclick="toggleNavGroup('inventory')">
+      <button class="nav-group-btn" onclick="toggleNavGroup('inventory')" aria-expanded="false" aria-label="Inventory menu">
         <span class="nav-group-icon">📦</span> Inventory <span class="nav-chevron">▾</span>
       </button>
       <div class="nav-group-menu" id="navGroupInventory">
@@ -67,7 +67,7 @@
       </div>
     </div>
     <div class="nav-group" data-group="selling">
-      <button class="nav-group-btn" onclick="toggleNavGroup('selling')">
+      <button class="nav-group-btn" onclick="toggleNavGroup('selling')" aria-expanded="false" aria-label="Selling menu">
         <span class="nav-group-icon">🛒</span> Selling <span class="nav-chevron">▾</span>
       </button>
       <div class="nav-group-menu" id="navGroupSelling">
@@ -336,16 +336,16 @@
     <div style="overflow-x:auto">
       <table class="inv-table">
         <thead><tr>
-          <th class="cb-col"><input type="checkbox" id="selAll" onchange="toggleAll(this)"></th>
+          <th class="cb-col"><input type="checkbox" id="selAll" onchange="toggleAll(this)" aria-label="Select all items"></th>
           <th></th>
           <th>Photo</th>
-          <th onclick="setSort('name-asc')">Item <span class="sort-arrow">↕</span></th>
-          <th onclick="setSort('platform')">Platform <span class="sort-arrow">↕</span></th>
+          <th onclick="setSort('name-asc')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setSort('name-asc')}" tabindex="0" role="columnheader button" aria-label="Sort by item name" style="cursor:pointer">Item <span class="sort-arrow">↕</span></th>
+          <th onclick="setSort('platform')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setSort('platform')}" tabindex="0" role="columnheader button" aria-label="Sort by platform" style="cursor:pointer">Platform <span class="sort-arrow">↕</span></th>
           <th>Stock</th>
-          <th onclick="setSort('cost')">Cost <span class="sort-arrow">↕</span></th>
-          <th onclick="setSort('price-desc')">Price <span class="sort-arrow">↕</span></th>
-          <th onclick="setSort('margin-desc')">Margin <span class="sort-arrow">↕</span></th>
-          <th onclick="setSort('days-desc')" class="days-col">Days <span class="sort-arrow">↕</span></th>
+          <th onclick="setSort('cost')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setSort('cost')}" tabindex="0" role="columnheader button" aria-label="Sort by cost" style="cursor:pointer">Cost <span class="sort-arrow">↕</span></th>
+          <th onclick="setSort('price-desc')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setSort('price-desc')}" tabindex="0" role="columnheader button" aria-label="Sort by price" style="cursor:pointer">Price <span class="sort-arrow">↕</span></th>
+          <th onclick="setSort('margin-desc')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setSort('margin-desc')}" tabindex="0" role="columnheader button" aria-label="Sort by margin" style="cursor:pointer">Margin <span class="sort-arrow">↕</span></th>
+          <th onclick="setSort('days-desc')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setSort('days-desc')}" tabindex="0" role="columnheader button" aria-label="Sort by days listed" class="days-col" style="cursor:pointer">Days <span class="sort-arrow">↕</span></th>
           <th class="photos-col">📷</th>
           <th>Actions</th>
         </tr></thead>
@@ -605,7 +605,7 @@
 <!-- LIGHTBOX -->
 <div class="lightbox" id="lightbox" onclick="closeLightbox()" role="dialog" aria-modal="true" aria-label="Image Lightbox">
   <button class="lightbox-close" onclick="closeLightbox()" aria-label="Close image viewer">×</button>
-  <img id="lightboxImg" src="" alt="">
+  <img id="lightboxImg" src="" alt="Item photo enlarged view">
   <div class="lightbox-name" id="lightboxName"></div>
 </div>
 
@@ -631,8 +631,8 @@
     <!-- TAB: Details -->
     <div class="drawer-tab-panel active" id="dtab-details">
       <div class="edit-grid">
-        <div class="edit-grp full"><div class="edit-lbl">Item Name</div><input class="edit-inp" id="d_name" type="text"></div>
-        <div class="edit-grp"><div class="edit-lbl">SKU</div><input class="edit-inp" id="d_sku" type="text"></div>
+        <div class="edit-grp full"><label for="d_name" class="edit-lbl">Item Name</label><input class="edit-inp" id="d_name" type="text"></div>
+        <div class="edit-grp"><label for="d_sku" class="edit-lbl">SKU</label><input class="edit-inp" id="d_sku" type="text"></div>
         <div class="edit-grp">
           <label for="d_upc" class="edit-lbl">UPC / Barcode</label>
           <div class="upc-input-row">
@@ -640,10 +640,10 @@
             <button class="upc-scan-btn" onclick="openScanner('d_upc')" title="Scan">📷</button>
           </div>
         </div>
-        <div class="edit-grp"><div class="edit-lbl">Category</div><input class="edit-inp" id="d_cat" type="text" placeholder="e.g. Clothing" oninput="syncDrawerSubcat()"></div>
-        <div class="edit-grp"><div class="edit-lbl">Subcategory</div><input class="edit-inp" id="d_subcat_txt" type="text" placeholder="e.g. Sneakers, Men's…" list="d_subcat_dl"><datalist id="d_subcat_dl"></datalist></div>
+        <div class="edit-grp"><label for="d_cat" class="edit-lbl">Category</label><input class="edit-inp" id="d_cat" type="text" placeholder="e.g. Clothing" oninput="syncDrawerSubcat()"></div>
+        <div class="edit-grp"><label for="d_subcat_txt" class="edit-lbl">Subcategory</label><input class="edit-inp" id="d_subcat_txt" type="text" placeholder="e.g. Sneakers, Men's…" list="d_subcat_dl"><datalist id="d_subcat_dl"></datalist></div>
         <select id="d_subcat" style="display:none"></select>
-        <div class="edit-grp" id="d_subtype_grp"><div class="edit-lbl" id="d_subtype_lbl">Type</div><input class="edit-inp" id="d_subtype_txt" type="text" placeholder="e.g. Shirts, Sci-Fi…" list="d_subtype_dl" oninput="syncDrawerSubtype()"><datalist id="d_subtype_dl"></datalist></div>
+        <div class="edit-grp" id="d_subtype_grp"><label for="d_subtype_txt" class="edit-lbl" id="d_subtype_lbl">Type</label><input class="edit-inp" id="d_subtype_txt" type="text" placeholder="e.g. Shirts, Sci-Fi…" list="d_subtype_dl" oninput="syncDrawerSubtype()"><datalist id="d_subtype_dl"></datalist></div>
         <div class="edit-grp full">
           <div class="edit-lbl">Platforms <span style="color:var(--muted);font-weight:400;font-size:9px">— select all that apply</span></div>
           <div class="plat-picker" id="d_plat_picker"></div>
@@ -652,19 +652,19 @@
           <div class="edit-lbl">Listing Status <span style="color:var(--muted);font-weight:400;font-size:9px">— click to toggle</span></div>
           <div id="d_listing_status" style="display:flex;flex-wrap:wrap;gap:6px"></div>
         </div>
-        <div class="edit-grp"><div class="edit-lbl">Cost ($)</div><input class="edit-inp" id="d_cost" type="number" step="0.01"></div>
-        <div class="edit-grp"><div class="edit-lbl">List Price ($)</div><input class="edit-inp" id="d_price" type="number" step="0.01"></div>
-        <div class="edit-grp"><div class="edit-lbl">Fees ($)</div><input class="edit-inp" id="d_fees" type="number" step="0.01"></div>
-        <div class="edit-grp"><div class="edit-lbl">Shipping ($)</div><input class="edit-inp" id="d_ship" type="number" step="0.01"></div>
+        <div class="edit-grp"><label for="d_cost" class="edit-lbl">Cost ($)</label><input class="edit-inp" id="d_cost" type="number" step="0.01"></div>
+        <div class="edit-grp"><label for="d_price" class="edit-lbl">List Price ($)</label><input class="edit-inp" id="d_price" type="number" step="0.01"></div>
+        <div class="edit-grp"><label for="d_fees" class="edit-lbl">Fees ($)</label><input class="edit-inp" id="d_fees" type="number" step="0.01"></div>
+        <div class="edit-grp"><label for="d_ship" class="edit-lbl">Shipping ($)</label><input class="edit-inp" id="d_ship" type="number" step="0.01"></div>
         <div class="edit-grp full" style="align-items:flex-start">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;margin-top:2px">
             <input type="checkbox" id="d_bulk" onchange="toggleBulkFields('d')" style="width:15px;height:15px;accent-color:var(--accent);flex-shrink:0">
             <span class="edit-lbl" style="margin:0">Bulk Item — multiple units</span>
           </label>
         </div>
-        <div class="edit-grp" id="d_alert_grp"><div class="edit-lbl">Low Stock Alert</div><input class="edit-inp" id="d_alert" type="number" min="0"></div>
-        <div class="edit-grp"><div class="edit-lbl">Restock URL</div><input class="edit-inp" id="d_url" type="text" placeholder="Source link"></div>
-        <div class="edit-grp"><div class="edit-lbl">Source</div><input class="edit-inp" id="d_source" type="text" placeholder="e.g. Goodwill" list="sourceList"></div>
+        <div class="edit-grp" id="d_alert_grp"><label for="d_alert" class="edit-lbl">Low Stock Alert</label><input class="edit-inp" id="d_alert" type="number" min="0"></div>
+        <div class="edit-grp"><label for="d_url" class="edit-lbl">Restock URL</label><input class="edit-inp" id="d_url" type="text" placeholder="Source link"></div>
+        <div class="edit-grp"><label for="d_source" class="edit-lbl">Source</label><input class="edit-inp" id="d_source" type="text" placeholder="e.g. Goodwill" list="sourceList"></div>
         <div class="edit-grp full">
           <div class="edit-lbl">Condition</div>
           <div id="d_cond_picker" style="display:flex;gap:6px;flex-wrap:wrap">
@@ -681,7 +681,7 @@
         </div>
         <!-- Smoke Exposure slider -->
         <div class="edit-grp full">
-          <div class="edit-lbl">Smoke Exposure</div>
+          <label for="d_smoke" class="edit-lbl">Smoke Exposure</label>
           <div class="smoke-slider-wrap">
             <span class="smoke-lbl smoke-lbl-free" id="d_smoke_lbl_free">Smoke Free</span>
             <input type="range" id="d_smoke" class="smoke-slider" min="0" max="2" value="1" oninput="updateSmokeSlider('d')">
@@ -694,7 +694,7 @@
           <div class="bf-grid">
             <!-- Cover Type slider -->
             <div class="edit-grp full">
-              <div class="edit-lbl">Cover Type</div>
+              <label for="d_cover" class="edit-lbl">Cover Type</label>
               <div class="cover-slider-wrap">
                 <span class="cover-lbl cover-lbl-soft" id="d_cover_lbl_soft">Soft Cover</span>
                 <input type="range" id="d_cover" class="cover-slider" min="0" max="2" value="1" oninput="updateCoverSlider('d')">
@@ -702,18 +702,18 @@
               </div>
             </div>
             <div class="edit-grp full">
-              <div class="edit-lbl">ISBN</div>
+              <label for="d_isbn" class="edit-lbl">ISBN</label>
               <div class="isbn-row">
                 <input class="edit-inp" type="text" id="d_isbn" placeholder="ISBN-10 or ISBN-13" oninput="this.value=this.value.replace(/[^0-9Xx-]/g,'')">
                 <button type="button" class="isbn-scan-btn" onclick="scanISBN('d')" title="Scan ISBN barcode">📷</button>
                 <button type="button" class="isbn-lookup-btn" id="d_isbn_btn" onclick="lookupISBN('d')">🔍 Lookup</button>
               </div>
             </div>
-            <div class="edit-grp"><div class="edit-lbl">Author</div><input class="edit-inp" type="text" id="d_author" placeholder="Author name"></div>
-            <div class="edit-grp"><div class="edit-lbl">Publisher</div><input class="edit-inp" type="text" id="d_publisher" placeholder="Publisher"></div>
-            <div class="edit-grp"><div class="edit-lbl">Edition</div><input class="edit-inp" type="text" id="d_edition" placeholder="e.g. 1st, 2nd, Revised"></div>
-            <div class="edit-grp"><div class="edit-lbl">Printing</div><input class="edit-inp" type="text" id="d_printing" placeholder="e.g. 1st, 3rd"></div>
-            <div class="edit-grp"><div class="edit-lbl">Year Published</div><input class="edit-inp" type="number" id="d_pub_year" placeholder="e.g. 1985" min="1400" max="2030"></div>
+            <div class="edit-grp"><label for="d_author" class="edit-lbl">Author</label><input class="edit-inp" type="text" id="d_author" placeholder="Author name"></div>
+            <div class="edit-grp"><label for="d_publisher" class="edit-lbl">Publisher</label><input class="edit-inp" type="text" id="d_publisher" placeholder="Publisher"></div>
+            <div class="edit-grp"><label for="d_edition" class="edit-lbl">Edition</label><input class="edit-inp" type="text" id="d_edition" placeholder="e.g. 1st, 2nd, Revised"></div>
+            <div class="edit-grp"><label for="d_printing" class="edit-lbl">Printing</label><input class="edit-inp" type="text" id="d_printing" placeholder="e.g. 1st, 3rd"></div>
+            <div class="edit-grp"><label for="d_pub_year" class="edit-lbl">Year Published</label><input class="edit-inp" type="number" id="d_pub_year" placeholder="e.g. 1985" min="1400" max="2030"></div>
             <div class="edit-grp">
               <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding-top:18px">
                 <input type="checkbox" id="d_signed" style="width:16px;height:16px;accent-color:var(--accent3);flex-shrink:0">
@@ -778,20 +778,20 @@
         <div class="dsec-ttl">Item Photos <span style="color:var(--muted);font-weight:400;font-size:10px">(up to 3)</span></div>
         <div id="dImgWrap" class="img-slots">
           <div class="img-slot" id="dSlot0">
-            <img id="dSlotImg0" src="" alt="" style="display:none" onclick="openLightboxUrl(this.src)">
+            <img id="dSlotImg0" src="" alt="Item photo 1" style="display:none" onclick="openLightboxUrl(this.src)" onkeydown="if(event.key==='Enter')openLightboxUrl(this.src)" tabindex="0" role="button">
             <span class="img-slot-badge" id="dSlotBadge0" style="display:none">MAIN</span>
             <button type="button" class="img-slot-rm" id="dSlotRm0" style="display:none" onclick="imgSlotRemove(event,'d',0)">×</button>
             <div class="img-slot-add" id="dSlotAdd0"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
             <input type="file" id="dSlotInput0" accept="image/*" class="img-slot-input" onchange="imgSlotChange(event,'d',0)">
           </div>
           <div class="img-slot img-slot-locked" id="dSlot1">
-            <img id="dSlotImg1" src="" alt="" style="display:none" onclick="openLightboxUrl(this.src)">
+            <img id="dSlotImg1" src="" alt="Item photo 2" style="display:none" onclick="openLightboxUrl(this.src)" onkeydown="if(event.key==='Enter')openLightboxUrl(this.src)" tabindex="0" role="button">
             <button type="button" class="img-slot-rm" id="dSlotRm1" style="display:none" onclick="imgSlotRemove(event,'d',1)">×</button>
             <div class="img-slot-add" id="dSlotAdd1" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
             <input type="file" id="dSlotInput1" accept="image/*" class="img-slot-input" style="pointer-events:none;opacity:0" onchange="imgSlotChange(event,'d',1)">
           </div>
           <div class="img-slot img-slot-locked" id="dSlot2">
-            <img id="dSlotImg2" src="" alt="" style="display:none" onclick="openLightboxUrl(this.src)">
+            <img id="dSlotImg2" src="" alt="Item photo 3" style="display:none" onclick="openLightboxUrl(this.src)" onkeydown="if(event.key==='Enter')openLightboxUrl(this.src)" tabindex="0" role="button">
             <button type="button" class="img-slot-rm" id="dSlotRm2" style="display:none" onclick="imgSlotRemove(event,'d',2)">×</button>
             <div class="img-slot-add" id="dSlotAdd2" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
             <input type="file" id="dSlotInput2" accept="image/*" class="img-slot-input" style="pointer-events:none;opacity:0" onchange="imgSlotChange(event,'d',2)">
@@ -1289,20 +1289,20 @@
           <label>Item Photos <span style="color:var(--muted);font-weight:400;font-size:10px">(up to 3)</span></label>
           <div id="fImgWrap" class="img-slots">
             <div class="img-slot" id="fSlot0">
-              <img id="fSlotImg0" src="" alt="" style="display:none" onclick="openLightboxUrl(this.src)">
+              <img id="fSlotImg0" src="" alt="Item photo 1" style="display:none" onclick="openLightboxUrl(this.src)" onkeydown="if(event.key==='Enter')openLightboxUrl(this.src)" tabindex="0" role="button">
               <span class="img-slot-badge" id="fSlotBadge0" style="display:none">MAIN</span>
               <button type="button" class="img-slot-rm" id="fSlotRm0" style="display:none" onclick="imgSlotRemove(event,'f',0)">×</button>
               <div class="img-slot-add" id="fSlotAdd0"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
               <input type="file" id="fSlotInput0" accept="image/*" class="img-slot-input" onchange="imgSlotChange(event,'f',0)">
             </div>
             <div class="img-slot img-slot-locked" id="fSlot1">
-              <img id="fSlotImg1" src="" alt="" style="display:none" onclick="openLightboxUrl(this.src)">
+              <img id="fSlotImg1" src="" alt="Item photo 2" style="display:none" onclick="openLightboxUrl(this.src)" onkeydown="if(event.key==='Enter')openLightboxUrl(this.src)" tabindex="0" role="button">
               <button type="button" class="img-slot-rm" id="fSlotRm1" style="display:none" onclick="imgSlotRemove(event,'f',1)">×</button>
               <div class="img-slot-add" id="fSlotAdd1" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
               <input type="file" id="fSlotInput1" accept="image/*" class="img-slot-input" style="pointer-events:none;opacity:0" onchange="imgSlotChange(event,'f',1)">
             </div>
             <div class="img-slot img-slot-locked" id="fSlot2">
-              <img id="fSlotImg2" src="" alt="" style="display:none" onclick="openLightboxUrl(this.src)">
+              <img id="fSlotImg2" src="" alt="Item photo 3" style="display:none" onclick="openLightboxUrl(this.src)" onkeydown="if(event.key==='Enter')openLightboxUrl(this.src)" tabindex="0" role="button">
               <button type="button" class="img-slot-rm" id="fSlotRm2" style="display:none" onclick="imgSlotRemove(event,'f',2)">×</button>
               <div class="img-slot-add" id="fSlotAdd2" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
               <input type="file" id="fSlotInput2" accept="image/*" class="img-slot-input" style="pointer-events:none;opacity:0" onchange="imgSlotChange(event,'f',2)">
@@ -1323,7 +1323,7 @@
 <!-- SOLD MODAL -->
 <div class="overlay" id="soldOv" role="dialog" aria-modal="true" aria-label="Record Sale" onclick="if(event.target===this)closeSold()">
   <div class="modal">
-    <div class="modal-hd"><div class="modal-ttl">Record Sale</div><button class="modal-x" onclick="closeSold()">×</button></div>
+    <div class="modal-hd"><div class="modal-ttl">Record Sale</div><button class="modal-x" onclick="closeSold()" aria-label="Close record sale dialog">×</button></div>
     <div class="modal-bd">
       <div class="sold-info" id="soldInfo"></div>
       <div class="form-grid">
@@ -1366,7 +1366,7 @@
   <div class="modal" style="max-width:560px;width:95vw">
     <div class="modal-hd">
       <div class="modal-ttl">✂️ Crop Photo</div>
-      <button class="modal-x" onclick="cropCancel()">×</button>
+      <button class="modal-x" onclick="cropCancel()" aria-label="Close crop photo dialog">×</button>
     </div>
     <div class="modal-bd" style="padding:0">
       <div id="cropCanvasWrap" style="position:relative;background:#000;overflow:hidden;user-select:none;-webkit-user-select:none">
@@ -1398,7 +1398,7 @@
   <div class="modal" style="max-width:500px">
     <div class="modal-hd">
       <div class="modal-ttl">📦 Materials Used</div>
-      <button class="modal-x" onclick="skipMaterials()">×</button>
+      <button class="modal-x" onclick="skipMaterials()" aria-label="Close materials used dialog">×</button>
     </div>
     <div class="modal-bd">
       <div style="font-size:12px;color:var(--muted);margin-bottom:14px;font-family:'DM Mono',monospace">
@@ -1453,7 +1453,7 @@
   <div class="modal" style="max-width:460px">
     <div class="modal-hd">
       <div class="modal-ttl">🗑️ Recently Deleted</div>
-      <button class="modal-x" onclick="closeTrashModal()">×</button>
+      <button class="modal-x" onclick="closeTrashModal()" aria-label="Close trash dialog">×</button>
     </div>
     <div class="modal-bd" style="max-height:400px;overflow-y:auto">
       <div id="trashBody"></div>
@@ -1614,16 +1614,16 @@
     <div class="modal-hd"><h3>Adjust Prices</h3><button class="close-x" aria-label="Close" onclick="closeBulkPrice()">✕</button></div>
     <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
       <div style="display:flex;gap:8px">
-        <select id="bulkPriceDir" class="fgrp" style="flex:1" onchange="previewBulkPrice()">
+        <select id="bulkPriceDir" class="fgrp" style="flex:1" onchange="previewBulkPrice()" aria-label="Price direction">
           <option value="decrease">Decrease ↓</option>
           <option value="increase">Increase ↑</option>
         </select>
-        <select id="bulkPriceType" class="fgrp" style="flex:1" onchange="previewBulkPrice()">
+        <select id="bulkPriceType" class="fgrp" style="flex:1" onchange="previewBulkPrice()" aria-label="Adjustment type">
           <option value="percent">By %</option>
           <option value="fixed">By $</option>
         </select>
       </div>
-      <input type="number" id="bulkPriceVal" class="fgrp" placeholder="Amount" min="0" step="0.01" oninput="previewBulkPrice()">
+      <input type="number" id="bulkPriceVal" class="fgrp" placeholder="Amount" min="0" step="0.01" oninput="previewBulkPrice()" aria-label="Adjustment amount">
       <div id="bulkPricePreview" style="font-size:12px;color:var(--muted);text-align:center"></div>
       <button class="btn-primary" onclick="applyBulkPrice()">Apply Price Change</button>
     </div>
@@ -1636,7 +1636,7 @@
     <div class="modal-hd"><h3>Set Category</h3><button class="close-x" aria-label="Close" onclick="closeBulkCategory()">✕</button></div>
     <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
       <div id="bulkCatCount" style="font-size:12px;color:var(--muted);text-align:center"></div>
-      <select id="bulkCatSelect" class="fgrp"></select>
+      <select id="bulkCatSelect" class="fgrp" aria-label="Select category"></select>
       <button class="btn-primary" onclick="applyBulkCategory()">Apply Category</button>
     </div>
   </div>
@@ -1648,11 +1648,11 @@
     <div class="modal-hd"><h3>Add / Remove Platform</h3><button class="close-x" aria-label="Close" onclick="closeBulkPlatform()">✕</button></div>
     <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
       <div id="bulkPlatCount" style="font-size:12px;color:var(--muted);text-align:center"></div>
-      <select id="bulkPlatAction" class="fgrp">
+      <select id="bulkPlatAction" class="fgrp" aria-label="Platform action">
         <option value="add">Add platform to items</option>
         <option value="remove">Remove platform from items</option>
       </select>
-      <select id="bulkPlatSelect" class="fgrp">
+      <select id="bulkPlatSelect" class="fgrp" aria-label="Select platform">
         <option value="">— Pick a platform —</option>
         <option>eBay</option><option>Amazon</option><option>Etsy</option><option>Facebook Marketplace</option>
         <option>Depop</option><option>Poshmark</option><option>Mercari</option><option>Grailed</option>
@@ -1667,11 +1667,11 @@
 </div>
 
 <!-- UPGRADE PROMPT MODAL -->
-<div id="upgradeOv">
+<div id="upgradeOv" role="dialog" aria-modal="true" aria-label="Upgrade plan">
   <div class="upgrade-modal">
     <div class="upgrade-hd">
       <div class="upgrade-title">Upgrade Your Plan</div>
-      <button class="upgrade-x" onclick="closeUpgradePrompt()">✕</button>
+      <button class="upgrade-x" onclick="closeUpgradePrompt()" aria-label="Close upgrade modal">✕</button>
     </div>
     <div class="upgrade-body">
       <div class="upgrade-lock-icon">🔒</div>

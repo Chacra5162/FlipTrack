@@ -25,6 +25,7 @@
   transition: all 0.15s; flex-shrink: 0;
 }
 .filter-toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
+.filter-toggle-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .filter-toggle-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(87,200,255,0.06); }
 .filter-toggle-chevron { display: inline-block; transition: transform 0.22s ease; font-style: normal; }
 .filter-toggle-btn.open .filter-toggle-chevron { transform: rotate(180deg); }

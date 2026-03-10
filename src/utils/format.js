@@ -23,4 +23,4 @@ export const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t);
 export const sc = (qty, alert, bulk) => !bulk ? (qty===0?'low':'ok') : qty===0?'low':qty<=(alert||2)?'warn':'ok';
 
 // Make color (converts status to CSS variable)
-export const mkc = c => ({ok:'var(--good)',warn:'var(--warn)',low:'var(--danger)'}[c]);
+export const mkc = c => ({ok:'var(--good)',warn:'var(--warn)',low:'var(--danger)'}[c] || 'var(--muted)');

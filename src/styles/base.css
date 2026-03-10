@@ -41,6 +41,9 @@
   --plt-1stdibs: #b4946f;
   --plt-nextdoor: #00ac4f;
   --plt-tradesy: #ff69b4;
+  --hover: rgba(87,200,255,0.04);
+  --card: #1a1a24;
+  --bad: #ff4757;
   /* z-index scale */
   --z-toast: 999;
   --z-lightbox: 5000;

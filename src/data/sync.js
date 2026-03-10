@@ -335,9 +335,11 @@ export function autoSync() {
   const _currentUser = getCurrentUser();
   if (!_sb || !_currentUser) return;
   if (!navigator.onLine) return;
+  if (_isSyncing) return;
 
   clearTimeout(_syncDebounce);
   _syncDebounce = setTimeout(async () => {
+    if (_isSyncing) return;
     // Wait for any in-flight IDB persist before starting sync
     await waitForPersist();
     setSyncStatus('syncing');

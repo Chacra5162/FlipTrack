@@ -86,6 +86,7 @@ input[type="range"].fs-slider::-moz-range-thumb {
   text-align: center;
 }
 .fs-preset:hover { border-color: var(--accent); color: var(--accent); }
+.fs-preset:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .fs-preset.active { border-color: var(--accent); color: var(--accent); background: rgba(87,200,255,0.06); }
 
 .fs-font-opt {
@@ -98,6 +99,7 @@ input[type="range"].fs-slider::-moz-range-thumb {
   transition: border-color 0.15s, color 0.15s;
 }
 .fs-font-opt:hover { border-color: var(--border2); color: var(--text); }
+.fs-font-opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .fs-font-opt.active { border-color: var(--accent); color: var(--accent); background: rgba(87,200,255,0.06); }
 
 /* BUTTONS */
@@ -378,6 +380,7 @@ textarea { resize:vertical; min-height:70px; }
 .empty-cta-secondary { font-size:11px; padding:7px 16px; }
 .btn-ghost { background:transparent; border:1px solid var(--border); color:var(--muted); cursor:pointer; font-family:'Syne',sans-serif; font-weight:600; transition:all 0.15s; }
 .btn-ghost:hover { border-color:var(--accent); color:var(--accent); }
+.btn-ghost:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* GLOBAL SEARCH */
 .global-search-wrap { position:relative; }
@@ -889,6 +892,7 @@ textarea { resize:vertical; min-height:70px; }
   flex-shrink: 0;
 }
 .upc-scan-btn:hover { border-color: var(--accent); background: rgba(87,200,255,0.08); }
+.upc-scan-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .upc-tag {
   font-size: 9px;
   padding: 2px 6px;
@@ -2072,6 +2076,7 @@ textarea { resize:vertical; min-height:70px; }
 .sl-links { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
 .sl-link { font-size: 12px; color: var(--accent); text-decoration: none; }
 .sl-link:hover { text-decoration: underline; }
+.sl-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .sl-empty { padding: 12px; text-align: center; font-size: 12px; color: var(--muted); }
 
 /* ── MOBILE RESPONSIVE FOR PHASE 8 ──────────────────────────────────────── */
@@ -2226,6 +2231,10 @@ textarea { resize:vertical; min-height:70px; }
 }
 .ft-footer a:hover {
   text-decoration: underline;
+}
+.ft-footer a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* ═══════════════════════════════════════════════════════════════
