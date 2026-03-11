@@ -17,7 +17,7 @@ import {
   swapConditionTags
 } from './book-mode.js';
 import { getPlatforms, buildPlatPicker, getSelectedPlats, sanitizePlatforms } from '../features/platforms.js';
-import { refreshImgSlots } from '../features/images.js';
+import { refreshImgSlots, getPendingAddImages, setPendingAddImages, clearPendingAddImages } from '../features/images.js';
 import { clearDimForm, getDimsFromForm } from '../features/dimensions.js';
 import { uploadImageToStorage } from '../data/storage.js';
 import { getSupabaseClient } from '../data/auth.js';
@@ -29,10 +29,9 @@ import { isEBayConnected } from '../features/ebay-auth.js';
 import { pushItemToEBay, publishEBayListing } from '../features/ebay-sync.js';
 import { generateForPlatform } from '../features/ai-listing.js';
 
-let pendingAddImages = [];
-
-/** Allow external code (e.g. identify) to seed the add-form image list */
-export function setPendingAddImages(imgs) { pendingAddImages = imgs; }
+// pendingAddImages is now managed in images.js (single source of truth)
+// setPendingAddImages, getPendingAddImages, clearPendingAddImages imported above
+export { setPendingAddImages } from '../features/images.js';
 
 // ── SMOKE EXPOSURE 3-POSITION SLIDER ─────────────────────────────────────────
 export function updateSmokeSlider(pfx) {
@@ -183,8 +182,8 @@ export function addFormTab(tab, btn) {
 export function openAddModal(){
   const ov = document.getElementById('addOv');
   ov.classList.add('on');
-  pendingAddImages = [];
-  refreshImgSlots('f', pendingAddImages);
+  clearPendingAddImages();
+  refreshImgSlots('f', getPendingAddImages());
   const bd = ov.querySelector('.modal-bd');
   if (bd) bd.scrollTop = 0;
   const modal = ov.querySelector('.modal');
@@ -205,7 +204,7 @@ export function closeAdd(){
   document.querySelectorAll('#f_cond_picker .cond-tag').forEach(b => b.classList.remove('active'));
   clearBookFields('f');
   swapConditionTags('f', false);
-  pendingAddImages=[];refreshImgSlots('f',[]);clearDimForm('f');buildPlatPicker('f_plat_picker',[]);prevProfit();loadSmokeSlider('f',null);loadCoverSlider('f',null);
+  clearPendingAddImages();refreshImgSlots('f',[]);clearDimForm('f');buildPlatPicker('f_plat_picker',[]);prevProfit();loadSmokeSlider('f',null);loadCoverSlider('f',null);
 }
 
 export function toggleBulkFields(pfx) {
@@ -321,7 +320,7 @@ export function addItem(){
   const selPlats=sanitizePlatforms(getSelectedPlats('f_plat_picker'));
   const platform=selPlats[0]||'';
   const newId = uid();
-  const imagesToUpload = pendingAddImages.slice();
+  const imagesToUpload = getPendingAddImages().slice();
   const smokeVal = getSmokeValue('f');
   const coverVal = getCoverValue('f');
   const subcatVal = (document.getElementById('f_subcat_txt').value||'').trim();

@@ -8,6 +8,11 @@ import { getCurrentUser } from '../data/auth.js';
 
 let pendingAddImages = [];
 
+// ── Single source of truth for add-form images ────────────────────────────
+export function getPendingAddImages() { return pendingAddImages; }
+export function setPendingAddImages(imgs) { pendingAddImages = imgs; }
+export function clearPendingAddImages() { pendingAddImages = []; }
+
 export function getItemImages(item) {
   if (item.images && item.images.length) return [...item.images];
   if (item.image) return [item.image];
