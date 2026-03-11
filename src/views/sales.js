@@ -260,6 +260,8 @@ export function recSale() {
   save();
   closeSold();
   refresh();
+  // Update dashboard stats if they're loaded (avoids stale revenue/sales count)
+  if (typeof window.updateDashStats === 'function') window.updateDashStats();
   _sfx.sale();
   showUndoToast('Item marked as sold');
   // Prompt for materials used if any supplies exist

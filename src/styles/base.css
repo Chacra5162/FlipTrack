@@ -9,8 +9,8 @@
   --accent2: #ff6b35;
   --accent3: #7b61ff;
   --text: #e8e8f0;
-  --muted: #7d7d95;
-  --muted2: #9090a8;
+  --muted: #a0a0b8;
+  --muted2: #b0b0c5;
   --danger: #ff4757;
   --warn: #ffb800;
   --good: #57ff9a;
@@ -139,8 +139,8 @@ body.font-dyslexic button {
   --accent2: #d45a20;
   --accent3: #5a40d9;
   --text: #1a1a2e;
-  --muted: #555568;
-  --muted2: #50506a;
+  --muted: #4a4a60;
+  --muted2: #444458;
   --danger: #d93545;
   --warn: #c89500;
   --good: #1a9955;

@@ -257,3 +257,6 @@ export function renderDash() {
     </tr>`;
   }).join('');
 }
+
+// Expose so other views can refresh stats after data changes (avoids circular imports)
+window.updateDashStats = updateStats;

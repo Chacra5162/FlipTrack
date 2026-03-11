@@ -7,8 +7,14 @@ export const pct = n => { const v = n*100; return (isFinite(v) ? v : 0).toFixed(
 // Unique ID generator
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 
-// Date string format
-export const ds = d => new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+// Date string format — local timezone aware (v2)
+const _dsRe = /^\d{4}-\d{2}-\d{2}$/;
+export const ds = d => {
+  if (!d) return '';
+  const s = String(d);
+  const parsed = _dsRe.test(s) ? new Date(s + 'T00:00:00') : new Date(s);
+  return isNaN(parsed) ? '' : parsed.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+};
 
 // Local date string (YYYY-MM-DD) — avoids UTC timezone shift from toISOString()
 export const localDate = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
