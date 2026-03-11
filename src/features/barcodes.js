@@ -3,7 +3,7 @@ import { inv, sel, platFilt, catFilt, subcatFilt, subsubcatFilt } from '../data/
 import { getPlatforms } from '../features/platforms.js';
 import { getItemImages } from '../features/images.js';
 import { toast } from '../utils/dom.js';
-import { escHtml } from '../utils/format.js';
+import { escHtml, escAttr } from '../utils/format.js';
 
 export function makeBarcodeValue(item) {
   // Use SKU if available, otherwise pad item id to look like a barcode
@@ -78,17 +78,17 @@ export function printStickers(selectedOnly, ids) {
       : '';
     const cats = [item.category, item.subcategory, item.subtype].filter(Boolean).join(' › ');
     return `
-      <div class="sticker" data-sku="${val}">
+      <div class="sticker" data-sku="${escAttr(val)}">
         ${imgHtml}
-        <div class="st-name">${item.name}</div>
-        ${cats ? `<div class="st-cat">${cats}</div>` : ''}
+        <div class="st-name">${escHtml(item.name)}</div>
+        ${cats ? `<div class="st-cat">${escHtml(cats)}</div>` : ''}
         <div class="st-meta">
-          <span class="st-platform">${getPlatforms(item).join(' · ')}</span>
+          <span class="st-platform">${getPlatforms(item).map(p => escHtml(p)).join(' · ')}</span>
           <span class="st-price">${price}</span>
         </div>
         <div class="st-bc-wrap">
-          <svg class="bc-svg" data-val="${val}"></svg>
-          <div class="st-sku">${val}</div>
+          <svg class="bc-svg" data-val="${escAttr(val)}"></svg>
+          <div class="st-sku">${escHtml(val)}</div>
         </div>
       </div>`;
   }).join('');

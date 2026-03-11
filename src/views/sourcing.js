@@ -6,7 +6,7 @@
 import { inv, sales, save, refresh, markDirty } from '../data/store.js';
 import { getMeta, setMeta } from '../data/idb.js';
 import { getCurrentUser, getSupabaseClient } from '../data/auth.js';
-import { fmt, ds, uid, escHtml, pct, localDate} from '../utils/format.js';
+import { fmt, ds, uid, escHtml, escAttr, pct, localDate} from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { renderPagination } from '../utils/pagination.js';
 import { getHaulROI, getHaulItems, splitCost, getSourceStats, getBestSources, getHaulSummary } from '../features/haul.js';
@@ -252,7 +252,8 @@ export function renderSourcingView() {
                 const isExpanded = _expandedHaulId === haul.id;
                 const roiColor = haulROI.roi >= 0.3 ? 'var(--good)' : haulROI.roi >= 0.1 ? 'var(--accent)' : haulROI.roi < 0 ? 'var(--danger)' : 'var(--muted)';
 
-                return `<div class="haul-card" style="border:1px solid var(--border);border-radius:6px;padding:10px;background:rgba(var(--surface-rgb),0.5);cursor:pointer" onclick="expandHaul('${haul.id}')">
+                const heid = escAttr(haul.id);
+                return `<div class="haul-card" style="border:1px solid var(--border);border-radius:6px;padding:10px;background:rgba(var(--surface-rgb),0.5);cursor:pointer" onclick="expandHaul('${heid}')">
                   <div style="display:grid;grid-template-columns:1fr auto;gap:8px;font-size:12px;font-family:'DM Mono',monospace">
                     <div>
                       <div style="font-weight:700;color:var(--text)">${escHtml(haul.location)}</div>
@@ -284,8 +285,8 @@ export function renderSourcingView() {
                           }).join('')}
                         </div>
                       ` : '<div style="color:var(--muted);font-size:11px;padding:8px">No items linked yet</div>'}
-                      <button class="btn-secondary" onclick="linkItemsToHaul('${haul.id}')" style="padding:6px 10px;margin-right:6px;font-size:11px;font-family:'Syne',sans-serif">Link Items</button>
-                      <button class="btn-danger" onclick="deleteHaul('${haul.id}')" style="padding:6px 10px;font-size:11px;font-family:'Syne',sans-serif">Delete</button>
+                      <button class="btn-secondary" onclick="linkItemsToHaul('${heid}')" style="padding:6px 10px;margin-right:6px;font-size:11px;font-family:'Syne',sans-serif">Link Items</button>
+                      <button class="btn-danger" onclick="deleteHaul('${heid}')" style="padding:6px 10px;font-size:11px;font-family:'Syne',sans-serif">Delete</button>
                     </div>
                   ` : ''}
                 </div>`;
@@ -514,7 +515,7 @@ export async function linkItemsToHaul(haulId) {
     </div>
 
     <div style="display:flex;gap:8px;margin-top:16px">
-      <button class="btn-primary" onclick="confirmLinkItems('${haulId}')" style="flex:1;padding:10px;font-family:'Syne',sans-serif">Link Selected</button>
+      <button class="btn-primary" onclick="confirmLinkItems('${escAttr(haulId)}')" style="flex:1;padding:10px;font-family:'Syne',sans-serif">Link Selected</button>
       <button class="btn-secondary" onclick="closeItemLinkModal()" style="flex:1;padding:10px;font-family:'Syne',sans-serif">Cancel</button>
     </div>
   `;

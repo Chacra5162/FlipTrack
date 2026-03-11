@@ -1,6 +1,6 @@
 // ── BATCH SCAN MODE ───────────────────────────────────────────────────────
 import { inv, save, refresh } from '../data/store.js';
-import { uid, escHtml, localDate} from '../utils/format.js';
+import { uid, escHtml, escAttr, localDate} from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
 import { autoSync } from '../data/sync.js';
@@ -343,22 +343,22 @@ export function renderBatchList() {
   empty.style.display = 'none';
 
   // Rebuild items
-  const html = _batchItems.map((item, idx) => `<div class="batch-item" data-batch-id="${item.id}">
+  const html = _batchItems.map((item, idx) => { const eid = escAttr(item.id); return `<div class="batch-item" data-batch-id="${eid}">
     <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;width:20px;text-align:center">${idx + 1}</div>
     <div class="batch-item-info">
-      <input class="batch-name-input" type="text" value="${escHtml(item.name)}" placeholder="Item name *"
-        oninput="_batchItems.find(i=>i.id==='${item.id}').name=this.value"
+      <input class="batch-name-input" type="text" value="${escAttr(item.name)}" placeholder="Item name *"
+        oninput="_batchItems.find(i=>i.id==='${eid}').name=this.value"
         style="background:none;border:none;border-bottom:1px solid var(--border);color:var(--text);font-size:12px;font-weight:600;width:100%;padding:3px 0;font-family:inherit">
-      <div class="batch-item-upc">${item.upc ? item.upc : 'No barcode'}${item.isExisting ? ' · <span style="color:var(--accent)">found in inventory</span>' : ''}</div>
+      <div class="batch-item-upc">${item.upc ? escHtml(item.upc) : 'No barcode'}${item.isExisting ? ' · <span style="color:var(--accent)">found in inventory</span>' : ''}</div>
     </div>
     <div class="batch-item-fields">
       <input type="number" placeholder="Cost" value="${item.cost || ''}" step="0.01"
-        oninput="_batchItems.find(i=>i.id==='${item.id}').cost=parseFloat(this.value)||0">
+        oninput="_batchItems.find(i=>i.id==='${eid}').cost=parseFloat(this.value)||0">
       <input type="number" placeholder="Price" value="${item.price || ''}" step="0.01"
-        oninput="_batchItems.find(i=>i.id==='${item.id}').price=parseFloat(this.value)||0">
+        oninput="_batchItems.find(i=>i.id==='${eid}').price=parseFloat(this.value)||0">
     </div>
-    <button class="batch-item-rm" onclick="batchRemoveItem('${item.id}')">×</button>
-  </div>`).join('');
+    <button class="batch-item-rm" onclick="batchRemoveItem('${eid}')">×</button>
+  </div>`; }).join('');
 
   // Keep empty hidden, replace items
   const existingItems = list.querySelectorAll('.batch-item');

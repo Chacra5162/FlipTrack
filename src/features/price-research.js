@@ -1,6 +1,6 @@
 // ── PRICE RESEARCH ───────────────────────────────────────────────────────────
 import { SB_URL } from '../config/constants.js';
-import { fmt, escHtml } from '../utils/format.js';
+import { fmt, escHtml, escAttr } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { getAccountId } from '../data/auth.js';
 
@@ -51,7 +51,7 @@ export async function lookupPrices() {
 
   const btn = document.getElementById('prLookupBtn');
   btn.disabled = true;
-  document.getElementById('prBody').innerHTML = `<div class="pr-status"><span class="pr-spinner">⟳</span>Looking up UPC ${upc}…</div>`;
+  document.getElementById('prBody').innerHTML = `<div class="pr-status"><span class="pr-spinner">⟳</span>Looking up UPC ${escHtml(upc)}…</div>`;
 
   try {
     // 1. Fetch product info from UPCitemdb (free, no key, CORS-enabled)
@@ -65,7 +65,7 @@ export async function lookupPrices() {
 
     renderPriceResults(upc, product);
   } catch(e) {
-    document.getElementById('prBody').innerHTML = `<div class="pr-status">⚠ Lookup failed: ${e.message}</div>`;
+    document.getElementById('prBody').innerHTML = `<div class="pr-status">⚠ Lookup failed: ${escHtml(e.message)}</div>`;
   } finally {
     btn.disabled = false;
   }
@@ -77,7 +77,7 @@ export async function lookupByKeyword() {
 
   const btn = document.getElementById('prKwBtn');
   btn.disabled = true;
-  document.getElementById('prBody').innerHTML = `<div class="pr-status"><span class="pr-spinner">⟳</span>Searching for "${query}"…</div>`;
+  document.getElementById('prBody').innerHTML = `<div class="pr-status"><span class="pr-spinner">⟳</span>Searching for "${escHtml(query)}"…</div>`;
 
   try {
     // Try UPCitemdb keyword search endpoint
@@ -91,7 +91,7 @@ export async function lookupByKeyword() {
 
     renderKeywordResults(query, results);
   } catch(e) {
-    document.getElementById('prBody').innerHTML = `<div class="pr-status">⚠ Search failed: ${e.message}</div>`;
+    document.getElementById('prBody').innerHTML = `<div class="pr-status">⚠ Search failed: ${escHtml(e.message)}</div>`;
   } finally {
     btn.disabled = false;
   }
@@ -111,14 +111,14 @@ export function renderKeywordResults(query, items) {
       const offers = item.offers || [];
       const lowestOffer = offers.length ? Math.min(...offers.map(o => o.price).filter(Boolean)) : null;
       const displayPrice = lowestOffer ?? low;
-      const upcLink = item.upc ? `<button class="pr-price-link" style="cursor:pointer;border:none;background:var(--surface2);padding:3px 8px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px" onclick="document.getElementById('prUpcInput').value='${item.upc}';prSwitchTab('upc');lookupPrices()">UPC lookup →</button>` : '';
+      const upcLink = item.upc ? `<button class="pr-price-link" style="cursor:pointer;border:none;background:var(--surface2);padding:3px 8px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px" onclick="document.getElementById('prUpcInput').value='${escAttr(item.upc)}';prSwitchTab('upc');lookupPrices()">UPC lookup →</button>` : '';
       return `<div class="pr-price-row" style="align-items:flex-start;gap:10px">
-        ${img ? `<img src="${img}" style="width:48px;height:48px;object-fit:contain;background:var(--surface2);border:1px solid var(--border);flex-shrink:0" onerror="this.style.display='none'">` : ''}
+        ${img ? `<img src="${escAttr(img)}" style="width:48px;height:48px;object-fit:contain;background:var(--surface2);border:1px solid var(--border);flex-shrink:0" onerror="this.style.display='none'">` : ''}
         <div style="flex:1;min-width:0">
-          <div class="pr-price-title" style="white-space:normal;line-height:1.3">${item.title || '—'}</div>
+          <div class="pr-price-title" style="white-space:normal;line-height:1.3">${escHtml(item.title || '—')}</div>
           <div class="pr-price-meta" style="margin-top:3px">
-            ${item.brand ? `<span>🏷 ${item.brand}</span> · ` : ''}
-            ${item.upc   ? `<span>UPC: ${item.upc}</span>` : ''}
+            ${item.brand ? `<span>🏷 ${escHtml(item.brand)}</span> · ` : ''}
+            ${item.upc   ? `<span>UPC: ${escHtml(item.upc)}</span>` : ''}
           </div>
           <div style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
             ${displayPrice ? `<span style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--accent)">${fmt(displayPrice)}</span>` : ''}

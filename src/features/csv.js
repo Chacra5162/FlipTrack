@@ -1,7 +1,7 @@
 // ── CSV IMPORT/EXPORT ───────────────────────────────────────────────────────────
 
 import { inv, sales, expenses, save, refresh } from '../data/store.js';
-import { fmt, pct, uid, localDate} from '../utils/format.js';
+import { fmt, pct, uid, escHtml, escAttr, localDate} from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
 import { getPlatforms } from './platforms.js';
@@ -253,7 +253,7 @@ function _showColumnMapper(headers, autoColMap, lines, parseRow, aliases) {
     }
     html += `<tr>
       <td style="font-weight:600;font-size:12px">${originalHeaders[col] || 'Column ' + (col+1)}</td>
-      <td style="font-size:11px;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${sample}">${sample || '—'}</td>
+      <td style="font-size:11px;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escAttr(sample)}">${escHtml(sample) || '—'}</td>
       <td><select class="csv-map-select" data-col="${col}">
         <option value="">— Skip —</option>
         ${fields.map(f => `<option value="${f}" ${mappedField === f ? 'selected' : ''}>${FIELD_LABELS[f]}</option>`).join('')}

@@ -8,6 +8,8 @@ import { SB_URL, SB_KEY } from '../config/constants.js';
 import { inv, sales, expenses, save, refresh } from './store.js';
 import { syncNow, autoSync, pullSupplies, startRealtime, stopRealtime, setSyncStatus, stopPoll } from './sync.js';
 import { setOfflineUser } from '../features/offline.js';
+import { stopEBaySyncInterval } from '../features/ebay-sync.js';
+import { stopEtsySyncInterval } from '../features/etsy-sync.js';
 
 // ── SUPABASE CLIENT & AUTH STATE ───────────────────────────────────────────
 let _sb = null;
@@ -146,6 +148,8 @@ export async function authForgotPassword() {
 export async function authSignOut() {
   closeAccountMenu();
   stopPoll();
+  stopEBaySyncInterval();
+  stopEtsySyncInterval();
   clearTimeout(_syncDebounce);
   _currentUser = null;
   await _sb.auth.signOut();
