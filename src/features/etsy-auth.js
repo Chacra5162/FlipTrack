@@ -87,6 +87,23 @@ async function callEdgeFn(action, body = {}) {
  * Updates local state + IDB cache.
  */
 export async function checkEtsyStatus() {
+  // Wait for auth session to be available (mobile may restore async)
+  if (_sb) {
+    let session = null;
+    for (let i = 0; i < 30; i++) {
+      try {
+        const resp = await _sb.auth.getSession();
+        session = resp?.data?.session;
+      } catch (_) {}
+      if (session) break;
+      await new Promise(r => setTimeout(r, 200));
+    }
+    if (!session) {
+      console.warn('Etsy status check: no auth session after waiting');
+      return { connected: _connected, error: 'No session' };
+    }
+  }
+
   try {
     const data = await callEdgeFn('status');
     _connected = data.connected;
@@ -100,6 +117,11 @@ export async function checkEtsyStatus() {
       shopId: _shopId,
       connectedAt: _connectedAt,
     });
+
+    // Always re-render to reflect server state
+    if (typeof window.renderCrosslistDashboard === 'function') {
+      window.renderCrosslistDashboard();
+    }
 
     return data;
   } catch (e) {

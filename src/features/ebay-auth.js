@@ -153,8 +153,26 @@ export async function checkEBayStatus() {
     }
   }
 
+  // Wait for auth session to be available (mobile may restore async)
+  let session = null;
+  for (let i = 0; i < 30; i++) {
+    try {
+      const resp = await _sb.auth.getSession();
+      session = resp?.data?.session;
+    } catch (_) {}
+    if (session) break;
+    await new Promise(r => setTimeout(r, 200));
+  }
+  if (!session) {
+    console.warn('eBay status check: no auth session after waiting');
+    _statusVerified = true;
+    if (typeof window.renderCrosslistDashboard === 'function') {
+      window.renderCrosslistDashboard();
+    }
+    return { connected: false, error: 'No session' };
+  }
+
   try {
-    const prevConnected = _connected;
     const data = await callEdgeFn('status');
     _connected = data.connected;
     _ebayUsername = data.ebay_username || null;
@@ -169,16 +187,15 @@ export async function checkEBayStatus() {
 
     _statusVerified = true;
 
-    // If connection state changed, refresh UI
-    if (prevConnected !== _connected && typeof window.renderCrosslistDashboard === 'function') {
+    // Always re-render — ensures UI reflects server state
+    if (typeof window.renderCrosslistDashboard === 'function') {
       window.renderCrosslistDashboard();
     }
 
     return data;
   } catch (e) {
     console.warn('eBay status check failed:', e.message);
-    _statusVerified = true; // mark verified even on error so UI doesn't loop
-    // Re-render UI to clear "Checking…" state
+    _statusVerified = true;
     if (typeof window.renderCrosslistDashboard === 'function') {
       window.renderCrosslistDashboard();
     }
