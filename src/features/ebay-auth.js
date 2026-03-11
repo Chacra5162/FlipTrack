@@ -50,6 +50,14 @@ export async function initEBayAuth(supabaseClient) {
     await checkEBayStatus();
   } catch (e) {
     console.warn('FlipTrack: eBay auth init error:', e.message);
+    // Auth session may not be ready yet (common on mobile).
+    // Retry once after a short delay to give Supabase time to restore the session.
+    setTimeout(async () => {
+      try {
+        _sb = getSupabaseClient() || _sb;
+        await checkEBayStatus();
+      } catch (_) { /* give up silently */ }
+    }, 3000);
   }
 }
 
@@ -184,6 +192,10 @@ export async function checkEBayStatus() {
  * Start eBay OAuth authorization flow.
  * Opens eBay consent page in a popup window.
  */
+function _isMobile() {
+  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth <= 820;
+}
+
 export async function connectEBay(sandbox = false) {
   _isSandbox = sandbox;
 
@@ -194,7 +206,14 @@ export async function connectEBay(sandbox = false) {
     // Store state for callback verification
     await setMeta('ebay_csrf_state', _csrfState);
 
-    // Open popup (centered on screen)
+    // On mobile, use full-page redirect instead of popup (popups are blocked)
+    if (_isMobile()) {
+      toast('Redirecting to eBay…');
+      window.location.href = data.authUrl;
+      return true;
+    }
+
+    // Desktop: open popup (centered on screen)
     const w = 700, h = 650;
     const left = Math.round((screen.width - w) / 2);
     const top = Math.round((screen.height - h) / 2);
@@ -205,8 +224,10 @@ export async function connectEBay(sandbox = false) {
     );
 
     if (!_authPopup) {
-      toast('Popup blocked — please allow popups for this site', true);
-      return false;
+      // Popup blocked even on desktop — fall back to redirect
+      toast('Redirecting to eBay…');
+      window.location.href = data.authUrl;
+      return true;
     }
 
     toast('Opening eBay authorization…');

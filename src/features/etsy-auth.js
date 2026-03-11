@@ -43,10 +43,14 @@ export async function initEtsyAuth(supabaseClient) {
       _connectedAt = cached.connectedAt || null;
     }
 
-    // Verify with server (non-blocking)
-    checkEtsyStatus().catch(e => console.warn('FlipTrack: Etsy status check failed:', e.message));
+    // Verify with server
+    await checkEtsyStatus();
   } catch (e) {
     console.warn('FlipTrack: Etsy auth init error:', e.message);
+    // Retry after delay in case auth session wasn't ready (common on mobile)
+    setTimeout(async () => {
+      try { await checkEtsyStatus(); } catch (_) {}
+    }, 3000);
   }
 }
 
@@ -110,6 +114,10 @@ export async function checkEtsyStatus() {
  * Start Etsy OAuth authorization flow.
  * Opens Etsy consent page in a popup window.
  */
+function _isMobile() {
+  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth <= 820;
+}
+
 export async function connectEtsy() {
   try {
     const data = await callEdgeFn('authorize');
@@ -118,7 +126,14 @@ export async function connectEtsy() {
     // Store state for callback verification
     await setMeta('etsy_csrf_state', _csrfState);
 
-    // Open popup (centered on screen)
+    // On mobile, use full-page redirect instead of popup (popups are blocked)
+    if (_isMobile()) {
+      toast('Redirecting to Etsy…');
+      window.location.href = data.authUrl;
+      return true;
+    }
+
+    // Desktop: open popup (centered on screen)
     const w = 700, h = 700;
     const left = Math.round((screen.width - w) / 2);
     const top = Math.round((screen.height - h) / 2);
@@ -129,8 +144,10 @@ export async function connectEtsy() {
     );
 
     if (!_authPopup) {
-      toast('Popup blocked — please allow popups for this site', true);
-      return false;
+      // Popup blocked even on desktop — fall back to redirect
+      toast('Redirecting to Etsy…');
+      window.location.href = data.authUrl;
+      return true;
     }
 
     toast('Opening Etsy authorization…');

@@ -1150,8 +1150,22 @@ setTimeout(_killSplash, 3000);
   // Initialize eBay OAuth + AI Listing (non-blocking)
   const _sbClient = (await import('./data/auth.js')).getSupabaseClient();
   if (_sbClient) {
-    initEBayAuth(_sbClient).then(() => {
+    initEBayAuth(_sbClient).then(async () => {
       if (isEBayConnected()) startEBaySyncInterval();
+      // Handle eBay OAuth redirect callback (mobile flow)
+      const urlParams = new URLSearchParams(window.location.search);
+      const ebayCode = urlParams.get('ebay_code');
+      if (ebayCode) {
+        const ebayState = urlParams.get('ebay_state');
+        // Clean URL params
+        const cleanUrl = new URL(window.location.href);
+        cleanUrl.searchParams.delete('ebay_code');
+        cleanUrl.searchParams.delete('ebay_state');
+        history.replaceState(null, '', cleanUrl.toString());
+        // Process callback
+        await handleEBayCallback(ebayCode, ebayState);
+        if (isEBayConnected()) startEBaySyncInterval();
+      }
     }).catch(e => { console.warn('eBay init:', e.message); if (typeof toast === 'function') toast('eBay connection failed — reconnect in Settings', true); });
     initEtsyAuth(_sbClient).then(async () => {
       const { getEtsyShopId } = await import('./features/etsy-auth.js');
@@ -1160,6 +1174,18 @@ setTimeout(_killSplash, 3000);
         syncEtsyExpenses().catch(e => console.warn('Etsy expense sync:', e.message));
       } else if (isEtsyConnected() && !getEtsyShopId()) {
         console.warn('Etsy connected but no shop ID cached — sync deferred until status verified.');
+      }
+      // Handle Etsy OAuth redirect callback (mobile flow)
+      const etsyParams = new URLSearchParams(window.location.search);
+      const etsyCode = etsyParams.get('etsy_code');
+      if (etsyCode) {
+        const etsyState = etsyParams.get('etsy_state');
+        const cleanUrl = new URL(window.location.href);
+        cleanUrl.searchParams.delete('etsy_code');
+        cleanUrl.searchParams.delete('etsy_state');
+        history.replaceState(null, '', cleanUrl.toString());
+        await handleEtsyCallback(etsyCode, etsyState);
+        if (isEtsyConnected() && getEtsyShopId()) startEtsySyncInterval();
       }
     }).catch(e => { console.warn('Etsy init:', e.message); if (typeof toast === 'function') toast('Etsy connection failed — reconnect in Settings', true); });
     initAIListing(_sbClient);

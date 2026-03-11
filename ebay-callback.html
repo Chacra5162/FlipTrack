@@ -84,7 +84,7 @@
     if (error) {
       showError(errorDesc || error || 'eBay authorization was denied or cancelled.');
     } else if (code) {
-      // Signal parent window
+      // Signal parent window (popup flow)
       if (window.opener && typeof window.opener.handleEBayCallback === 'function') {
         try {
           window.opener.handleEBayCallback(code, state);
@@ -94,7 +94,13 @@
           showError('Could not communicate with FlipTrack: ' + e.message);
         }
       } else {
-        showError('FlipTrack window not found. Please close this and try again from FlipTrack.');
+        // Redirect flow (mobile) — bounce back to main app with code
+        message.textContent = 'Redirecting back to FlipTrack…';
+        const returnUrl = new URL('app.html', window.location.origin);
+        returnUrl.searchParams.set('ebay_code', code);
+        if (state) returnUrl.searchParams.set('ebay_state', state);
+        returnUrl.hash = 'crosslist';
+        window.location.href = returnUrl.toString();
       }
     } else {
       showError('No authorization code received. Please try connecting again.');
