@@ -80,7 +80,7 @@ export function determinePlatformExpiry(platform, listedDate) {
   const d = new Date(listedDate);
   if (isNaN(d.getTime())) return null;
   d.setDate(d.getDate() + rule.days);
-  return d.toISOString().split('T')[0];
+  return localDate(d);
 }
 
 /**
@@ -303,7 +303,7 @@ export function initListingDates() {
     for (const p of plats) {
       if (!item.platformListingDates[p]) {
         // Use item.added or today as fallback
-        const fallback = item.added ? new Date(item.added).toISOString().split('T')[0]
+        const fallback = item.added ? localDate(new Date(item.added))
                                     : localDate();
         item.platformListingDates[p] = fallback;
         const expiry = determinePlatformExpiry(p, fallback);

@@ -4,7 +4,7 @@
  */
 
 import { inv, sales, expenses, getInvItem } from '../data/store.js';
-import { fmt, pct, ds } from '../utils/format.js';
+import { fmt, pct, ds, localDate } from '../utils/format.js';
 import { getPlatforms } from '../features/platforms.js';
 import { toast } from '../utils/dom.js';
 
@@ -213,7 +213,7 @@ export async function exportPLReport(dateFrom, dateTo) {
     addFooter(doc, 2);
   }
 
-  doc.save(`FlipTrack_PL_${from.toISOString().slice(0, 10)}_${to.toISOString().slice(0, 10)}.pdf`);
+  doc.save(`FlipTrack_PL_${localDate(from)}_${localDate(to)}.pdf`);
   toast('P&L report downloaded ✓');
 }
 

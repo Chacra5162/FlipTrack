@@ -56,7 +56,7 @@ export function startEtsySyncInterval() {
   if (_syncInterval) clearInterval(_syncInterval);
   _syncInterval = setInterval(() => {
     if (isEtsyConnected() && !_syncing) {
-      pullEtsyListings().catch(e => console.warn('Etsy sync error:', e.message));
+      pullEtsyListings().catch(e => { console.warn('Etsy sync error:', e.message); toast('Etsy sync failed — will retry', true); });
     }
   }, 300000); // 5 minutes
 }

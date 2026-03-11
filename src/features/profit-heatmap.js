@@ -5,7 +5,7 @@
  */
 
 import { sales, expenses, getInvItem } from '../data/store.js';
-import { fmt } from '../utils/format.js';
+import { fmt, localDate } from '../utils/format.js';
 
 /**
  * Build daily profit map for the last N days
@@ -116,7 +116,7 @@ export function renderProfitHeatmap() {
         continue;
       }
 
-      const key = cellDate.toISOString().slice(0, 10);
+      const key = localDate(cellDate);
       const val = profitMap[key] || 0;
       const color = profitColor(val, maxAbs);
       const title = `${key}: ${val >= 0 ? '+' : ''}${fmt(val)}`;

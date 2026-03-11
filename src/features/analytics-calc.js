@@ -3,7 +3,7 @@
  * Pure computation functions returning data objects (no DOM manipulation)
  */
 
-import { fmt, pct } from '../utils/format.js';
+import { fmt, pct, localDate } from '../utils/format.js';
 
 /**
  * Calculate sell-through rate: units sold ÷ units listed in time window
@@ -292,7 +292,7 @@ export function calcRevenueForecasts(sales, daysAhead = 30) {
 
   sales.forEach(sale => {
     const date = new Date(sale.sold_date);
-    const dayKey = date.toISOString().split('T')[0];
+    const dayKey = localDate(date);
 
     if (!dailyRevenue[dayKey]) {
       dailyRevenue[dayKey] = 0;

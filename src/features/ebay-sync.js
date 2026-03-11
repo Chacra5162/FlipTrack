@@ -66,7 +66,7 @@ export function startEBaySyncInterval() {
   if (_syncInterval) clearInterval(_syncInterval);
   _syncInterval = setInterval(() => {
     if (isEBayConnected() && !_syncing) {
-      pullEBayListings().catch(e => console.warn('eBay sync error:', e.message));
+      pullEBayListings().catch(e => { console.warn('eBay sync error:', e.message); toast('eBay sync failed — will retry', true); });
     }
   }, 300000); // 5 minutes
 }

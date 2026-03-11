@@ -1175,7 +1175,7 @@ setTimeout(_killSplash, 3000);
       const { getEtsyShopId } = await import('./features/etsy-auth.js');
       if (isEtsyConnected() && getEtsyShopId()) {
         startEtsySyncInterval();
-        syncEtsyExpenses().catch(e => console.warn('Etsy expense sync:', e.message));
+        syncEtsyExpenses().catch(e => { console.warn('Etsy expense sync:', e.message); toast('Etsy expense sync failed — try again later', true); });
       } else if (isEtsyConnected() && !getEtsyShopId()) {
         console.warn('Etsy connected but no shop ID cached — sync deferred until status verified.');
       }

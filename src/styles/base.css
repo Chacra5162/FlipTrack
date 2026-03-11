@@ -89,7 +89,7 @@ body::before {
   z-index: 0;
 }
 
-.shell { position: relative; z-index: 1; }
+.shell { position: relative; z-index: 1; overflow-x: hidden; max-width: 100vw; }
 
 /* Screen-reader only utility */
 .sr-only {

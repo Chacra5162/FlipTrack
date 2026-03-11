@@ -5,7 +5,7 @@
  */
 
 import { inv, sales, expenses, save, refresh, rebuildInvIndex } from '../data/store.js';
-import { uid } from '../utils/format.js';
+import { uid, localDate } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 
 const DEMO_ITEMS = [
@@ -32,7 +32,7 @@ const DEMO_ITEMS = [
 function daysAgo(d) {
   const dt = new Date();
   dt.setDate(dt.getDate() - d);
-  return dt.toISOString().slice(0, 10);
+  return localDate(dt);
 }
 
 function buildDemoItems() {
