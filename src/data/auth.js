@@ -236,11 +236,11 @@ async function _startSession(user) {
       console.warn('FlipTrack: tier init error:', tierErr.message);
     }
 
-    // Silently migrate any existing base64 images to Supabase Storage
-    // This would be handled by a separate migration module
+    // Re-render current view after sync pulls fresh data
+    if (typeof window.updateDashStats === 'function') window.updateDashStats();
+    if (typeof window.renderCurrentView === 'function') window.renderCurrentView();
   } catch(e) {
     setSyncStatus('error', e.message);
-    // Would call toast('Sync error: ' + e.message.slice(0, 60), true);
   } finally {
     _sessionStarting = false;
   }

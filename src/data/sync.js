@@ -214,7 +214,15 @@ export async function pullFromCloud() {
   if (!_sb || !_currentUser) return false;
 
   const accountId = _currentUser.id;
-  const lastPull = await getMeta('lastSyncPull').catch(() => null);
+  let lastPull = await getMeta('lastSyncPull').catch(() => null);
+
+  // Safety: if local data is empty but lastPull is set, force a full pull.
+  // This prevents a stale timestamp from causing delta queries to return 0 rows
+  // when the local IDB was cleared (e.g. cache wipe, new device, browser reset).
+  if (lastPull && inv.length === 0 && sales.length === 0) {
+    console.log('FlipTrack: local data empty with stale lastPull — forcing full pull');
+    lastPull = null;
+  }
 
   let query_inv = _sb.from('ft_inventory').select('id, data, updated_at').eq('account_id', accountId);
   let query_sales = _sb.from('ft_sales').select('id, data, updated_at').eq('account_id', accountId);
