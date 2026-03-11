@@ -565,6 +565,150 @@ export function cropAutoEnhance() {
 }
 
 /**
+ * Remove background — detects the dominant edge colour and flood-fills
+ * it out, then places the subject on a clean white background.
+ * Works well for typical product photos on solid / near-solid backgrounds.
+ */
+export function cropRemoveBg() {
+  const { img, scale } = _crop;
+  if (!img) return;
+  toast('Removing background…');
+
+  const rect = _crop.rect || { x: 0, y: 0, w: img.width * scale, h: img.height * scale };
+  const sx = rect.x / scale, sy = rect.y / scale;
+  const sw = rect.w / scale, sh = rect.h / scale;
+
+  const out = document.createElement('canvas');
+  const W = Math.round(sw), H = Math.round(sh);
+  out.width = W; out.height = H;
+  const c = out.getContext('2d');
+  c.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+
+  const imgData = c.getImageData(0, 0, W, H);
+  const d = imgData.data;
+
+  // 1. Sample edge pixels to find dominant background colour
+  const edgeSamples = [];
+  const step = Math.max(1, Math.floor(Math.min(W, H) / 80));
+  for (let x = 0; x < W; x += step) {
+    edgeSamples.push([d[(x) * 4], d[(x) * 4 + 1], d[(x) * 4 + 2]]);                             // top row
+    const bi = ((H - 1) * W + x) * 4;
+    edgeSamples.push([d[bi], d[bi + 1], d[bi + 2]]);                                              // bottom row
+  }
+  for (let y = 0; y < H; y += step) {
+    const li = (y * W) * 4;
+    edgeSamples.push([d[li], d[li + 1], d[li + 2]]);                                              // left col
+    const ri = (y * W + W - 1) * 4;
+    edgeSamples.push([d[ri], d[ri + 1], d[ri + 2]]);                                              // right col
+  }
+
+  // Median of edge samples as background reference
+  const median = c => { const s = c.slice().sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; };
+  const bgR = median(edgeSamples.map(s => s[0]));
+  const bgG = median(edgeSamples.map(s => s[1]));
+  const bgB = median(edgeSamples.map(s => s[2]));
+
+  // 2. Flood-fill from all edges — mark pixels as "background"
+  const TOLERANCE = 42;  // colour distance threshold
+  const mask = new Uint8Array(W * H);  // 0 = unknown, 1 = background, 2 = foreground
+  const queue = [];
+
+  const colorDist = (i) => {
+    const dr = d[i] - bgR, dg = d[i + 1] - bgG, db = d[i + 2] - bgB;
+    return Math.sqrt(dr * dr + dg * dg + db * db);
+  };
+
+  // Seed edges
+  for (let x = 0; x < W; x++) {
+    if (colorDist(x * 4) < TOLERANCE) { mask[x] = 1; queue.push(x); }
+    const bi = (H - 1) * W + x;
+    if (colorDist(bi * 4) < TOLERANCE) { mask[bi] = 1; queue.push(bi); }
+  }
+  for (let y = 1; y < H - 1; y++) {
+    const li = y * W;
+    if (colorDist(li * 4) < TOLERANCE) { mask[li] = 1; queue.push(li); }
+    const ri = y * W + W - 1;
+    if (colorDist(ri * 4) < TOLERANCE) { mask[ri] = 1; queue.push(ri); }
+  }
+
+  // BFS flood fill
+  let head = 0;
+  while (head < queue.length) {
+    const idx = queue[head++];
+    const x = idx % W, y = (idx - x) / W;
+    const neighbors = [];
+    if (x > 0) neighbors.push(idx - 1);
+    if (x < W - 1) neighbors.push(idx + 1);
+    if (y > 0) neighbors.push(idx - W);
+    if (y < H - 1) neighbors.push(idx + W);
+    for (const n of neighbors) {
+      if (mask[n] !== 0) continue;
+      if (colorDist(n * 4) < TOLERANCE) {
+        mask[n] = 1;
+        queue.push(n);
+      }
+    }
+  }
+
+  // 3. Soften mask edges — blend border pixels
+  const soft = new Float32Array(W * H);
+  for (let i = 0; i < mask.length; i++) soft[i] = mask[i] === 1 ? 0.0 : 1.0;
+
+  // 2-pass box blur on the alpha mask for smooth edges
+  const blurR = 2;
+  const tmp = new Float32Array(W * H);
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      let sum = 0, cnt = 0;
+      for (let dx = -blurR; dx <= blurR; dx++) {
+        const nx = x + dx;
+        if (nx >= 0 && nx < W) { sum += soft[y * W + nx]; cnt++; }
+      }
+      tmp[y * W + x] = sum / cnt;
+    }
+  }
+  for (let x = 0; x < W; x++) {
+    for (let y = 0; y < H; y++) {
+      let sum = 0, cnt = 0;
+      for (let dy = -blurR; dy <= blurR; dy++) {
+        const ny = y + dy;
+        if (ny >= 0 && ny < H) { sum += tmp[ny * W + x]; cnt++; }
+      }
+      soft[y * W + x] = sum / cnt;
+    }
+  }
+
+  // 4. Composite onto white background using softened alpha
+  for (let i = 0; i < W * H; i++) {
+    const a = Math.min(1, Math.max(0, soft[i]));
+    const pi = i * 4;
+    d[pi]     = Math.round(d[pi]     * a + 255 * (1 - a));
+    d[pi + 1] = Math.round(d[pi + 1] * a + 255 * (1 - a));
+    d[pi + 2] = Math.round(d[pi + 2] * a + 255 * (1 - a));
+    d[pi + 3] = 255;
+  }
+  c.putImageData(imgData, 0, 0);
+
+  // Reload into crop modal
+  const newDataUrl = out.toDataURL('image/jpeg', 0.92);
+  const newImg = new Image();
+  newImg.onload = () => {
+    _crop.img = newImg;
+    const canvas = document.getElementById('cropCanvas');
+    const maxW = Math.min(window.innerWidth * 0.9, 520);
+    const maxH = window.innerHeight * 0.55;
+    const newScale = Math.min(maxW / newImg.width, maxH / newImg.height, 1);
+    canvas.width = Math.round(newImg.width * newScale);
+    canvas.height = Math.round(newImg.height * newScale);
+    _crop.scale = newScale;
+    _crop.rect = { x: 0, y: 0, w: canvas.width, h: canvas.height };
+    cropDraw();
+    toast('Background removed ✓');
+  };
+  newImg.src = newDataUrl;
+}
+
+/**
  * Rotate image 90° clockwise.
  */
 export function cropRotate() {

@@ -314,6 +314,7 @@ const cropCancel = _lw(lazyImages, 'cropCancel');
 const cropReset = _lw(lazyImages, 'cropReset');
 const cropSetAspect = _lw(lazyImages, 'cropSetAspect');
 const cropWhiteBg = _lw(lazyImages, 'cropWhiteBg');
+const cropRemoveBg = _lw(lazyImages, 'cropRemoveBg');
 const cropAutoEnhance = _lw(lazyImages, 'cropAutoEnhance');
 const cropRotate = _lw(lazyImages, 'cropRotate');
 
@@ -459,7 +460,7 @@ Object.assign(window, {
   imgDragOver, imgDragLeave, imgDrop,
   openLightbox, openLightboxUrl, closeLightbox, lightboxPrev, lightboxNext,
   openCropModal, cropDraw, cropConfirm, cropCancel, cropReset, cropSetAspect,
-  cropWhiteBg, cropAutoEnhance, cropRotate,
+  cropWhiteBg, cropRemoveBg, cropAutoEnhance, cropRotate,
   renderAddFormImages, renderDrawerImg
 });
 
