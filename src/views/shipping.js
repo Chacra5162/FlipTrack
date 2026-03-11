@@ -5,7 +5,7 @@
  */
 
 import { inv, sales, save, refresh, getInvItem, markDirty } from '../data/store.js';
-import { fmt, ds, uid, escHtml, localDate} from '../utils/format.js';
+import { fmt, ds, uid, escHtml, escAttr, localDate} from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { renderPagination } from '../utils/pagination.js';
 import { getMeta, setMeta } from '../data/idb.js';
@@ -498,8 +498,8 @@ export async function renderShippingView() {
                       </span>
                     </td>
                     <td style="padding:10px;text-align:center;font-size:10px;display:flex;gap:6px;justify-content:center">
-                      ${!s.shipped ? `<button onclick="shipMarkShipped('${s.id}')" class="act-btn" style="padding:4px 8px">Mark</button>` : ''}
-                      <button onclick="shipPrintSlip('${s.id}')" class="act-btn" style="padding:4px 8px">Slip</button>
+                      ${!s.shipped ? `<button onclick="shipMarkShipped('${escAttr(s.id)}')" class="act-btn" style="padding:4px 8px">Mark</button>` : ''}
+                      <button onclick="shipPrintSlip('${escAttr(s.id)}')" class="act-btn" style="padding:4px 8px">Slip</button>
                       ${s.trackingNumber ? `<a href="https://tools.usps.com/go/TrackConfirmAction_input?tLabels=${encodeURIComponent(s.trackingNumber)}" target="_blank" class="act-btn" style="padding:4px 8px;text-decoration:none">Track</a>` : ''}
                     </td>
                   </tr>

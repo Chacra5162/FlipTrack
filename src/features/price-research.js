@@ -1,7 +1,7 @@
 // ── PRICE RESEARCH ───────────────────────────────────────────────────────────
 import { SB_URL } from '../config/constants.js';
 import { fmt, escHtml, escAttr } from '../utils/format.js';
-import { toast } from '../utils/dom.js';
+import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
 import { getAccountId } from '../data/auth.js';
 
 export function openPriceResearch(prefillUpc) {
@@ -21,9 +21,11 @@ export function openPriceResearch(prefillUpc) {
       : document.getElementById('prKwInput');
     active.focus();
   }, 200);
+  setTimeout(() => trapFocus('#prOv'), 250);
 }
 
 export function closePriceResearch() {
+  releaseFocus();
   document.getElementById('prOv').classList.remove('on');
 }
 
@@ -113,7 +115,7 @@ export function renderKeywordResults(query, items) {
       const displayPrice = lowestOffer ?? low;
       const upcLink = item.upc ? `<button class="pr-price-link" style="cursor:pointer;border:none;background:var(--surface2);padding:3px 8px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px" onclick="document.getElementById('prUpcInput').value='${escAttr(item.upc)}';prSwitchTab('upc');lookupPrices()">UPC lookup →</button>` : '';
       return `<div class="pr-price-row" style="align-items:flex-start;gap:10px">
-        ${img ? `<img src="${escAttr(img)}" style="width:48px;height:48px;object-fit:contain;background:var(--surface2);border:1px solid var(--border);flex-shrink:0" onerror="this.style.display='none'">` : ''}
+        ${img ? `<img src="${escAttr(img)}" alt="${escAttr(item.title || 'Product image')}" style="width:48px;height:48px;object-fit:contain;background:var(--surface2);border:1px solid var(--border);flex-shrink:0" onerror="this.style.display='none'">` : ''}
         <div style="flex:1;min-width:0">
           <div class="pr-price-title" style="white-space:normal;line-height:1.3">${escHtml(item.title || '—')}</div>
           <div class="pr-price-meta" style="margin-top:3px">

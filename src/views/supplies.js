@@ -1,6 +1,6 @@
 // ── SUPPLIES ──────────────────────────────────────────────────────────────────
 import { supplies } from '../data/store.js';
-import { uid, fmt } from '../utils/format.js';
+import { uid, fmt, escAttr } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { getSupabaseClient } from '../data/auth.js';
 import { getCurrentUser } from '../data/auth.js';
@@ -106,16 +106,16 @@ function renderSupplies() {
       <td><span class="cat-tag">${s.category||'Other'}</span></td>
       <td style="${qtyColor}">
         <div style="display:flex;align-items:center;gap:6px">
-          <button onclick="updateSupplyQty('${s.id}',-1)" style="background:var(--surface3);border:1px solid var(--border);color:var(--text);width:22px;height:22px;cursor:pointer;font-size:14px;line-height:1;padding:0">−</button>
-          <input type="number" value="${s.qty}" min="0" onchange="setSupplyQty('${s.id}',this.value)"
+          <button onclick="updateSupplyQty('${escAttr(s.id)}',-1)" style="background:var(--surface3);border:1px solid var(--border);color:var(--text);width:22px;height:22px;cursor:pointer;font-size:14px;line-height:1;padding:0">−</button>
+          <input type="number" value="${s.qty}" min="0" onchange="setSupplyQty('${escAttr(s.id)}',this.value)"
             style="width:52px;text-align:center;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;padding:3px 4px">
-          <button onclick="updateSupplyQty('${s.id}',1)" style="background:var(--surface3);border:1px solid var(--border);color:var(--text);width:22px;height:22px;cursor:pointer;font-size:14px;line-height:1;padding:0">+</button>
+          <button onclick="updateSupplyQty('${escAttr(s.id)}',1)" style="background:var(--surface3);border:1px solid var(--border);color:var(--text);width:22px;height:22px;cursor:pointer;font-size:14px;line-height:1;padding:0">+</button>
         </div>
       </td>
       <td style="color:var(--muted);font-size:12px">${s.cost ? fmt(s.cost) : '—'}</td>
       <td style="color:var(--muted);font-size:12px">${s.alert || 5}</td>
       <td style="color:var(--muted);font-size:11px">${s.notes||'—'}</td>
-      <td style="text-align:right"><button class="btn-danger" style="font-size:11px;padding:4px 10px" onclick="delSupply('${s.id}')">Remove</button></td>
+      <td style="text-align:right"><button class="btn-danger" style="font-size:11px;padding:4px 10px" onclick="delSupply('${escAttr(s.id)}')">Remove</button></td>
     </tr>`;
   }).join('');
 }

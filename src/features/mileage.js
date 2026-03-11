@@ -4,7 +4,7 @@
  * Supports IRS standard mileage rate deductions
  */
 
-import { uid, ds, fmt, escHtml } from '../utils/format.js';
+import { uid, ds, fmt, escHtml, escAttr } from '../utils/format.js';
 import { getMeta, setMeta } from '../data/idb.js';
 import { toast } from '../utils/dom.js';
 
@@ -145,7 +145,7 @@ export function renderMileageSection() {
         <td style="padding:8px;font-size:12px;color:var(--text)">${escHtml(e.purpose)}</td>
         <td style="padding:8px;font-size:12px;color:var(--muted)">${e.startLocation ? escHtml(e.startLocation) : '—'}</td>
         <td style="padding:8px;font-size:11px;text-align:center">
-          <button onclick="mileDeleteEntry('${e.id}')" style="padding:4px 8px;background:var(--danger);color:white;border:none;border-radius:3px;cursor:pointer;font-size:10px;font-family:Syne,sans-serif">Delete</button>
+          <button onclick="mileDeleteEntry('${escAttr(e.id)}')" style="padding:4px 8px;background:var(--danger);color:white;border:none;border-radius:3px;cursor:pointer;font-size:10px;font-family:Syne,sans-serif">Delete</button>
         </td>
       </tr>
     `)

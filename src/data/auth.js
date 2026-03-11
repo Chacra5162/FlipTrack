@@ -5,8 +5,9 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { SB_URL, SB_KEY } from '../config/constants.js';
-import { inv, sales, expenses, save, refresh } from './store.js';
-import { syncNow, autoSync, pullSupplies, startRealtime, stopRealtime, setSyncStatus, stopPoll } from './sync.js';
+import { inv, sales, expenses, save, refresh, clearStoreTimers } from './store.js';
+import { syncNow, autoSync, pullSupplies, startRealtime, stopRealtime, setSyncStatus, stopPoll, clearSyncTimers } from './sync.js';
+import { deleteMeta } from './idb.js';
 import { setOfflineUser } from '../features/offline.js';
 import { stopEBaySyncInterval } from '../features/ebay-sync.js';
 import { stopEtsySyncInterval } from '../features/etsy-sync.js';
@@ -147,20 +148,40 @@ export async function authForgotPassword() {
 
 export async function authSignOut() {
   closeAccountMenu();
-  stopPoll();
+
+  // ── STOP ALL SYNC AND POLLING ──────────────────────────────────────────
+  stopPoll();                       // Stop realtime subscriptions & fallback polling
+  clearSyncTimers();                // Clear sync debounces and timers
+  clearStoreTimers();               // Clear save debounces
+  clearTimeout(_syncDebounce);      // Extra safeguard for auth's local debounce
+
+  // ── STOP MARKETPLACE SYNC INTERVALS ────────────────────────────────────
   stopEBaySyncInterval();
   stopEtsySyncInterval();
-  clearTimeout(_syncDebounce);
+
   _currentUser = null;
   await _sb.auth.signOut();
 
+  // ── CLEAR ALL LOCAL DATA ──────────────────────────────────────────────
   inv.length = 0;
   sales.length = 0;
   expenses.length = 0;
 
+  // ── CLEAR ALL CACHE AND SESSION DATA FROM STORAGE ─────────────────────
   localStorage.removeItem('ft3_inv');
   localStorage.removeItem('ft3_sal');
   localStorage.removeItem('ft3_exp');
+  localStorage.removeItem('ft_trash');
+  localStorage.removeItem('ft_supplies');
+  // Also clear eBay/Etsy tokens and sync metadata if present
+  localStorage.removeItem('ebay_token');
+  localStorage.removeItem('etsy_token');
+  localStorage.removeItem('ebay_sync_cache');
+  localStorage.removeItem('etsy_sync_cache');
+
+  // ── CLEAR SYNC METADATA FROM INDEXEDDB ────────────────────────────────
+  await deleteMeta('lastSyncPush').catch(e => console.warn('FlipTrack: delete lastSyncPush failed:', e.message));
+  await deleteMeta('lastSyncPull').catch(e => console.warn('FlipTrack: delete lastSyncPull failed:', e.message));
 
   refresh();
   setSyncStatus('disconnected');

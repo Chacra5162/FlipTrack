@@ -4,7 +4,7 @@
 // Other modals: book-mode functions, trash functions
 
 import { SUBCATS, SUBSUBCATS } from '../config/categories.js';
-import { fmt, pct, ds, escHtml, uid } from '../utils/format.js';
+import { fmt, pct, ds, escHtml, escAttr, uid } from '../utils/format.js';
 import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
 import { parseNum, validateNumericInput } from '../utils/validate.js';
@@ -285,9 +285,9 @@ export function renderListingStatus(item) {
       <div class="ls-badge-bottom">
         ${listedLabel}
         <div class="ls-badge-actions">
-          ${isExpiredOrDelisted ? `<button class="btn-xs btn-accent" onclick="clRelistFromDrawer('${item.id}','${escHtml(p)}')">Relist</button>` : ''}
-          <button class="btn-xs" onclick="clOpenLink('${escHtml(p)}','${item.id}')" title="Open on ${escHtml(p)}">↗</button>
-          <button class="btn-xs" onclick="clCopyListing('${item.id}')" title="Copy listing text">📋</button>
+          ${isExpiredOrDelisted ? `<button class="btn-xs btn-accent" onclick="clRelistFromDrawer('${escAttr(item.id)}','${escAttr(p)}')">Relist</button>` : ''}
+          <button class="btn-xs" onclick="clOpenLink('${escAttr(p)}','${escAttr(item.id)}')" title="Open on ${escHtml(p)}">↗</button>
+          <button class="btn-xs" onclick="clCopyListing('${escAttr(item.id)}')" title="Copy listing text">📋</button>
         </div>
       </div>
     </div>`;

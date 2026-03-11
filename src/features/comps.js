@@ -176,7 +176,7 @@ export function renderCompsPanel(result) {
 
   const listHtml = result.comps.slice(0, 8).map(c => `
     <div class="comps-item">
-      ${c.imageUrl ? `<img src="${escHtml(c.imageUrl)}" class="comps-thumb" alt="" loading="lazy">` : '<div class="comps-thumb comps-thumb-empty">📦</div>'}
+      ${c.imageUrl ? `<img src="${escHtml(c.imageUrl)}" class="comps-thumb" alt="${escHtml(c.title)}" loading="lazy">` : '<div class="comps-thumb comps-thumb-empty" role="img" aria-label="No product image available">📦</div>'}
       <div class="comps-item-info">
         <div class="comps-item-title">${escHtml(c.title.slice(0, 60))}</div>
         <div class="comps-item-meta">${escHtml(c.condition)} · ${c.sold}${c.date ? ` · ${ds(c.date)}` : ''}</div>

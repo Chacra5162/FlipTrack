@@ -5,7 +5,7 @@
  */
 
 import { inv, sales, getInvItem } from '../data/store.js';
-import { fmt, pct, ds, escHtml } from '../utils/format.js';
+import { fmt, pct, ds, escHtml, escAttr } from '../utils/format.js';
 import { getPlatforms } from './platforms.js';
 import { PLATFORM_FEES } from '../config/platforms.js';
 
@@ -203,7 +203,7 @@ export function renderInventoryValueDashboard() {
   for (const item of data.topItems) {
     const value = (item.price || 0) * (item.qty || 1);
     html += `
-      <div class="iv-item-row" onclick="openDrawer('${item.id}')">
+      <div class="iv-item-row" onclick="openDrawer('${escAttr(item.id)}')">
         <span class="iv-item-name">${escHtml((item.name || 'Item').slice(0, 40))}</span>
         <span class="iv-item-qty">×${item.qty || 1}</span>
         <span class="iv-item-val">${fmt(value)}</span>
@@ -221,7 +221,7 @@ export function renderInventoryValueDashboard() {
     for (const item of data.slowMovers) {
       const daysOld = Math.floor((Date.now() - new Date(item.added || Date.now()).getTime()) / 86400000);
       html += `
-        <div class="iv-item-row iv-slow" onclick="openDrawer('${item.id}')">
+        <div class="iv-item-row iv-slow" onclick="openDrawer('${escAttr(item.id)}')">
           <span class="iv-item-name">${escHtml((item.name || 'Item').slice(0, 40))}</span>
           <span class="iv-item-days">${daysOld}d old</span>
           <span class="iv-item-val">${fmt((item.price || 0) * (item.qty || 1))}</span>

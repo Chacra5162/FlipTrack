@@ -6,7 +6,7 @@
  */
 
 import { inv, getInvItem } from '../data/store.js';
-import { fmt, ds, uid, escHtml } from '../utils/format.js';
+import { fmt, ds, uid, escHtml, escAttr } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { getMeta, setMeta } from '../data/idb.js';
 
@@ -164,9 +164,9 @@ export function renderOffersPanel() {
                   </div>
                   ${o.notes ? `<div style="font-size:10px;color:var(--muted);margin-bottom:6px;font-style:italic">${escHtml(o.notes)}</div>` : ''}
                   <div style="display:flex;gap:6px">
-                    <button onclick="offerAccept('${o.id}')" class="btn-primary" style="flex:1;height:28px;font-size:10px">Accept</button>
-                    <button onclick="offerCounter('${o.id}')" class="btn-secondary" style="flex:1;height:28px;font-size:10px">Counter</button>
-                    <button onclick="offerReject('${o.id}')" class="btn-danger" style="flex:1;height:28px;font-size:10px">Reject</button>
+                    <button onclick="offerAccept('${escAttr(o.id)}')" class="btn-primary" style="flex:1;height:28px;font-size:10px">Accept</button>
+                    <button onclick="offerCounter('${escAttr(o.id)}')" class="btn-secondary" style="flex:1;height:28px;font-size:10px">Counter</button>
+                    <button onclick="offerReject('${escAttr(o.id)}')" class="btn-danger" style="flex:1;height:28px;font-size:10px">Reject</button>
                   </div>
                 </div>
               `;
@@ -191,7 +191,7 @@ export function offerAdd(itemId) {
         <input id="offer_amount" type="number" placeholder="Offer Amount" step="0.01" class="fgrp" style="grid-column:1/-1">
         <input id="offer_buyer" placeholder="Buyer Handle" class="fgrp" style="grid-column:1/-1">
         <textarea id="offer_notes" placeholder="Notes (optional)" class="fgrp" style="grid-column:1/-1;height:60px;resize:none"></textarea>
-        <button onclick="offerAddConfirm('${itemId}')" class="btn-primary" style="grid-column:1/-1;height:36px">Add Offer</button>
+        <button onclick="offerAddConfirm('${escAttr(itemId)}')" class="btn-primary" style="grid-column:1/-1;height:36px">Add Offer</button>
         <button onclick="this.closest('.panel').remove()" class="btn-secondary" style="grid-column:1/-1;height:36px">Cancel</button>
       </div>
     </div>

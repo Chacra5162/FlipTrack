@@ -7,7 +7,7 @@
 
 import { inv, save, markDirty, getInvItem } from '../data/store.js';
 import { toast } from '../utils/dom.js';
-import { escHtml } from '../utils/format.js';
+import { escHtml, escAttr } from '../utils/format.js';
 import { getMeta, setMeta } from '../data/idb.js';
 
 // ── SETTINGS ─────────────────────────────────────────────────────────────
@@ -367,16 +367,16 @@ export function renderPhotoToolsPanel(imgSrc, itemId) {
         <img src="${escHtml(imgSrc)}" id="ptPreview" class="pt-img" alt="Preview">
       </div>
       <div class="pt-tools">
-        <button class="pt-btn" onclick="ptRemoveBg('${escHtml(itemId)}')" title="Remove background">
+        <button class="pt-btn" onclick="ptRemoveBg('${escAttr(itemId)}')" title="Remove background">
           🪄 Remove BG
         </button>
-        <button class="pt-btn" onclick="ptAutoCrop('${escHtml(itemId)}')" title="Auto-crop whitespace">
+        <button class="pt-btn" onclick="ptAutoCrop('${escAttr(itemId)}')" title="Auto-crop whitespace">
           ✂️ Auto-Crop
         </button>
-        <button class="pt-btn" onclick="ptWatermark('${escHtml(itemId)}')" title="Add watermark">
+        <button class="pt-btn" onclick="ptWatermark('${escAttr(itemId)}')" title="Add watermark">
           💧 Watermark
         </button>
-        <button class="pt-btn" onclick="ptSquare('${escHtml(itemId)}')" title="Square pad for marketplace">
+        <button class="pt-btn" onclick="ptSquare('${escAttr(itemId)}')" title="Square pad for marketplace">
           ⬜ Square Pad
         </button>
       </div>
@@ -384,7 +384,7 @@ export function renderPhotoToolsPanel(imgSrc, itemId) {
         <label class="pt-slider-row">
           <span>Brightness</span>
           <input type="range" min="-50" max="50" value="0" id="ptBrightness"
-            oninput="ptAdjustPreview('${escHtml(itemId)}')">
+            oninput="ptAdjustPreview('${escAttr(itemId)}')">
         </label>
         <label class="pt-slider-row">
           <span>Contrast</span>

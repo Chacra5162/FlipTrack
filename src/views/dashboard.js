@@ -1,5 +1,5 @@
 import { inv, sales, getInvItem, calc, sc, margCls, mkc, save, refresh, markDirty } from '../data/store.js';
-import { fmt, pct, ds, escHtml, localDate} from '../utils/format.js';
+import { fmt, pct, ds, escHtml, escAttr, localDate} from '../utils/format.js';
 import { getPlatforms, renderPlatTags } from '../features/platforms.js';
 import { toast } from '../utils/dom.js';
 import { openDrawer } from '../modals/drawer.js';
@@ -149,11 +149,11 @@ export function renderDeathPile() {
     ${shown.map(dp => `<div class="death-pile-item">
       <div style="font-size:16px;margin-right:4px">${dp.urgency.icon}</div>
       <div class="dp-info">
-        <div class="dp-name" onclick="openDrawer('${dp.item.id}')">${escHtml(dp.item.name)}</div>
+        <div class="dp-name" onclick="openDrawer('${escAttr(dp.item.id)}')">${escHtml(dp.item.name)}</div>
         <div class="dp-meta">${escHtml(dp.reason)} · ${escHtml(dp.suggestedAction)}</div>
       </div>
       <div class="dp-age" style="color:${dp.urgency.color}">${dp.daysStale}d</div>
-      <button class="dp-list-btn" onclick="openDrawer('${dp.item.id}')">Fix →</button>
+      <button class="dp-list-btn" onclick="openDrawer('${escAttr(dp.item.id)}')">Fix →</button>
     </div>`).join('')}
     ${more > 0 ? `<div style="font-size:10px;color:var(--muted);margin-top:6px;font-family:'DM Mono',monospace">+ ${more} more stale items</div>` : ''}
   </div>`;
@@ -200,12 +200,12 @@ export function renderPriceAlerts() {
     </div>
     ${shown.map(s => `<div class="price-alert-item">
       <div class="price-alert-info">
-        <div class="price-alert-name" onclick="openDrawer('${s.item.id}')">${escHtml(s.item.name)}</div>
+        <div class="price-alert-name" onclick="openDrawer('${escAttr(s.item.id)}')">${escHtml(s.item.name)}</div>
         <div class="price-alert-meta">${tierLabel(s.days)} · listed ${s.days}d · ${fmt(s.item.price)} current</div>
       </div>
       <div class="price-alert-action">
         <div class="price-alert-suggest">${fmt(s.suggested)}</div>
-        <button class="price-alert-btn" onclick="quickReprice('${s.item.id}',${s.suggested})">Apply ${Math.round(s.dropPct*100)}% off</button>
+        <button class="price-alert-btn" onclick="quickReprice('${escAttr(s.item.id)}',${s.suggested})">Apply ${Math.round(s.dropPct*100)}% off</button>
       </div>
     </div>`).join('')}
     ${more > 0 ? `<div style="font-size:10px;color:var(--muted);margin-top:6px;font-family:'DM Mono',monospace">+ ${more} more stale items — check Insights for full list</div>` : ''}
@@ -249,7 +249,7 @@ export function renderDash() {
   if(!items.length){tbody.innerHTML='<tr><td colspan="4" style="padding:20px;color:var(--muted);font-size:12px;text-align:center">No items yet.</td></tr>';return;}
   tbody.innerHTML=items.map(item=>{
     const {m}=calc(item);const c=sc(item.qty,item.lowAlert,item.bulk);
-    return `<tr onclick="openDrawer('${item.id}')" style="cursor:pointer">
+    return `<tr onclick="openDrawer('${escAttr(item.id)}')" style="cursor:pointer">
       <td><div class="item-name">${escHtml(item.name)}</div><div class="item-meta"><span class="item-sku">${escHtml(item.sku||'—')}</span>${item.upc?`<span class="upc-tag">${escHtml(item.upc)}</span>`:''}${item.category?`<span class="cat-tag">${escHtml(item.category)}</span>`:''} ${item.subcategory?`<span class="cat-tag" style="background:rgba(87,200,255,0.1);color:var(--accent)">${escHtml(item.subcategory)}</span>`:''} ${item.subtype?`<span class="cat-tag" style="background:rgba(123,97,255,0.15);color:var(--accent3)">${escHtml(item.subtype)}</span>`:''}</div></td>
       <td>${renderPlatTags(item)}</td>
       <td><span style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:${mkc(c)}">${item.qty||0}</span></td>

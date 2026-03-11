@@ -1,7 +1,7 @@
 // ── BREAKDOWN VIEW ────────────────────────────────────────────────────────
 
 import { inv } from '../data/store.js';
-import { fmt, pct, escHtml } from '../utils/format.js';
+import { fmt, pct, escHtml, escAttr } from '../utils/format.js';
 import { calc, margCls } from '../data/store.js';
 import { setCatFilt as invSetCatFilt, setSubcatFilt as invSetSubcatFilt, setSubsubcatFilt as invSetSubsubcatFilt, setStockFilt as invSetStockFilt, openFilterPanel } from './inventory.js';
 
@@ -87,7 +87,7 @@ function renderBreakdown() {
           .sort((a,b)=>b[1].value-a[1].value)
           .map(([sub, sd]) => {
             const sm = sd.value ? sd.profit/sd.value : 0;
-            return `<div class="bd-sub-row" onclick="filterToSubcat('${cat.replace(/'/g,"\\'")}','${sub.replace(/'/g,"\\'")}')">
+            return `<div class="bd-sub-row" onclick="filterToSubcat('${escAttr(cat)}','${escAttr(sub)}')"
               <div></div>
               <div>
                 <div class="bd-sub-name clickable">↳ ${escHtml(sub)}</div>
@@ -108,7 +108,7 @@ function renderBreakdown() {
       : '';
 
     return `<div class="bd-cat-block">
-      <div class="bd-cat-row ${hasSubs?'has-subs':''}" onclick="${hasSubs?`toggleBdSubs('bdsub-${ci}')`:`filterToCat('${cat.replace(/'/g,"\\'")}')` }">
+      <div class="bd-cat-row ${hasSubs?'has-subs':''}" onclick="${hasSubs?`toggleBdSubs('bdsub-${ci}')`:`filterToCat('${escAttr(cat)}')` }">
         <div class="bd-cat-chevron${hasSubs?' open-ready':''}">
           ${hasSubs ? '›' : ''}
         </div>

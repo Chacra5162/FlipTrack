@@ -331,6 +331,19 @@ export async function setMeta(key, value) {
 }
 
 /**
+ * Delete a metadata entry from IDB
+ * @param {string} key - The metadata key to delete
+ * @returns {Promise<void>}
+ */
+export async function deleteMeta(key) {
+  if (!isAvailable) return;
+
+  return withDB(async () => {
+    return deleteOne('meta', key);
+  });
+}
+
+/**
  * Clear all records from a store
  *
  * @param {string} storeName - Name of the object store
@@ -402,6 +415,7 @@ export default {
   deleteOne,
   getMeta,
   setMeta,
+  deleteMeta,
   clearStore,
   getCount
 };

@@ -5,7 +5,7 @@
  */
 
 import { inv, sales, getInvItem, calc, expenses } from '../data/store.js';
-import { fmt, pct, ds, escHtml, debounce } from '../utils/format.js';
+import { fmt, pct, ds, escHtml, escAttr, debounce } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { openDrawer } from '../modals/drawer.js';
 import { PLATFORM_FEES } from '../config/platforms.js';
@@ -300,7 +300,7 @@ export function renderProfitDashboard() {
         <div class="panel">
           <div class="panel-header"><div class="panel-title">🏆 Top Earners</div></div>
           ${top.length ? top.map((r, i) => `
-            <div class="pd-rank-item" onclick="openDrawer('${escHtml(r.item.id)}')" style="cursor:pointer">
+            <div class="pd-rank-item" onclick="openDrawer('${escAttr(r.item.id)}')" style="cursor:pointer">
               <span class="pd-rank">${i + 1}</span>
               <div class="pd-rank-info">
                 <div class="pd-rank-name">${escHtml(r.item.name)}</div>
@@ -314,7 +314,7 @@ export function renderProfitDashboard() {
         <div class="panel">
           <div class="panel-header"><div class="panel-title">📉 Lowest Margin</div></div>
           ${bottom.length ? bottom.map((r, i) => `
-            <div class="pd-rank-item" onclick="openDrawer('${escHtml(r.item.id)}')" style="cursor:pointer">
+            <div class="pd-rank-item" onclick="openDrawer('${escAttr(r.item.id)}')" style="cursor:pointer">
               <span class="pd-rank">${i + 1}</span>
               <div class="pd-rank-info">
                 <div class="pd-rank-name">${escHtml(r.item.name)}</div>
@@ -374,7 +374,7 @@ export function renderProfitDashboard() {
           <th class="pd-sortable" onclick="setProfitSort('margin')">Margin ${_sort === 'margin' ? (_sortDir > 0 ? '↑' : '↓') : ''}</th>
           <th class="pd-sortable" onclick="setProfitSort('roi')">ROI ${_sort === 'roi' ? (_sortDir > 0 ? '↑' : '↓') : ''}</th>
         </tr></thead>
-        <tbody>${itemStats.slice(0, 100).map(r => `<tr onclick="openDrawer('${escHtml(r.item.id)}')" style="cursor:pointer">
+        <tbody>${itemStats.slice(0, 100).map(r => `<tr onclick="openDrawer('${escAttr(r.item.id)}')" style="cursor:pointer">
           <td>
             <div style="font-weight:600;font-size:12px">${escHtml(r.item.name)}</div>
             <div style="font-size:10px;color:var(--muted)">${escHtml(r.item.category || '')}${r.platforms.size ? ' · ' + [...r.platforms].map(p => escHtml(p)).join(', ') : ''}</div>

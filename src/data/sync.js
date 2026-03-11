@@ -9,7 +9,8 @@ import { SB_URL, SB_KEY } from '../config/constants.js';
 import {
   inv, sales, expenses, supplies,
   save, refresh, saveLocalSupplies,
-  getDirtyItems, clearDirtyTracking, markDirty, waitForPersist
+  getDirtyItems, clearDirtyTracking, markDirty, waitForPersist,
+  isSyncInProgress, setSyncInProgress, clearStoreTimers
 } from './store.js';
 import { getCurrentUser, getSupabaseClient } from './auth.js';
 import { isStorageUrl, migrateImagesToStorage } from './storage.js';
@@ -40,6 +41,12 @@ export function setSyncStatus(state, msg) {
 
 // ══════════════════════════════════════════════════════════════════════════
 // DELTA PUSH — only send rows that changed since last push
+//
+// STALE WRITE PROTECTION:
+// - Each row includes _localUpdatedAt timestamp (when last modified locally)
+// - Server-side updated_at is compared during pullFromCloud() merge
+// - Conflict resolution: remote wins only if updated_at >= _localUpdatedAt
+// - This prevents a stale device from overwriting newer remote changes
 // ══════════════════════════════════════════════════════════════════════════
 
 export async function pushToCloud() {
@@ -315,10 +322,11 @@ let _isSyncing = false;
 export async function syncNow() {
   if (_isSyncing) return;          // Re-entrancy guard
   _isSyncing = true;
+  setSyncInProgress(true);         // Signal store to skip auto-sync
 
   const _sb = getSupabaseClient();
   const _currentUser = getCurrentUser();
-  if (!_sb || !_currentUser) { _isSyncing = false; return; }
+  if (!_sb || !_currentUser) { _isSyncing = false; setSyncInProgress(false); return; }
 
   // Wait for any in-flight IDB persist before starting sync
   await waitForPersist();
@@ -334,6 +342,7 @@ export async function syncNow() {
     setSyncStatus('error', e.message);
   } finally {
     _isSyncing = false;
+    setSyncInProgress(false);
   }
 }
 
@@ -362,6 +371,15 @@ export function autoSync() {
       setSyncStatus('error', e.message);
     }
   }, 2000);
+}
+
+/** Clear all sync timers and debounces. Called during logout cleanup. */
+export function clearSyncTimers() {
+  clearTimeout(_syncDebounce);
+  _syncDebounce = null;
+  clearTimeout(_rtDebounce);
+  _rtDebounce = null;
+  stopRealtime();
 }
 
 

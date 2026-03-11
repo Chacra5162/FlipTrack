@@ -1,7 +1,7 @@
 // ── AI SNAP & IDENTIFY ──────────────────────────────────────────────────────
 import { SB_URL } from '../config/constants.js';
 import { fmt, escHtml } from '../utils/format.js';
-import { toast } from '../utils/dom.js';
+import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
 import { getAccountId, getSupabaseClient, getCurrentUser } from '../data/auth.js';
 import { refreshImgSlots } from '../features/images.js';
 import { buildPlatPicker } from '../features/platforms.js';
@@ -14,9 +14,11 @@ let _idResult    = null;   // last identification result
 export function openIdentify() {
   document.getElementById('idOv').classList.add('on');
   idRetake(); // reset to capture state
+  setTimeout(() => trapFocus('#idOv'), 100);
 }
 
 export function closeIdentify() {
+  releaseFocus();
   document.getElementById('idOv').classList.remove('on');
   _idImageData = null;
   _idResult    = null;

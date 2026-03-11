@@ -5,7 +5,7 @@
  */
 
 import { inv, save, refresh, markDirty, getInvItem } from '../data/store.js';
-import { fmt, escHtml, localDate} from '../utils/format.js';
+import { fmt, escHtml, escAttr, localDate} from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { getPlatforms } from './platforms.js';
 import { PLATFORMS } from '../config/platforms.js';
@@ -195,7 +195,7 @@ export function renderBatchListPanel() {
   for (const p of topPlatforms) {
     const active = state.platforms.includes(p);
     const ebayNote = p === 'eBay' && isEBayConnected() ? ' (API)' : '';
-    html += `<button class="bl-plat-chip ${active ? 'active' : ''}" onclick="blTogglePlatform('${escHtml(p)}')">${escHtml(p)}${ebayNote}</button>`;
+    html += `<button class="bl-plat-chip ${active ? 'active' : ''}" onclick="blTogglePlatform('${escAttr(p)}')">${escHtml(p)}${ebayNote}</button>`;
   }
   html += `</div></div>`;
 

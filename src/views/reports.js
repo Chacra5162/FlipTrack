@@ -1,6 +1,6 @@
 import { inv, sales, expenses, getInvItem, save, refresh, markDirty, softDeleteItem, sel } from '../data/store.js';
 import { renderInv } from './inventory.js';
-import { fmt, ds, escHtml } from '../utils/format.js';
+import { fmt, ds, escHtml, escAttr } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { pushDeleteToCloud, autoSync, pushToCloud } from '../data/sync.js';
 import { setDefaultExpDate } from './expenses.js';
@@ -203,7 +203,7 @@ export function renderReports() {
           const it=getInvItem(s.itemId);
           const pr=(s.price||0)*(s.qty||0)-(it?(it.cost||0)*(s.qty||0):0)-(s.fees||0)-(s.ship||0);
           return `<tr>
-            <td><div class="item-name" style="cursor:${it?'pointer':'default'}" ${it?`onclick="openDrawer('${escHtml(it.id)}')"`:''}>${it?escHtml(it.name):'Deleted Item'}</div></td>
+            <td><div class="item-name" style="cursor:${it?'pointer':'default'}" ${it?`onclick="openDrawer('${escAttr(it.id)}')"`:''}>${it?escHtml(it.name):'Deleted Item'}</div></td>
             <td style="color:var(--muted);font-size:11px">${ds(s.date)}</td>
             <td>${s.qty}</td>
             <td>${fmt(s.price)}</td>

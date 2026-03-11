@@ -14,7 +14,7 @@ import { PLATFORMS, PLATFORM_GROUPS, platCls, PLATFORM_FEES, calcPlatformFee } f
 import { CLOTHING_TYPES, CAT_TREE, SUBCATS, SUBSUBCATS } from './config/categories.js';
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
-import { fmt, pct, uid, ds, escHtml, debounce } from './utils/format.js';
+import { fmt, pct, uid, ds, escHtml, escAttr, debounce } from './utils/format.js';
 import { toast, trapFocus, releaseFocus } from './utils/dom.js';
 import { _sfx } from './utils/sfx.js';
 import { initKeyboardShortcuts } from './utils/keyboard.js';
@@ -927,7 +927,7 @@ function _globalSearch(q) {
     results.push('<div class="gs-group-label">Inventory</div>');
     for (const i of invMatches) {
       const { m } = calc(i);
-      results.push(`<div class="gs-item" onclick="closeGlobalSearch();navTo('inventory');setTimeout(()=>{openDrawer('${i.id}')},80)">
+      results.push(`<div class="gs-item" onclick="closeGlobalSearch();navTo('inventory');setTimeout(()=>{openDrawer('${escAttr(i.id)}')},80)">
         <span class="gs-item-icon">📦</span>
         <div class="gs-item-info"><div class="gs-item-title">${escHtml(i.name)}</div><div class="gs-item-sub">${escHtml(i.sku||'')} · ${escHtml(i.category||'Uncategorized')}</div></div>
         <span class="gs-item-badge" style="background:rgba(87,200,255,0.1);color:var(--accent)">${fmt(i.price)}</span>

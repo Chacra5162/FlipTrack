@@ -5,7 +5,7 @@
  */
 
 import { inv, sales, save, refresh, markDirty, pushUndo } from '../data/store.js';
-import { fmt, pct, uid, escHtml } from '../utils/format.js';
+import { fmt, pct, uid, escHtml, escAttr } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { getMeta, setMeta } from '../data/idb.js';
 import { logPriceChange } from './price-history.js';
@@ -286,7 +286,7 @@ export function renderRepricingSuggestions() {
         <div style="font-size:12px;color:var(--good);font-weight:500">${fmt(s.suggestedPrice)}</div>
         <div style="font-size:10px;color:var(--muted)">${pct(s.currentPrice ? (s.suggestedPrice - s.currentPrice) / s.currentPrice : 0)}</div>
       </div>
-      <button class="btn-primary" style="font-size:11px;padding:6px 10px" onclick="rpApplySingle('${s.item.id}', ${s.suggestedPrice})">Apply</button>
+      <button class="btn-primary" style="font-size:11px;padding:6px 10px" onclick="rpApplySingle('${escAttr(s.item.id)}', ${s.suggestedPrice})">Apply</button>
     </div>
   `).join('');
 
@@ -324,12 +324,12 @@ export function renderRepricingRulesManager() {
       </div>
       <div style="text-align:center">
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
-          <input type="checkbox" ${rule.active ? 'checked' : ''} onchange="rpToggleRule('${rule.id}')" style="cursor:pointer">
+          <input type="checkbox" ${rule.active ? 'checked' : ''} onchange="rpToggleRule('${escAttr(rule.id)}')" style="cursor:pointer">
           <span style="font-size:12px">${rule.active ? 'Active' : 'Inactive'}</span>
         </label>
       </div>
       <div style="text-align:right">
-        <button class="btn-danger" style="font-size:11px;padding:5px 10px" onclick="rpDeleteRule('${rule.id}')">Delete</button>
+        <button class="btn-danger" style="font-size:11px;padding:5px 10px" onclick="rpDeleteRule('${escAttr(rule.id)}')">Delete</button>
       </div>
     </div>
   `).join('');

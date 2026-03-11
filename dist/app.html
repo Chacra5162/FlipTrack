@@ -22,10 +22,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"></noscript>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
-  <script type="module" crossorigin src="./assets/app-sAp5k4xu.js"></script>
+  <script type="module" crossorigin src="./assets/app-DS7P3nUT.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/vendor-supabase-jY4wIOEF.js">
-  <link rel="modulepreload" crossorigin href="./assets/pro-tier-Vr5-Zgn3.js">
-  <link rel="modulepreload" crossorigin href="./assets/unlimited-tier-UXGHOWVU.js">
+  <link rel="modulepreload" crossorigin href="./assets/pro-tier-DODZSfAt.js">
+  <link rel="modulepreload" crossorigin href="./assets/unlimited-tier-Da2fMzLy.js">
   <link rel="stylesheet" crossorigin href="./assets/app-C-ci7pxa.css">
 </head>
 <body>
@@ -637,7 +637,7 @@
           <label for="d_upc" class="edit-lbl">UPC / Barcode</label>
           <div class="upc-input-row">
             <input class="edit-inp" id="d_upc" type="text" placeholder="Scan or type…" style="font-family:'DM Mono',monospace;font-size:12px">
-            <button class="upc-scan-btn" onclick="openScanner('d_upc')" title="Scan">📷</button>
+            <button class="upc-scan-btn" onclick="openScanner('d_upc')" title="Scan" aria-label="Scan UPC barcode with camera">📷</button>
           </div>
         </div>
         <div class="edit-grp"><label for="d_cat" class="edit-lbl">Category</label><input class="edit-inp" id="d_cat" type="text" placeholder="e.g. Clothing" oninput="syncDrawerSubcat()"></div>
@@ -668,14 +668,14 @@
         <div class="edit-grp full">
           <div class="edit-lbl">Condition</div>
           <div id="d_cond_picker" style="display:flex;gap:6px;flex-wrap:wrap">
-            <button type="button" class="cond-tag" onclick="setCondTag('d','NWT',this)">NWT</button>
-            <button type="button" class="cond-tag" onclick="setCondTag('d','NWOT',this)">NWOT</button>
-            <button type="button" class="cond-tag" onclick="setCondTag('d','EUC',this)">EUC</button>
-            <button type="button" class="cond-tag" onclick="setCondTag('d','GUC',this)">GUC</button>
-            <button type="button" class="cond-tag" onclick="setCondTag('d','Fair',this)">Fair</button>
-            <button type="button" class="cond-tag" onclick="setCondTag('d','Poor',this)">Poor</button>
-            <button type="button" class="cond-tag" onclick="setCondTag('d','New/Sealed',this)">New/Sealed</button>
-            <button type="button" class="cond-tag" onclick="setCondTag('d','Refurbished',this)">Refurbished</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('d','NWT',this)" aria-label="New With Tags condition">NWT</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('d','NWOT',this)" aria-label="New Without Tags condition">NWOT</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('d','EUC',this)" aria-label="Excellent Used Condition">EUC</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('d','GUC',this)" aria-label="Good Used Condition">GUC</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('d','Fair',this)" aria-label="Fair condition">Fair</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('d','Poor',this)" aria-label="Poor condition">Poor</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('d','New/Sealed',this)" aria-label="New and sealed condition">New/Sealed</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('d','Refurbished',this)" aria-label="Refurbished condition">Refurbished</button>
           </div>
           <input type="hidden" id="d_condition" value="">
         </div>
@@ -1072,7 +1072,7 @@
 <!-- ADD MODAL -->
 <div class="overlay" id="addOv" role="dialog" aria-modal="true" aria-label="Add New Item">
   <div class="modal">
-    <div class="modal-hd"><div class="modal-ttl">Add Inventory Item</div><div style="display:flex;gap:8px;align-items:center"><button class="btn-secondary" onclick="prefillFromLast()" style="font-size:10px;padding:4px 10px" title="Copy source, category, platforms from your last item">⟲ Repeat Last</button><button class="modal-x" onclick="closeAdd()" aria-label="Close add item dialog">×</button></div></div>
+    <div class="modal-hd"><div class="modal-ttl">Add Inventory Item</div><div style="display:flex;gap:8px;align-items:center"><button class="btn-secondary" onclick="prefillFromLast()" style="font-size:10px;padding:4px 10px" title="Copy source, category, platforms from your last item" aria-label="Repeat last item">⟲ Repeat Last</button><button class="modal-x" onclick="closeAdd()" aria-label="Close add item dialog">×</button></div></div>
     <div class="modal-bd">
       <div class="add-form-tabs" style="display:flex;gap:0;border-bottom:1px solid var(--border);margin:-20px -22px 16px;padding:0 22px">
         <button class="add-form-tab active" onclick="addFormTab('basic',this)" style="flex:1;padding:9px 8px;background:transparent;border:none;color:var(--accent);font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;cursor:pointer;border-bottom:2px solid var(--accent)">Basic</button>
@@ -1086,7 +1086,7 @@
           <label for="f_upc">UPC / Barcode</label>
           <div class="upc-input-row">
             <input type="text" id="f_upc" placeholder="Scan or enter barcode…" style="font-family:'DM Mono',monospace;font-size:12px">
-            <button type="button" class="upc-scan-btn" onclick="openScanner('f_upc')" title="Scan with camera">📷</button>
+            <button type="button" class="upc-scan-btn" onclick="openScanner('f_upc')" title="Scan with camera" aria-label="Scan UPC barcode with camera">📷</button>
           </div>
         </div>
         <div class="fgrp"><label for="f_cat">Category</label><input type="text" id="f_cat" placeholder="e.g. Clothing" oninput="syncAddSubcat()"></div>
@@ -1138,14 +1138,14 @@
         <div class="fgrp full">
           <label for="f_cond_picker">Condition</label>
           <div id="f_cond_picker" style="display:flex;gap:6px;flex-wrap:wrap">
-            <button type="button" class="cond-tag" onclick="setCondTag('f','NWT',this)">NWT</button>
-            <button type="button" class="cond-tag" onclick="setCondTag('f','NWOT',this)">NWOT</button>
-            <button type="button" class="cond-tag" onclick="setCondTag('f','EUC',this)">EUC</button>
-            <button type="button" class="cond-tag" onclick="setCondTag('f','GUC',this)">GUC</button>
-            <button type="button" class="cond-tag" onclick="setCondTag('f','Fair',this)">Fair</button>
-            <button type="button" class="cond-tag" onclick="setCondTag('f','Poor',this)">Poor</button>
-            <button type="button" class="cond-tag" onclick="setCondTag('f','New/Sealed',this)">New/Sealed</button>
-            <button type="button" class="cond-tag" onclick="setCondTag('f','Refurbished',this)">Refurbished</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('f','NWT',this)" aria-label="New With Tags condition">NWT</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('f','NWOT',this)" aria-label="New Without Tags condition">NWOT</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('f','EUC',this)" aria-label="Excellent Used Condition">EUC</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('f','GUC',this)" aria-label="Good Used Condition">GUC</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('f','Fair',this)" aria-label="Fair condition">Fair</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('f','Poor',this)" aria-label="Poor condition">Poor</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('f','New/Sealed',this)" aria-label="New and sealed condition">New/Sealed</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('f','Refurbished',this)" aria-label="Refurbished condition">Refurbished</button>
           </div>
           <input type="hidden" id="f_condition" value="">
         </div>
@@ -1175,8 +1175,8 @@
               <label for="f_isbn">ISBN</label>
               <div class="isbn-row">
                 <input type="text" id="f_isbn" placeholder="ISBN-10 or ISBN-13" oninput="this.value=this.value.replace(/[^0-9Xx-]/g,'')">
-                <button type="button" class="isbn-scan-btn" onclick="scanISBN('f')" title="Scan ISBN barcode">📷</button>
-                <button type="button" class="isbn-lookup-btn" id="f_isbn_btn" onclick="lookupISBN('f')">🔍 Lookup</button>
+                <button type="button" class="isbn-scan-btn" onclick="scanISBN('f')" title="Scan ISBN barcode" aria-label="Scan ISBN barcode with camera">📷</button>
+                <button type="button" class="isbn-lookup-btn" id="f_isbn_btn" onclick="lookupISBN('f')" aria-label="Look up ISBN information">🔍 Lookup</button>
               </div>
             </div>
             <div class="fgrp"><label for="f_author">Author</label><input type="text" id="f_author" placeholder="Author name"></div>
@@ -1251,7 +1251,7 @@
             <option value="Plastic"><option value="Wood"><option value="Glass"><option value="Ceramic">
           </datalist>
         </div>
-        <div class="fgrp full"><label>eBay Description <button type="button" class="btn-sm" style="margin-left:8px;font-size:11px;padding:2px 8px" onclick="window.aiGenerateDesc?.('add')">✨ AI Generate</button></label><textarea id="f_ebay_desc" placeholder="Leave blank to auto-generate with AI when listing on eBay" style="min-height:60px"></textarea></div>
+        <div class="fgrp full"><label>eBay Description <button type="button" class="btn-sm" style="margin-left:8px;font-size:11px;padding:2px 8px" onclick="window.aiGenerateDesc?.('add')" aria-label="Generate eBay description using AI">✨ AI Generate</button></label><textarea id="f_ebay_desc" placeholder="Leave blank to auto-generate with AI when listing on eBay" style="min-height:60px"></textarea></div>
         <div class="fgrp full"><label>Notes</label><textarea id="f_notes" placeholder="Condition, sourcing, etc."></textarea></div>
         <div class="fgrp full" id="f_dim_section">
           <label style="display:flex;align-items:center;justify-content:space-between">
@@ -1291,19 +1291,19 @@
             <div class="img-slot" id="fSlot0">
               <img id="fSlotImg0" src="" alt="Item photo 1" style="display:none" onclick="openLightboxUrl(this.src)" onkeydown="if(event.key==='Enter')openLightboxUrl(this.src)" tabindex="0" role="button">
               <span class="img-slot-badge" id="fSlotBadge0" style="display:none">MAIN</span>
-              <button type="button" class="img-slot-rm" id="fSlotRm0" style="display:none" onclick="imgSlotRemove(event,'f',0)">×</button>
+              <button type="button" class="img-slot-rm" id="fSlotRm0" style="display:none" onclick="imgSlotRemove(event,'f',0)" aria-label="Remove photo 1">×</button>
               <div class="img-slot-add" id="fSlotAdd0"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
               <input type="file" id="fSlotInput0" accept="image/*" class="img-slot-input" onchange="imgSlotChange(event,'f',0)">
             </div>
             <div class="img-slot img-slot-locked" id="fSlot1">
               <img id="fSlotImg1" src="" alt="Item photo 2" style="display:none" onclick="openLightboxUrl(this.src)" onkeydown="if(event.key==='Enter')openLightboxUrl(this.src)" tabindex="0" role="button">
-              <button type="button" class="img-slot-rm" id="fSlotRm1" style="display:none" onclick="imgSlotRemove(event,'f',1)">×</button>
+              <button type="button" class="img-slot-rm" id="fSlotRm1" style="display:none" onclick="imgSlotRemove(event,'f',1)" aria-label="Remove photo 2">×</button>
               <div class="img-slot-add" id="fSlotAdd1" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
               <input type="file" id="fSlotInput1" accept="image/*" class="img-slot-input" style="pointer-events:none;opacity:0" onchange="imgSlotChange(event,'f',1)">
             </div>
             <div class="img-slot img-slot-locked" id="fSlot2">
               <img id="fSlotImg2" src="" alt="Item photo 3" style="display:none" onclick="openLightboxUrl(this.src)" onkeydown="if(event.key==='Enter')openLightboxUrl(this.src)" tabindex="0" role="button">
-              <button type="button" class="img-slot-rm" id="fSlotRm2" style="display:none" onclick="imgSlotRemove(event,'f',2)">×</button>
+              <button type="button" class="img-slot-rm" id="fSlotRm2" style="display:none" onclick="imgSlotRemove(event,'f',2)" aria-label="Remove photo 3">×</button>
               <div class="img-slot-add" id="fSlotAdd2" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
               <input type="file" id="fSlotInput2" accept="image/*" class="img-slot-input" style="pointer-events:none;opacity:0" onchange="imgSlotChange(event,'f',2)">
             </div>

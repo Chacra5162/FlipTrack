@@ -22,6 +22,16 @@ let _dirtyExp = new Set();
 let _dirtySupplies = new Set();
 let _deletedIds = { ft_inventory: new Set(), ft_sales: new Set(), ft_expenses: new Set() };
 
+// ── SYNC RE-ENTRANCY GUARD ──────────────────────────────────────────────────
+// Prevents concurrent saves from triggering multiple overlapping sync operations
+let _syncInProgress = false;
+export function isSyncInProgress() {
+  return _syncInProgress;
+}
+export function setSyncInProgress(val) {
+  _syncInProgress = val;
+}
+
 /** Get and reset dirty sets for sync */
 export function getDirtyItems() {
   const result = {
@@ -230,7 +240,8 @@ export const save = () => {
   // Still write to localStorage as backup (quick, synchronous)
   _saveToLocalStorage();
 
-  if (_lastSaveOk) autoSync();
+  // Only trigger auto-sync if save succeeded AND no sync already in progress
+  if (_lastSaveOk && !_syncInProgress) autoSync();
 };
 
 /** Debounced persist to IndexedDB (batches rapid saves) */
@@ -259,6 +270,12 @@ async function _persistToIDB() {
 /** Wait for any in-flight IDB persist to complete. Called by sync before reading dirty data. */
 export function waitForPersist() {
   return _persistPromise;
+}
+
+/** Clear all store timers and debounces. Called during logout cleanup. */
+export function clearStoreTimers() {
+  clearTimeout(_saveDebounce);
+  _saveDebounce = null;
 }
 
 /** Write to localStorage as backup */

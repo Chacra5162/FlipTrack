@@ -5,7 +5,7 @@
  */
 
 import { sales, save, getInvItem } from '../data/store.js';
-import { fmt, ds, uid, escHtml } from '../utils/format.js';
+import { fmt, ds, uid, escHtml, escAttr } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { getMeta, setMeta } from '../data/idb.js';
 import { renderPagination } from '../utils/pagination.js';
@@ -310,7 +310,7 @@ export function renderBuyersView() {
                   <!-- Header -->
                   <div
                     style="padding:12px;background:var(--surface2);cursor:pointer;display:flex;justify-content:space-between;align-items:center"
-                    onclick="buyerExpand('${buyer.id}')"
+                    onclick="buyerExpand('${escAttr(buyer.id)}')"
                   >
                     <div>
                       <div style="display:flex;align-items:center;gap:8px">
@@ -376,7 +376,7 @@ export function renderBuyersView() {
                             <option value="call">📞 Call</option>
                           </select>
                           <input id="comm_content_${buyer.id}" placeholder="Add note..." class="fgrp" style="flex:1">
-                          <button onclick="buyerAddComm('${buyer.id}')" class="btn-primary" style="height:32px;font-size:11px;padding:0 12px">Add</button>
+                          <button onclick="buyerAddComm('${escAttr(buyer.id)}')" class="btn-primary" style="height:32px;font-size:11px;padding:0 12px">Add</button>
                         </div>
                         ${(buyer.comms || []).slice().reverse().slice(0, 10).map(c => `
                           <div style="padding:6px 8px;background:var(--surface2);border-radius:2px;margin-bottom:4px;border-left:3px solid ${
@@ -390,7 +390,7 @@ export function renderBuyersView() {
                         `).join('')}
                       </div>
 
-                      <button onclick="buyerDelete('${buyer.id}')" class="btn-danger" style="margin-top:8px;width:100%;height:32px;font-size:11px">Delete Buyer</button>
+                      <button onclick="buyerDelete('${escAttr(buyer.id)}')" class="btn-danger" style="margin-top:8px;width:100%;height:32px;font-size:11px">Delete Buyer</button>
                     </div>
                   `
                       : ''

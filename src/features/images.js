@@ -131,7 +131,13 @@ function _lbUpdate() {
   const counter = document.getElementById('lightboxCounter');
   const prev   = document.getElementById('lightboxPrev');
   const next   = document.getElementById('lightboxNext');
-  if (img) img.src = _lbImages[_lbIndex] || '';
+  const nameEl = document.getElementById('lightboxName');
+  if (img) {
+    img.src = _lbImages[_lbIndex] || '';
+    if (nameEl?.textContent) {
+      img.alt = nameEl.textContent + (counter?.textContent ? ` (${counter.textContent})` : '');
+    }
+  }
   if (counter) counter.textContent = _lbImages.length > 1 ? `${_lbIndex + 1} / ${_lbImages.length}` : '';
   if (prev) prev.style.display = _lbImages.length > 1 ? 'flex' : 'none';
   if (next) next.style.display = _lbImages.length > 1 ? 'flex' : 'none';

@@ -6,7 +6,7 @@
 
 import { getInvItem, markDirty, save } from '../data/store.js';
 import { toast } from '../utils/dom.js';
-import { escHtml, fmt } from '../utils/format.js';
+import { escHtml, escAttr, fmt } from '../utils/format.js';
 import { getPlatforms } from './platforms.js';
 
 // ── STATE ─────────────────────────────────────────────────────────────────
@@ -326,8 +326,8 @@ export function renderAIListingPanel(item) {
         <div class="ai-meta">Generated ${ai.generatedAt ? new Date(ai.generatedAt).toLocaleDateString() : ''} ${ai.platform ? `for ${ai.platform}` : ''}</div>
       </div>
       <div class="ai-actions">
-        <button class="btn-sm" onclick="aiCopyListing('${item.id}')">📋 Copy</button>
-        <button class="btn-sm" onclick="aiRegenerate('${item.id}')">🔄 Regenerate</button>
+        <button class="btn-sm" onclick="aiCopyListing('${escAttr(item.id)}')">📋 Copy</button>
+        <button class="btn-sm" onclick="aiRegenerate('${escAttr(item.id)}')">🔄 Regenerate</button>
       </div>
     `;
   }
@@ -353,7 +353,7 @@ export function renderAIListingPanel(item) {
           <option value="luxury">Luxury</option>
         </select>
       </div>
-      <button class="btn-primary ai-gen-btn" onclick="aiGenerate('${item.id}')" ${_generating ? 'disabled' : ''}>
+      <button class="btn-primary ai-gen-btn" onclick="aiGenerate('${escAttr(item.id)}')" ${_generating ? 'disabled' : ''}>
         ✨ ${hasListing ? 'Regenerate' : 'Generate'} AI Listing
       </button>
       <div class="ai-cost-note">~$0.002 per generation (Claude Haiku)</div>

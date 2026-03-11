@@ -1,5 +1,5 @@
 import { inv, sales, expenses, getInvItem } from '../data/store.js';
-import { fmt, pct, ds, escHtml } from '../utils/format.js';
+import { fmt, pct, ds, escHtml, escAttr } from '../utils/format.js';
 import { getPlatforms } from '../features/platforms.js';
 
 // Cache: always recompute on render to avoid stale data
@@ -121,7 +121,7 @@ export function renderInsights() {
     const i = stat.item;
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
       <div style="min-width:0;flex:1">
-        <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer" onclick="openDrawer('${i.id}')">${i.name}</div>
+        <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer" onclick="openDrawer('${escAttr(i.id)}')">${i.name}</div>
         <div style="font-size:10px;color:var(--muted);margin-top:1px">${i.category||'—'}${i.subcategory?' · '+i.subcategory:''}</div>
       </div>
       <div style="text-align:right;flex-shrink:0;margin-left:12px">${showMetric(stat)}</div>
@@ -246,7 +246,7 @@ export function renderInsights() {
       return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
         <span style="width:22px;text-align:center;flex-shrink:0">${medal}</span>
         <div style="min-width:0;flex:1">
-          <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer" onclick="openDrawer('${s.item.id}')">${s.item.name}</div>
+          <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer" onclick="openDrawer('${escAttr(s.item.id)}')">${s.item.name}</div>
           <div style="font-size:10px;color:var(--muted);margin-top:1px">${s.item.category || '—'} · ~${velocity}/mo velocity</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
@@ -404,7 +404,7 @@ export function renderInsights() {
     const suggestedPrice = (s.item.price || 0) * 0.8;
     const action = s.recentSales30.length === 0 ? 'Lower price by 20%' : 'Relist on new platform';
     return `<tr style="border-bottom:1px solid rgba(255,255,255,0.04)">
-      <td style="padding:8px 10px"><div class="item-name" style="cursor:pointer;font-weight:600" onclick="openDrawer('${s.item.id}')">${escHtml(s.item.name)}</div></td>
+      <td style="padding:8px 10px"><div class="item-name" style="cursor:pointer;font-weight:600" onclick="openDrawer('${escAttr(s.item.id)}')">${escHtml(s.item.name)}</div></td>
       <td style="padding:8px 10px;font-family:'DM Mono',monospace;font-weight:600;color:${getAgingClass(s.daysListed)}">${s.daysListed}d</td>
       <td style="padding:8px 10px;text-align:right;font-family:'DM Mono',monospace">${fmt(s.item.price)}</td>
       <td style="padding:8px 10px;text-align:right;font-family:'DM Mono',monospace;color:var(--good)">${fmt(suggestedPrice)}</td>

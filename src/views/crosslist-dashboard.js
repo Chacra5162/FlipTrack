@@ -4,7 +4,7 @@
  */
 
 import { inv, save, refresh, markDirty } from '../data/store.js';
-import { fmt, escHtml, ds, uid, localDate} from '../utils/format.js';
+import { fmt, escHtml, escAttr, ds, uid, localDate} from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { getPlatforms } from '../features/platforms.js';
 import { PLATFORMS } from '../config/platforms.js';
@@ -144,13 +144,13 @@ function renderOverviewTab(inStock, expiring, expired, stats) {
     for (const { item, platform, daysLeft, expiryDate } of expiring.slice(0, 10)) {
       html += `<div class="cl-card cl-card-warn">
         <div class="cl-card-header">
-          <span class="cl-card-name" onclick="openDrawer('${item.id}')">${escHtml(item.name)}</span>
+          <span class="cl-card-name" onclick="openDrawer('${escAttr(item.id)}')">${escHtml(item.name)}</span>
           <span class="cl-card-days">${daysLeft}d left</span>
         </div>
         <div class="cl-card-plat">${escHtml(platform)}</div>
         <div class="cl-card-actions">
-          <button class="btn-sm btn-accent" onclick="clRelistItem('${item.id}','${escHtml(platform)}')">Relist</button>
-          <button class="btn-sm btn-muted" onclick="clOpenLink('${escHtml(platform)}','${item.id}')">Open →</button>
+          <button class="btn-sm btn-accent" onclick="clRelistItem('${escAttr(item.id)}','${escAttr(platform)}')">Relist</button>
+          <button class="btn-sm btn-muted" onclick="clOpenLink('${escAttr(platform)}','${escAttr(item.id)}')">Open →</button>
         </div>
       </div>`;
     }
@@ -167,13 +167,13 @@ function renderOverviewTab(inStock, expiring, expired, stats) {
       const ago = Math.ceil((Date.now() - new Date(expiryDate).getTime()) / 86400000);
       html += `<div class="cl-card cl-card-danger">
         <div class="cl-card-header">
-          <span class="cl-card-name" onclick="openDrawer('${item.id}')">${escHtml(item.name)}</span>
+          <span class="cl-card-name" onclick="openDrawer('${escAttr(item.id)}')">${escHtml(item.name)}</span>
           <span class="cl-card-days">${ago}d ago</span>
         </div>
         <div class="cl-card-plat">${escHtml(platform)}</div>
         <div class="cl-card-actions">
-          <button class="btn-sm btn-accent" onclick="clRelistItem('${item.id}','${escHtml(platform)}')">Relist</button>
-          <button class="btn-sm btn-danger" onclick="clDelistItem('${item.id}','${escHtml(platform)}')">Delist</button>
+          <button class="btn-sm btn-accent" onclick="clRelistItem('${escAttr(item.id)}','${escAttr(platform)}')">Relist</button>
+          <button class="btn-sm btn-danger" onclick="clDelistItem('${escAttr(item.id)}','${escAttr(platform)}')">Delist</button>
         </div>
       </div>`;
     }
@@ -224,12 +224,12 @@ function renderOverviewTab(inStock, expiring, expired, stats) {
     for (const item of notListed) {
       html += `<div class="cl-card">
         <div class="cl-card-header">
-          <span class="cl-card-name" onclick="openDrawer('${item.id}')">${escHtml(item.name)}</span>
+          <span class="cl-card-name" onclick="openDrawer('${escAttr(item.id)}')">${escHtml(item.name)}</span>
           <span class="cl-card-days">${fmt(item.price || 0)}</span>
         </div>
         <div class="cl-card-plat" style="color:var(--muted)">No platforms assigned</div>
         <div class="cl-card-actions">
-          <button class="btn-sm btn-accent" onclick="openDrawer('${item.id}')">Edit & List</button>
+          <button class="btn-sm btn-accent" onclick="openDrawer('${escAttr(item.id)}')">Edit & List</button>
         </div>
       </div>`;
     }
@@ -247,11 +247,11 @@ function renderOverviewTab(inStock, expiring, expired, stats) {
       const p = getPlatforms(item)[0];
       html += `<div class="cl-card">
         <div class="cl-card-header">
-          <span class="cl-card-name" onclick="openDrawer('${item.id}')">${escHtml(item.name)}</span>
+          <span class="cl-card-name" onclick="openDrawer('${escAttr(item.id)}')">${escHtml(item.name)}</span>
           <span class="cl-card-days">${escHtml(p)}</span>
         </div>
         <div class="cl-card-actions">
-          <button class="btn-sm btn-accent" onclick="openDrawer('${item.id}')">Add Platforms</button>
+          <button class="btn-sm btn-accent" onclick="openDrawer('${escAttr(item.id)}')">Add Platforms</button>
         </div>
       </div>`;
     }
@@ -334,7 +334,7 @@ function renderMatrixTab(inStock) {
     const health = getListingHealth(item);
 
     html += `<div class="cl-matrix-item">
-      <div class="cl-matrix-header" onclick="openDrawer('${item.id}')">
+      <div class="cl-matrix-header" onclick="openDrawer('${escAttr(item.id)}')"
         <span class="cl-matrix-name">${escHtml(item.name)}</span>
         <span class="cl-matrix-meta">${fmt(item.price || 0)} · Qty: ${item.qty || 0}</span>
       </div>
@@ -375,13 +375,13 @@ function renderMatrixTab(inStock) {
             ${expiryLabel}
           </div>
           <div class="cl-plat-actions">
-            ${needsEbayPush ? `<button class="btn-xs btn-accent" onclick="clPushToEBay('${item.id}')">List on eBay</button>` : ''}
-            ${needsEbayPublish ? `<button class="btn-xs btn-accent" onclick="clPublishOnEBay('${item.id}')">Publish</button>` : ''}
-            ${isNoApi ? `<button class="btn-xs btn-accent" onclick="clAICopy('${item.id}','${escHtml(p)}')" title="Generate AI listing optimized for ${escHtml(p)} and copy to clipboard">✨ ${hasCached ? 'Copy' : 'AI Copy'}</button>` : ''}
-            <button class="btn-xs" onclick="clCycleStatus('${item.id}','${escHtml(p)}')" title="Change status">⟳</button>
-            <button class="btn-xs" onclick="clCopyListing('${item.id}')" title="Copy listing text">📋</button>
-            <button class="btn-xs" onclick="clOpenLink('${escHtml(p)}','${item.id}')" title="Open platform">↗</button>
-            ${st === 'expired' ? `<button class="btn-xs btn-accent" onclick="clRelistItem('${item.id}','${escHtml(p)}')">Relist</button>` : ''}
+            ${needsEbayPush ? `<button class="btn-xs btn-accent" onclick="clPushToEBay('${escAttr(item.id)}')">List on eBay</button>` : ''}
+            ${needsEbayPublish ? `<button class="btn-xs btn-accent" onclick="clPublishOnEBay('${escAttr(item.id)}')">Publish</button>` : ''}
+            ${isNoApi ? `<button class="btn-xs btn-accent" onclick="clAICopy('${escAttr(item.id)}','${escAttr(p)}')" title="Generate AI listing optimized for ${escHtml(p)} and copy to clipboard">✨ ${hasCached ? 'Copy' : 'AI Copy'}</button>` : ''}
+            <button class="btn-xs" onclick="clCycleStatus('${escAttr(item.id)}','${escAttr(p)}')" title="Change status">⟳</button>
+            <button class="btn-xs" onclick="clCopyListing('${escAttr(item.id)}')" title="Copy listing text">📋</button>
+            <button class="btn-xs" onclick="clOpenLink('${escAttr(p)}','${escAttr(item.id)}')" title="Open platform">↗</button>
+            ${st === 'expired' ? `<button class="btn-xs btn-accent" onclick="clRelistItem('${escAttr(item.id)}','${escAttr(p)}')">Relist</button>` : ''}
           </div>
         </div>`;
     }
@@ -394,7 +394,7 @@ function renderMatrixTab(inStock) {
           <span class="cl-plat-status" style="color:var(--muted)">Not listed</span>
         </div>
         <div class="cl-plat-actions">
-          <button class="btn-xs btn-accent" onclick="clPushToEBay('${item.id}')">List on eBay</button>
+          <button class="btn-xs btn-accent" onclick="clPushToEBay('${escAttr(item.id)}')">List on eBay</button>
         </div>
       </div>`;
     }
@@ -407,13 +407,13 @@ function renderMatrixTab(inStock) {
           <span class="cl-plat-status" style="color:var(--muted)">Not listed</span>
         </div>
         <div class="cl-plat-actions">
-          <button class="btn-xs btn-etsy" onclick="clPushToEtsy('${item.id}')">List on Etsy</button>
+          <button class="btn-xs btn-etsy" onclick="clPushToEtsy('${escAttr(item.id)}')">List on Etsy</button>
         </div>
       </div>`;
     }
 
     if (!plats.length && !isEBayConnected() && !isEtsyConnected()) {
-      html += `<div class="cl-plat-row" style="color:var(--muted);font-style:italic">No platforms — <span onclick="openDrawer('${item.id}')" style="color:var(--accent);cursor:pointer">add some</span></div>`;
+      html += `<div class="cl-plat-row" style="color:var(--muted);font-style:italic">No platforms — <span onclick="openDrawer('${escAttr(item.id)}')" style="color:var(--accent);cursor:pointer">add some</span></div>`;
     }
 
     html += `</div></div>`;
@@ -443,7 +443,7 @@ function renderTemplatesTab() {
       html += `<div class="cl-template-card">
         <div class="cl-template-header">
           <span class="cl-template-name">${escHtml(t.name)}</span>
-          ${t.isDefault ? '<span class="cl-template-badge">Default</span>' : `<button class="btn-xs btn-danger" onclick="clDeleteTemplate('${t.id}')">✕</button>`}
+          ${t.isDefault ? '<span class="cl-template-badge">Default</span>' : `<button class="btn-xs btn-danger" onclick="clDeleteTemplate('${escAttr(t.id)}')">✕</button>`}
         </div>
         <div class="cl-template-category">${escHtml(t.category || 'All Categories')}</div>
         <div class="cl-template-preview">
@@ -1038,7 +1038,7 @@ function _renderWnShowsTab() {
       const timeLabel = show.time || '';
 
       html += `<div class="wn-show-card${isLive ? ' wn-show-live' : ''}${expanded ? ' wn-show-expanded' : ''}">
-        <div class="wn-show-header" onclick="wnToggleShow('${show.id}')">
+        <div class="wn-show-header" onclick="wnToggleShow('${escAttr(show.id)}')">
           <div class="wn-show-info">
             <span class="wn-show-name">${escHtml(show.name)}</span>
             ${show.recurring ? '<span class="wn-recurring-badge">↻</span>' : ''}
@@ -1047,12 +1047,12 @@ function _renderWnShowsTab() {
           </div>
           <div class="wn-show-actions" onclick="event.stopPropagation()">
             ${isLive
-              ? `<button class="btn-xs btn-danger" onclick="wnEndShow('${show.id}')">End Show</button>`
-              : `<button class="btn-xs btn-accent" onclick="wnStartShow('${show.id}')"${show.items.length === 0 ? ' disabled title="Add items first"' : ''}>Go Live</button>`
+              ? `<button class="btn-xs btn-danger" onclick="wnEndShow('${escAttr(show.id)}')">End Show</button>`
+              : `<button class="btn-xs btn-accent" onclick="wnStartShow('${escAttr(show.id)}')"${show.items.length === 0 ? ' disabled title="Add items first"' : ''}>Go Live</button>`
             }
-            <button class="btn-xs" onclick="wnCopyPrep('${show.id}')" title="Copy prep list">📋</button>
-            <button class="btn-xs" onclick="wnPrintRunSheet('${show.id}')" title="Print run sheet">🖨</button>
-            ${!isLive ? `<button class="btn-xs btn-muted" onclick="wnDeleteShow('${show.id}')" title="Delete show">✕</button>` : ''}
+            <button class="btn-xs" onclick="wnCopyPrep('${escAttr(show.id)}')" title="Copy prep list">📋</button>
+            <button class="btn-xs" onclick="wnPrintRunSheet('${escAttr(show.id)}')" title="Print run sheet">🖨</button>
+            ${!isLive ? `<button class="btn-xs btn-muted" onclick="wnDeleteShow('${escAttr(show.id)}')" title="Delete show">✕</button>` : ''}
           </div>
         </div>`;
 
@@ -1082,17 +1082,17 @@ function _renderWnShowsTab() {
               ${note ? `<span class="wn-item-note-preview" title="${escHtml(note)}">💬 ${escHtml(note.slice(0, 40))}${note.length > 40 ? '…' : ''}</span>` : ''}
             </div>
             <div class="wn-item-actions">
-              ${isLive && !isSold ? `<button class="btn-xs btn-accent" onclick="wnMarkSold('${show.id}','${itemId}')">Sold</button>` : ''}
-              <button class="btn-xs" onclick="wnEditItemNote('${show.id}','${itemId}')" title="Talking points">💬</button>
-              <button class="btn-xs" onclick="wnMoveItem('${show.id}','${itemId}','up')" title="Move up"${i === 0 ? ' disabled' : ''}>▲</button>
-              <button class="btn-xs" onclick="wnMoveItem('${show.id}','${itemId}','down')" title="Move down"${i === show.items.length - 1 ? ' disabled' : ''}>▼</button>
-              <button class="btn-xs btn-muted" onclick="wnRemoveItem('${show.id}','${itemId}')" title="Remove">✕</button>
+              ${isLive && !isSold ? `<button class="btn-xs btn-accent" onclick="wnMarkSold('${escAttr(show.id)}','${escAttr(itemId)}')">Sold</button>` : ''}
+              <button class="btn-xs" onclick="wnEditItemNote('${escAttr(show.id)}','${escAttr(itemId)}')" title="Talking points">💬</button>
+              <button class="btn-xs" onclick="wnMoveItem('${escAttr(show.id)}','${escAttr(itemId)}','up')" title="Move up"${i === 0 ? ' disabled' : ''}>▲</button>
+              <button class="btn-xs" onclick="wnMoveItem('${escAttr(show.id)}','${escAttr(itemId)}','down')" title="Move down"${i === show.items.length - 1 ? ' disabled' : ''}>▼</button>
+              <button class="btn-xs btn-muted" onclick="wnRemoveItem('${escAttr(show.id)}','${escAttr(itemId)}')" title="Remove">✕</button>
             </div>
           </div>`;
         });
         html += `<div class="wn-show-add-row">
-          <button class="btn-sm btn-accent" onclick="wnOpenItemPicker('${show.id}')">+ Add Items</button>
-          <label class="wn-expense-input">Expenses: $<input type="number" min="0" step="0.01" value="${show.showExpenses || ''}" placeholder="0" onchange="wnSetExpenses('${show.id}',this.value)" style="width:60px"></label>
+          <button class="btn-sm btn-accent" onclick="wnOpenItemPicker('${escAttr(show.id)}')">+ Add Items</button>
+          <label class="wn-expense-input">Expenses: $<input type="number" min="0" step="0.01" value="${show.showExpenses || ''}" placeholder="0" onchange="wnSetExpenses('${escAttr(show.id)}',this.value)" style="width:60px"></label>
         </div>`;
 
         if (_wnShowItemPicker) {
@@ -1111,7 +1111,7 @@ function _renderWnShowsTab() {
           for (const item of available) {
             const showHist = getItemShowHistory(item.id);
             const histLabel = showHist.length ? ` (${showHist.filter(h => h.wasSold).length}/${showHist.length} shows sold)` : '';
-            html += `<div class="wn-picker-item" onclick="wnPickItem('${show.id}','${item.id}')">
+            html += `<div class="wn-picker-item" onclick="wnPickItem('${escAttr(show.id)}','${escAttr(item.id)}')"
               <span class="wn-picker-name">${escHtml(item.name || 'Untitled')}${histLabel}</span>
               <span class="wn-picker-price">${item.price ? fmt(item.price) : ''}</span>
             </div>`;
@@ -1142,8 +1142,8 @@ function _renderWnShowsTab() {
           <span style="color:${m.profit >= 0 ? 'var(--good)' : 'var(--danger)'}">${fmt(m.profit)}</span>
         </div>
         <div class="wn-past-actions">
-          <button class="btn-xs" onclick="wnCloneShow('${s.id}')" title="Clone as new show">↻ Clone</button>
-          <button class="btn-xs" onclick="wnExportShowCSV('${s.id}')" title="Export results CSV">📊</button>
+          <button class="btn-xs" onclick="wnCloneShow('${escAttr(s.id)}')" title="Clone as new show">↻ Clone</button>
+          <button class="btn-xs" onclick="wnExportShowCSV('${escAttr(s.id)}')" title="Export results CSV">📊</button>
         </div>
       </div>`;
     }
@@ -1309,7 +1309,7 @@ function _renderWnBuilderTab() {
     html += `<div class="wn-builder-list">`;
     for (const s of suggestions) {
       const isSelected = _wnBuilderSelected.has(s.item.id);
-      html += `<div class="wn-builder-item${isSelected ? ' selected' : ''}" onclick="wnBuilderToggle('${s.item.id}')">
+      html += `<div class="wn-builder-item${isSelected ? ' selected' : ''}" onclick="wnBuilderToggle('${escAttr(s.item.id)}')"
         <div class="wn-builder-check">${isSelected ? '☑' : '☐'}</div>
         <div class="wn-builder-item-info">
           <span class="wn-builder-item-name">${escHtml(s.item.name || 'Untitled')}</span>
