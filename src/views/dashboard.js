@@ -9,6 +9,28 @@ import { mountProfitHeatmap } from '../features/profit-heatmap.js';
 import { renderCSVExportPanel } from '../features/csv-templates.js';
 import { renderKPIGoals } from '../features/kpi-goals.js';
 
+/**
+ * Returns true if the popup identified by `key` has already been shown
+ * 2× today. Each call that returns false increments the counter.
+ */
+function _popupThrottled(key, maxPerDay = 2) {
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const { date, count } = JSON.parse(raw);
+      if (date === today && count >= maxPerDay) return true;
+      if (date === today) {
+        localStorage.setItem(key, JSON.stringify({ date: today, count: count + 1 }));
+        return false;
+      }
+    }
+    // New day or first visit — reset
+    localStorage.setItem(key, JSON.stringify({ date: today, count: 1 }));
+    return false;
+  } catch { return false; }
+}
+
 export function updateStats() {
   const invVal = inv.reduce((a,i)=>a+(i.price||0)*(i.qty||0),0);
   const units  = inv.reduce((a,i)=>a+(i.qty||0),0);
@@ -108,6 +130,9 @@ export function renderDeathPile() {
   const el = document.getElementById('deathPileSection');
   if (!el) return;
 
+  // Throttle: show max 2× per calendar day
+  if (_popupThrottled('ft_dp_views')) { el.style.display = 'none'; return; }
+
   const stats = getDeathPileStats();
   if (!stats || !stats.totalItems) { el.style.display = 'none'; return; }
   if (!Array.isArray(stats.items)) { el.style.display = 'none'; return; }
@@ -137,6 +162,10 @@ export function renderDeathPile() {
 export function renderPriceAlerts() {
   const el = document.getElementById('priceAlerts');
   if (!el) return;
+
+  // Throttle: show max 2× per calendar day
+  if (_popupThrottled('ft_pa_views')) { el.style.display = 'none'; return; }
+
   const now = new Date();
   const msDay = 86400000;
 
