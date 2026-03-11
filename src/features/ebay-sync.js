@@ -13,7 +13,7 @@ import { autoDlistOnSale } from './crosslist.js';
 import { logSalePrice, logPriceChange } from './price-history.js';
 import { toast } from '../utils/dom.js';
 import { getMeta, setMeta } from '../data/idb.js';
-import { escHtml } from '../utils/format.js';
+import { escHtml, localDate} from '../utils/format.js';
 import { generateListing } from './ai-listing.js';
 import { addNotification } from './notification-center.js';
 import { sfx } from '../utils/sfx.js';
@@ -634,7 +634,7 @@ export async function pushItemToEBay(itemId) {
     if (!item.platformStatus) item.platformStatus = {};
     item.platformStatus['eBay'] = 'draft'; // Not yet published — needs an offer
 
-    setListingDate(itemId, 'eBay', new Date().toISOString().split('T')[0]);
+    setListingDate(itemId, 'eBay', localDate());
     markDirty('inv', itemId);
     save();
 
@@ -1210,7 +1210,7 @@ export async function publishEBayListing(itemId, options = {}) {
     item.platformStatus['eBay'] = 'active';
     item.ebayListingId = listingId;
     item.url = listingId ? `https://www.ebay.com/itm/${listingId}` : item.url;
-    setListingDate(itemId, 'eBay', new Date().toISOString().split('T')[0]);
+    setListingDate(itemId, 'eBay', localDate());
     markDirty('inv', itemId);
     save();
 
@@ -1273,7 +1273,7 @@ export async function relistOnEBay(itemId) {
     });
 
     markPlatformStatus(itemId, 'eBay', 'active');
-    setListingDate(itemId, 'eBay', new Date().toISOString().split('T')[0]);
+    setListingDate(itemId, 'eBay', localDate());
     markDirty('inv', itemId);
     save();
 

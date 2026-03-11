@@ -1,5 +1,5 @@
 import { expenses, save } from '../data/store.js';
-import { fmt, ds, escHtml, uid } from '../utils/format.js';
+import { fmt, ds, escHtml, uid, localDate} from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
 import { parseNum, validateNumericInput } from '../utils/validate.js';
@@ -25,7 +25,7 @@ const EXP_CAT_CLASS = {
 
 export function setDefaultExpDate() {
   const d = document.getElementById('exp_date');
-  if (d && !d.value) d.value = new Date().toISOString().split('T')[0];
+  if (d && !d.value) d.value = localDate();
 }
 
 export function addExpense() {

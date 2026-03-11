@@ -5,7 +5,7 @@
  */
 
 import { inv, sales, save, refresh, getInvItem, markDirty } from '../data/store.js';
-import { fmt, ds, uid, escHtml } from '../utils/format.js';
+import { fmt, ds, uid, escHtml, localDate} from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { renderPagination } from '../utils/pagination.js';
 import { getMeta, setMeta } from '../data/idb.js';
@@ -339,7 +339,7 @@ export function shipExportLog() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `ship-log-${new Date().toISOString().split('T')[0]}.csv`;
+  a.download = `ship-log-${localDate()}.csv`;
   a.click();
   URL.revokeObjectURL(url);
   toast('Exported ship log');

@@ -14,7 +14,7 @@ import { autoDlistOnSale } from './crosslist.js';
 import { logSalePrice } from './price-history.js';
 import { toast } from '../utils/dom.js';
 import { getMeta, setMeta } from '../data/idb.js';
-import { escHtml } from '../utils/format.js';
+import { escHtml, localDate} from '../utils/format.js';
 import { addNotification } from './notification-center.js';
 import { sfx } from '../utils/sfx.js';
 
@@ -358,7 +358,7 @@ export async function pushItemToEtsy(itemId, options = {}) {
     if (!item.platformStatus) item.platformStatus = {};
     item.platformStatus['Etsy'] = isDraft ? 'draft' : 'active';
 
-    setListingDate(itemId, 'Etsy', new Date().toISOString().split('T')[0]);
+    setListingDate(itemId, 'Etsy', localDate());
     markDirty('inv', itemId);
     save();
 
@@ -447,7 +447,7 @@ export async function renewEtsyListing(itemId) {
     );
 
     markPlatformStatus(itemId, 'Etsy', 'active');
-    setListingDate(itemId, 'Etsy', new Date().toISOString().split('T')[0]);
+    setListingDate(itemId, 'Etsy', localDate());
     markDirty('inv', itemId);
     save();
 

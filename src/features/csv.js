@@ -1,7 +1,7 @@
 // ── CSV IMPORT/EXPORT ───────────────────────────────────────────────────────────
 
 import { inv, sales, expenses, save, refresh } from '../data/store.js';
-import { fmt, pct, uid } from '../utils/format.js';
+import { fmt, pct, uid, localDate} from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
 import { getPlatforms } from './platforms.js';
@@ -149,7 +149,7 @@ function _executeImport(colMap, lines, parseRow) {
     if (!name) { skipped++; continue; }
 
     const cat = colMap.category !== undefined ? (row[colMap.category] || '').trim() : '';
-    const skuDate = new Date().toISOString().slice(0,10).replace(/-/g,'');
+    const skuDate = localDate().replace(/-/g,'');
     const skuCat = (cat || 'GEN').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4).padEnd(3,'X');
     const skuRand = Math.random().toString(36).slice(2,5).toUpperCase();
 

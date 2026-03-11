@@ -1,6 +1,6 @@
 // ── BATCH SCAN MODE ───────────────────────────────────────────────────────
 import { inv, save, refresh } from '../data/store.js';
-import { uid, escHtml } from '../utils/format.js';
+import { uid, escHtml, localDate} from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
 import { autoSync } from '../data/sync.js';
@@ -200,7 +200,7 @@ export function batchAddAll() {
     if (!name) continue;
 
     const cat = item.category || '';
-    const skuDate = new Date().toISOString().slice(0,10).replace(/-/g,'');
+    const skuDate = localDate().replace(/-/g,'');
     const skuCat = (cat || 'GEN').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4).padEnd(3,'X');
     const skuRand = Math.random().toString(36).slice(2,5).toUpperCase();
     const autoSku = skuCat + '-' + skuDate + '-' + skuRand;

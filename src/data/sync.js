@@ -4,6 +4,7 @@
  * Uses dirty tracking from store.js to minimize data transfer.
  */
 
+import { localDate } from '../utils/format';
 import { SB_URL, SB_KEY } from '../config/constants.js';
 import {
   inv, sales, expenses, supplies,

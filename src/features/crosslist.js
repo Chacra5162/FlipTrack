@@ -4,6 +4,7 @@
  * expired/expiring listing detection, and listing health scoring.
  */
 
+import { localDate } from '../utils/format';
 import { inv, save, refresh, markDirty } from '../data/store.js';
 import { toast } from '../utils/dom.js';
 import { getPlatforms } from './platforms.js';
@@ -121,7 +122,7 @@ export function setListingDate(itemId, platform, dateStr) {
   if (!item) return;
   if (!item.platformListingDates) item.platformListingDates = {};
   if (!item.platformListingExpiry) item.platformListingExpiry = {};
-  item.platformListingDates[platform] = dateStr || new Date().toISOString().split('T')[0];
+  item.platformListingDates[platform] = dateStr || localDate();
   const expiry = determinePlatformExpiry(platform, item.platformListingDates[platform]);
   if (expiry) item.platformListingExpiry[platform] = expiry;
   else delete item.platformListingExpiry[platform];
@@ -134,7 +135,7 @@ export function setListingDate(itemId, platform, dateStr) {
 export function relistItem(itemId, platform) {
   const item = inv.find(i => i.id === itemId);
   if (!item) return;
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDate();
   if (!item.lastRelisted) item.lastRelisted = {};
   item.lastRelisted[platform] = today;
   setListingDate(itemId, platform, today);
@@ -303,7 +304,7 @@ export function initListingDates() {
       if (!item.platformListingDates[p]) {
         // Use item.added or today as fallback
         const fallback = item.added ? new Date(item.added).toISOString().split('T')[0]
-                                    : new Date().toISOString().split('T')[0];
+                                    : localDate();
         item.platformListingDates[p] = fallback;
         const expiry = determinePlatformExpiry(p, fallback);
         if (expiry) item.platformListingExpiry[p] = expiry;

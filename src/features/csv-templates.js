@@ -4,6 +4,7 @@
  * Mercari, and other platforms' bulk listing tools.
  */
 
+import { localDate } from '../utils/format';
 import { inv, sales, expenses, getInvItem } from '../data/store.js';
 import { getPlatforms } from './platforms.js';
 import { PLATFORM_FEES } from '../config/platforms.js';
@@ -175,7 +176,7 @@ export function exportPlatformCSV(templateKey, filterPlatform) {
   if (!items.length) { toast('No matching items to export', true); return; }
 
   const rows = items.map(tpl.mapper);
-  const filename = `fliptrack-${templateKey}-${new Date().toISOString().slice(0, 10)}.${tpl.ext}`;
+  const filename = `fliptrack-${templateKey}-${localDate()}.${tpl.ext}`;
   downloadCSV(filename, tpl.columns, rows);
   toast(`Exported ${rows.length} items — ${tpl.name} format`);
 }
@@ -205,7 +206,7 @@ export function exportSalesCSV() {
   });
 
   if (!rows.length) { toast('No sales to export', true); return; }
-  downloadCSV(`fliptrack-sales-${new Date().toISOString().slice(0, 10)}.csv`, tpl.columns, rows);
+  downloadCSV(`fliptrack-sales-${localDate()}.csv`, tpl.columns, rows);
   toast(`Exported ${rows.length} sales`);
 }
 
@@ -240,7 +241,7 @@ export function exportTaxCSV() {
   }
 
   if (!rows.length) { toast('No data to export', true); return; }
-  downloadCSV(`fliptrack-tax-${new Date().toISOString().slice(0, 10)}.csv`, tpl.columns, rows);
+  downloadCSV(`fliptrack-tax-${localDate()}.csv`, tpl.columns, rows);
   toast(`Exported ${rows.length} tax records`);
 }
 
@@ -330,7 +331,7 @@ export function exportAllShowsCSV() {
     };
   });
 
-  downloadCSV(`whatnot-all-shows-${new Date().toISOString().slice(0, 10)}.csv`, columns, rows);
+  downloadCSV(`whatnot-all-shows-${localDate()}.csv`, columns, rows);
   toast(`Exported ${rows.length} shows`);
 }
 

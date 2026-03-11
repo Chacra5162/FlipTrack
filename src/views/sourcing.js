@@ -6,7 +6,7 @@
 import { inv, sales, save, refresh, markDirty } from '../data/store.js';
 import { getMeta, setMeta } from '../data/idb.js';
 import { getCurrentUser, getSupabaseClient } from '../data/auth.js';
-import { fmt, ds, uid, escHtml, pct } from '../utils/format.js';
+import { fmt, ds, uid, escHtml, pct, localDate} from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { renderPagination } from '../utils/pagination.js';
 import { getHaulROI, getHaulItems, splitCost, getSourceStats, getBestSources, getHaulSummary } from '../features/haul.js';
@@ -193,7 +193,7 @@ export function renderSourcingView() {
           <div class="form-grid">
             <div class="fgrp">
               <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Date</label>
-              <input type="date" id="haul_date" value="${new Date().toISOString().split('T')[0]}"
+              <input type="date" id="haul_date" value="${localDate()}"
                      style="padding:8px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:13px">
             </div>
             <div class="fgrp">

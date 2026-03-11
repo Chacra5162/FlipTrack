@@ -4,7 +4,7 @@
 // Other modals: book-mode functions
 
 import { inv, activeDrawId, save, refresh, normCat, markDirty } from '../data/store.js';
-import { uid, fmt, pct, escHtml } from '../utils/format.js';
+import { uid, fmt, pct, escHtml, localDate} from '../utils/format.js';
 import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
 import { autoSync } from '../data/sync.js';
@@ -124,7 +124,7 @@ export function dupItem(id) {
   const src = inv.find(i => i.id === id);
   if (!src) return;
   const newId = uid();
-  const skuDate = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  const skuDate = localDate().replace(/-/g,'');
   const skuCat = ((src.category||'GEN').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4)).padEnd(3,'X');
   const skuRand = Math.random().toString(36).slice(2,5).toUpperCase();
   const clone = {
@@ -299,7 +299,7 @@ export function addItem(){
   const lowAlert = isBulk ? (isNaN(alertVal) ? 2 : alertVal) : 2;
 
   const cat=normCat(document.getElementById('f_cat').value.trim());
-  const skuDate = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  const skuDate = localDate().replace(/-/g,'');
   const skuCat = (cat||'GEN').trim().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4).padEnd(3,'X');
   const skuRand = Math.random().toString(36).slice(2,5).toUpperCase();
   const autoSku = skuCat + '-' + skuDate + '-' + skuRand;

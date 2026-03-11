@@ -7,7 +7,7 @@
 import { getMeta, setMeta } from '../data/idb.js';
 import { getInvItem, inv, save, refresh, markDirty } from '../data/store.js';
 import { toast } from '../utils/dom.js';
-import { uid, fmt, escHtml, ds } from '../utils/format.js';
+import { uid, fmt, escHtml, ds, localDate} from '../utils/format.js';
 import { markPlatformStatus, setListingDate } from './crosslist.js';
 
 // ── IN-MEMORY STORE ─────────────────────────────────────────────────────────
@@ -82,7 +82,7 @@ export async function createShow(name, date, time, notes, opts = {}) {
   const show = {
     id: uid(),
     name: (name || '').trim() || 'Untitled Show',
-    date: date || new Date().toISOString().slice(0, 10),
+    date: date || localDate(),
     time: time || '',
     items: opts.items ? [...opts.items] : [],
     status: opts.status || 'prep',
@@ -189,7 +189,7 @@ export async function startShow(showId) {
   show.status = 'live';
   show.startedAt = Date.now();
   // Mark all show items as 'active' on Whatnot
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDate();
   for (const itemId of show.items) {
     const item = getInvItem(itemId);
     if (item && (item.qty || 0) > 0) {
@@ -306,7 +306,7 @@ export async function cloneShow(showId, newDate, newTime) {
   if (!src) { toast('Show not found', true); return null; }
   return createShow(
     src.name,
-    newDate || new Date().toISOString().slice(0, 10),
+    newDate || localDate(),
     newTime || src.time,
     src.notes,
     { items: src.items, itemNotes: src.itemNotes, templateOf: showId }
@@ -321,7 +321,7 @@ export async function createFromRecurring(templateShow, date) {
   if (!templateShow?.recurring) return null;
   return createShow(
     templateShow.name,
-    date || new Date().toISOString().slice(0, 10),
+    date || localDate(),
     templateShow.time,
     templateShow.notes,
     { items: templateShow.items, itemNotes: templateShow.itemNotes, templateOf: templateShow.id }
@@ -448,7 +448,7 @@ export function getShowsByDate(date) {
  * Get today's upcoming shows.
  */
 export function getTodayShows() {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDate();
   return _shows.filter(s =>
     s.date === today && (s.status === 'prep' || s.status === 'live')
   );

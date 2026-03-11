@@ -35,7 +35,7 @@ export function daysListed(item) {
   return Math.floor((Date.now() - new Date(item.added).getTime()) / 86400000);
 }
 
-import { fmt, pct, escHtml, debounce, uid } from '../utils/format.js';
+import { fmt, pct, escHtml, debounce, uid, localDate} from '../utils/format.js';
 import { PLATFORMS, PLATFORM_GROUPS, platCls } from '../config/platforms.js';
 import { SUBCATS, SUBSUBCATS } from '../config/categories.js';
 import { toast } from '../utils/dom.js';
@@ -425,18 +425,20 @@ export function startPriceEdit(span, id) {
   const inp=document.createElement('input');
   inp.className='price-inp'; inp.type='number'; inp.step='0.01'; inp.value=item.price||0;
   span.replaceWith(inp); inp.focus(); inp.select();
-  let committed=false;const commit=()=>{if(committed)return;committed=true;const v=parseFloat(inp.value);if(!isNaN(v)&&v>=0){const oldP=item.price||0;item.price=v;markDirty('inv',item.id);save();refresh();renderInv();toast('Price updated ✓');if(v!==oldP&&v>0){logPriceChange(item.id,v,'manual');if(item.ebayItemId&&isEBayConnected()){pushEBayPrice(item.id).then(r=>{if(r.success)toast('eBay price synced ✓');}).catch(e=>console.warn('[eBay] Price push:',e.message));}}}else renderInv();};
+  let committed=false;const commit=()=>{if(committed)return;committed=true;const v=parseFloat(inp.value);if(!isNaN(v)&&v>=0){const oldP=item.price||0;item.price=v;markDirty('inv',item.id);inp.style.background='var(--good)';inp.style.color='#fff';inp.style.transition='background 0.2s';save();refresh();setTimeout(()=>renderInv(),200);toast('Price updated ✓');if(v!==oldP&&v>0){logPriceChange(item.id,v,'manual');if(item.ebayItemId&&isEBayConnected()){pushEBayPrice(item.id).then(r=>{if(r.success)toast('eBay price synced ✓');}).catch(e=>console.warn('[eBay] Price push:',e.message));}}}else renderInv();};
   inp.addEventListener('blur',commit);
   inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();inp.blur();}if(e.key==='Escape'){inp.removeEventListener('blur',commit);renderInv();}});
 }
 
 // ── STOCK STEPPER ─────────────────────────────────────────────────────────────
 
+const _debouncedStockSave = debounce(() => { save(); refresh(); }, 300);
+
 export function adjStock(id, d) {
   const item=inv.find(i=>i.id===id); if(!item) return;
   item.qty=Math.max(0,(item.qty||0)+d);
   markDirty('inv',item.id);
-  save(); refresh(); renderInv();
+  _debouncedStockSave(); renderInv();
   if(item.bulk&&item.qty===0) toast('⚠ Out of stock!',true);
   else if(item.bulk&&item.qty<=(item.lowAlert||2)) toast(`⚠ Low: ${item.qty} left`,true);
 }
@@ -463,7 +465,7 @@ export function syncBulk(){const b=document.getElementById('bulkBar');if(b)b.cla
 
 export async function bulkDel(){if(!sel.size)return;if(!confirm(`Delete ${sel.size} item(s)?`))return;const ids=[...sel];ids.forEach(id=>softDeleteItem(id));sel.clear();save();refresh();toast(ids.length+' item(s) deleted — check 🗑️ to restore');await pushDeleteToCloud('ft_inventory',ids);autoSync();}
 
-export function bulkSold(){if(!sel.size)return;const ok=[...sel].filter(id=>{const it=getInvItem(id);return it&&it.qty>0;});if(!ok.length){toast('No sellable items selected',true);return;}if(!confirm(`Record sale for ${ok.length} item(s) at list price?`))return;const today=new Date().toISOString().split('T')[0];for(const id of ok){const it=getInvItem(id);const saleId=uid();sales.push({id:saleId,itemId:id,price:it.price,listPrice:it.price||0,qty:1,fees:it.fees||0,ship:it.ship||0,date:today});markDirty('sales',saleId);it.qty=Math.max(0,(it.qty||0)-1);markDirty('inv',id);}sel.clear();save();refresh();toast(`${ok.length} sale(s) recorded ✓`);}
+export function bulkSold(){if(!sel.size)return;const ok=[...sel].filter(id=>{const it=getInvItem(id);return it&&it.qty>0;});if(!ok.length){toast('No sellable items selected',true);return;}if(!confirm(`Record sale for ${ok.length} item(s) at list price?`))return;const today=localDate();for(const id of ok){const it=getInvItem(id);const saleId=uid();sales.push({id:saleId,itemId:id,price:it.price,listPrice:it.price||0,qty:1,fees:it.fees||0,ship:it.ship||0,date:today});markDirty('sales',saleId);it.qty=Math.max(0,(it.qty||0)-1);markDirty('inv',id);}sel.clear();save();refresh();toast(`${ok.length} sale(s) recorded ✓`);}
 
 // ── ADVANCED BULK OPERATIONS ─────────────────────────────────────────────────
 
@@ -512,7 +514,7 @@ export function closeBulkPrice() {
 export function previewBulkPrice() {
   const type = document.getElementById('bulkPriceType').value;
   const dir  = document.getElementById('bulkPriceDir').value;
-  const raw  = parseFloat(document.getElementById('bulkPriceVal').value) || 0;
+  const raw  = parseFloat(document.getElementById('bulkPriceVal').value); if (isNaN(raw) || raw <= 0) { toast('Enter a valid amount', true); return; }
   const val  = dir === 'decrease' ? -Math.abs(raw) : Math.abs(raw);
   let cnt = 0;
   for (const id of sel) {
@@ -530,8 +532,8 @@ export function previewBulkPrice() {
 export function applyBulkPrice() {
   const type = document.getElementById('bulkPriceType').value;
   const dir  = document.getElementById('bulkPriceDir').value;
-  const raw  = parseFloat(document.getElementById('bulkPriceVal').value) || 0;
-  if (raw === 0) { toast('Enter an amount', true); return; }
+  const raw  = parseFloat(document.getElementById('bulkPriceVal').value); if (isNaN(raw) || raw <= 0) { toast('Enter a valid amount', true); return; }
+  
   const val  = dir === 'decrease' ? -Math.abs(raw) : Math.abs(raw);
   let cnt = 0;
   for (const id of sel) {
@@ -673,7 +675,7 @@ export function bulkExportCSV() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `fliptrack-export-${new Date().toISOString().split('T')[0]}.csv`;
+  a.download = `fliptrack-export-${localDate()}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

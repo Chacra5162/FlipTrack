@@ -10,7 +10,7 @@ import {
   markDirty, markDeleted,
 } from '../data/store.js';
 
-import { fmt, pct, escHtml, uid, ds } from '../utils/format.js';
+import { fmt, pct, escHtml, uid, ds, localDate} from '../utils/format.js';
 import { PLATFORMS, platCls, PLATFORM_FEES, calcPlatformFee } from '../config/platforms.js';
 import { toast } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
@@ -57,7 +57,7 @@ export function openSoldModal(id) {
     document.getElementById('s_qty').value = '1';
     document.getElementById('s_fees').value = '';
     document.getElementById('s_ship').value = '';
-    document.getElementById('s_date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('s_date').value = localDate();
     const sel = document.getElementById('s_platform');
     sel.innerHTML = `<option value="" disabled selected>── Select platform ──</option>` +
       PLATFORMS.map(p => `<option value="${p}">${escHtml(p)}</option>`).join('');
@@ -105,7 +105,7 @@ function _populateSoldModal(item) {
   document.getElementById('s_qty').value = '1';
   document.getElementById('s_fees').value = item.fees || '';
   document.getElementById('s_ship').value = item.ship || '';
-  document.getElementById('s_date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('s_date').value = localDate();
   // Build platform dropdown — item's own platforms first, then the rest
   const itemPlats = getPlatforms(item);
   const others = PLATFORMS.filter(p => !itemPlats.includes(p));
@@ -166,7 +166,8 @@ export function updateFeeEstimate() {
   hint.style.display = '';
   if (price > 0) {
     const est = calcPlatformFee(platform, price);
-    hint.innerHTML = `${feeData.label} · est. <strong style="color:var(--accent)">${fmt(est)}</strong> <button onclick="document.getElementById('s_fees').value=${est};this.textContent='Applied ✓'" style="background:none;border:1px solid var(--border);color:var(--accent);font-size:9px;padding:2px 8px;cursor:pointer;font-family:'DM Mono',monospace;margin-left:4px">Apply</button>`;
+    document.getElementById('s_fees').value = est;
+    hint.innerHTML = `${feeData.label} · est. <strong style="color:var(--accent)">${fmt(est)}</strong> <span style="color:var(--good);font-size:9px;margin-left:4px">Auto-applied ✓</span>`;
   } else {
     hint.textContent = feeData.label;
   }

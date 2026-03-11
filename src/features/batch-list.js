@@ -5,7 +5,7 @@
  */
 
 import { inv, save, refresh, markDirty, getInvItem } from '../data/store.js';
-import { fmt, escHtml } from '../utils/format.js';
+import { fmt, escHtml, localDate} from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { getPlatforms } from './platforms.js';
 import { PLATFORMS } from '../config/platforms.js';
@@ -117,7 +117,7 @@ export async function executeBatchList(opts = {}) {
 
           // Mark as draft
           markPlatformStatus(item.id, platform, 'draft');
-          setListingDate(item.id, platform, new Date().toISOString().split('T')[0]);
+          setListingDate(item.id, platform, localDate());
           markDirty('inv', item.id);
 
           success++;

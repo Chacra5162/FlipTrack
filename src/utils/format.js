@@ -10,6 +10,9 @@ export const uid = () => Date.now().toString(36) + Math.random().toString(36).sl
 // Date string format
 export const ds = d => new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
 
+// Local date string (YYYY-MM-DD) — avoids UTC timezone shift from toISOString()
+export const localDate = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
 // HTML escape
 export const escHtml = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
 

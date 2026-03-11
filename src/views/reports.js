@@ -625,7 +625,7 @@ async function _commitSaleDeletion() {
   const id = _deletedSale.id;
   _deletedSale = null;
   await pushDeleteToCloud('ft_sales',[id]);
-  try { await pushToCloud(); } catch(e) { console.warn('FlipTrack: inv push after sale delete failed:', e.message); }
+  try { await pushToCloud(); } catch(e) { console.warn('FlipTrack: inv push after sale delete failed:', e.message); toast('⚠ Cloud sync failed — will retry', true); }
 }
 
 // DELETE ITEM

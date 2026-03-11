@@ -1,3 +1,4 @@
+import { toast } from '../utils/dom.js';
 /**
  * store.js - Central data store
  * Manages all inventory, sales, and expense data.
@@ -312,14 +313,24 @@ export function normCat(input) {
 // Normalize all existing category names in inventory to prevent duplicates
 export function normalizeAllCategories() {
   const catMap = {};
+  const subMap = {};
   let changed = 0;
   for (const item of inv) {
-    if (!item.category) continue;
-    const lower = item.category.toLowerCase();
-    if (!catMap[lower]) catMap[lower] = titleCase(item.category);
-    if (item.category !== catMap[lower]) {
-      item.category = catMap[lower];
-      changed++;
+    if (item.category) {
+      const lower = item.category.toLowerCase();
+      if (!catMap[lower]) catMap[lower] = titleCase(item.category);
+      if (item.category !== catMap[lower]) {
+        item.category = catMap[lower];
+        changed++;
+      }
+    }
+    if (item.subcategory) {
+      const lower = item.subcategory.toLowerCase();
+      if (!subMap[lower]) subMap[lower] = titleCase(item.subcategory);
+      if (item.subcategory !== subMap[lower]) {
+        item.subcategory = subMap[lower];
+        changed++;
+      }
     }
   }
   return changed;
@@ -336,8 +347,8 @@ export function saveTrash() {
   const cutoff = Date.now() - 7 * 86400000;
   _trash = _trash.filter(t => t.deletedAt > cutoff).slice(-30);
   // Persist trash to IDB and localStorage
-  if (_idbReady) putAll('trash', _trash).catch(e => console.warn('FlipTrack: trash IDB save failed:', e.message));
-  try { localStorage.setItem('ft_trash', JSON.stringify(_trash)); } catch (e) { console.warn('FlipTrack: trash localStorage save failed:', e.message); }
+  if (_idbReady) putAll('trash', _trash).catch(e => { console.warn('FlipTrack: trash IDB save failed:', e.message); toast('⚠ Save error — check storage', true); });
+  try { localStorage.setItem('ft_trash', JSON.stringify(_trash)); } catch (e) { console.warn('FlipTrack: trash localStorage save failed:', e.message); toast('⚠ Save error — check storage', true); }
 }
 
 export function softDeleteItem(id) {
@@ -415,13 +426,13 @@ export function performUndo() {
 
 // ── SUPPLIES ───────────────────────────────────────────────────────────────
 export function saveSupplies() {
-  if (_idbReady) putAll('supplies', supplies).catch(e => console.warn('FlipTrack: supplies IDB save failed:', e.message));
-  try { localStorage.setItem('ft_supplies', JSON.stringify(supplies)); } catch (e) { console.warn('FlipTrack: supplies localStorage save failed:', e.message); }
+  if (_idbReady) putAll('supplies', supplies).catch(e => { console.warn('FlipTrack: supplies IDB save failed:', e.message); toast('⚠ Supplies save error', true); });
+  try { localStorage.setItem('ft_supplies', JSON.stringify(supplies)); } catch (e) { console.warn('FlipTrack: supplies localStorage save failed:', e.message); toast('⚠ Supplies save error', true); }
 }
 
 export function saveLocalSupplies() {
-  if (_idbReady) putAll('supplies', supplies).catch(e => console.warn('FlipTrack: supplies IDB local save failed:', e.message));
-  try { localStorage.setItem('ft_supplies', JSON.stringify(supplies)); } catch (e) { console.warn('FlipTrack: supplies localStorage save failed:', e.message); }
+  if (_idbReady) putAll('supplies', supplies).catch(e => { console.warn('FlipTrack: supplies IDB local save failed:', e.message); toast('⚠ Supplies save error', true); });
+  try { localStorage.setItem('ft_supplies', JSON.stringify(supplies)); } catch (e) { console.warn('FlipTrack: supplies localStorage save failed:', e.message); toast('⚠ Supplies save error', true); }
 }
 
 

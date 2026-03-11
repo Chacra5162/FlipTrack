@@ -4,7 +4,7 @@
  */
 
 import { inv, save, refresh, markDirty } from '../data/store.js';
-import { fmt, escHtml, ds, uid } from '../utils/format.js';
+import { fmt, escHtml, ds, uid, localDate} from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { getPlatforms } from '../features/platforms.js';
 import { PLATFORMS } from '../config/platforms.js';
@@ -491,7 +491,7 @@ export function clCycleStatus(itemId, platform) {
   const next = cycle[(cycle.indexOf(current) + 1) % cycle.length];
   markPlatformStatus(itemId, platform, next);
   if (next === 'active') {
-    setListingDate(itemId, platform, new Date().toISOString().split('T')[0]);
+    setListingDate(itemId, platform, localDate());
   }
   save(); refresh();
   renderCrosslistDashboard();
@@ -1451,7 +1451,7 @@ export function wnToggleShow(showId) {
 export async function wnNewShow() {
   const name = prompt('Show name:');
   if (!name) return;
-  const date = prompt('Date (YYYY-MM-DD):', new Date().toISOString().slice(0, 10));
+  const date = prompt('Date (YYYY-MM-DD):', localDate());
   if (!date) return;
   const time = prompt('Time (HH:MM, optional):', '19:00') || '';
   const show = await createShow(name, date, time);
@@ -1531,7 +1531,7 @@ export async function wnEditItemNote(showId, itemId) {
 }
 
 export async function wnCloneShow(showId) {
-  const date = prompt('Date for cloned show (YYYY-MM-DD):', new Date().toISOString().slice(0, 10));
+  const date = prompt('Date for cloned show (YYYY-MM-DD):', localDate());
   if (!date) return;
   const newShow = await cloneShow(showId, date);
   if (newShow) {
@@ -1597,7 +1597,7 @@ export async function wnBuilderCreateShow() {
   if (_wnBuilderSelected.size === 0) { toast('No items selected', true); return; }
   const name = prompt('Show name:', `Smart Show - ${new Date().toLocaleDateString()}`);
   if (!name) return;
-  const date = prompt('Date (YYYY-MM-DD):', new Date().toISOString().slice(0, 10));
+  const date = prompt('Date (YYYY-MM-DD):', localDate());
   if (!date) return;
   const time = prompt('Time (HH:MM):', '19:00') || '';
   const show = await createShow(name, date, time, '', { items: [..._wnBuilderSelected] });

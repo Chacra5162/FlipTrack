@@ -57,7 +57,8 @@ export async function lookupPrices() {
     // 1. Fetch product info from UPCitemdb (free, no key, CORS-enabled)
     let product = null;
     try {
-      const res  = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${upc}`);
+      const _ac1 = new AbortController(); const _t1 = setTimeout(() => _ac1.abort(), 10000);
+      const res  = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${upc}`, {signal:_ac1.signal}); clearTimeout(_t1);
       const data = await res.json();
       if (data.items && data.items.length > 0) product = data.items[0];
     } catch(e) { /* API may be unavailable — continue without product info */ }
@@ -82,7 +83,8 @@ export async function lookupByKeyword() {
     // Try UPCitemdb keyword search endpoint
     let results = [];
     try {
-      const res  = await fetch(`https://api.upcitemdb.com/prod/trial/search?s=${encodeURIComponent(query)}&type=product`);
+      const _ac2 = new AbortController(); const _t2 = setTimeout(() => _ac2.abort(), 10000);
+      const res  = await fetch(`https://api.upcitemdb.com/prod/trial/search?s=${encodeURIComponent(query)}&type=product`, {signal:_ac2.signal}); clearTimeout(_t2);
       const data = await res.json();
       if (data.items) results = data.items;
     } catch(e) { /* API unavailable — show search links only */ }

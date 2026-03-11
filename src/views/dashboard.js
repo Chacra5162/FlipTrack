@@ -1,5 +1,5 @@
 import { inv, sales, getInvItem, calc, sc, margCls, mkc, save, refresh, markDirty } from '../data/store.js';
-import { fmt, pct, ds, escHtml } from '../utils/format.js';
+import { fmt, pct, ds, escHtml, localDate} from '../utils/format.js';
 import { getPlatforms, renderPlatTags } from '../features/platforms.js';
 import { toast } from '../utils/dom.js';
 import { openDrawer } from '../modals/drawer.js';
@@ -14,7 +14,7 @@ import { renderKPIGoals } from '../features/kpi-goals.js';
  * 2× today. Each call that returns false increments the counter.
  */
 function _popupThrottled(key, maxPerDay = 2) {
-  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const today = localDate(); // YYYY-MM-DD
   try {
     const raw = localStorage.getItem(key);
     if (raw) {
