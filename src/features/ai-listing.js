@@ -13,6 +13,48 @@ import { getPlatforms } from './platforms.js';
 let _sb = null;
 let _generating = false;
 
+// ── VARIETY ENGINE ───────────────────────────────────────────────────────
+// Randomised per-generation to keep clothing listings fresh and distinct.
+const _pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+const _PERSONAS = [
+  'You are a seasoned thrift-store curator who tells the story behind every piece.',
+  'You are a fashion-forward stylist writing listings that feel like personal shopping recommendations.',
+  'You are a vintage boutique owner known for vivid, sensory descriptions that make buyers feel the fabric.',
+  'You are an energetic reseller who writes punchy, scroll-stopping copy with personality.',
+  'You are a luxury consignment specialist who highlights quality, craftsmanship, and investment value.',
+  'You are a streetwear culture writer who connects pieces to trends, aesthetics, and movements.',
+  'You are a sustainable fashion advocate who celebrates secondhand style and conscious closets.',
+];
+
+const _STYLE_DIRECTIVES = [
+  'Use a storytelling approach — paint a scene where someone is wearing this item.',
+  'Lead with the most unique or eye-catching detail about this piece.',
+  'Write as if recommending this to a friend who asked "what should I wear?"',
+  'Focus on the lifestyle or occasion this piece is perfect for.',
+  'Emphasize texture, fit, and how the item feels — make it tangible.',
+  'Open with a bold, confident statement that stops the scroll.',
+  'Highlight what makes this piece a smart buy — value, versatility, or rarity.',
+  'Channel editorial magazine energy — aspirational but approachable.',
+];
+
+const _OPENING_HOOKS = [
+  'Start the description with a question that draws the reader in.',
+  'Open with a vivid one-liner that captures the item\'s vibe.',
+  'Begin with a bold claim about why this piece stands out.',
+  'Start with a relatable scenario where someone would reach for this item.',
+  'Lead with the brand story or heritage if the brand is notable.',
+  'Open with a seasonal or trend reference that makes the item timely.',
+];
+
+const _CTA_STYLES = [
+  'End with a friendly, conversational call to action.',
+  'Close with urgency — hint that this piece won\'t last long.',
+  'Finish by suggesting how to style or pair this item, then invite the buyer to act.',
+  'End with a confidence-boosting statement about the buyer\'s future outfit.',
+  'Close with a bundle/savings incentive if the platform supports it.',
+];
+
 // Platform description character limits (hard guard — truncates if AI overshoots)
 const _PLATFORM_DESC_LIMITS = {
   'Depop': 1000,
@@ -61,6 +103,7 @@ export async function generateListing(item, opts = {}) {
       body: {
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
+        temperature: 0.95,
         messages: [{ role: 'user', content: prompt }],
       },
     });
@@ -176,7 +219,19 @@ Keep it SHORT — Depop has a 1000 character limit. Aim for 80-120 words max.`,
     'Amazon': 'Amazon: bullet-point style features. Focus on product specifications and condition details.',
   };
 
-  return `You are an expert reseller listing copywriter. Generate an optimized marketplace listing.
+  // Pick randomised variety elements for each generation
+  const persona = _pick(_PERSONAS);
+  const styleDir = _pick(_STYLE_DIRECTIVES);
+  const hookDir = _pick(_OPENING_HOOKS);
+  const ctaDir = _pick(_CTA_STYLES);
+
+  return `${persona} Generate an optimized marketplace listing.
+
+WRITING STYLE: ${styleDir}
+OPENING APPROACH: ${hookDir}
+CLOSING APPROACH: ${ctaDir}
+
+IMPORTANT: Write a UNIQUE, creative description. Avoid generic phrases like "This [item] is perfect for…" or "Look no further!" — find a fresh angle every time.
 
 ITEM DETAILS:
 ${details.join('\n')}
@@ -187,11 +242,11 @@ ${platformRules[platform] || ''}
 TONE: ${tone}
 
 REQUIREMENTS:
-- Generate a compelling title (under 80 characters)
+- Generate a compelling title (under 80 characters) — vary word order and phrasing from typical listings
 - Generate a description appropriate for the platform${platform === 'Depop' ? ' (MUST be under 1000 characters total)' : platform === 'Mercari' ? ' (under 150 words)' : ' (150-300 words)'}
 ${includeKeywords ? '- Include 5-8 relevant search keywords' : ''}
 - Include condition details and any flaws
-- End with a call to action
+- End with a call to action matching the closing approach above
 
 FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
 TITLE: [your title here]
