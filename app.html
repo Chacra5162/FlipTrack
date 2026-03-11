@@ -88,18 +88,7 @@
     <button class="fs-btn" onclick="toggleFsPopover()" title="Adjust text size" id="fsSizeBtn" aria-label="Font size settings">Aᴬ</button>
     <button class="fs-btn" onclick="toggleTheme()" title="Toggle light/dark theme" id="themeBtn" aria-label="Toggle light or dark mode">☀</button>
     <button class="fs-btn" id="notifBellBtn" onclick="toggleNotifCenter()" aria-label="Notifications">🔔<span id="notifBadge">0</span></button>
-    <div class="global-search-wrap">
-      <button class="fs-btn" id="globalSearchBtn" onclick="toggleGlobalSearch()" aria-label="Search everything" title="Search everything (Ctrl+K)">⌕</button>
-      <div class="global-search-panel" id="globalSearchPanel">
-        <div class="gs-input-row">
-          <span class="gs-icon">⌕</span>
-          <label for="globalSearchInput" class="sr-only">Search all items</label>
-          <input type="text" id="globalSearchInput" placeholder="Search items, sales, buyers, expenses…" oninput="globalSearchDebounced(this.value)" autocomplete="off">
-          <kbd class="gs-kbd">Esc</kbd>
-        </div>
-        <div id="globalSearchResults" class="gs-results"></div>
-      </div>
-    </div>
+    <button class="fs-btn" id="globalSearchBtn" onclick="toggleGlobalSearch()" aria-label="Search everything" title="Search everything (Ctrl+K)">⌕</button>
     <div class="nav-group" data-group="tools">
       <button class="nav-group-btn" onclick="toggleNavGroup('tools')" aria-label="Tools menu" style="font-size:11px;padding:6px 12px">
         <span class="nav-group-icon">🛠</span> Tools <span class="nav-chevron">▾</span>
@@ -1739,6 +1728,15 @@
 </div>
 
 <div class="gs-backdrop" id="gsBackdrop" onclick="closeGlobalSearch()"></div>
+<div class="global-search-panel" id="globalSearchPanel">
+  <div class="gs-input-row">
+    <span class="gs-icon">⌕</span>
+    <label for="globalSearchInput" class="sr-only">Search all items</label>
+    <input type="text" id="globalSearchInput" placeholder="Search items, sales, buyers, expenses…" oninput="globalSearchDebounced(this.value)" autocomplete="off">
+    <kbd class="gs-kbd">Esc</kbd>
+  </div>
+  <div id="globalSearchResults" class="gs-results"></div>
+</div>
 <script type="module" src="./src/main.js"></script>
 </body>
 </html>
