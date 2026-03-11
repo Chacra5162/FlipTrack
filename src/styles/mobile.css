@@ -227,10 +227,12 @@
   #view-sales .inv-table thead th:nth-child(5),
   #view-sales .inv-table tbody td:nth-child(5) { display: none; }
 
-  /* Drawer — near full screen on phone */
+  /* Drawer — near full screen on phone, capped to avoid safe-area overflow */
   .drawer {
-    height: calc(92vh + 60px + env(safe-area-inset-bottom));
-    height: calc(92dvh + 60px + env(safe-area-inset-bottom));
+    height: calc(100vh - 52px);
+    height: calc(100dvh - 52px);
+    max-height: calc(100vh - env(safe-area-inset-top, 0px));
+    max-height: calc(100dvh - env(safe-area-inset-top, 0px));
     top: auto;
     bottom: 0;
     left: 0;
@@ -286,16 +288,16 @@
   /* iOS zoom prevention moved to (hover: none) and (pointer: coarse) query below */
 }
 
-/* Touch — ensure minimum 44px tap targets */
+/* Touch — ensure minimum 44px tap targets (WCAG / Apple HIG) */
 @media (hover: none) and (pointer: coarse) {
-  .filter-chip   { padding: 8px 12px; font-size: 11px; min-height: 36px; }
-  .act-btn       { min-height: 36px; min-width: 36px; }
-  .td-acts .act-btn { min-width: unset; min-height: 28px; }
-  .btn-primary   { min-height: 40px; padding: 10px 20px; }
-  .btn-secondary { min-height: 36px; }
-  .btn-danger    { min-height: 40px; }
-  .nav-tab       { min-height: 40px; display: flex; align-items: center; }
-  .stepper-btn   { width: 36px; height: 36px; font-size: 18px; }
+  .filter-chip   { padding: 10px 14px; font-size: 11px; min-height: 44px; box-sizing: border-box; }
+  .act-btn       { min-height: 44px; min-width: 44px; }
+  .td-acts .act-btn { min-width: unset; min-height: 36px; }
+  .btn-primary   { min-height: 44px; padding: 10px 20px; }
+  .btn-secondary { min-height: 44px; }
+  .btn-danger    { min-height: 44px; }
+  .nav-tab       { min-height: 44px; display: flex; align-items: center; }
+  .stepper-btn   { width: 44px; height: 44px; font-size: 18px; }
   .modal-x, .drawer-x, .close-x { min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; }
   input, select, textarea { font-size: 16px !important; } /* prevent iOS zoom */
 }

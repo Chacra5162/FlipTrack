@@ -22,15 +22,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"></noscript>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
-  <script type="module" crossorigin src="./assets/app-CB7Btm7D.js"></script>
+  <script type="module" crossorigin src="./assets/app-CruXKVl3.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/vendor-supabase-jY4wIOEF.js">
-  <link rel="modulepreload" crossorigin href="./assets/pro-tier-D9IG7HfF.js">
-  <link rel="modulepreload" crossorigin href="./assets/unlimited-tier-DgQlMOsG.js">
-  <link rel="stylesheet" crossorigin href="./assets/app-BWdDOJEE.css">
+  <link rel="modulepreload" crossorigin href="./assets/pro-tier-Cf3PsL1M.js">
+  <link rel="modulepreload" crossorigin href="./assets/unlimited-tier-JoNf6vfy.js">
+  <link rel="stylesheet" crossorigin href="./assets/app-JK7mMFsR.css">
 </head>
 <body>
 <!-- SPLASH / LOADING SCREEN — removed by main.js on init -->
-<div id="splash" style="position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0a0a0f;gap:16px;transition:opacity .4s">
+<div id="splash" style="position:fixed;inset:0;z-index:var(--z-splash);display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0a0a0f;gap:16px;transition:opacity .4s">
   <div style="font-family:'Syne',system-ui,sans-serif;font-size:28px;font-weight:800;letter-spacing:-.5px;color:#fff">Flip<span style="color:#00c888">Track</span></div>
   <div style="width:120px;height:3px;border-radius:2px;background:#181820;overflow:hidden">
     <div style="width:40%;height:100%;background:#00c888;border-radius:2px;animation:splash-bar 1.2s ease-in-out infinite"></div>
@@ -40,7 +40,7 @@
   @keyframes splash-bar{0%{transform:translateX(-100%)}50%{transform:translateX(150%)}100%{transform:translateX(-100%)}}
   #splash.hide{opacity:0;pointer-events:none}
 </style>
-<a href="#mainContent" class="sr-only" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;z-index:100000;padding:8px 16px;background:var(--accent);color:#fff;font-size:14px;text-decoration:none;border-radius:4px" onfocus="this.style.cssText='position:fixed;left:8px;top:8px;z-index:100000;padding:8px 16px;background:var(--accent);color:#fff;font-size:14px;text-decoration:none;border-radius:4px'" onblur="this.style.cssText='position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden'">Skip to content</a>
+<a href="#mainContent" class="sr-only" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;z-index:var(--z-skip);padding:8px 16px;background:var(--accent);color:#fff;font-size:14px;text-decoration:none;border-radius:4px" onfocus="this.style.cssText='position:fixed;left:8px;top:8px;z-index:var(--z-skip);padding:8px 16px;background:var(--accent);color:#fff;font-size:14px;text-decoration:none;border-radius:4px'" onblur="this.style.cssText='position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden'">Skip to content</a>
 <div class="shell">
 
 <!-- HEADER -->
@@ -255,7 +255,7 @@
       <div class="search-wrap">
         <span class="search-icon">⌕</span>
         <label for="invSearch" class="sr-only">Search inventory</label>
-        <input type="text" id="invSearch" placeholder="Search name, SKU, category…" oninput="_debouncedRenderInv()">
+        <label for="invSearch" class="sr-only">Search inventory</label><input type="text" id="invSearch" placeholder="Search name, SKU, category…" oninput="_debouncedRenderInv()">
       </div>
       <button class="filter-toggle-btn" id="filterToggleBtn" onclick="toggleFilterPanel()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
@@ -297,7 +297,7 @@
 
     <!-- Sort / actions bar (always visible) -->
     <div class="inv-toolbar" style="border-top:none;padding-top:8px;padding-bottom:8px;background:var(--surface);border-bottom:1px solid var(--border)">
-      <select class="sort-select" id="sortSel" onchange="renderInv()">
+      <label for="sortSel" class="sr-only">Sort inventory by</label><select class="sort-select" id="sortSel" onchange="renderInv()">
         <option value="added-desc">Newest First</option>
         <option value="added-asc">Oldest First</option>
         <option value="name-asc">Name A–Z</option>
@@ -312,7 +312,7 @@
       <div class="toolbar-spacer"></div>
       <button class="btn-secondary" onclick="printStickers(false)" style="font-size:11px;padding:5px 10px;white-space:nowrap">🏷 Print All</button>
       <button class="btn-secondary" onclick="openTrashModal()" style="font-size:11px;padding:5px 10px;white-space:nowrap">🗑️ Trash</button>
-      <span id="invCnt" style="font-size:11px;color:var(--muted);white-space:nowrap"></span>
+      <span id="invCnt" aria-live="polite" aria-atomic="true" style="font-size:11px;color:var(--muted);white-space:nowrap"></span>
     </div>
     <div class="bulk-bar" id="bulkBar">
       <span class="bulk-count" id="bulkCnt">0 selected</span>
@@ -372,7 +372,7 @@
   <div class="panel" style="animation:none">
     <div class="panel-header">
       <div class="panel-title">All Sales</div>
-      <span id="salesTotalLbl" style="font-size:11px;color:var(--muted)"></span>
+      <span id="salesTotalLbl" aria-live="polite" aria-atomic="true" style="font-size:11px;color:var(--muted)"></span>
     </div>
     <div id="salesFilterBar"></div>
     <div style="overflow-x:auto">
@@ -502,7 +502,7 @@
     <div class="panel-header">
       <div class="panel-title">All Expenses</div>
       <div style="display:flex;gap:8px;align-items:center">
-        <select id="expCatFilt" onchange="renderExpenses()" style="font-size:11px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 8px">
+        <label for="expCatFilt" class="sr-only">Filter expenses by category</label><select id="expCatFilt" onchange="renderExpenses()" style="font-size:11px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 8px">
           <option value="all">All Categories</option>
           <option value="Shipping Supplies">Shipping Supplies</option>
           <option value="Packaging Materials">Packaging Materials</option>
@@ -516,7 +516,7 @@
           <option value="Office Supplies">Office Supplies</option>
           <option value="Other">Other</option>
         </select>
-        <span id="expTotalLbl" style="font-size:11px;color:var(--muted)"></span>
+        <span id="expTotalLbl" aria-live="polite" aria-atomic="true" style="font-size:11px;color:var(--muted)"></span>
       </div>
     </div>
     <div id="expFilterBar"></div>
@@ -1417,7 +1417,7 @@
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="assertive" aria-atomic="true"></div>
 
 <!-- BATCH SCAN OVERLAY -->
 <div class="batch-overlay" id="batchOv" role="dialog" aria-modal="true" aria-label="Batch Scan">
@@ -1465,7 +1465,7 @@
     </div>
   </div>
 </div>
-<div id="offlineBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:10000;background:var(--danger);color:#fff;text-align:center;padding:6px 16px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.5px">
+<div id="offlineBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:var(--z-toast);background:var(--danger);color:#fff;text-align:center;padding:6px 16px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.5px">
   ⚡ Offline — changes saved locally and will sync when you reconnect
 </div>
 

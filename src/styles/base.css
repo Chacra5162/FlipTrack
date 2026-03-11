@@ -44,14 +44,22 @@
   --hover: rgba(87,200,255,0.04);
   --card: #1a1a24;
   --bad: #ff4757;
-  /* z-index scale */
+  /* z-index scale — consolidated, all layers in one place */
+  --z-base: 1;
+  --z-header: 200;
+  --z-sticky: 300;
+  --z-drawer: 400;
+  --z-overlay: 500;
+  --z-bnav: 600;
   --z-toast: 999;
+  --z-gating: 1100;
   --z-lightbox: 5000;
   --z-modal-overlay: 5998;
   --z-modal: 6000;
   --z-popover: 7000;
   --z-tour: 8000;
   --z-splash: 9000;
+  --z-skip: 9999;
 }
 
 html { font-size: 16px; overflow-x: hidden; }

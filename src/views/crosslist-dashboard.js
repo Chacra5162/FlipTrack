@@ -526,7 +526,7 @@ export function clBulkRelistExpired() {
 export function clAddTemplate() {
   // Create a modal form for template creation
   const modalId = 'clTemplateModal-' + Date.now();
-  const html = `<div id="${modalId}" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999" onclick="if(event.target.id==='${modalId}') document.getElementById('${modalId}').remove()">
+  const html = `<div id="${modalId}" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:var(--z-modal)" onclick="if(event.target.id==='${modalId}') document.getElementById('${modalId}').remove()">
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto" onclick="event.stopPropagation()">
       <h3 style="margin:0 0 16px 0;font-size:16px;color:var(--text)">New Listing Template</h3>
       <div class="form-grid" style="gap:12px">
