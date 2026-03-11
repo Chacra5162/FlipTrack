@@ -305,6 +305,8 @@ const imgDrop = _lw(lazyImages, 'imgDrop');
 const openLightbox = _lw(lazyImages, 'openLightbox');
 const openLightboxUrl = _lw(lazyImages, 'openLightboxUrl');
 const closeLightbox = _lw(lazyImages, 'closeLightbox');
+const lightboxPrev = _lw(lazyImages, 'lightboxPrev');
+const lightboxNext = _lw(lazyImages, 'lightboxNext');
 const openCropModal = _lw(lazyImages, 'openCropModal');
 const cropDraw = _lw(lazyImages, 'cropDraw');
 const cropConfirm = _lw(lazyImages, 'cropConfirm');
@@ -455,7 +457,7 @@ Object.assign(window, {
 Object.assign(window, {
   imgSlotChange, imgSlotRemove, refreshImgSlots,
   imgDragOver, imgDragLeave, imgDrop,
-  openLightbox, openLightboxUrl, closeLightbox,
+  openLightbox, openLightboxUrl, closeLightbox, lightboxPrev, lightboxNext,
   openCropModal, cropDraw, cropConfirm, cropCancel, cropReset, cropSetAspect,
   cropWhiteBg, cropAutoEnhance, cropRotate,
   renderAddFormImages, renderDrawerImg

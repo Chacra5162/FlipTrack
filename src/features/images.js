@@ -121,15 +121,68 @@ export function imgDrop(e, pfx) {
   if (file && file.type.startsWith('image/')) readImgFile(file, pfx + ':0');
 }
 
+// ── LIGHTBOX STATE ──────────────────────────────────────────────────────────
+let _lbImages = [];   // array of image URLs currently in lightbox
+let _lbIndex  = 0;    // current index within _lbImages
+let _lbSwipe  = null; // touch start coords for swipe
+
+function _lbUpdate() {
+  const img    = document.getElementById('lightboxImg');
+  const counter = document.getElementById('lightboxCounter');
+  const prev   = document.getElementById('lightboxPrev');
+  const next   = document.getElementById('lightboxNext');
+  if (img) img.src = _lbImages[_lbIndex] || '';
+  if (counter) counter.textContent = _lbImages.length > 1 ? `${_lbIndex + 1} / ${_lbImages.length}` : '';
+  if (prev) prev.style.display = _lbImages.length > 1 ? 'flex' : 'none';
+  if (next) next.style.display = _lbImages.length > 1 ? 'flex' : 'none';
+}
+
 export function openLightbox(itemId) {
   const item = inv.find(i => i.id === itemId);
-  const imgs = item ? getItemImages(item) : [];
-  if (imgs.length) openLightboxUrl(imgs[0]);
+  _lbImages = item ? getItemImages(item) : [];
+  _lbIndex = 0;
+  if (_lbImages.length) {
+    _lbUpdate();
+    document.getElementById('lightbox').classList.add('on');
+    const nameEl = document.getElementById('lightboxName');
+    if (nameEl) nameEl.textContent = item?.name || '';
+  }
 }
+
 export function openLightboxUrl(url) {
   if (!url) return;
-  document.getElementById('lightboxImg').src = url;
+  // If called from a drawer slot, try to find the item and load all images
+  const itemId = activeDrawId;
+  if (itemId) {
+    const item = inv.find(i => i.id === itemId);
+    if (item) {
+      _lbImages = getItemImages(item);
+      _lbIndex = Math.max(0, _lbImages.indexOf(url));
+      if (_lbIndex === -1) { _lbImages = [url]; _lbIndex = 0; }
+      _lbUpdate();
+      document.getElementById('lightbox').classList.add('on');
+      const nameEl = document.getElementById('lightboxName');
+      if (nameEl) nameEl.textContent = item.name || '';
+      return;
+    }
+  }
+  // Fallback: single image
+  _lbImages = [url];
+  _lbIndex = 0;
+  _lbUpdate();
   document.getElementById('lightbox').classList.add('on');
+}
+
+export function lightboxPrev() {
+  if (_lbImages.length < 2) return;
+  _lbIndex = (_lbIndex - 1 + _lbImages.length) % _lbImages.length;
+  _lbUpdate();
+}
+
+export function lightboxNext() {
+  if (_lbImages.length < 2) return;
+  _lbIndex = (_lbIndex + 1) % _lbImages.length;
+  _lbUpdate();
 }
 
 // ── CROP ENGINE ───────────────────────────────────────────────────────────────
@@ -683,5 +736,30 @@ export function compressImage(dataUrl, mimeType, callback) {
 export function closeLightbox() {
   document.getElementById('lightbox').classList.remove('on');
   document.getElementById('lightboxImg').src = '';
+  _lbImages = [];
+  _lbIndex = 0;
 }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+document.addEventListener('keydown', e => {
+  const lb = document.getElementById('lightbox');
+  if (!lb || !lb.classList.contains('on')) return;
+  if (e.key === 'Escape') closeLightbox();
+  else if (e.key === 'ArrowLeft') lightboxPrev();
+  else if (e.key === 'ArrowRight') lightboxNext();
+});
+
+// Touch/swipe support for lightbox
+let _lbTouchX = 0;
+document.addEventListener('touchstart', e => {
+  const lb = document.getElementById('lightbox');
+  if (!lb || !lb.classList.contains('on')) return;
+  _lbTouchX = e.touches[0].clientX;
+}, { passive: true });
+document.addEventListener('touchend', e => {
+  const lb = document.getElementById('lightbox');
+  if (!lb || !lb.classList.contains('on') || !_lbTouchX) return;
+  const diff = e.changedTouches[0].clientX - _lbTouchX;
+  _lbTouchX = 0;
+  if (Math.abs(diff) < 50) return; // minimum swipe distance
+  if (diff > 0) lightboxPrev();
+  else lightboxNext();
+});
