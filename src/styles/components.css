@@ -520,6 +520,7 @@ textarea { resize:vertical; min-height:70px; }
 .img-slot:hover { border-color: var(--accent); background: rgba(87,200,255,0.04); }
 .img-slot.filled { border-style: solid; border-color: var(--border); cursor: default; }
 .img-slot.img-slot-locked { pointer-events: none; opacity: 0.4; }
+.img-slot.img-slot-locked.filled { pointer-events: auto; opacity: 1; }
 .img-slot-add {
   display: flex;
   flex-direction: column;
@@ -549,6 +550,11 @@ textarea { resize:vertical; min-height:70px; }
   object-fit: cover;
   display: block;
   pointer-events: none;
+}
+.img-slot.filled img {
+  pointer-events: auto;
+  cursor: zoom-in;
+  z-index: 2;
 }
 .img-slot-icon { font-size: 20px; color: var(--muted2); }
 .img-slot-lbl  { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
