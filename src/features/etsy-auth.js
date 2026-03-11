@@ -70,11 +70,22 @@ async function getAuthHeaders() {
 async function callEdgeFn(action, body = {}) {
   const headers = await getAuthHeaders();
   headers['x-etsy-action'] = action;
-  const resp = await fetch(EDGE_FN, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(body),
-  });
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), 15000);
+  let resp;
+  try {
+    resp = await fetch(EDGE_FN, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+      signal: ac.signal,
+    });
+  } catch (networkErr) {
+    clearTimeout(timer);
+    if (networkErr.name === 'AbortError') throw new Error('Request timed out — try again');
+    throw new Error('Network error — check your internet connection');
+  }
+  clearTimeout(timer);
   const data = await resp.json();
   if (!resp.ok) throw new Error(data.error || `Edge function error: ${resp.status}`);
   return data;

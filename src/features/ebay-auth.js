@@ -97,16 +97,22 @@ async function getAuthHeaders() {
 async function callEdgeFn(action, body = {}) {
   const headers = await getAuthHeaders();
   headers['x-ebay-action'] = action;
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), 15000);
   let resp;
   try {
     resp = await fetch(EDGE_FN, {
       method: 'POST',
       headers,
       body: JSON.stringify({ ...body, isSandbox: _isSandbox }),
+      signal: ac.signal,
     });
   } catch (networkErr) {
+    clearTimeout(timer);
+    if (networkErr.name === 'AbortError') throw new Error('Request timed out — try again');
     throw new Error('Network error — check your internet connection');
   }
+  clearTimeout(timer);
   // Handle non-JSON responses (e.g., HTML error pages, 502 gateway errors)
   const contentType = resp.headers.get('content-type') || '';
   let data;
