@@ -108,7 +108,10 @@
 
 <!-- FONT SIZE POPOVER -->
 <div class="fs-popover" id="fsPopover">
-  <div class="fs-popover-title">Accessibility</div>
+  <div class="fs-popover-title" style="display:flex;align-items:center;justify-content:space-between">
+    Accessibility
+    <button onclick="toggleFsPopover()" aria-label="Close accessibility panel" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px 8px;line-height:1">&times;</button>
+  </div>
 
   <!-- Size slider -->
   <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px">Text Size</div>

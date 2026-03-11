@@ -846,14 +846,18 @@ function updateThemeLabels() {
 }
 
 function applyFontSize(val, doSave = true) {
-  document.documentElement.style.setProperty('--fs', val);
-  // Scale body font-size for content text; rem-based layout stays fixed
-  document.body.style.fontSize = (parseInt(val) * 0.16) + 'px';
-  document.getElementById('fsSlider').value = val;
-  document.querySelectorAll('.fs-preset').forEach(b => {
-    b.classList.toggle('active', parseInt(b.textContent === 'Small' ? 80 : b.textContent === 'Default' ? 100 : b.textContent === 'Large' ? 115 : 130) === parseInt(val));
+  const v = parseInt(val) || 100;
+  document.documentElement.style.setProperty('--fs', v);
+  // Scale content views; structural chrome (header, nav, modals) stays at base size
+  const px = (v * 0.16).toFixed(2) + 'px';
+  document.querySelectorAll('.view, .drawer-bd, .modal-bd').forEach(el => {
+    el.style.fontSize = px;
   });
-  if (doSave) localStorage.setItem('ft_fs', val);
+  document.getElementById('fsSlider').value = v;
+  document.querySelectorAll('.fs-preset').forEach(b => {
+    b.classList.toggle('active', parseInt(b.textContent === 'Small' ? 80 : b.textContent === 'Default' ? 100 : b.textContent === 'Large' ? 115 : 130) === v);
+  });
+  if (doSave) localStorage.setItem('ft_fs', v);
 }
 
 function setFsPreset(val) { applyFontSize(val); }
