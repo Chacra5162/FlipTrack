@@ -846,9 +846,9 @@ function updateThemeLabels() {
 }
 
 function applyFontSize(val, doSave = true) {
-  const scale = parseInt(val) / 100;
   document.documentElement.style.setProperty('--fs', val);
-  document.documentElement.style.zoom = scale;
+  // Scale body font-size for content text; rem-based layout stays fixed
+  document.body.style.fontSize = (parseInt(val) * 0.16) + 'px';
   document.getElementById('fsSlider').value = val;
   document.querySelectorAll('.fs-preset').forEach(b => {
     b.classList.toggle('active', parseInt(b.textContent === 'Small' ? 80 : b.textContent === 'Default' ? 100 : b.textContent === 'Large' ? 115 : 130) === parseInt(val));
@@ -997,6 +997,8 @@ try {
   if (savedTheme === 'light') document.documentElement.setAttribute('data-theme', 'light');
   updateThemeLabels();
 
+  // Clear legacy zoom if it was set by older code
+  document.documentElement.style.zoom = '';
   const savedFs = localStorage.getItem('ft_fs');
   if (savedFs) applyFontSize(savedFs, false);
 
