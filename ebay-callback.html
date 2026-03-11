@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlipTrack — eBay Authorization</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0f; color: #fff; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+    .card { text-align: center; padding: 40px; max-width: 400px; }
+    .logo { color: #00c888; font-size: 24px; font-weight: 700; margin-bottom: 16px; }
+    .msg { font-size: 15px; color: #a0a0b4; margin-bottom: 20px; }
+    .spinner { width: 32px; height: 32px; border: 3px solid #333; border-top-color: #00c888; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .success { color: #57ff9a; font-weight: 600; }
+    .error { color: #ff5757; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">FlipTrack</div>
+    <div class="spinner" id="spinner"></div>
+    <div class="msg" id="status">Connecting your eBay account…</div>
+  </div>
+  <script>
+    (async function () {
+      const status = document.getElementById('status');
+      const spinner = document.getElementById('spinner');
+
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+        const state = params.get('state');
+
+        if (!code) {
+          throw new Error('No authorization code received from eBay.');
+        }
+
+        // Pass code back to opener window (the FlipTrack app)
+        if (window.opener && typeof window.opener.handleEBayCallback === 'function') {
+          await window.opener.handleEBayCallback(code, state);
+          spinner.style.display = 'none';
+          status.innerHTML = '<span class="success">✓ eBay account connected!</span><br><br>This window will close automatically.';
+          setTimeout(() => window.close(), 2000);
+        } else {
+          // Opener not available (popup blocked or navigated away)
+          // Store code in localStorage for the main app to pick up
+          localStorage.setItem('ft_ebay_callback', JSON.stringify({ code, state, ts: Date.now() }));
+          spinner.style.display = 'none';
+          status.innerHTML = '<span class="success">✓ Authorization received!</span><br><br>Return to FlipTrack to complete the connection. You can close this window.';
+        }
+      } catch (e) {
+        spinner.style.display = 'none';
+        status.innerHTML = `<span class="error">✗ ${e.message}</span><br><br>Please close this window and try again.`;
+      }
+    })();
+  </script>
+</body>
+</html>
