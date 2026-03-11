@@ -217,9 +217,9 @@
   .stepper-val { font-size: 11px; min-width: 18px; }
   .stock-bar { display: none; }
 
-  /* Actions — icon-only, minimal */
-  .act-btn { padding: 3px 5px; font-size: 9px; min-width: unset; min-height: 28px; }
-  .td-acts { gap: 2px; flex-wrap: nowrap; }
+  /* Actions — compact vertical stack on phone */
+  .act-btn { padding: 4px 8px; font-size: 9px; min-width: unset; min-height: unset; }
+  .td-acts { gap: 3px; flex-direction: column; align-items: stretch; }
 
   /* Sales log — hide more columns on phone */
   #view-sales .inv-table thead th:nth-child(4),
@@ -290,6 +290,7 @@
 @media (hover: none) and (pointer: coarse) {
   .filter-chip   { padding: 8px 12px; font-size: 11px; min-height: 36px; }
   .act-btn       { min-height: 36px; min-width: 36px; }
+  .td-acts .act-btn { min-width: unset; min-height: 28px; }
   .btn-primary   { min-height: 40px; padding: 10px 20px; }
   .btn-secondary { min-height: 36px; }
   .btn-danger    { min-height: 40px; }
