@@ -847,12 +847,9 @@ function updateThemeLabels() {
 
 function applyFontSize(val, doSave = true) {
   const v = parseInt(val) || 100;
+  // --fs drives html { font-size: calc(var(--fs) * 0.16px) }
+  // Structural chrome is locked at 16px so only content scales
   document.documentElement.style.setProperty('--fs', v);
-  // Scale content views; structural chrome (header, nav, modals) stays at base size
-  const px = (v * 0.16).toFixed(2) + 'px';
-  document.querySelectorAll('.view, .drawer-bd, .modal-bd').forEach(el => {
-    el.style.fontSize = px;
-  });
   document.getElementById('fsSlider').value = v;
   document.querySelectorAll('.fs-preset').forEach(b => {
     b.classList.toggle('active', parseInt(b.textContent === 'Small' ? 80 : b.textContent === 'Default' ? 100 : b.textContent === 'Large' ? 115 : 130) === v);
