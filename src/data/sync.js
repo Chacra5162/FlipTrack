@@ -51,6 +51,7 @@ export async function pushToCloud() {
   await waitForPersist();
 
   // If offline, queue mutations for later replay
+  // Clear dirty tracking here since items are safely queued for offline replay
   if (!navigator.onLine) {
     await _queueDirtyItems();
     clearDirtyTracking();
@@ -117,9 +118,10 @@ export async function pushToCloud() {
     clearDirtyTracking();
   } catch (e) {
     // Network error during push — queue everything for retry
+    // Do NOT clearDirtyTracking here: dirty items that failed to push
+    // need to stay dirty so the next sync retries them
     console.warn('FlipTrack: push failed, queueing for retry:', e.message);
     await _queueDirtyItems();
-    clearDirtyTracking();
     throw e;
   }
 }

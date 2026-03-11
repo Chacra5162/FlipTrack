@@ -362,7 +362,7 @@ export function renderInv() {
   if (_invPage >= totalPages) _invPage = totalPages - 1;
   if (_invPage < 0) _invPage = 0;
   const pageItems = items.slice(_invPage * _invPageSize, (_invPage + 1) * _invPageSize);
-  const maxQ=Math.max(...inv.map(i=>i.qty||0),1);
+  let maxQ=1;for(let i=0;i<inv.length;i++){const q=inv[i].qty||0;if(q>maxQ)maxQ=q;}
   tbody.innerHTML=pageItems.map((item)=>{
     const {cost,price,m}=calc(item);
     const c=sc(item.qty,item.lowAlert,item.bulk);

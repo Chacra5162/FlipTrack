@@ -11,8 +11,10 @@ import {
   TIER_DISPLAY, VIEW_LABELS
 } from '../config/tiers.js';
 
-// ── Cached tier ──────────────────────────────────────────────────────────────
+// ── Cached tier (module-scoped, not exposed on window) ──────────────────────
 let _userTier = 'free';
+// Freeze to prevent console override via window._userTier
+Object.defineProperty(window, '_userTier', { get: () => _userTier, set: () => {}, configurable: false });
 
 /** Load user's tier from Supabase `profiles` table */
 export async function loadUserTier() {
