@@ -737,6 +737,10 @@ function switchView(name, el) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + name)?.classList.add('active');
 
+  // On mobile, hide stats-grid for non-dashboard views to free screen space
+  const sg = document.querySelector('.stats-grid');
+  if (sg) sg.classList.toggle('not-dash', name !== 'dashboard');
+
   // Update grouped nav: clear all active menu items, set new one, update group highlights
   document.querySelectorAll('.nav-menu-item').forEach(mi => mi.classList.remove('active'));
   const activeItem = document.querySelector(`.nav-menu-item[data-view="${name}"]`);
