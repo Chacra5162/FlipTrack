@@ -307,6 +307,12 @@ export function sortItems(items){
 export function renderInv() {
   buildChips();
   const q=(document.getElementById('invSearch').value||'').toLowerCase();
+  // When searching, reset to page 1 and scroll results into view
+  if (q && _invPage !== 0) _invPage = 0;
+  if (q) {
+    const invView = document.getElementById('view-inventory');
+    if (invView) invView.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
   let items=inv.filter(i=>{
     const mq=!q||i.name.toLowerCase().includes(q)||(i.sku||'').toLowerCase().includes(q)||(i.category||'').toLowerCase().includes(q)||(i.subcategory||'').toLowerCase().includes(q)||(i.subtype||'').toLowerCase().includes(q)||(i.upc||'').toLowerCase().includes(q);
     const mp=platFilt.size===0||getPlatforms(i).some(p=>platFilt.has(p));
