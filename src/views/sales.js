@@ -10,7 +10,7 @@ import {
   markDirty, markDeleted,
 } from '../data/store.js';
 
-import { fmt, pct, escHtml, uid, ds, localDate} from '../utils/format.js';
+import { fmt, pct, escHtml, escAttr, uid, ds, localDate} from '../utils/format.js';
 import { PLATFORMS, platCls, PLATFORM_FEES, calcPlatformFee } from '../config/platforms.js';
 import { toast } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
@@ -365,7 +365,7 @@ export function renderSalesView() {
           : `<span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace">= list</span>`)
       : '';
     return `<tr>
-      <td><div class="item-name" style="cursor:${it ? 'pointer' : 'default'}" ${it ? `onclick="openDrawer('${escHtml(it.id)}')"` : ''}>${nm}</div>${it?.category ? `<div class="item-meta"><span class="cat-tag">${escHtml(it.category)}</span></div>` : ''}</td>
+      <td><div class="item-name" style="cursor:${it ? 'pointer' : 'default'}" ${it ? `onclick="openDrawer('${escAttr(it.id)}')"` : ''}>${nm}</div>${it?.category ? `<div class="item-meta"><span class="cat-tag">${escHtml(it.category)}</span></div>` : ''}</td>
       <td>${s.platform ? `<span class="plat-tag ${platCls(s.platform) || ''}">${escHtml(s.platform)}</span>` : (it ? renderPlatTags(it) : '-')}</td>
       <td style="color:var(--muted);font-size:11px">${ds(s.date)}</td>
       <td>${s.qty}</td>
@@ -373,7 +373,7 @@ export function renderSalesView() {
       <td style="color:var(--muted)">${fmt(it ? it.cost : 0)}</td>
       <td style="color:var(--muted)">${fmt((s.fees || 0) + (s.ship || 0))}</td>
       <td style="font-family:'Syne',sans-serif;font-weight:700;color:${pr >= 0 ? 'var(--good)' : 'var(--danger)'}">${fmt(pr)}</td>
-      <td><div class="td-acts"><button class="act-btn red" onclick="delSale('${escHtml(s.id)}')">✕</button></div></td>
+      <td><div class="td-acts"><button class="act-btn red" onclick="delSale('${escAttr(s.id)}')">✕</button></div></td>
     </tr>`;
   }).join('');
 

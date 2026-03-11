@@ -1109,7 +1109,7 @@ setTimeout(_killSplash, 3000);
   }
 
   // Set up offline mutation queue auto-replay
-  try { initOfflineQueue(); } catch (e) { console.warn('FlipTrack: offline queue init error:', e.message); }
+  try { initOfflineQueue(); } catch (e) { console.warn('FlipTrack: offline queue init error:', e.message); toast('Offline mode unavailable — edits require internet', true); }
 
   // Initialize crosslisting
   try { await initTemplates(); } catch (e) { console.warn('FlipTrack: templates init error:', e.message); }
@@ -1227,10 +1227,18 @@ if ('serviceWorker' in navigator) {
   });
   window.addEventListener('unhandledrejection', (e) => {
     const msg = String(e.reason?.message || e.reason || '');
-    // Suppress known harmless rejections (auth 401s, SW registration, network offline)
-    const harmless = /401|not authenticated|session expired|sw.*regist|service.worker|networkerror|failed to fetch|load failed/i;
+    // Auth failures — tell the user so edits aren't silently lost
+    const authFail = /401|not authenticated|session expired/i;
+    if (authFail.test(msg)) {
+      e.preventDefault();
+      console.warn('FlipTrack (auth):', msg);
+      toast('Session expired — please sign in again to save changes', true);
+      return;
+    }
+    // Truly harmless: SW registration, network offline
+    const harmless = /sw.*regist|service.worker|networkerror|failed to fetch|load failed/i;
     if (harmless.test(msg)) {
-      e.preventDefault();          // Silence the browser's own console error
+      e.preventDefault();
       console.warn('FlipTrack (suppressed):', msg);
       return;
     }

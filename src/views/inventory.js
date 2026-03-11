@@ -29,13 +29,16 @@ let _invPage = 0;
 let _invPageSize = 50;
 let _chipsBuiltForData = null;
 
+// Filter memoization — avoid re-filtering entire inv[] when only page/sort changed
+let _filterCache = { key: null, items: null };
+
 /** Calculate days since item was listed */
 export function daysListed(item) {
   if (!item.added) return 0;
   return Math.floor((Date.now() - new Date(item.added).getTime()) / 86400000);
 }
 
-import { fmt, pct, escHtml, debounce, uid, localDate} from '../utils/format.js';
+import { fmt, pct, escHtml, escAttr, debounce, uid, localDate} from '../utils/format.js';
 import { PLATFORMS, PLATFORM_GROUPS, platCls } from '../config/platforms.js';
 import { SUBCATS, SUBSUBCATS } from '../config/categories.js';
 import { toast } from '../utils/dom.js';
@@ -151,8 +154,8 @@ export function buildChips(forceRebuild) {
     document.getElementById('subsubcatLabel').textContent = ['Men','Women','Children'].includes(subcatFilt) ? `↳↳ Clothing Type` : `↳↳ ${subcatFilt}`;
     document.getElementById('subsubcatChips').innerHTML=
       ['all',...allSubsubs].map(s=>{
-        const safe=s.replace(/'/g,"\\'");
-        return `<span class="filter-chip subsubcat-chip ${subsubcatFilt===s?'active':''}" role="button" tabindex="0" onclick="setSubsubcatFilt('${safe}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${s==='all'?'All':s}</span>`;
+        const safe=escAttr(s);
+        return `<span class="filter-chip subsubcat-chip ${subsubcatFilt===s?'active':''}" role="button" tabindex="0" onclick="setSubsubcatFilt('${safe}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${s==='all'?'All':escHtml(s)}</span>`;
       }).join('');
     subsubBar.style.display='flex';
   } else {
@@ -178,7 +181,7 @@ export function buildChips(forceRebuild) {
     if (usedConds.length) {
       document.getElementById('conditionChips').innerHTML =
         ['all',...usedConds].map(c =>
-          `<span class="filter-chip ${conditionFilt===c?'active':''}" role="button" tabindex="0" onclick="setConditionFilt('${c==='all'?'all':c.replace(/'/g,"\\'")}')">${c==='all'?'All Conditions':c}</span>`
+          `<span class="filter-chip ${conditionFilt===c?'active':''}" role="button" tabindex="0" onclick="setConditionFilt('${c==='all'?'all':escAttr(c)}')">${c==='all'?'All Conditions':escHtml(c)}</span>`
         ).join('');
       condBar.style.display = 'flex';
     } else {
@@ -308,17 +311,25 @@ export function renderInv() {
   buildChips();
   const q=(document.getElementById('invSearch').value||'').toLowerCase();
   if (q && _invPage !== 0) _invPage = 0;
-  let items=inv.filter(i=>{
-    const mq=!q||i.name.toLowerCase().includes(q)||(i.sku||'').toLowerCase().includes(q)||(i.category||'').toLowerCase().includes(q)||(i.subcategory||'').toLowerCase().includes(q)||(i.subtype||'').toLowerCase().includes(q)||(i.upc||'').toLowerCase().includes(q);
-    const mp=platFilt.size===0||getPlatforms(i).some(p=>platFilt.has(p));
-    const iCat=(i.category||'').toLowerCase(); const mc=catFilt.size===0||[...catFilt].some(f=>f.toLowerCase()===iCat);
-    const ms=subcatFilt==='all'||(i.subcategory||'')===subcatFilt;
-    const mss=subsubcatFilt==='all'||(i.subtype||'')===subsubcatFilt;
-    const mst=stockFilt==='all'||(stockFilt==='low'&&i.bulk&&(i.qty===0||i.qty<=(i.lowAlert||2)));
-    const msk=smokeFilt==='all'||(smokeFilt==='unset'?!i.smoke:i.smoke===smokeFilt);
-    const mco=conditionFilt==='all'||(i.condition||'')=== conditionFilt;
-    return mq&&mp&&mc&&ms&&mss&&mst&&msk&&mco;
-  });
+  // Memoize filter results — only re-filter when data or filter state actually changed
+  const filterKey = `${inv.length}:${q}:${[...platFilt].join(',')}:${[...catFilt].join(',')}:${subcatFilt}:${subsubcatFilt}:${stockFilt}:${smokeFilt}:${conditionFilt}:${inv[0]?.id||''}:${inv[inv.length-1]?.id||''}`;
+  let items;
+  if (_filterCache.key === filterKey && _filterCache.items) {
+    items = _filterCache.items;
+  } else {
+    items=inv.filter(i=>{
+      const mq=!q||i.name.toLowerCase().includes(q)||(i.sku||'').toLowerCase().includes(q)||(i.category||'').toLowerCase().includes(q)||(i.subcategory||'').toLowerCase().includes(q)||(i.subtype||'').toLowerCase().includes(q)||(i.upc||'').toLowerCase().includes(q);
+      const mp=platFilt.size===0||getPlatforms(i).some(p=>platFilt.has(p));
+      const iCat=(i.category||'').toLowerCase(); const mc=catFilt.size===0||[...catFilt].some(f=>f.toLowerCase()===iCat);
+      const ms=subcatFilt==='all'||(i.subcategory||'')===subcatFilt;
+      const mss=subsubcatFilt==='all'||(i.subtype||'')===subsubcatFilt;
+      const mst=stockFilt==='all'||(stockFilt==='low'&&i.bulk&&(i.qty===0||i.qty<=(i.lowAlert||2)));
+      const msk=smokeFilt==='all'||(smokeFilt==='unset'?!i.smoke:i.smoke===smokeFilt);
+      const mco=conditionFilt==='all'||(i.condition||'')=== conditionFilt;
+      return mq&&mp&&mc&&ms&&mss&&mst&&msk&&mco;
+    });
+    _filterCache = { key: filterKey, items };
+  }
 
   // Stock filter banner
   const banner = document.getElementById('stockFilterBanner');
@@ -368,37 +379,38 @@ export function renderInv() {
     const c=sc(item.qty,item.lowAlert,item.bulk);
     const bp=Math.min(100,((item.qty||0)/maxQ)*100);
     const isSel=sel.has(item.id);
-    return `<tr data-id="${item.id}" class="${isSel?'sel':''}">
-      <td class="cb-col"><input type="checkbox" ${isSel?'checked':''} onchange="toggleSel('${item.id}',this)"></td>
-      <td><span class="drag-handle" draggable="true" ondragstart="dStart(event,'${item.id}')" ondragover="dOver(event)" ondrop="dDrop(event,'${item.id}')">⠿</span></td>
+    const eid = escAttr(item.id);
+    return `<tr data-id="${eid}" class="${isSel?'sel':''}">
+      <td class="cb-col"><input type="checkbox" ${isSel?'checked':''} onchange="toggleSel('${eid}',this)"></td>
+      <td><span class="drag-handle" draggable="true" ondragstart="dStart(event,'${eid}')" ondragover="dOver(event)" ondrop="dDrop(event,'${eid}')">⠿</span></td>
       <td>${(getItemImages(item)[0])
-        ? `<img class="item-thumb" loading="lazy" src="${getItemImages(item)[0]}" alt="${escHtml(item.name)}" onclick="openLightbox('${item.id}')">`
-        : `<div class="item-thumb-placeholder" title="Add photo" onclick="openDrawer('${item.id}')">＋</div>`
+        ? `<img class="item-thumb" loading="lazy" src="${getItemImages(item)[0]}" alt="${escHtml(item.name)}" onclick="openLightbox('${eid}')">`
+        : `<div class="item-thumb-placeholder" title="Add photo" onclick="openDrawer('${eid}')">＋</div>`
       }</td>
       <td>
-        <div class="item-name" onclick="openDrawer('${item.id}')">${escHtml(item.name)}</div>
+        <div class="item-name" onclick="openDrawer('${eid}')">${escHtml(item.name)}</div>
         <div class="item-meta"><span class="item-sku">${escHtml(item.sku||'—')}</span>${item.upc?`<span class="upc-tag">${escHtml(item.upc)}</span>`:''}${item.category?`<span class="cat-tag">${escHtml(item.category)}</span>`:''} ${item.subcategory?`<span class="cat-tag" style="background:rgba(87,200,255,0.1);color:var(--accent)">${escHtml(item.subcategory)}</span>`:''} ${item.subtype?`<span class="cat-tag" style="background:rgba(123,97,255,0.15);color:var(--accent3)">${escHtml(item.subtype)}</span>`:''} ${item.condition?`<span class="cat-tag" style="background:rgba(87,255,154,0.08);color:var(--good)">${escHtml(item.condition)}</span>`:''} ${item.source?`<span class="cat-tag" style="background:rgba(255,107,53,0.1);color:var(--accent2)">📍${escHtml(item.source)}</span>`:''}${item.author?`<span class="book-meta-tag">✍ ${escHtml(item.author)}</span>`:''}${item.edition?`<span class="book-meta-tag">${escHtml(item.edition)} ed.</span>`:''}${item.signed?`<span class="book-meta-tag" style="background:rgba(255,215,0,0.15);color:#d4a017;border-color:rgba(255,215,0,0.3)">✒ Signed</span>`:''}</div>
       </td>
       <td>${renderPlatTags(item)}</td>
       <td>
         <div class="stock-cell">
           <div class="stepper">
-            <button class="stepper-btn" aria-label="Decrease quantity" onclick="adjStock('${item.id}',-1)">−</button>
+            <button class="stepper-btn" aria-label="Decrease quantity" onclick="adjStock('${eid}',-1)">−</button>
             <span class="stepper-val sv-${c}" title="${c==='low'?'Low stock':c==='warn'?'Warning':'In stock'}">${item.qty||0}${c==='low'?' ⚠':c==='warn'?' ⚡':''}</span>
-            <button class="stepper-btn" aria-label="Increase quantity" onclick="adjStock('${item.id}',+1)">+</button>
+            <button class="stepper-btn" aria-label="Increase quantity" onclick="adjStock('${eid}',+1)">+</button>
           </div>
           <div class="mini-bar"><div class="mb-fill mf-${c}" style="width:${bp}%"></div></div>
         </div>
       </td>
       <td style="color:var(--muted)">${fmt(cost)}</td>
-      <td><span class="price-disp" title="Click to edit inline" onclick="startPriceEdit(this,'${item.id}')">${fmt(price)}</span></td>
+      <td><span class="price-disp" title="Click to edit inline" onclick="startPriceEdit(this,'${eid}')">${fmt(price)}</span></td>
       <td><span class="margin-badge ${margCls(m)}">${pct(m)}</span></td>
       <td class="days-col"><span class="days-badge${daysListed(item)>=60?' stale':daysListed(item)>=30?' aging':''}" title="Listed ${daysListed(item)} days">${daysListed(item)}d</span></td>
       <td class="photos-col">${(()=>{const imgs=getItemImages(item);const cnt=imgs.length;return cnt?`<span class="photo-count-badge" title="${cnt} photo${cnt>1?'s':''}">${cnt} 📷</span>`:`<span class="photo-count-badge empty" title="No photos">0</span>`;})()}</td>
       <td><div class="td-acts">
-        ${item.qty>0?`<button class="act-btn" onclick="openSoldModal('${item.id}')">Sold ›</button>`:`<span class="out-badge">Out</span>`}
-        <button class="act-btn" onclick="openDrawer('${item.id}')">Edit</button>
-        <button class="act-btn red" onclick="delItem('${item.id}')">✕</button>
+        ${item.qty>0?`<button class="act-btn" onclick="openSoldModal('${eid}')">Sold ›</button>`:`<span class="out-badge">Out</span>`}
+        <button class="act-btn" onclick="openDrawer('${eid}')">Edit</button>
+        <button class="act-btn red" onclick="delItem('${eid}')">✕</button>
       </div></td>
     </tr>`;
   }).join('');

@@ -1,4 +1,5 @@
 import { inv, sales, expenses, getInvItem, save, refresh, markDirty, softDeleteItem, sel } from '../data/store.js';
+import { renderInv } from './inventory.js';
 import { fmt, ds, escHtml } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { pushDeleteToCloud, autoSync, pushToCloud } from '../data/sync.js';
@@ -629,4 +630,4 @@ async function _commitSaleDeletion() {
 }
 
 // DELETE ITEM
-export async function delItem(id){const item=inv.find(i=>i.id===id);if(!confirm(`Delete "${item?.name}"?`))return;softDeleteItem(id);sel.delete(id);save();refresh();toast('Item deleted — check 🗑️ to restore');await pushDeleteToCloud('ft_inventory',[id]);autoSync();}
+export async function delItem(id){const item=inv.find(i=>i.id===id);if(!confirm(`Delete "${item?.name}"?`))return;softDeleteItem(id);sel.delete(id);save();refresh();renderInv();toast('Item deleted — check 🗑️ to restore');await pushDeleteToCloud('ft_inventory',[id]);autoSync();}

@@ -1,5 +1,5 @@
 import { expenses, save } from '../data/store.js';
-import { fmt, ds, escHtml, uid, localDate} from '../utils/format.js';
+import { fmt, ds, escHtml, escAttr, uid, localDate} from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
 import { parseNum, validateNumericInput } from '../utils/validate.js';
@@ -107,15 +107,16 @@ export function renderExpenses() {
   tbody.innerHTML = filtered.map(e => {
     const cls = EXP_CAT_CLASS[e.category] || 'exp-other';
     const safeDesc = escHtml(e.description);
-    const desc = e.description.replace(/"/g,'&quot;');
+    const attrDesc = escAttr(e.description);
+    const eid = escAttr(e.id);
     return `<tr>
       <td style="color:var(--muted);font-size:11px">${ds(e.date)}</td>
-      <td title="${desc}"><span class="exp-cat-badge ${cls}">${e.category}</span><span class="exp-desc-mobile"> · ${safeDesc}</span></td>
-      <td title="${desc}">${safeDesc}</td>
+      <td title="${attrDesc}"><span class="exp-cat-badge ${cls}">${escHtml(e.category)}</span><span class="exp-desc-mobile"> · ${safeDesc}</span></td>
+      <td title="${attrDesc}">${safeDesc}</td>
       <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:var(--danger)">
-        ${fmt(e.amount)}&nbsp;<button class="act-btn red exp-del-mobile" onclick="delExpense('${e.id}')" style="margin-left:4px;vertical-align:middle">✕</button>
+        ${fmt(e.amount)}&nbsp;<button class="act-btn red exp-del-mobile" onclick="delExpense('${eid}')" style="margin-left:4px;vertical-align:middle">✕</button>
       </td>
-      <td style="text-align:right"><button class="act-btn red exp-del-desktop" onclick="delExpense('${e.id}')">✕</button></td>
+      <td style="text-align:right"><button class="act-btn red exp-del-desktop" onclick="delExpense('${eid}')">✕</button></td>
     </tr>`;
   }).join('');
 }
