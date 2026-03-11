@@ -41,7 +41,6 @@ export async function generateListing(item, opts = {}) {
   try {
     const { data: { session }, error: sessErr } = await _sb.auth.getSession();
     if (sessErr || !session) {
-      // Try refreshing the session
       const { error: refreshErr } = await _sb.auth.refreshSession();
       if (refreshErr) throw new Error('Session expired — please sign in again');
     }
@@ -56,6 +55,8 @@ export async function generateListing(item, opts = {}) {
 
     const prompt = _buildPrompt(item, platform, tone, opts.includeKeywords !== false);
 
+    console.log('[AI] Invoking anthropic-proxy…', { platform, tone, itemName: item.name });
+
     const { data, error } = await _sb.functions.invoke('anthropic-proxy', {
       body: {
         model: 'claude-haiku-4-5-20251001',
@@ -65,21 +66,50 @@ export async function generateListing(item, opts = {}) {
     });
 
     if (error) {
-      // Try to extract the actual error message from the Edge Function response
+      // Extract a human-readable message from the Edge Function / Anthropic error
       let msg = 'AI request failed';
       try {
-        if (error.context) {
+        if (error.context && typeof error.context.json === 'function') {
           const body = await error.context.json();
-          if (body?.error) msg = body.error;
+          console.error('[AI] Edge Function error body:', body);
+          // Anthropic errors: { error: { type, message } }
+          // Edge function errors: { error: "string" }
+          if (body?.error) {
+            msg = typeof body.error === 'string'
+              ? body.error
+              : (body.error.message || JSON.stringify(body.error));
+          }
+        } else {
+          console.error('[AI] Error (no context):', error.message || error);
+          if (error.message) msg = error.message;
         }
-      } catch { /* use default msg */ }
+      } catch (parseErr) {
+        console.error('[AI] Could not parse error response:', parseErr);
+      }
       throw new Error(msg);
     }
-    if (data?.error) throw new Error(data.error);
+    // Edge function returned 2xx but body contains an error field
+    if (data?.error) {
+      const errMsg = typeof data.error === 'string'
+        ? data.error
+        : (data.error.message || JSON.stringify(data.error));
+      console.error('[AI] Response contained error:', errMsg);
+      throw new Error(errMsg);
+    }
+    // Anthropic API non-2xx that was passed through with 200 status (shouldn't happen, but guard)
+    if (data?.type === 'error') {
+      const errMsg = data.error?.message || 'Unknown AI error';
+      console.error('[AI] Anthropic error passed through:', errMsg);
+      throw new Error(errMsg);
+    }
 
     const text = data?.content?.[0]?.text || '';
-    if (!text) throw new Error('Empty AI response');
+    if (!text) {
+      console.error('[AI] Empty response. Full data:', JSON.stringify(data).slice(0, 500));
+      throw new Error('Empty AI response — please try again');
+    }
 
+    console.log('[AI] Generation complete, parsing response…');
     return _parseResponse(text);
   } finally {
     _generating = false;
