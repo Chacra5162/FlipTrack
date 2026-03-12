@@ -2,7 +2,10 @@
 // Import these functions from your UI/app modules
 // openAddModal, switchView, exportAll, openBatchScan, closeBatchScan, closeScanner, closeDrawer, closeAdd, closeSold, closeTrashModal, closeIdentify
 
+let _kbInit = false;
 export function initKeyboardShortcuts() {
+  if (_kbInit) return;
+  _kbInit = true;
   document.addEventListener('keydown', e => {
     // Don't fire in inputs/textareas
     const tag = (e.target.tagName || '').toLowerCase();

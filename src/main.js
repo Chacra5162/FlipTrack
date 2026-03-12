@@ -1269,7 +1269,7 @@ setTimeout(_killSplash, 3000);
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
+    navigator.serviceWorker.register('./sw.js?v=' + Date.now())
       .catch(err => console.warn('SW registration failed:', err));
   });
 }

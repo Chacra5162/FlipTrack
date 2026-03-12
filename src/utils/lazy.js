@@ -2,6 +2,7 @@
  * lazy.js - Lazy module loader with caching
  * Uses Vite dynamic imports to code-split heavy feature modules.
  * Each module is loaded once on first use, then cached.
+ * Failed loads can be retried (not permanently cached on error).
  *
  * Usage:
  *   const { openScanner } = await lazyScanner();
@@ -11,10 +12,10 @@ const _cache = {};
 
 function lazy(key, loader) {
   return async () => {
-    if (!_cache[key]) {
-      _cache[key] = await loader();
-    }
-    return _cache[key];
+    if (_cache[key]) return _cache[key];
+    const mod = await loader();
+    _cache[key] = mod;
+    return mod;
   };
 }
 

@@ -23,6 +23,7 @@ export function renderPagination(container, opts) {
   if (!container) return;
 
   const { page, totalItems, pageSize, onPage, pageSizes, onPageSize } = opts;
+  if (!pageSize || pageSize <= 0) { container.innerHTML = ''; return; }
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
   // No pagination needed

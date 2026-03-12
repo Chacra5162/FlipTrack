@@ -1,13 +1,17 @@
 // ── FOCUS TRAP ──
 let _focusTrapEl = null, _focusTrigger = null;
+const _focusSel = 'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
 
 export function trapFocus(containerSel) {
   // Remove any existing trap listener to prevent accumulation
   document.removeEventListener('keydown', _handleTrapKey);
   _focusTrigger = document.activeElement;
   _focusTrapEl = document.querySelector(containerSel);
-  if (!_focusTrapEl) return;
-  const focusables = _focusTrapEl.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])');
+  if (!_focusTrapEl) {
+    console.warn('FlipTrack: Focus trap selector not found:', containerSel);
+    return;
+  }
+  const focusables = _focusTrapEl.querySelectorAll(_focusSel);
   if (focusables.length) focusables[0].focus();
   document.addEventListener('keydown', _handleTrapKey);
 }
@@ -28,7 +32,7 @@ function _handleTrapKey(e) {
     return;
   }
   if (e.key !== 'Tab') return;
-  const focusables = _focusTrapEl.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])');
+  const focusables = _focusTrapEl.querySelectorAll(_focusSel);
   if (!focusables.length) return;
   const first = focusables[0], last = focusables[focusables.length - 1];
   if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
