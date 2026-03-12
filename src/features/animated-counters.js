@@ -6,12 +6,21 @@
 
 const DURATION = 800; // ms
 
+// Track active animations so we can cancel them before starting new ones
+const _activeAnimations = new Map(); // el → animationId
+
 /**
  * Animate a DOM element's text from 0 to the target value.
  * Supports dollar amounts ($1,234.56), percentages (45.2%), and plain numbers.
+ * Cancels any previous animation on the same element.
  */
 function animateValue(el, targetText) {
   if (!el || !targetText) return;
+
+  // Cancel any existing animation on this element
+  const existingId = _activeAnimations.get(el);
+  if (existingId) cancelAnimationFrame(existingId);
+  _activeAnimations.delete(el);
 
   // Parse target value
   const isDollar = targetText.startsWith('$');
@@ -61,12 +70,18 @@ function animateValue(el, targetText) {
 
     el.textContent = formatted;
 
-    if (progress < 1) requestAnimationFrame(frame);
-    else el.textContent = targetText; // Exact final value
+    if (progress < 1) {
+      const id = requestAnimationFrame(frame);
+      _activeAnimations.set(el, id);
+    } else {
+      el.textContent = targetText; // Exact final value
+      _activeAnimations.delete(el);
+    }
   }
 
   el.textContent = isDollar ? '$0' : isPct ? '0%' : '0';
-  requestAnimationFrame(frame);
+  const id = requestAnimationFrame(frame);
+  _activeAnimations.set(el, id);
 }
 
 /**
