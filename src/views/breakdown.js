@@ -87,7 +87,7 @@ function renderBreakdown() {
           .sort((a,b)=>b[1].value-a[1].value)
           .map(([sub, sd]) => {
             const sm = sd.value ? sd.profit/sd.value : 0;
-            return `<div class="bd-sub-row" onclick="filterToSubcat('${escAttr(cat)}','${escAttr(sub)}')"
+            return `<div class="bd-sub-row" onclick="filterToSubcat('${escAttr(cat)}','${escAttr(sub)}')">
               <div></div>
               <div>
                 <div class="bd-sub-name clickable">↳ ${escHtml(sub)}</div>
