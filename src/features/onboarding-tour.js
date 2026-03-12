@@ -150,6 +150,15 @@ const TOUR_STEPS = [
   /* ── SECTION 6: ANALYTICS & REPORTS ──────────────────────────────────── */
   {
     section: 'Analytics',
+    target: '#view-profit',
+    fallbackTarget: '#profitDashContent',
+    title: 'Profit Dashboard',
+    desc: 'Deep profit analytics — KPI cards, per-item profit table, platform and category profitability comparisons, and time-series trends. Filter by date range, platform, or category.',
+    position: 'top',
+    viewRequirement: 'profit',
+  },
+  {
+    section: 'Analytics',
     target: '#view-insights',
     fallbackTarget: '#insightsContent',
     title: 'Insights Dashboard',
