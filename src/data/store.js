@@ -448,10 +448,8 @@ export function saveSupplies() {
   try { localStorage.setItem('ft_supplies', JSON.stringify(supplies)); } catch (e) { console.warn('FlipTrack: supplies localStorage save failed:', e.message); toast('⚠ Supplies save error', true); }
 }
 
-export function saveLocalSupplies() {
-  if (_idbReady) putAll('supplies', supplies).catch(e => { console.warn('FlipTrack: supplies IDB local save failed:', e.message); toast('⚠ Supplies save error', true); });
-  try { localStorage.setItem('ft_supplies', JSON.stringify(supplies)); } catch (e) { console.warn('FlipTrack: supplies localStorage save failed:', e.message); toast('⚠ Supplies save error', true); }
-}
+// Alias for backward compatibility — identical to saveSupplies()
+export const saveLocalSupplies = saveSupplies;
 
 
 // ── UTILITY FUNCTIONS FOR CALCULATIONS ──────────────────────────────────────

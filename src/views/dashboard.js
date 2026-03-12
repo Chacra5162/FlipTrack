@@ -57,17 +57,21 @@ export function updateStats() {
   document.getElementById('sLow').textContent=low.length;
   document.getElementById('sOut').textContent=out.length+' out of stock';
   // Avg Days to Sell — for items that have sold, compute avg(first sale date - added date)
+  // Build itemId → earliest sale date map in one pass (O(n) instead of O(n*m))
+  const firstSaleByItem = {};
+  for (const s of sales) {
+    const t = new Date(s.date).getTime();
+    if (isNaN(t)) continue;
+    if (!firstSaleByItem[s.itemId] || t < firstSaleByItem[s.itemId]) {
+      firstSaleByItem[s.itemId] = t;
+    }
+  }
   const daysArr = [];
   for (const it of inv) {
-    if (!it.added) continue;
-    const itemSales = sales.filter(s => s.itemId === it.id);
-    if (!itemSales.length) continue;
-    const saleDates = itemSales.map(s => new Date(s.date).getTime()).filter(t => !isNaN(t));
-    if (!saleDates.length) continue;
-    const firstSale = new Date(Math.min(...saleDates));
-    const added = new Date(it.added);
-    if (isNaN(firstSale) || isNaN(added)) continue;
-    const days = Math.max(0, Math.floor((firstSale - added) / 86400000));
+    if (!it.added || !firstSaleByItem[it.id]) continue;
+    const added = new Date(it.added).getTime();
+    if (isNaN(added)) continue;
+    const days = Math.max(0, Math.floor((firstSaleByItem[it.id] - added) / 86400000));
     daysArr.push(days);
   }
   const avgDays = daysArr.length ? Math.round(daysArr.reduce((a, d) => a + d, 0) / daysArr.length) : null;

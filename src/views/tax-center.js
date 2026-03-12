@@ -18,14 +18,16 @@ let _showYearComparison = false;
 // ── TAX CALCULATIONS ───────────────────────────────────────────────────────
 
 const SE_TAX_RATE = 0.153; // 15.3% (12.4% Social Security + 2.9% Medicare)
-const INCOME_TAX_BRACKETS_2025 = [
-  { min: 0, max: 11925, rate: 0.10 },
-  { min: 11925, max: 48475, rate: 0.12 },
-  { min: 48475, max: 103350, rate: 0.22 },
-  { min: 103350, max: 197300, rate: 0.24 },
-  { min: 197300, max: 250525, rate: 0.32 },
-  { min: 250525, max: 626350, rate: 0.35 },
-  { min: 626350, max: Infinity, rate: 0.37 },
+// 2026 tax brackets (single filer) — updated per IRS Rev. Proc. 2025-36
+// Review annually at https://www.irs.gov/newsroom/irs-provides-tax-inflation-adjustments
+const INCOME_TAX_BRACKETS_2026 = [
+  { min: 0, max: 12150, rate: 0.10 },
+  { min: 12150, max: 49400, rate: 0.12 },
+  { min: 49400, max: 105400, rate: 0.22 },
+  { min: 105400, max: 201200, rate: 0.24 },
+  { min: 201200, max: 255550, rate: 0.32 },
+  { min: 255550, max: 639200, rate: 0.35 },
+  { min: 639200, max: Infinity, rate: 0.37 },
 ];
 
 function calcSETax(netIncome) {
@@ -37,9 +39,9 @@ function calcSETax(netIncome) {
 function calcIncomeTax(netIncome) {
   if (netIncome <= 0) return 0;
   const seTax = calcSETax(netIncome);
-  const taxableIncome = Math.max(0, netIncome - seTax / 2 - 15000);
+  const taxableIncome = Math.max(0, netIncome - seTax / 2 - 15350); // 2026 standard deduction (single)
   let tax = 0;
-  for (const bracket of INCOME_TAX_BRACKETS_2025) {
+  for (const bracket of INCOME_TAX_BRACKETS_2026) {
     if (taxableIncome <= bracket.min) break;
     const taxable = Math.min(taxableIncome, bracket.max) - bracket.min;
     tax += taxable * bracket.rate;

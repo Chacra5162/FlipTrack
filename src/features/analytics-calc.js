@@ -264,9 +264,10 @@ export function calcBestListingDay(sales) {
   };
 
   sales.forEach(sale => {
+    // Use actual sale day — previous impl used Math.random() which produced fake data
     const date = new Date(sale.sold_date);
-    const dayListed = new Date(date.getTime() - (Math.random() * 7 * 24 * 60 * 60 * 1000)).getDay();
-    dayPerformance[dayListed] += sale.revenue || 0;
+    const daySold = date.getDay();
+    dayPerformance[daySold] += sale.revenue || 0;
   });
 
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

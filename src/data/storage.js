@@ -42,7 +42,9 @@ export async function uploadImageToStorage(dataUrl, itemId, slotIdx) {
 
   if (error) throw new Error(error.message);
 
-  const { data: { publicUrl } } = _sb.storage.from(IMG_BUCKET).getPublicUrl(path);
+  const urlResult = _sb.storage.from(IMG_BUCKET).getPublicUrl(path);
+  const publicUrl = urlResult?.data?.publicUrl;
+  if (!publicUrl) throw new Error('Failed to get public URL for uploaded image');
   return publicUrl;
 }
 
@@ -77,31 +79,24 @@ export async function migrateImagesToStorage() {
   let migrated = 0;
   for (const item of inv) {
     const imgs = getItemImages(item);
-    let changed = false;
-    const newImgs = [];
+    const needsMigration = imgs.some(img => img && !isStorageUrl(img));
+    if (!needsMigration) continue;
 
-    for (let idx = 0; idx < imgs.length; idx++) {
-      const img = imgs[idx];
-      if (!img || isStorageUrl(img)) {
-        newImgs.push(img);
-        continue;
-      }
-
+    // Upload all images for this item in parallel
+    const newImgs = await Promise.all(imgs.map(async (img, idx) => {
+      if (!img || isStorageUrl(img)) return img;
       try {
         const url = await uploadImageToStorage(img, item.id, idx);
-        newImgs.push(url);
-        changed = true;
         migrated++;
+        return url;
       } catch(e) {
-        newImgs.push(img); // keep base64 on failure
         console.warn('FlipTrack: migration upload failed for', item.id, e.message);
+        return img; // keep base64 on failure
       }
-    }
+    }));
 
-    if (changed) {
-      item.images = newImgs;
-      item.image = newImgs[0] || null;
-    }
+    item.images = newImgs;
+    item.image = newImgs[0] || null;
   }
 
   if (migrated > 0) {

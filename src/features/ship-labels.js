@@ -10,42 +10,45 @@ import { fmt, escHtml } from '../utils/format.js';
 import { getMeta, setMeta } from '../data/idb.js';
 
 // ── CARRIER RATES (approximations — actual rates vary by zone) ─────────
+// Last updated: January 2026 (USPS rate increase effective Jan 19, 2026)
+// NOTE: These are retail rate approximations. Actual rates vary by zone.
+// Review annually at https://www.usps.com/business/prices.htm
 const USPS_RATES = {
   'First Class': [
-    { maxOz: 4,  price: 4.63 },
-    { maxOz: 8,  price: 5.13 },
-    { maxOz: 12, price: 5.63 },
-    { maxOz: 15.99, price: 6.13 },
+    { maxOz: 4,  price: 4.96 },
+    { maxOz: 8,  price: 5.49 },
+    { maxOz: 12, price: 6.02 },
+    { maxOz: 15.99, price: 6.56 },
   ],
   'Priority Mail': [
-    { maxOz: 16, price: 8.70 },
-    { maxOz: 32, price: 10.20 },
-    { maxOz: 48, price: 12.45 },
-    { maxOz: 80, price: 14.80 },
-    { maxOz: 160, price: 19.30 },
-    { maxOz: 1120, price: 28.50 },
+    { maxOz: 16, price: 9.31 },
+    { maxOz: 32, price: 10.91 },
+    { maxOz: 48, price: 13.32 },
+    { maxOz: 80, price: 15.84 },
+    { maxOz: 160, price: 20.65 },
+    { maxOz: 1120, price: 30.50 },
   ],
   'Priority Mail Flat Rate': [
-    { name: 'Small Flat Rate Box', price: 10.20, maxOz: 1120 },
-    { name: 'Medium Flat Rate Box', price: 16.45, maxOz: 1120 },
-    { name: 'Large Flat Rate Box', price: 22.95, maxOz: 1120 },
-    { name: 'Padded Flat Rate Envelope', price: 9.85, maxOz: 1120 },
+    { name: 'Small Flat Rate Box', price: 10.91, maxOz: 1120 },
+    { name: 'Medium Flat Rate Box', price: 17.60, maxOz: 1120 },
+    { name: 'Large Flat Rate Box', price: 24.55, maxOz: 1120 },
+    { name: 'Padded Flat Rate Envelope', price: 10.54, maxOz: 1120 },
   ],
   'Media Mail': [
-    { maxOz: 16, price: 4.13 },
-    { maxOz: 32, price: 4.78 },
-    { maxOz: 48, price: 5.43 },
-    { maxOz: 80, price: 6.73 },
-    { maxOz: 160, price: 9.33 },
-    { maxOz: 1120, price: 14.53 },
+    { maxOz: 16, price: 4.42 },
+    { maxOz: 32, price: 5.11 },
+    { maxOz: 48, price: 5.81 },
+    { maxOz: 80, price: 7.20 },
+    { maxOz: 160, price: 9.98 },
+    { maxOz: 1120, price: 15.55 },
   ],
   'Ground Advantage': [
-    { maxOz: 16, price: 5.50 },
-    { maxOz: 32, price: 7.00 },
-    { maxOz: 48, price: 9.50 },
-    { maxOz: 80, price: 12.00 },
-    { maxOz: 160, price: 15.50 },
-    { maxOz: 1120, price: 20.00 },
+    { maxOz: 16, price: 5.89 },
+    { maxOz: 32, price: 7.49 },
+    { maxOz: 48, price: 10.17 },
+    { maxOz: 80, price: 12.84 },
+    { maxOz: 160, price: 16.59 },
+    { maxOz: 1120, price: 21.40 },
   ],
 };
 

@@ -137,7 +137,9 @@ function conditionToEBay(cond) {
 }
 
 function escCSV(val) {
-  const str = String(val ?? '');
+  let str = String(val ?? '');
+  // Prevent CSV injection: prefix formula-starting chars with a single quote
+  if (/^[=+\-@\t\r]/.test(str)) str = "'" + str;
   if (str.includes(',') || str.includes('"') || str.includes('\n')) {
     return '"' + str.replace(/"/g, '""') + '"';
   }

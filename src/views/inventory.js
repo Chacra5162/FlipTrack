@@ -99,7 +99,7 @@ export function buildChips(forceRebuild) {
     platHtml += `<span class="plat-group-divider">${group.label}</span>`;
     group.items.forEach(p => {
       const dot = inUse.has(p) ? `<span class="plat-dot"></span>` : '';
-      platHtml += `<span class="filter-chip plat-chip ${platFilt.has(p)?'active':''}" role="button" tabindex="0" onclick="setPlatFilt('${p}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${dot}${p}</span>`;
+      platHtml += `<span class="filter-chip plat-chip ${platFilt.has(p)?'active':''}" role="button" tabindex="0" onclick="setPlatFilt('${escAttr(p)}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${dot}${escHtml(p)}</span>`;
     });
   });
   document.getElementById('platChips').innerHTML = platHtml;

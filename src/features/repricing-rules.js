@@ -34,9 +34,9 @@ const DEFAULT_RULES = [
   },
   {
     id: 'rule_quick_sale',
-    name: '5% raise if sold within 3 days',
-    active: true,
-    condition: { daysListed: 0, noSalesDays: 0, priceAbove: 0, priceBelow: 9999 },
+    name: '5% raise if listed under 7 days',
+    active: false,
+    condition: { daysListed: 0, maxDaysListed: 7, noSalesDays: 0, priceAbove: 0, priceBelow: 9999 },
     action: { type: 'percent_raise', value: 5 },
     platforms: [],
     categories: []
@@ -159,7 +159,7 @@ export function evaluateRules() {
         if (!rule.categories.some(c => c.toLowerCase() === (item.category||'').toLowerCase())) return;
       }
 
-      const { daysListed, noSalesDays, priceAbove, priceBelow, showsWithoutSale } = rule.condition;
+      const { daysListed, maxDaysListed, noSalesDays, priceAbove, priceBelow, showsWithoutSale } = rule.condition;
       const { type, value } = rule.action;
 
       // Check Whatnot show performance condition
@@ -172,6 +172,8 @@ export function evaluateRules() {
       const createdAt = item.createdAt || item.listedAt || 0;
       const daysOld = (now - createdAt) / (24 * 3600000);
       if (daysListed > 0 && daysOld < daysListed) return;
+      // Check max days listed (for "raise if listed under X days" rules)
+      if (maxDaysListed > 0 && daysOld > maxDaysListed) return;
 
       // Check price range
       if (item.price < priceAbove || item.price > priceBelow) return;
