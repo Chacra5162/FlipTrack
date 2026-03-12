@@ -339,6 +339,8 @@ export async function syncNow() {
     setSyncStatus('connected');
     recordSync();
     refresh();
+    // Re-render dashboard stats so the stats grid reflects fresh cloud data
+    if (typeof window.updateDashStats === 'function') window.updateDashStats();
   } catch (e) {
     setSyncStatus('error', e.message);
   } finally {
@@ -395,6 +397,7 @@ export async function mobileSyncNow() {
     await pullFromCloud();
     refresh();
     setSyncStatus('connected');
+    if (typeof window.updateDashStats === 'function') window.updateDashStats();
   } catch (e) {
     setSyncStatus('error', e.message);
   }
@@ -438,6 +441,7 @@ function _onRealtimeChange(payload) {
       refresh();
       setSyncStatus('connected');
       recordSync();
+      if (typeof window.updateDashStats === 'function') window.updateDashStats();
     } catch (e) {
       setSyncStatus('error', e.message);
     }
