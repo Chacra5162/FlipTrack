@@ -793,6 +793,9 @@ function switchView(name, el) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + name)?.classList.add('active');
 
+  // Remember current view so page refresh restores it
+  try { localStorage.setItem('ft_view', name); } catch (_) {}
+
   // On mobile, hide stats-grid for non-dashboard views to free screen space
   const sg = document.querySelector('.stats-grid');
   if (sg) sg.classList.toggle('not-dash', name !== 'dashboard');
@@ -1105,8 +1108,16 @@ setTimeout(_killSplash, 3000);
   // Normalize category names to prevent duplicates (e.g., "Men's Clothing" vs "Men's clothing")
   try { const n = normalizeAllCategories(); if (n > 0) { save(); console.log(`FlipTrack: Normalized ${n} category names`); } } catch(e) {}
 
-  // Build initial state
-  try { rebuildInvIndex(); refresh(); renderDash(); } catch(e) { console.warn('FlipTrack: render error:', e.message); }
+  // Build initial state — restore last viewed page on refresh
+  try {
+    rebuildInvIndex(); refresh();
+    const savedView = localStorage.getItem('ft_view');
+    if (savedView && savedView !== 'dashboard' && document.getElementById('view-' + savedView)) {
+      switchView(savedView);
+    } else {
+      renderDash();
+    }
+  } catch(e) { console.warn('FlipTrack: render error:', e.message); }
 
   // Dismiss splash screen (always — even if boot partially fails)
   _killSplash();

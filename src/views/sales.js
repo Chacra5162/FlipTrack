@@ -182,6 +182,9 @@ export function closeSold() {
   releaseFocus();
   const buyerEl = document.getElementById('s_buyer');
   if (buyerEl) buyerEl.value = '';
+  // Reset the save button so it's not stuck on "Saving…" when modal reopens
+  const btn = document.getElementById('recSaleBtn');
+  if (btn) { btn.disabled = false; btn.textContent = 'Record Sale'; }
   activeSoldId = null;
 }
 

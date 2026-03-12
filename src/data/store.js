@@ -248,7 +248,7 @@ export const save = () => {
 function _schedulePersist() {
   clearTimeout(_saveDebounce);
   _saveDebounce = setTimeout(() => {
-    _persistPromise = _persistPromise.then(() => _persistToIDB()).catch(e => { console.warn('FlipTrack: IDB persist chain error:', e.message); throw e; });
+    _persistPromise = _persistPromise.then(() => _persistToIDB()).catch(e => { console.warn('FlipTrack: IDB persist chain error:', e.message); });
   }, 200);
 }
 
