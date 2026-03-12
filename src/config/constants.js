@@ -4,8 +4,9 @@
  */
 
 // ── SUPABASE CONFIGURATION ─────────────────────────────────────────────────
-export const SB_URL = 'https://gqructzvlkafclooybnc.supabase.co';
-export const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxcnVjdHp2bGthZmNsb295Ym5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzODIyNTAsImV4cCI6MjA4Njk1ODI1MH0.-H5p1Oq-ImveB636xgWI-Rrc23wzj7-_Vps6xeHrHtA';
+// Loaded from environment variables (see .env.example)
+export const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+export const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // ── SUPABASE TABLES ────────────────────────────────────────────────────────
 export const TABLES = {
