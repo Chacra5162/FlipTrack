@@ -185,7 +185,9 @@ export function idRenderResults(r) {
       <div class="id-result-card">
         <div class="id-result-name">${escHtml(r.name || 'Unknown Item')}</div>
         ${r.brand ? `<div class="id-result-brand">🏷 ${escHtml(r.brand)}</div>` : ''}
+        ${r.author ? `<div class="id-result-brand">✍ ${escHtml(r.author)}${r.publisher ? ' · ' + escHtml(r.publisher) : ''}</div>` : ''}
         ${r.details ? `<div class="id-result-details">${escHtml(r.details)}</div>` : ''}
+        ${r.isbn ? `<div class="id-result-details" style="font-family:'DM Mono',monospace;font-size:11px">ISBN: ${escHtml(r.isbn)}</div>` : ''}
         <div class="id-result-tags">
           ${r.category ? `<span class="id-result-tag">${escHtml(r.category)}</span>` : ''}
           ${r.subcategory ? `<span class="id-result-tag">${escHtml(r.subcategory)}</span>` : ''}
@@ -260,20 +262,51 @@ export function idAddToInventory() {
   // Pre-fill form fields from identification (with error handling)
   setTimeout(() => {
     try {
-      const nameEl = document.getElementById('f_name');
-      if (nameEl && r.name) nameEl.value = r.name;
+      const _set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
 
+      // Core fields
+      _set('f_name', r.name);
+      _set('f_price', r.estimatedMid);
+      _set('f_brand', r.brand);
+
+      // Category + subcategory
       const catEl = document.getElementById('f_cat');
       if (catEl && r.category) {
         catEl.value = r.category;
         if (window.syncAddSubcat) window.syncAddSubcat();
       }
+      _set('f_subcat_txt', r.subcategory);
 
-      const subcatTxt = document.getElementById('f_subcat_txt');
-      if (subcatTxt && r.subcategory) subcatTxt.value = r.subcategory;
+      // Condition — click the matching picker chip
+      if (r.condition) {
+        const condMap = { 'new': 'New', 'like new': 'Like New', 'good': 'Good', 'fair': 'Fair', 'poor': 'Poor' };
+        const normCond = condMap[(r.condition || '').toLowerCase()] || r.condition;
+        const condEl = document.getElementById('f_condition');
+        if (condEl) condEl.value = normCond;
+        // Activate the matching chip button
+        const picker = document.getElementById('f_cond_picker');
+        if (picker) {
+          picker.querySelectorAll('.cond-chip').forEach(chip => {
+            chip.classList.toggle('sel', chip.textContent.trim() === normCond);
+          });
+        }
+      }
 
-      const priceEl = document.getElementById('f_price');
-      if (priceEl && r.estimatedMid) priceEl.value = r.estimatedMid;
+      // ISBN & UPC (books, barcodes)
+      _set('f_isbn', r.isbn);
+      _set('f_upc', r.upc);
+
+      // Build rich notes from AI details
+      const notesParts = [];
+      if (r.details) notesParts.push(r.details);
+      if (r.author) notesParts.push('Author: ' + r.author);
+      if (r.publisher) notesParts.push('Publisher: ' + r.publisher);
+      if (r.modelNumber) notesParts.push('Model: ' + r.modelNumber);
+      if (r.size) notesParts.push('Size: ' + r.size);
+      if (r.color) notesParts.push('Color: ' + r.color);
+      if (r.material) notesParts.push('Material: ' + r.material);
+      if (r.year) notesParts.push('Year: ' + r.year);
+      if (notesParts.length) _set('f_notes', notesParts.join(' | '));
 
       // If we have the photo, set it as the item's first image
       if (imgData) {
@@ -283,7 +316,10 @@ export function idAddToInventory() {
       }
 
       if (window.prevProfit) window.prevProfit();
-      toast('Pre-filled from AI identification ✓');
+
+      // Count how many fields were auto-filled
+      const filled = [r.name, r.brand, r.category, r.condition, r.isbn, r.upc, r.details].filter(Boolean).length;
+      toast(`Pre-filled ${filled} fields from AI ✓`);
     } catch (err) {
       console.error('FlipTrack: idAddToInventory prefill error:', err);
       toast('Item added — some fields may need manual entry');
