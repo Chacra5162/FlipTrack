@@ -261,6 +261,12 @@ import { startTour, endTour, maybeStartTour } from './features/onboarding-tour.j
 import { renderKPIGoals, openKPIGoalEditor, closeKPIGoalEditor, saveKPIGoals } from './features/kpi-goals.js';
 import { toggleNotifCenter, closeNotifCenter, markAllRead, clearNotifications, addNotification, initNotificationCenter, getSalesVelocity, checkWhatnotShowReminders, notifyShowEnded } from './features/notification-center.js';
 import { recordSync, startSyncIndicator } from './features/sync-indicator.js';
+import {
+  initTeam, getActiveAccountId, getMyRole, getTeam,
+  openTeamPanel, closeTeamPanel, renderTeamPanel,
+  createTeam, joinTeam, leaveTeam, deleteTeam,
+  generateInvite, updateMemberRole, removeMember
+} from './features/teams.js';
 import { exportPLReport, exportTaxReport } from './features/pdf-reports.js';
 import {
   initShipLabels, estimateRates, getCheapestRate, renderRateComparison,
@@ -387,6 +393,26 @@ Object.assign(window, {
 Object.assign(window, {
   switchAuthTab, authSubmit, authForgotPassword, authSignOut,
   openAccountMenu, closeAccountMenu, syncNow, mobileSyncNow
+});
+
+// Teams
+Object.assign(window, {
+  openTeamPanel, closeTeamPanel,
+  teamCreate: () => { const el = document.getElementById('teamNameInput'); createTeam(el ? el.value : ''); },
+  teamJoin: () => { const el = document.getElementById('teamCodeInput'); joinTeam(el ? el.value : ''); },
+  teamLeave: leaveTeam,
+  teamDelete: deleteTeam,
+  teamGenInvite: async () => {
+    const sel = document.getElementById('teamInviteRole');
+    const role = sel ? sel.value : 'editor';
+    const invite = await generateInvite(role);
+    if (invite) {
+      const el = document.getElementById('teamInviteResult');
+      if (el) el.innerHTML = `<div style="padding:8px;background:var(--surface);border:1px solid var(--accent);font-family:'DM Mono',monospace;font-size:14px;text-align:center;letter-spacing:3px;font-weight:700;color:var(--accent)">${invite.code}</div><div style="font-size:10px;color:var(--muted);text-align:center;margin-top:4px">Share this code · Expires in 7 days</div>`;
+    }
+  },
+  teamUpdateRole: updateMemberRole,
+  teamRemoveMember: removeMember
 });
 
 // Inventory view

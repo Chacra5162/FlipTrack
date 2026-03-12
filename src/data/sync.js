@@ -12,7 +12,8 @@ import {
   getDirtyItems, clearDirtyTracking, markDirty, waitForPersist,
   isSyncInProgress, setSyncInProgress, clearStoreTimers
 } from './store.js';
-import { getCurrentUser, getSupabaseClient } from './auth.js';
+import { getCurrentUser, getSupabaseClient, getAccountId } from './auth.js';
+import { getActiveAccountId } from '../features/teams.js';
 import { isStorageUrl, migrateImagesToStorage } from './storage.js';
 import { setMeta, getMeta } from './idb.js';
 import { enqueue, setupOfflineReplay } from './offline-queue.js';
@@ -65,7 +66,7 @@ export async function pushToCloud() {
     return;
   }
 
-  const accountId = _currentUser.id;
+  const accountId = getActiveAccountId();
   const dirty = getDirtyItems();
 
   try {
@@ -160,7 +161,7 @@ export async function pushAllToCloud() {
   const _currentUser = getCurrentUser();
   if (!_sb || !_currentUser) return;
 
-  const accountId = _currentUser.id;
+  const accountId = getActiveAccountId();
 
   // Upload any pending base64 images before full push
   try { await migrateImagesToStorage(); } catch (e) {
@@ -220,7 +221,7 @@ export async function pullFromCloud() {
   const _currentUser = getCurrentUser();
   if (!_sb || !_currentUser) return false;
 
-  const accountId = _currentUser.id;
+  const accountId = getActiveAccountId();
   let lastPull = await getMeta('lastSyncPull').catch(() => null);
 
   // Safety: if local data is empty but lastPull is set, force a full pull.
@@ -300,7 +301,7 @@ export async function pullSupplies() {
   const _currentUser = getCurrentUser();
   if (!_sb || !_currentUser) return;
   try {
-    const acctId = _currentUser.id;
+    const acctId = getActiveAccountId();
     const { data } = await _sb.from('ft_supplies').select('data').eq('account_id', acctId);
     if (data && data.length) {
       supplies.length = 0;
@@ -414,7 +415,7 @@ export function startRealtime() {
   const _currentUser = getCurrentUser();
   if (!_sb || !_currentUser) return;
 
-  const accountId = _currentUser.id;
+  const accountId = getActiveAccountId();
   _realtimeChannel = _sb.channel('ft-sync')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'ft_inventory', filter: `account_id=eq.${accountId}` }, _onRealtimeChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'ft_sales', filter: `account_id=eq.${accountId}` }, _onRealtimeChange)

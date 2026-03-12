@@ -11,6 +11,7 @@ import { deleteMeta } from './idb.js';
 import { setOfflineUser } from '../features/offline.js';
 import { stopEBaySyncInterval } from '../features/ebay-sync.js';
 import { stopEtsySyncInterval } from '../features/etsy-sync.js';
+import { initTeam, getTeam, getMyRole } from '../features/teams.js';
 
 // ── SUPABASE CLIENT & AUTH STATE ───────────────────────────────────────────
 let _sb = null;
@@ -243,6 +244,16 @@ async function _startSession(user) {
 
   setSyncStatus('syncing');
   try {
+    // Load team membership before sync so queries use the correct account_id
+    await initTeam();
+
+    // Update team label in account menu
+    const teamLbl = document.getElementById('acctTeamLabel');
+    if (teamLbl) {
+      const team = getTeam();
+      teamLbl.textContent = team ? `Team: ${team.name}` : 'Team';
+    }
+
     // 10 second timeout on pull to prevent infinite hang
     await Promise.race([
       syncNow(),
