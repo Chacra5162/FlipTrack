@@ -2,6 +2,8 @@
 let _focusTrapEl = null, _focusTrigger = null;
 
 export function trapFocus(containerSel) {
+  // Remove any existing trap listener to prevent accumulation
+  document.removeEventListener('keydown', _handleTrapKey);
   _focusTrigger = document.activeElement;
   _focusTrapEl = document.querySelector(containerSel);
   if (!_focusTrapEl) return;

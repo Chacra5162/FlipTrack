@@ -277,7 +277,7 @@ export function renderSourcingView() {
                           ${haulItems.map(item => {
                             const itemCost = splitCost(haul, inv)[item.id] || 0;
                             const itemSales = sales.filter(s => s.itemId === item.id);
-                            const itemRevenue = itemSales.reduce((sum, s) => sum + (s.amount || 0), 0);
+                            const itemRevenue = itemSales.reduce((sum, s) => sum + ((s.price || 0) * (s.qty || 1)), 0);
                             return `<div style="padding:6px;background:var(--surface);border-radius:4px;font-size:11px;display:flex;justify-content:space-between">
                               <span>${escHtml(item.name || 'Untitled')}</span>
                               <span style="color:var(--muted)">${fmt(itemCost)} cost · ${fmt(itemRevenue)} revenue</span>

@@ -289,7 +289,7 @@ export async function handleEBayCallback(code, state) {
   try {
     // Verify CSRF
     const storedState = await getMeta('ebay_csrf_state');
-    if (state && storedState && state !== storedState) {
+    if (!state || !storedState || state !== storedState) {
       throw new Error('State mismatch — possible CSRF attack. Please try again.');
     }
 

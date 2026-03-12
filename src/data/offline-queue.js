@@ -172,7 +172,20 @@ export async function replayQueue(sb, accountId) {
         dropped++;
       } else {
         // Re-enqueue with incremented retry count
-        await enqueue(entry.action, entry.table, entry.payload);
+        try {
+          const db = await _getDb();
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          tx.objectStore(STORE_NAME).add({
+            action: entry.action,
+            table: entry.table,
+            payload: entry.payload,
+            ts: entry.ts,
+            retries,
+          });
+          await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
+        } catch (reqErr) {
+          console.warn('FlipTrack: re-enqueue failed:', reqErr.message);
+        }
         failed++;
       }
     }

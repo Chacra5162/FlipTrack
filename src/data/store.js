@@ -35,7 +35,7 @@ export function setSyncInProgress(val) {
 /** Get and reset dirty sets for sync */
 export function getDirtyItems() {
   const result = {
-    inv: [..._dirtyInv].map(id => inv.find(i => i.id === id)).filter(Boolean),
+    inv: [..._dirtyInv].map(id => _invIndex[id] || inv.find(i => i.id === id)).filter(Boolean),
     sales: [..._dirtySales].map(id => sales.find(s => s.id === id)).filter(Boolean),
     expenses: [..._dirtyExp].map(id => expenses.find(e => e.id === id)).filter(Boolean),
     deleted: {
@@ -321,7 +321,7 @@ function titleCase(s) {
   return s.replace(/\w\S*/g, t => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase());
 }
 export function normCat(input) {
-  if (!input) return input;
+  if (!input || typeof input !== 'string') return input;
   const trimmed = input.trim();
   const lower = trimmed.toLowerCase();
   const existing = inv.find(i => (i.category || '').toLowerCase() === lower);
@@ -381,6 +381,7 @@ export function softDeleteItem(id) {
 export function restoreItem(trashIdxOrId) {
   // Support both index (legacy) and ID (preferred)
   let idx = typeof trashIdxOrId === 'number' ? trashIdxOrId : _trash.findIndex(t => t.id === trashIdxOrId);
+  if (idx < 0 || idx >= _trash.length) return;
   const item = _trash[idx];
   if (!item) return;
   const { deletedAt, ...restored } = item;
