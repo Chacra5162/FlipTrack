@@ -30,12 +30,14 @@ export function validateNumericInput(el, opts = {}) {
     el.classList.add('input-error');
     el.setAttribute('aria-invalid', 'true');
     // Show inline hint
-    let hint = el.parentElement.querySelector('.validation-hint');
+    const parent = el.parentElement;
+    if (!parent) return null;
+    let hint = parent.querySelector('.validation-hint');
     if (!hint) {
       hint = document.createElement('span');
       hint.className = 'validation-hint';
       hint.setAttribute('role', 'alert');
-      el.parentElement.appendChild(hint);
+      parent.appendChild(hint);
     }
     const name = opts.fieldName || 'Value';
     if (el.value.trim() === '') hint.textContent = `${name} is required`;

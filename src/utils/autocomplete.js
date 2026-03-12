@@ -81,7 +81,7 @@ function populateDatalist(id, values) {
   if (!dl) return;
   // Sort alphabetically, case-insensitive
   const sorted = [...values].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
-  dl.innerHTML = sorted.map(v => `<option value="${v.replace(/"/g, '&quot;')}">`).join('');
+  dl.innerHTML = sorted.map(v => { const esc = v.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); return `<option value="${esc}">`; }).join('');
 }
 
 /**
