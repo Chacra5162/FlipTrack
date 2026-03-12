@@ -97,8 +97,9 @@
         <button class="nav-menu-item" onclick="closeAllNavGroups();openPriceResearch()"><span class="nmi-icon">🔍</span> Price Research</button>
         <button class="nav-menu-item" onclick="closeAllNavGroups();exportAll()"><span class="nmi-icon">↓</span> Export All</button>
         <button class="nav-menu-item" onclick="closeAllNavGroups();document.getElementById('csvImportInput').click()"><span class="nmi-icon">↑</span> Import CSV</button>
+        <button class="nav-menu-item" onclick="closeAllNavGroups();quickList()"><span class="nmi-icon">⚡</span> Quick List</button>
         <button class="nav-menu-item" id="headerIdBtn" onclick="closeAllNavGroups();openIdentify()"><span class="nmi-icon">📸</span> Identify Item</button>
-        <button class="nav-menu-item" id="headerBatchBtn" onclick="closeAllNavGroups();openBatchScan()"><span class="nmi-icon">⚡</span> Batch Scan</button>
+        <button class="nav-menu-item" id="headerBatchBtn" onclick="closeAllNavGroups();openBatchScan()"><span class="nmi-icon">📷</span> Batch Scan</button>
       </div>
     </div>
     <input type="file" id="csvImportInput" accept=".csv,.tsv" style="display:none" onchange="importCSV(this.files[0])">
@@ -1480,6 +1481,10 @@
   <button class="bnav-more-item" onclick="openPriceResearch();closeBnavMore()">
     <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
     Price Research
+  </button>
+  <button class="bnav-more-item" onclick="quickList();closeBnavMore()">
+    <svg viewBox="0 0 24 24"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+    Quick List
   </button>
   <button class="bnav-more-item" onclick="openIdentify();closeBnavMore()">
     <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>

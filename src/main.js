@@ -326,6 +326,7 @@ const idRetake = _lw(lazyIdentify, 'idRetake');
 const idAnalyze = _lw(lazyIdentify, 'idAnalyze');
 const idAddToInventory = _lw(lazyIdentify, 'idAddToInventory');
 const idSearchPrices = _lw(lazyIdentify, 'idSearchPrices');
+const quickList = _lw(lazyIdentify, 'quickList');
 
 // Batch Scan
 const openBatchScan = _lw(lazyBatchScan, 'openBatchScan');
@@ -451,7 +452,8 @@ Object.assign(window, {
   openPriceResearch, closePriceResearch, prSwitchTab,
   openPriceScanner, lookupPrices, lookupByKeyword,
   openIdentify, closeIdentify, idHandleCapture, idRetake, idAnalyze,
-  idAddToInventory, idSearchPrices
+  idAddToInventory, idSearchPrices,
+  quickList
 });
 
 // Features: Images & Crop

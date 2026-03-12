@@ -10,18 +10,48 @@ import { setPendingAddImages } from '../modals/add-item.js';
 let _idImageData = null;   // base64 image (no prefix)
 let _idMediaType = 'image/jpeg';
 let _idResult    = null;   // last identification result
+let _quickListMode = false; // true = auto-analyze + auto-transfer pipeline
 
 export function openIdentify() {
+  _quickListMode = false;
   document.getElementById('idOv').classList.add('on');
+  document.getElementById('idOv').classList.remove('quick-list');
   idRetake(); // reset to capture state
   setTimeout(() => trapFocus('#idOv'), 100);
 }
 
+/**
+ * Quick List pipeline: camera → auto-analyze → pre-filled Add Item
+ * Opens camera immediately. When photo captured, auto-triggers AI analysis.
+ * When results arrive, auto-transfers to the Add Item form.
+ */
+export function quickList() {
+  _quickListMode = true;
+  const ov = document.getElementById('idOv');
+  ov.classList.add('on', 'quick-list');
+  idRetake();
+  // Update title to indicate quick-list mode
+  const title = ov.querySelector('.id-title');
+  if (title) title.innerHTML = '⚡ Quick <span>List</span>';
+  setTimeout(() => trapFocus('#idOv'), 100);
+  // Auto-open camera on mobile, gallery on desktop
+  setTimeout(() => {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const input = document.getElementById(isMobile ? 'idCameraInput' : 'idGalleryInput');
+    if (input) input.click();
+  }, 250);
+}
+
 export function closeIdentify() {
   releaseFocus();
-  document.getElementById('idOv').classList.remove('on');
+  const ov = document.getElementById('idOv');
+  ov.classList.remove('on', 'quick-list');
+  // Restore normal title
+  const title = ov.querySelector('.id-title');
+  if (title) title.innerHTML = '📸 Snap <span>& Identify</span>';
   _idImageData = null;
   _idResult    = null;
+  _quickListMode = false;
 }
 
 export function idHandleCapture(event) {
@@ -44,6 +74,11 @@ export function idHandleCapture(event) {
     document.getElementById('idCapture').classList.add('has-photo');
     document.getElementById('idAnalyzeBtn').disabled = false;
     document.getElementById('idResults').innerHTML = '';
+
+    // Quick List mode: auto-trigger analysis immediately
+    if (_quickListMode) {
+      setTimeout(() => idAnalyze(), 100);
+    }
   };
   reader.readAsDataURL(file);
 }
@@ -95,6 +130,14 @@ export async function idAnalyze() {
     if (data?.error) throw new Error(data.error);
 
     _idResult = data;
+
+    // Quick List mode: skip results screen, go straight to Add Item
+    if (_quickListMode) {
+      toast('AI identified — opening Add Item…');
+      idAddToInventory();
+      return;
+    }
+
     idRenderResults(data);
   } catch (e) {
     console.error('FlipTrack: identify error:', e);
