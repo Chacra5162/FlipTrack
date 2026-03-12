@@ -176,7 +176,72 @@ const TOUR_STEPS = [
     viewRequirement: 'reports',
   },
 
-  /* ── SECTION 7: CROSSLISTING & PLATFORMS ─────────────────────────────── */
+  /* ── SECTION 7: ADVANCED ANALYTICS ───────────────────────────────────── */
+  {
+    section: 'Advanced Analytics',
+    target: '#view-invhealth',
+    fallbackTarget: '#invHealthContent',
+    title: 'Inventory Health',
+    desc: 'Aging breakdown, sell-through analysis, ROI rankings, and category comparisons. Spot stale stock early and understand where your money is working hardest.',
+    position: 'top',
+    viewRequirement: 'invhealth',
+  },
+  {
+    section: 'Advanced Analytics',
+    target: '#view-sourcinganalytics',
+    fallbackTarget: '#sourcingAnalyticsContent',
+    title: 'Sourcing Analytics',
+    desc: 'Deep dive into sourcing performance — ROI by source, best categories per location, and spend vs. return trends. Find your most profitable sourcing spots.',
+    position: 'top',
+    viewRequirement: 'sourcinganalytics',
+  },
+  {
+    section: 'Advanced Analytics',
+    target: '#view-platformroi',
+    fallbackTarget: '#platformROIContent',
+    title: 'Platform ROI',
+    desc: 'Side-by-side comparison of every selling platform. See margins, fees, average days to sell, and revenue share so you know where to focus your listings.',
+    position: 'top',
+    viewRequirement: 'platformroi',
+  },
+  {
+    section: 'Advanced Analytics',
+    target: '#view-periodcompare',
+    fallbackTarget: '#periodCompareContent',
+    title: 'Period Compare',
+    desc: 'Compare any two time periods — this month vs. last, this quarter vs. last year. Revenue, profit, items sold, and trends shown side by side with change indicators.',
+    position: 'top',
+    viewRequirement: 'periodcompare',
+  },
+  {
+    section: 'Advanced Analytics',
+    target: '#view-returns',
+    fallbackTarget: '#returnsContent',
+    title: 'Returns Tracker',
+    desc: 'Log returns with reason codes, track refund costs, and identify problem items or categories with high return rates. Includes restocking workflow.',
+    position: 'top',
+    viewRequirement: 'returns',
+  },
+  {
+    section: 'Advanced Analytics',
+    target: '#view-listingscore',
+    fallbackTarget: '#listingScoreContent',
+    title: 'Listing Scores',
+    desc: 'Every listing gets a completeness score based on photos, description, pricing, dimensions, and more. See what to improve to maximize your sell-through rate.',
+    position: 'top',
+    viewRequirement: 'listingscore',
+  },
+  {
+    section: 'Advanced Analytics',
+    target: '#view-marginalerts',
+    fallbackTarget: '#marginAlertsContent',
+    title: 'Margin Alerts',
+    desc: 'Real-time notifications when items fall below profit thresholds, have negative margins, or sit too long without selling. Configurable alert thresholds.',
+    position: 'top',
+    viewRequirement: 'marginalerts',
+  },
+
+  /* ── SECTION 8: CROSSLISTING & PLATFORMS ─────────────────────────────── */
   {
     section: 'Crosslisting',
     target: '#view-crosslist',
@@ -187,7 +252,7 @@ const TOUR_STEPS = [
     viewRequirement: 'crosslist',
   },
 
-  /* ── SECTION 8: SHIPPING & SOURCING ──────────────────────────────────── */
+  /* ── SECTION 9: SHIPPING & SOURCING ──────────────────────────────────── */
   {
     section: 'Operations',
     target: '#view-shipping',
@@ -207,7 +272,7 @@ const TOUR_STEPS = [
     viewRequirement: 'sourcing',
   },
 
-  /* ── SECTION 9: CUSTOMERS ────────────────────────────────────────────── */
+  /* ── SECTION 10: CUSTOMERS ───────────────────────────────────────────── */
   {
     section: 'Customers',
     target: '#view-buyers',
@@ -218,7 +283,7 @@ const TOUR_STEPS = [
     viewRequirement: 'buyers',
   },
 
-  /* ── SECTION 10: SETTINGS & TOOLS ────────────────────────────────────── */
+  /* ── SECTION 11: SETTINGS & TOOLS ────────────────────────────────────── */
   {
     section: 'Settings & Tools',
     target: '#themeBtn',
