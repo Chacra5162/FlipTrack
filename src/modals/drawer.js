@@ -226,6 +226,8 @@ export function closeDrawer(){
   if (defaultPanel) defaultPanel.classList.add('active');
   const defaultTab = document.querySelector('.drawer-tab');
   if (defaultTab) defaultTab.classList.add('active');
+  // Reset comps tab content
+  if (window.resetDrawerComps) window.resetDrawerComps();
   setActiveDrawId(null);
 }
 

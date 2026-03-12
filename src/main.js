@@ -236,7 +236,12 @@ import {
 } from './features/analytics-calc.js';
 
 // ── Phase 8: Pro Reseller Features ──────────────────────────────────────────
-import { fetchComps, suggestPrice, renderCompsPanel, getItemComps, clearCompsCache } from './features/comps.js';
+import {
+  fetchComps, suggestPrice, renderCompsPanel, renderCompsInline,
+  getItemComps, clearCompsCache,
+  loadDrawerComps, resetDrawerComps,
+  triggerAddComps, compsUsePrice
+} from './features/comps.js';
 import {
   initPhotoSettings, removeBackground, autoCrop, addWatermark, squarePad,
   adjustImage, batchProcess, renderPhotoToolsPanel, getPhotoSettings, savePhotoSettings
@@ -618,7 +623,10 @@ Object.assign(window, {
 // Phase 8: Pro Reseller Features
 Object.assign(window, {
   // Comps & Market Research
-  fetchComps, suggestPrice, renderCompsPanel, getItemComps, clearCompsCache,
+  fetchComps, suggestPrice, renderCompsPanel, renderCompsInline,
+  getItemComps, clearCompsCache,
+  loadDrawerComps, resetDrawerComps,
+  triggerAddComps, compsUsePrice,
   // Photo Tools
   removeBackground, autoCrop, addWatermark, squarePad, adjustImage,
   renderPhotoToolsPanel, savePhotoSettings,
