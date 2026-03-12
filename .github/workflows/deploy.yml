@@ -38,6 +38,8 @@ jobs:
           cp CNAME dist/ 2>/dev/null || true
           cp ebay-callback.html dist/ 2>/dev/null || true
           cp etsy-callback.html dist/ 2>/dev/null || true
+          cp FlipTrack-User-Guide-v1.6.html dist/ 2>/dev/null || true
+          cp EXTRACTION_SUMMARY.md dist/ 2>/dev/null || true
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
