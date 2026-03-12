@@ -22,11 +22,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"></noscript>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
-  <script type="module" crossorigin src="./assets/app-3dAInydk.js"></script>
+  <script type="module" crossorigin src="./assets/app-C65klH3l.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/vendor-supabase-jY4wIOEF.js">
   <link rel="modulepreload" crossorigin href="./assets/pro-tier-CR2rlk1d.js">
   <link rel="modulepreload" crossorigin href="./assets/unlimited-tier-DCu0Dm1R.js">
-  <link rel="stylesheet" crossorigin href="./assets/app-Cu4ejiQk.css">
+  <link rel="stylesheet" crossorigin href="./assets/app-D-VwFRgd.css">
 </head>
 <body>
 <!-- SPLASH / LOADING SCREEN — removed by main.js on init -->
@@ -58,6 +58,9 @@
         <button class="nav-menu-item" data-view="reports" onclick="navTo('reports',this)"><span class="nmi-icon">📑</span> Reports</button>
         <button class="nav-menu-item" data-view="expenses" onclick="navTo('expenses',this)"><span class="nmi-icon">💸</span> Expenses</button>
         <button class="nav-menu-item" data-view="tax" onclick="navTo('tax',this)"><span class="nmi-icon">📄</span> Tax Center</button>
+        <button class="nav-menu-item" data-view="periodcompare" onclick="navTo('periodcompare',this)"><span class="nmi-icon">📆</span> Period Compare</button>
+        <button class="nav-menu-item" data-view="platformroi" onclick="navTo('platformroi',this)"><span class="nmi-icon">🏪</span> Platform ROI</button>
+        <button class="nav-menu-item" data-view="returns" onclick="navTo('returns',this)"><span class="nmi-icon">↩️</span> Returns</button>
       </div>
     </div>
     <div class="nav-group" data-group="inventory">
@@ -69,6 +72,10 @@
         <button class="nav-menu-item" data-view="supplies" onclick="navTo('supplies',this)"><span class="nmi-icon">📋</span> Supplies</button>
         <button class="nav-menu-item" data-view="breakdown" onclick="navTo('breakdown',this)"><span class="nmi-icon">📈</span> Value Breakdown</button>
         <button class="nav-menu-item" data-view="sourcing" onclick="navTo('sourcing',this)"><span class="nmi-icon">🛍</span> Sourcing &amp; Hauls</button>
+        <button class="nav-menu-item" data-view="invhealth" onclick="navTo('invhealth',this)"><span class="nmi-icon">🩺</span> Inventory Health</button>
+        <button class="nav-menu-item" data-view="sourcinganalytics" onclick="navTo('sourcinganalytics',this)"><span class="nmi-icon">📊</span> Sourcing Analytics</button>
+        <button class="nav-menu-item" data-view="listingscore" onclick="navTo('listingscore',this)"><span class="nmi-icon">⭐</span> Listing Scores</button>
+        <button class="nav-menu-item" data-view="marginalerts" onclick="navTo('marginalerts',this)"><span class="nmi-icon">🚨</span> Margin Alerts</button>
       </div>
     </div>
     <div class="nav-group" data-group="selling">
@@ -589,6 +596,48 @@
 <!-- VIEW: PROFIT DASHBOARD -->
 <div id="view-profit" class="view">
   <div id="profitDashContent"></div>
+</div>
+
+<!-- VIEW: INVENTORY HEALTH -->
+<div id="view-invhealth" class="view">
+  <div class="view-hdr"><h2>🩺 Inventory Health</h2></div>
+  <div id="invHealthContent"></div>
+</div>
+
+<!-- VIEW: SOURCING ANALYTICS -->
+<div id="view-sourcinganalytics" class="view">
+  <div class="view-hdr"><h2>📊 Sourcing Analytics</h2></div>
+  <div id="sourcingAnalyticsContent"></div>
+</div>
+
+<!-- VIEW: PLATFORM ROI -->
+<div id="view-platformroi" class="view">
+  <div class="view-hdr"><h2>🏪 Platform ROI</h2></div>
+  <div id="platformROIContent"></div>
+</div>
+
+<!-- VIEW: PERIOD COMPARE -->
+<div id="view-periodcompare" class="view">
+  <div class="view-hdr"><h2>📆 Period Comparison</h2></div>
+  <div id="periodCompareContent"></div>
+</div>
+
+<!-- VIEW: RETURNS -->
+<div id="view-returns" class="view">
+  <div class="view-hdr"><h2>↩️ Returns &amp; Refunds</h2></div>
+  <div id="returnsContent"></div>
+</div>
+
+<!-- VIEW: LISTING SCORES -->
+<div id="view-listingscore" class="view">
+  <div class="view-hdr"><h2>⭐ Listing Quality Scores</h2></div>
+  <div id="listingScoreContent"></div>
+</div>
+
+<!-- VIEW: MARGIN ALERTS -->
+<div id="view-marginalerts" class="view">
+  <div class="view-hdr"><h2>🚨 Profit Margin Alerts</h2></div>
+  <div id="marginAlertsContent"></div>
 </div>
 
 <!-- VERSION FOOTER -->
@@ -1692,6 +1741,17 @@
       </select>
       <button class="btn-primary" onclick="applyBulkPlatform()">Apply</button>
     </div>
+  </div>
+</div>
+
+<!-- RETURN MODAL -->
+<div id="returnOv" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:none;align-items:center;justify-content:center" onclick="if(event.target===this)closeReturnModal()">
+  <div style="background:var(--surface);border-radius:12px;padding:20px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3 style="margin:0;font-size:15px">Log a Return</h3>
+      <button onclick="closeReturnModal()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div id="returnBody"></div>
   </div>
 </div>
 

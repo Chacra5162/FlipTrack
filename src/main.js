@@ -273,6 +273,15 @@ import {
   generateInvite, updateMemberRole, removeMember
 } from './features/teams.js';
 import { exportPLReport, exportTaxReport } from './features/pdf-reports.js';
+
+// ── Phase 9: Analytics & Intelligence ────────────────────────────────────────
+import { renderInventoryHealth } from './features/inventory-health.js';
+import { renderSourcingAnalytics } from './features/sourcing-analytics.js';
+import { renderPlatformROI } from './features/platform-roi.js';
+import { renderPeriodCompare } from './features/period-compare.js';
+import { renderReturns, openReturnModal, closeReturnModal, submitReturn } from './features/returns.js';
+import { renderListingScores, scoreItem } from './features/listing-score.js';
+import { renderMarginAlerts, updateMarginThreshold, initMarginAlerts } from './features/margin-alerts.js';
 import {
   initShipLabels, estimateRates, getCheapestRate, renderRateComparison,
   getPirateShipLink, getPayPalShipLink, getEBayShipLink,
@@ -747,6 +756,17 @@ Object.assign(window, {
   },
 });
 
+// Phase 9: Analytics & Intelligence
+Object.assign(window, {
+  renderInventoryHealth,
+  renderSourcingAnalytics,
+  renderPlatformROI,
+  renderPeriodCompare,
+  renderReturns, openReturnModal, closeReturnModal, submitReturn,
+  renderListingScores, scoreItem,
+  renderMarginAlerts, updateMarginThreshold, initMarginAlerts,
+});
+
 // Relist from within the drawer modal
 function clRelistFromDrawer(itemId, platform) {
   relistItem(itemId, platform);
@@ -811,6 +831,13 @@ function switchView(name, el) {
     const el2 = document.getElementById('invValueContent');
     if (el2) el2.innerHTML = renderInventoryValueDashboard();
   }
+  else if (name === 'invhealth') renderInventoryHealth();
+  else if (name === 'sourcinganalytics') renderSourcingAnalytics();
+  else if (name === 'platformroi') renderPlatformROI();
+  else if (name === 'periodcompare') renderPeriodCompare();
+  else if (name === 'returns') renderReturns();
+  else if (name === 'listingscore') renderListingScores();
+  else if (name === 'marginalerts') renderMarginAlerts();
 }
 window.switchView = switchView;
 
@@ -1177,6 +1204,9 @@ setTimeout(_killSplash, 3000);
   }
 
   // Demo data trigger removed — was causing unwanted prompts
+
+  // Margin alerts threshold init (reads from localStorage — works on all tiers)
+  initMarginAlerts();
 
   // Stock alert notifications (if enabled)
   startStockAlertChecks();
