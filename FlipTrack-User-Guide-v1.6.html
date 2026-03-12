@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FlipTrack User Guide — v1.5</title>
+<title>FlipTrack User Guide — v1.6</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
@@ -446,7 +446,7 @@
 <div class="hero">
   <h1><span>Flip</span>Track User Guide</h1>
   <p class="subtitle">The all-in-one reseller dashboard for tracking inventory, sales, profits, and cross-platform listings.</p>
-  <div class="version">Version 1.5 — March 2026</div>
+  <div class="version">Version 1.6 — March 2026</div>
 </div>
 
 <!-- ══════════════════════════════════════════════ TOC ════ -->
@@ -485,8 +485,11 @@
     <a href="#notifications"><span class="icon" style="background:rgba(210,153,34,0.12);color:var(--warn)">🔔</span> Notifications</a>
     <a href="#shortcuts"><span class="icon" style="background:rgba(87,200,255,0.12);color:var(--accent)">⌨️</span> Keyboard Shortcuts</a>
     <a href="#accessibility"><span class="icon" style="background:rgba(63,185,80,0.12);color:var(--good)">♿</span> Accessibility</a>
+    <a href="#quicklist"><span class="icon" style="background:rgba(247,129,102,0.12);color:var(--accent2)">📸</span> Quick List</a>
+    <a href="#teams"><span class="icon" style="background:rgba(188,140,255,0.12);color:var(--purple)">👥</span> Team Support</a>
+    <a href="#tour"><span class="icon" style="background:rgba(63,185,80,0.12);color:var(--good)">🗺</span> Guided Tour</a>
     <a href="#offline"><span class="icon" style="background:rgba(210,153,34,0.12);color:var(--warn)">📡</span> Offline &amp; Sync</a>
-    <a href="#whats-new"><span class="icon" style="background:rgba(247,129,102,0.12);color:var(--accent2)">🆕</span> What's New in v1.5</a>
+    <a href="#whats-new"><span class="icon" style="background:rgba(247,129,102,0.12);color:var(--accent2)">🆕</span> What's New in v1.6</a>
   </div>
 </div>
 </div>
@@ -1500,7 +1503,26 @@
   <p>Look up comparable prices by UPC or keyword across eBay, Amazon, and Etsy. View recent sold listings to determine optimal pricing. Integrates with the barcode scanner for instant lookups.</p>
 
   <h3>Comparables (Comps)</h3>
-  <p>Fetch recently sold comparable listings from eBay to understand market value. Shows price trends and suggests optimal listing price.</p>
+  <p>Fetch recently sold comparable listings from eBay via a Supabase edge function that uses app-level eBay credentials &mdash; no OAuth required. Results are cached for 30 minutes. If the edge function is unavailable, FlipTrack falls back to your own local sales data.</p>
+
+  <div class="feature-grid">
+    <div class="feature-card">
+      <h4>📊 Price Distribution</h4>
+      <p>Visual histogram showing the price range of comparable sold listings, with average, median, low, and high prices.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🎯 Suggested Pricing</h4>
+      <p>Confidence-based price suggestion (high, medium, low) based on comp data. One-click "Use Price" button in the add-item form.</p>
+    </div>
+    <div class="feature-card">
+      <h4>📋 Drawer Comps Tab</h4>
+      <p>Each item's detail drawer includes a Comps tab showing live market data, price comparison vs your current listing price, and links to search external marketplaces.</p>
+    </div>
+    <div class="feature-card">
+      <h4>➕ Add-Item Inline Comps</h4>
+      <p>When adding a new item, comps are automatically fetched when you finish typing the item name. A suggestion row appears with market price and a one-click apply button.</p>
+    </div>
+  </div>
 </section>
 
 <!-- ═════════════════════════════ REPRICING ══════════════ -->
@@ -1595,7 +1617,7 @@
     <h2>Accessibility</h2>
   </div>
 
-  <p>FlipTrack is designed to be accessible to all users. Version 1.4 continues the accessibility overhaul with WCAG-aligned improvements across the entire application, including 44px minimum touch targets on mobile, focus trapping in all modals, and aria-labels on 88 icon-only buttons.</p>
+  <p>FlipTrack is designed to be accessible to all users. Version 1.6 completes the accessibility overhaul with WCAG-aligned improvements across the entire application, including 44px minimum touch targets on mobile, focus trapping in all modals and overlays, aria-labels on 88+ icon-only buttons, aria-hidden on decorative emoji, and aria-current on active navigation.</p>
 
   <h3>User Settings</h3>
   <div class="feature-grid">
@@ -1633,7 +1655,7 @@
     </div>
     <div class="feature-card">
       <h4>🔒 Focus Trapping</h4>
-      <p>All modals and overlays (add item, record sale, price research, identify, item drawer) trap keyboard focus inside and return focus to the trigger element on close.</p>
+      <p>All modals and overlays trap keyboard focus inside and return focus to the trigger element on close &mdash; including add item, record sale, price research, identify, item drawer, batch scan, lightbox, scanner, CSV mapper, materials, trash, sold, and shipping.</p>
     </div>
     <div class="feature-card">
       <h4>👆 Touch Targets</h4>
@@ -1648,6 +1670,168 @@
       <p>Expandable navigation sections include aria-expanded state, announcing open/closed status to assistive technology.</p>
     </div>
   </div>
+</section>
+
+<!-- ═════════════════════════════ QUICK LIST ══════════════ -->
+<section id="quicklist">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(247,129,102,0.12);color:var(--accent2)">📸</div>
+    <h2>Quick List</h2>
+  </div>
+
+  <p>Quick List is a streamlined camera-to-listing pipeline that lets you go from taking a photo to a fully populated Add Item form in seconds. Available from the header <strong>Tools</strong> menu and the mobile bottom nav bar.</p>
+
+  <div class="flow">
+    <span class="flow-node">Open Camera</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-node">Snap Photo</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-node">AI Identify</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-node">Pre-filled Form</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-node">Save &amp; List</span>
+  </div>
+
+  <h3>How It Works</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h4>Launch Quick List</h4>
+        <p>Click <strong>Quick List</strong> from the Tools menu in the header, or tap the camera icon in the mobile bottom nav. Your device camera opens immediately.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h4>Capture the item</h4>
+        <p>Take a photo of the product. FlipTrack automatically sends the image to the AI Identify engine as soon as you capture it &mdash; no extra button press needed.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h4>Review &amp; save</h4>
+        <p>The Add Item form opens pre-filled with AI-detected details &mdash; name, category, brand, color, condition, and suggested pricing. Adjust any fields, add platforms, and save.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="tip"><strong>Tip:</strong> Quick List auto-populates the full item detail set including subcategory, condition, color, and dimensions when the AI identifies them. Review the suggested price against comps before saving.</div>
+</section>
+
+<!-- ═════════════════════════════ TEAM SUPPORT ═══════════ -->
+<section id="teams">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(188,140,255,0.12);color:var(--purple)">👥</div>
+    <h2>Multi-User Team Support</h2>
+  </div>
+
+  <p>Collaborate with partners, employees, or virtual assistants by creating a team. Team members share the owner's inventory, sales, and expenses with role-based access control.</p>
+
+  <h3>Getting Started</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h4>Create a team</h4>
+        <p>Open the Team panel from your account menu and click <strong>Create Team</strong>. Give your team a name &mdash; you are automatically assigned the <strong>Owner</strong> role.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h4>Invite members</h4>
+        <p>Generate a 6-character invite code and share it with your team members. Codes can be single-use or multi-use. Members join by entering the code in their own FlipTrack account.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h4>Assign roles</h4>
+        <p>Set each member's role to control what they can do with the shared inventory.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>Roles</h3>
+  <div class="plat-list">
+    <span class="plat-tag">👑 Owner &mdash; Full access, manage team</span>
+    <span class="plat-tag">✏️ Editor &mdash; Add, edit, delete items</span>
+    <span class="plat-tag">👁 Viewer &mdash; Read-only access</span>
+  </div>
+
+  <h3>How Sharing Works</h3>
+  <p>When a member joins a team, their sync queries automatically use the team owner's account ID. This means all team members see the same inventory, sales, and expense data. Editors can add and modify items; viewers can browse and generate reports but cannot change data.</p>
+
+  <div class="feature-grid">
+    <div class="feature-card">
+      <h4>🔒 Row-Level Security</h4>
+      <p>All team data is protected by Supabase RLS policies. Members can only access data their role permits, enforced at the database level.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🔄 Real-Time Sync</h4>
+      <p>Changes made by any team member sync in real-time to all other members via WebSocket subscriptions.</p>
+    </div>
+    <div class="feature-card">
+      <h4>📊 Shared Analytics</h4>
+      <p>All analytics views &mdash; Profit Dashboard, Inventory Health, Platform ROI, and more &mdash; reflect the shared team data.</p>
+    </div>
+    <div class="feature-card">
+      <h4>👤 Solo Mode</h4>
+      <p>Users without a team continue to work in solo mode with their own private data, exactly as before.</p>
+    </div>
+  </div>
+
+  <div class="warn"><strong>Note:</strong> Team support requires a cloud account (logged in). The team feature is not available in offline-only mode.</div>
+</section>
+
+<!-- ═════════════════════════════ GUIDED TOUR ════════════ -->
+<section id="tour">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(63,185,80,0.12);color:var(--good)">🗺</div>
+    <h2>In-App Guided Tour</h2>
+  </div>
+
+  <p>FlipTrack includes a comprehensive guided tour that walks you through every major feature with 42 interactive steps across 11 sections. The tour highlights each feature on-screen with tooltips that explain what it does and how to use it.</p>
+
+  <h3>Tour Sections</h3>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <h4>1. Dashboard</h4>
+      <p>KPI cards, goals &amp; profit calendar, platform breakdown, and quick activity views.</p>
+    </div>
+    <div class="feature-card">
+      <h4>2. Adding Inventory</h4>
+      <p>Add Item form, AI Identification, barcode scanning, batch scan, Quick List, and prefill features.</p>
+    </div>
+    <div class="feature-card">
+      <h4>3. Inventory Management</h4>
+      <p>Filters, sorting, bulk actions, inline editing, and the item detail drawer.</p>
+    </div>
+    <div class="feature-card">
+      <h4>4. Sales &amp; Profit</h4>
+      <p>Recording sales, sales log, and the Profit Dashboard.</p>
+    </div>
+    <div class="feature-card">
+      <h4>5. Crosslisting</h4>
+      <p>Crosslist dashboard, status matrix, eBay integration, and Copy &amp; List workflow.</p>
+    </div>
+    <div class="feature-card">
+      <h4>6. Tools &amp; Settings</h4>
+      <p>CSV import/export, accessibility panel, notifications, and account settings.</p>
+    </div>
+    <div class="feature-card">
+      <h4>7. Advanced Analytics</h4>
+      <p>Inventory Health, Sourcing Analytics, Platform ROI, Period Compare, Returns Tracking, Listing Scores, and Margin Alerts.</p>
+    </div>
+  </div>
+
+  <h3>Smart Navigation</h3>
+  <p>The tour automatically navigates to the correct view for each step &mdash; if the tour reaches a step that requires the Inventory view, FlipTrack switches to it seamlessly. Steps targeting elements that are not currently visible (e.g., desktop-only buttons on mobile) are automatically skipped.</p>
+
+  <div class="tip"><strong>Tip:</strong> Launch the tour anytime from the <strong>Help</strong> menu. First-time users see a prompt to start the tour after signing in.</div>
 </section>
 
 <!-- ═════════════════════════════ OFFLINE & SYNC ═════════ -->
@@ -2035,10 +2219,73 @@
 <section id="whats-new" style="padding-top:48px">
   <div class="section-header">
     <div class="section-icon" style="background:rgba(247,129,102,0.12);color:var(--accent2)">🆕</div>
-    <h2>What's New in Version 1.5</h2>
+    <h2>What's New in Version 1.6</h2>
   </div>
 
-  <p>Version 1.5 introduces Phase 9: Analytics &amp; Intelligence — seven new views that give you deep visibility into inventory health, sourcing performance, platform ROI, period trends, returns tracking, listing quality, and margin alerts.</p>
+  <p>Version 1.6 adds Quick List, multi-user team support, enhanced comparables pricing, and a comprehensive in-app guided tour, plus significant accessibility and security improvements.</p>
+
+  <h3>New Features (v1.6)</h3>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <h4>📸 Quick List Pipeline</h4>
+      <p>Camera-to-listing in seconds: open camera, snap a photo, AI auto-identifies the item, and a pre-filled Add Item form appears with name, category, brand, condition, and suggested pricing.</p>
+    </div>
+    <div class="feature-card">
+      <h4>👥 Multi-User Team Support</h4>
+      <p>Create teams, invite members with 6-character codes, assign roles (Owner, Editor, Viewer), and share inventory with real-time sync. Supabase RLS enforces role-based data access.</p>
+    </div>
+    <div class="feature-card">
+      <h4>💰 Enhanced Comparables</h4>
+      <p>eBay comps powered by a Supabase edge function with app-level credentials (no OAuth needed). Includes price distribution histograms, confidence-based pricing suggestions, a Comps tab in the item drawer, and inline comps in the Add Item form.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🗺 In-App Guided Tour</h4>
+      <p>42-step interactive tour across 11 sections covering every view. Smart navigation auto-switches views, skips hidden targets, and supports both desktop and mobile layouts.</p>
+    </div>
+  </div>
+
+  <h3>Accessibility &amp; Design (v1.6)</h3>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <h4>🔒 6 New Focus Traps</h4>
+      <p>Focus trapping added to batch scan, lightbox, scanner, CSV mapper, materials, trash, sold confirmation, and shipping modals &mdash; completing coverage across all overlays.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🎨 CSS Color System</h4>
+      <p>16 hardcoded hex colors in Phase 9 views replaced with CSS variables (--good, --warn, --danger). New semantic aliases added: --error, --loss, --fresh, --aging, --stale, --dead.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🏷 Enhanced ARIA</h4>
+      <p>31 emoji nav icons now have aria-hidden="true" to prevent screen reader noise. Active nav items include aria-current="page" for accurate navigation context.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🌐 Landing Page Polish</h4>
+      <p>CTA pulse animation, footer navigation links, and the first FAQ auto-opens for better first-visit experience.</p>
+    </div>
+  </div>
+
+  <h3>Security Fixes (v1.6)</h3>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <h4>🛡 CSRF Fix in OAuth</h4>
+      <p>Fixed eBay and Etsy OAuth callback validation that previously accepted null state parameters, closing a CSRF bypass vulnerability.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🔒 XSS Hardening</h4>
+      <p>Fixed escHtml&rarr;escAttr in photo-tools.js HTML attribute context. Continued XSS prevention across rendering paths.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🔄 Offline Retry Fix</h4>
+      <p>Fixed offline queue retry counter that was resetting on re-enqueue, causing infinite retry loops for failed operations.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🐛 Critical Bug Fixes</h4>
+      <p>Fixed returns dirty-tracking parameter order, sourcing revenue calculation using wrong field, trapFocus() event listener memory leak, and restoreItem() accepting invalid indices.</p>
+    </div>
+  </div>
+
+  <h3>Previous: Version 1.5</h3>
+  <p>Version 1.5 introduced Phase 9: Analytics &amp; Intelligence &mdash; seven new views providing deep visibility into inventory health, sourcing performance, platform ROI, period trends, returns tracking, listing quality, and margin alerts.</p>
 
   <h3>Phase 9: Analytics &amp; Intelligence (v1.5)</h3>
   <div class="feature-grid">
@@ -2286,7 +2533,7 @@
 </div><!-- /container -->
 
 <footer>
-  <p><strong>FlipTrack</strong> v1.5 — Built for resellers, by resellers.</p>
+  <p><strong>FlipTrack</strong> v1.6 — Built for resellers, by resellers.</p>
   <p style="margin-top:8px">&copy; 2026 FlipTrack. All rights reserved.</p>
 </footer>
 
