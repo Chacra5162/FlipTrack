@@ -6,7 +6,7 @@
 
 import { inv, sales, save, refresh, getInvItem, markDirty } from '../data/store.js';
 import { fmt, ds, uid, escHtml, escAttr, localDate} from '../utils/format.js';
-import { toast } from '../utils/dom.js';
+import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
 import { renderPagination } from '../utils/pagination.js';
 import { getMeta, setMeta } from '../data/idb.js';
 import { getPlatforms } from '../features/platforms.js';
@@ -227,6 +227,7 @@ export function shipMarkShipped(saleId) {
   document.getElementById('shipTracking').value = sale.trackingNumber || '';
   document.getElementById('shipCost').value = sale.actualShipCost || '';
   modal.classList.add('on');
+  setTimeout(() => trapFocus(modal.id ? '#' + modal.id : '.modal'), 100);
 }
 
 export function shipConfirmShipped(saleId) {
@@ -253,11 +254,13 @@ export function shipConfirmShipped(saleId) {
   save();
   toast(`Marked shipped: ${tracking}`);
   document.getElementById('shipModal').classList.remove('on');
+  releaseFocus();
   renderShippingView();
 }
 
 export function shipCancelMark() {
   document.getElementById('shipModal').classList.remove('on');
+  releaseFocus();
 }
 
 // ── BATCH OPERATIONS ───────────────────────────────────────────────────────────
@@ -267,6 +270,7 @@ export function shipBatchMark() {
   const modal = document.getElementById('shipBatchModal');
   if (!modal) return;
   modal.classList.add('on');
+  setTimeout(() => trapFocus(modal.id ? '#' + modal.id : '.modal'), 100);
 }
 
 export function shipConfirmBatchMark() {
@@ -290,12 +294,14 @@ export function shipConfirmBatchMark() {
   save();
   toast(`Marked ${marked} orders shipped`);
   document.getElementById('shipBatchModal').classList.remove('on');
+  releaseFocus();
   _shipSelection.clear();
   renderShippingView();
 }
 
 export function shipCancelBatchMark() {
   document.getElementById('shipBatchModal').classList.remove('on');
+  releaseFocus();
 }
 
 // ── PRINT & EXPORT ─────────────────────────────────────────────────────────────

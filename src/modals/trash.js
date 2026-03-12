@@ -3,7 +3,7 @@
 // This module only handles the trash modal UI.
 
 import { _trash, saveTrash, save, refresh, restoreItem as storeRestoreItem } from '../data/store.js';
-import { toast } from '../utils/dom.js';
+import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
 import { escHtml } from '../utils/format.js';
 
 export function openTrashModal() {
@@ -28,10 +28,12 @@ export function openTrashModal() {
 
   document.getElementById('trashBody').innerHTML = list;
   document.getElementById('trashOv').classList.add('on');
+  setTimeout(() => trapFocus('#trashOv'), 100);
 }
 
 export function closeTrashModal() {
   document.getElementById('trashOv').classList.remove('on');
+  releaseFocus();
 }
 
 export function emptyTrash() {

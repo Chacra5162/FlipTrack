@@ -1,7 +1,7 @@
 // ── IMAGE HANDLING ──────────────────────────────────────────────────────────
 // Slots are static HTML — we only update src/classes, never rebuild DOM nodes.
 import { inv, activeDrawId, save } from '../data/store.js';
-import { toast } from '../utils/dom.js';
+import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
 import { isStorageUrl, deleteImageFromStorage, uploadImageToStorage } from '../data/storage.js';
 import { getSupabaseClient } from '../data/auth.js';
 import { getCurrentUser } from '../data/auth.js';
@@ -158,6 +158,7 @@ export function openLightbox(itemId) {
   if (_lbImages.length) {
     _lbUpdate();
     document.getElementById('lightbox').classList.add('on');
+    setTimeout(() => trapFocus('#lightbox'), 100);
     _attachLbListeners();
     const nameEl = document.getElementById('lightboxName');
     if (nameEl) nameEl.textContent = item?.name || '';
@@ -176,6 +177,7 @@ export function openLightboxUrl(url) {
       if (_lbIndex === -1) { _lbImages = [url]; _lbIndex = 0; }
       _lbUpdate();
       document.getElementById('lightbox').classList.add('on');
+      setTimeout(() => trapFocus('#lightbox'), 100);
       _attachLbListeners();
       const nameEl = document.getElementById('lightboxName');
       if (nameEl) nameEl.textContent = item.name || '';
@@ -187,6 +189,7 @@ export function openLightboxUrl(url) {
   _lbIndex = 0;
   _lbUpdate();
   document.getElementById('lightbox').classList.add('on');
+  setTimeout(() => trapFocus('#lightbox'), 100);
   _attachLbListeners();
 }
 
@@ -921,6 +924,7 @@ let _lbListenersActive = false;
 
 export function closeLightbox() {
   document.getElementById('lightbox').classList.remove('on');
+  releaseFocus();
   document.getElementById('lightboxImg').src = '';
   _lbImages = [];
   _lbIndex = 0;

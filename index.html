@@ -35,7 +35,7 @@ img{max-width:100%;height:auto}
 .text-accent{color:var(--accent)}
 .mt-2{margin-top:16px}.mt-3{margin-top:24px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--font-head);font-weight:700;font-size:15px;padding:14px 32px;border:none;border-radius:8px;cursor:pointer;transition:all .25s ease;text-decoration:none;letter-spacing:-.2px}
-.btn-primary{background:var(--green);color:#000}.btn-primary:hover{background:#00dda0;transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,200,136,.3)}
+.btn-primary{background:var(--green);color:#000}.btn-primary:hover{background:#00dda0;transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,200,136,.3)}.hero-ctas .btn-primary:first-child{animation:hero-cta-pulse 2.5s ease-in-out infinite;box-shadow:0 0 0 0 rgba(0,200,136,.4)}@keyframes hero-cta-pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,200,136,.4)}50%{box-shadow:0 0 0 12px rgba(0,200,136,0)}}
 .btn-outline{background:transparent;color:var(--text);border:1px solid var(--border)}.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
 .btn-lg{padding:18px 40px;font-size:17px;border-radius:10px}
 .btn-sm{padding:10px 20px;font-size:13px}
@@ -436,7 +436,7 @@ section{padding:96px 0}
       <h2 class="section-title">Common questions</h2>
     </div>
     <div class="faq-grid">
-      <div class="faq-item" onclick="this.classList.toggle('open')"><div class="faq-q">Is FlipTrack really free? <span class="chevron">▾</span></div><div class="faq-a">Yes. The free tier gives you up to 50 active items with the full dashboard, profit tracking, AI identification, and CSV export. No credit card required, and it never expires. Upgrade to Pro or Unlimited only if you need more capacity or advanced features.</div></div>
+      <div class="faq-item open" onclick="this.classList.toggle('open')"><div class="faq-q">Is FlipTrack really free? <span class="chevron">▾</span></div><div class="faq-a">Yes. The free tier gives you up to 50 active items with the full dashboard, profit tracking, AI identification, and CSV export. No credit card required, and it never expires. Upgrade to Pro or Unlimited only if you need more capacity or advanced features.</div></div>
       <div class="faq-item" onclick="this.classList.toggle('open')"><div class="faq-q">What platforms does FlipTrack support? <span class="chevron">▾</span></div><div class="faq-a">FlipTrack supports eBay, Poshmark, Mercari, Depop, StockX, Vinted, OfferUp, Whatnot, TikTok Shop, Shopify, Etsy, and more. You can track sales and inventory across all of them from one dashboard.</div></div>
       <div class="faq-item" onclick="this.classList.toggle('open')"><div class="faq-q">How does the AI item identification work? <span class="chevron">▾</span></div><div class="faq-a">Take a photo of any item and FlipTrack's AI will identify the brand, model, category, and estimated resale value. It works great for clothing, shoes, electronics, and collectibles. You can add identified items directly to your inventory with one tap.</div></div>
       <div class="faq-item" onclick="this.classList.toggle('open')"><div class="faq-q">Can I use FlipTrack on my phone? <span class="chevron">▾</span></div><div class="faq-a">Absolutely. FlipTrack is a progressive web app (PWA) that works beautifully on any phone, tablet, or desktop. Add it to your home screen for an app-like experience — no app store download needed.</div></div>
@@ -462,6 +462,11 @@ section{padding:96px 0}
 <footer class="footer">
   <div class="container">
     <div class="footer-logo">Flip<span>Track</span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:12px;display:flex;gap:20px;justify-content:center;flex-wrap:wrap">
+      <a href="./FlipTrack-User-Guide-v1.5.html" target="_blank" style="color:var(--muted);text-decoration:underline">User Guide</a>
+      <span>•</span>
+      <a href="./EXTRACTION_SUMMARY.md" target="_blank" style="color:var(--muted);text-decoration:underline">Changelog</a>
+    </div>
     <div class="footer-copy">&copy; 2026 FlipTrack. Built for resellers, by a reseller.</div>
   </div>
 </footer>

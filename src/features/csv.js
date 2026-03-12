@@ -2,7 +2,7 @@
 
 import { inv, sales, expenses, save, refresh } from '../data/store.js';
 import { fmt, pct, uid, escHtml, escAttr, localDate} from '../utils/format.js';
-import { toast } from '../utils/dom.js';
+import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
 import { getPlatforms } from './platforms.js';
 import { calc } from '../data/store.js';
@@ -272,6 +272,7 @@ function _showColumnMapper(headers, autoColMap, lines, parseRow, aliases) {
   </div>`;
 
   ov.innerHTML = html;
+  setTimeout(() => trapFocus(ov.id ? '#' + ov.id : '.csv-overlay'), 100);
 
   // Store state for the apply function
   window._csvMapState = { lines, parseRow, headers };
@@ -280,6 +281,7 @@ function _showColumnMapper(headers, autoColMap, lines, parseRow, aliases) {
 export function closeCsvMapper() {
   const ov = document.getElementById('csvMapOv');
   if (ov) ov.classList.remove('on');
+  releaseFocus();
   document.getElementById('csvImportInput').value = '';
 }
 

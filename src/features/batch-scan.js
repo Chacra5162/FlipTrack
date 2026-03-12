@@ -1,7 +1,7 @@
 // ── BATCH SCAN MODE ───────────────────────────────────────────────────────
 import { inv, save, refresh } from '../data/store.js';
 import { uid, escHtml, escAttr, localDate} from '../utils/format.js';
-import { toast } from '../utils/dom.js';
+import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
 import { autoSync } from '../data/sync.js';
 import { _ensureQuagga } from './scanner.js';
@@ -24,6 +24,7 @@ export async function openBatchScan() {
   document.getElementById('batchOv').classList.add('on');
   document.getElementById('batchSource').value = '';
   renderBatchList();
+  setTimeout(() => trapFocus('#batchOv'), 100);
 
   const camWrap = document.getElementById('batchCamWrap');
   const statusEl = document.getElementById('batchScanStatus');
@@ -220,6 +221,7 @@ export function closeBatchScan() {
   if (zone) zone.remove();
 
   document.getElementById('batchOv').classList.remove('on');
+  releaseFocus();
 }
 
 /* ── Desktop: live video BarcodeDetector loop ──────────────────────── */

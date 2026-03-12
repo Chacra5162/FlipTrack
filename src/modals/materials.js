@@ -1,7 +1,7 @@
 // Materials modal - supplies/materials management for sales
 import { supplies } from '../data/store.js';
 import { saveSupplies, renderSupplies, checkSupplyAlerts } from '../views/supplies.js';
-import { toast } from '../utils/dom.js';
+import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
 
 let _pendingSaleCallback = null;
 
@@ -25,6 +25,7 @@ export function openMaterialsModal(onConfirm) {
     </div>`;
   }).join('');
   document.getElementById('matsOv').classList.add('on');
+  setTimeout(() => trapFocus('#matsOv'), 100);
 }
 
 export function confirmMaterials() {
@@ -38,6 +39,7 @@ export function confirmMaterials() {
     }
   }
   document.getElementById('matsOv').classList.remove('on');
+  releaseFocus();
   if (used.length) {
     saveSupplies();
     renderSupplies();
@@ -49,5 +51,6 @@ export function confirmMaterials() {
 
 export function skipMaterials() {
   document.getElementById('matsOv').classList.remove('on');
+  releaseFocus();
   if (_pendingSaleCallback) { _pendingSaleCallback([]); _pendingSaleCallback = null; }
 }

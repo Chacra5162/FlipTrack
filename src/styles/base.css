@@ -44,6 +44,12 @@
   --hover: rgba(87,200,255,0.04);
   --card: #1a1a24;
   --bad: #ff4757;
+  --error: #ff5722;
+  --loss: #f44336;
+  --fresh: #4caf50;
+  --aging: #ff9800;
+  --stale: #ff5722;
+  --dead: #f44336;
   /* z-index scale — consolidated, all layers in one place */
   --z-base: 1;
   --z-header: 200;

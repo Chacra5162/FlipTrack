@@ -798,9 +798,9 @@ function switchView(name, el) {
   if (sg) sg.classList.toggle('not-dash', name !== 'dashboard');
 
   // Update grouped nav: clear all active menu items, set new one, update group highlights
-  document.querySelectorAll('.nav-menu-item').forEach(mi => mi.classList.remove('active'));
+  document.querySelectorAll('.nav-menu-item').forEach(mi => { mi.classList.remove('active'); mi.removeAttribute('aria-current'); });
   const activeItem = document.querySelector(`.nav-menu-item[data-view="${name}"]`);
-  if (activeItem) activeItem.classList.add('active');
+  if (activeItem) { activeItem.classList.add('active'); activeItem.setAttribute('aria-current', 'page'); }
 
   // Mark parent group as having an active child
   document.querySelectorAll('.nav-group').forEach(g => g.classList.remove('has-active'));

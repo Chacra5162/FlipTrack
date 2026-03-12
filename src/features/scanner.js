@@ -1,4 +1,5 @@
 // ── SCANNER (UPC/BARCODE) ────────────────────────────────────────────────────
+import { trapFocus, releaseFocus } from '../utils/dom.js';
 
 let _scanActive = false;
 let _scanTargetId = null;
@@ -49,6 +50,7 @@ export async function openScanner(targetInputId) {
   _scanActive   = true;
 
   document.getElementById('scannerOv').classList.add('on');
+  setTimeout(() => trapFocus('#scannerOv'), 100);
   _setResult('Starting camera…', false);
   document.getElementById('scannerSub').textContent = _isISBNTarget()
     ? 'Point at the ISBN barcode (above or below the ISBN number on the back cover)'
@@ -253,6 +255,7 @@ export function closeScanner() {
   _stopQuagga();
   _stopStream();
   document.getElementById('scannerOv').classList.remove('on');
+  releaseFocus();
   document.getElementById('scannerCamSel').style.display = 'none';
   _setResult('Point camera at barcode…', false);
   document.getElementById('scannerSub').textContent = 'Hold steady — auto-detects UPC, EAN, QR & more';

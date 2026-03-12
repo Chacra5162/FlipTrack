@@ -12,7 +12,7 @@ import {
 
 import { fmt, pct, escHtml, escAttr, uid, ds, localDate} from '../utils/format.js';
 import { PLATFORMS, platCls, PLATFORM_FEES, calcPlatformFee } from '../config/platforms.js';
-import { toast } from '../utils/dom.js';
+import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
 import { parseNum, validateNumericInput } from '../utils/validate.js';
 import { pushDeleteToCloud, autoSync } from '../data/sync.js';
@@ -64,6 +64,7 @@ export function openSoldModal(id) {
     sPriceType('each');
     updateFeeEstimate();
     document.getElementById('soldOv').classList.add('on');
+    setTimeout(() => trapFocus('#soldOv'), 100);
     return;
   }
 
@@ -72,6 +73,7 @@ export function openSoldModal(id) {
   if (!item) { toast('Item not found', true); return; }
   _populateSoldModal(item);
   document.getElementById('soldOv').classList.add('on');
+  setTimeout(() => trapFocus('#soldOv'), 100);
 }
 
 /** Called when user picks an item from the dropdown in the no-ID sold modal */
@@ -177,6 +179,7 @@ export function updateFeeEstimate() {
 
 export function closeSold() {
   document.getElementById('soldOv').classList.remove('on');
+  releaseFocus();
   const buyerEl = document.getElementById('s_buyer');
   if (buyerEl) buyerEl.value = '';
   activeSoldId = null;
