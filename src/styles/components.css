@@ -3183,12 +3183,36 @@ textarea { resize:vertical; min-height:70px; }
 .ih-card { background:var(--surface2); border-radius:8px; padding:12px; text-align:center; }
 .ih-card-val { font-size:22px; font-weight:700; }
 .ih-card-lbl { font-size:10px; color:var(--muted); margin-top:2px; }
-.ih-aging-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(100px,1fr)); gap:6px; margin:8px 0 16px; }
-.ih-aging-box { background:var(--surface2); border-radius:6px; padding:10px; text-align:center; border-left:3px solid var(--accent); }
-.ih-aging-val { font-size:16px; font-weight:700; }
-.ih-aging-lbl { font-size:9px; color:var(--muted); text-transform:uppercase; }
-.ih-roi-section { margin-bottom:12px; }
+.ih-card-warn { border:1px solid #ff5722; }
+.ih-aging-grid { display:flex; flex-direction:column; gap:4px; margin:8px 0 16px; }
+.ih-age-row { display:flex; align-items:center; gap:8px; padding:4px 0; font-size:11px; }
+.ih-age-label { flex-shrink:0; width:80px; color:var(--muted); }
+.ih-age-bar-wrap { flex:2; height:14px; background:var(--surface2); border-radius:7px; overflow:hidden; }
+.ih-age-bar { height:100%; border-radius:7px; min-width:4px; transition:width .3s; }
+.ih-age-bar.age-fresh { background:#4caf50; }
+.ih-age-bar.age-aging { background:#ff9800; }
+.ih-age-bar.age-stale { background:#ff5722; }
+.ih-age-bar.age-dead { background:#f44336; }
+.ih-age-count { flex-shrink:0; width:60px; text-align:right; color:var(--muted); font-size:10px; }
+.ih-age-val { flex-shrink:0; width:70px; text-align:right; font-weight:600; font-size:10px; }
+.ih-pct { padding:2px 6px; border-radius:4px; font-size:10px; font-weight:600; }
+.ih-roi-section { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
+.ih-roi-col { min-width:0; }
+.ih-roi-row { display:flex; flex-direction:column; padding:8px; background:var(--surface2); border-radius:6px; margin-bottom:4px; cursor:pointer; transition:background .15s; }
+.ih-roi-row:hover { background:var(--surface); }
+.ih-roi-name { font-size:11px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ih-roi-meta { font-size:9px; color:var(--muted); margin-top:2px; }
+.ih-roi-val { font-size:11px; font-weight:700; margin-top:2px; }
+.ih-empty { padding:16px; text-align:center; color:var(--muted); font-size:12px; }
 .ih-comp-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
+.ih-comp-group { min-width:0; }
+.ih-comp-title { font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.3px; margin-bottom:6px; }
+.ih-comp-row { display:flex; align-items:center; gap:6px; padding:3px 0; font-size:11px; }
+.ih-comp-name { flex-shrink:0; width:80px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text); }
+.ih-comp-bar-wrap { flex:2; height:10px; background:var(--surface2); border-radius:5px; overflow:hidden; }
+.ih-comp-bar { height:100%; border-radius:5px; min-width:4px; transition:width .3s; }
+.ih-comp-count { flex-shrink:0; font-size:10px; font-weight:600; color:var(--muted); }
+.ih-comp-pct { font-size:9px; color:var(--muted); }
 
 /* ── Period Compare ──────────────────────────────────────────────────────── */
 .pc-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:12px; margin-bottom:16px; }
@@ -3243,6 +3267,7 @@ textarea { resize:vertical; min-height:70px; }
   .pc-grid { grid-template-columns:1fr; }
   .pc-metrics { grid-template-columns:1fr 1fr; }
   .ih-comp-grid { grid-template-columns:1fr; }
+  .ih-roi-section { grid-template-columns:1fr; }
   .ls-overview { flex-direction:column; text-align:center; }
   .sa-summary { grid-template-columns:repeat(2,1fr); }
 }

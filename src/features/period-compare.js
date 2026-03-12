@@ -88,7 +88,9 @@ export function computePeriodComparison() {
 
 function _trendArrow(curr, prev) {
   if (prev === 0 && curr === 0) return '<span class="pc-flat">—</span>';
-  if (prev === 0) return '<span class="pc-up">↑ New</span>';
+  if (prev === 0 && curr > 0) return '<span class="pc-up">↑ New</span>';
+  if (prev === 0 && curr < 0) return '<span class="pc-down">↓ New</span>';
+  if (prev === 0) return '<span class="pc-flat">→ 0%</span>';
   const change = ((curr - prev) / Math.abs(prev)) * 100;
   if (Math.abs(change) < 1) return '<span class="pc-flat">→ 0%</span>';
   if (change > 0) return `<span class="pc-up">↑ ${Math.round(change)}%</span>`;
@@ -136,7 +138,7 @@ function _renderMonthlyChart(monthlyData) {
         <div class="pc-chart-bars">
           ${monthlyData.map(m => {
             const revH = Math.max(4, (m.revenue / maxRev) * 80);
-            const profH = Math.max(2, (Math.abs(m.profit) / maxRev) * 80);
+            const profH = Math.max(2, (Math.abs(m.profit) / maxProfit) * 80);
             return `
               <div class="pc-chart-col" title="${m.label}: ${fmt(m.revenue)} rev / ${fmt(m.profit)} profit">
                 <div class="pc-chart-bar-rev" style="height:${revH}px"></div>

@@ -236,7 +236,7 @@ export function openReturnModal() {
   const first = sales.find(s => s.id === selEl.value);
   if (first) document.getElementById('ret_amount').value = first.price;
 
-  ov.style.display = '';
+  ov.style.display = 'flex';
 }
 
 export function closeReturnModal() {

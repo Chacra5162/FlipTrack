@@ -111,7 +111,7 @@ export function scanMarginAlerts() {
 
   // Sort by severity then profit impact
   const sevOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-  alerts.sort((a, b) => (sevOrder[a.severity] - sevOrder[b.severity]) || (a.profit - b.profit));
+  alerts.sort((a, b) => ((sevOrder[a.severity] ?? 4) - (sevOrder[b.severity] ?? 4)) || (a.profit - b.profit));
 
   // Summary stats
   const criticalCount = alerts.filter(a => a.severity === 'critical').length;

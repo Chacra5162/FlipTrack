@@ -5,7 +5,7 @@
  */
 
 import { inv, sales, expenses, getInvItem } from '../data/store.js';
-import { PLATFORM_FEES, calcPlatformFee } from '../config/platforms.js';
+// Platform fee constants imported dynamically if needed
 import { fmt, pct, ds, escHtml } from '../utils/format.js';
 
 // ── COMPUTE ───────────────────────────────────────────────────────────────
@@ -123,7 +123,7 @@ export function renderPlatformROI() {
             <div class="sa-bar-wrap">
               <div class="sa-bar" style="width:${w}%;background:var(--accent)"></div>
             </div>
-            <div class="sa-bar-val">${fmt(p.revenue)} <span style="color:var(--muted);font-size:10px">(${Math.round(p.revenue / d.totalRevenue * 100)}%)</span></div>
+            <div class="sa-bar-val">${fmt(p.revenue)} <span style="color:var(--muted);font-size:10px">(${d.totalRevenue > 0 ? Math.round(p.revenue / d.totalRevenue * 100) : 0}%)</span></div>
           </div>`;
       }).join('')}
     </div>`;
