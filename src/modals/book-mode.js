@@ -3,7 +3,7 @@
 // DOM elements, form helpers (toggleBookFields requires drawer.js)
 
 import { SUBCATS } from '../config/categories.js';
-import { fmt } from '../utils/format.js';
+import { fmt, escAttr } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 
 export const BOOK_CONDITIONS = ['Like New', 'Very Good', 'Good', 'Acceptable', 'Poor'];
@@ -31,7 +31,7 @@ export function swapConditionTags(prefix, isBook) {
   const currentVal = document.getElementById(prefix + '_condition')?.value || '';
   const tags = isBook ? BOOK_CONDITIONS : STD_CONDITIONS;
   picker.innerHTML = tags.map(t =>
-    `<button type="button" class="cond-tag" onclick="setCondTag('${prefix}','${t}',this)">${t}</button>`
+    `<button type="button" class="cond-tag" onclick="setCondTag('${escAttr(prefix)}','${escAttr(t)}',this)">${t}</button>`
   ).join('');
   // Re-activate if value matches
   if (currentVal) loadCondTag(prefix, currentVal);

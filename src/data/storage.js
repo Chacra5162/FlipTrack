@@ -3,7 +3,7 @@
  * Handles uploading, deleting, and migrating images to/from cloud storage.
  */
 
-import { inv, save } from './store.js';
+import { inv, save, markDirty } from './store.js';
 import { getCurrentUser, getSupabaseClient } from './auth.js';
 
 // ── STORAGE CONFIGURATION ──────────────────────────────────────────────────
@@ -97,6 +97,7 @@ export async function migrateImagesToStorage() {
 
     item.images = newImgs;
     item.image = newImgs[0] || null;
+    markDirty('inv', item.id);
   }
 
   if (migrated > 0) {

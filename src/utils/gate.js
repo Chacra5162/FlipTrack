@@ -10,6 +10,7 @@ import {
   canAccess, VIEW_TIER_MAP, TOOL_TIER_MAP,
   TIER_DISPLAY, VIEW_LABELS
 } from '../config/tiers.js';
+import { escAttr } from '../utils/format.js';
 
 // ── Cached tier (module-scoped, not exposed on window) ──────────────────────
 let _userTier = 'free';
@@ -89,7 +90,7 @@ export function showUpgradePrompt(viewName) {
       actionDiv.innerHTML = '<button class="btn-ghost" disabled>Current Plan</button>';
     } else if (level > userLevel) {
       const label = t === 'pro' ? 'Upgrade to Pro' : 'Upgrade to Unlimited';
-      actionDiv.innerHTML = `<button class="btn-primary" onclick="startCheckout('${t}')">${label}</button>`;
+      actionDiv.innerHTML = `<button class="btn-primary" onclick="startCheckout('${escAttr(t)}')">${label}</button>`;
     } else {
       actionDiv.innerHTML = '<button class="btn-ghost" disabled>Included</button>';
     }

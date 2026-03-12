@@ -1,6 +1,6 @@
 // ── PLATFORMS ───────────────────────────────────────────────────────────────
 import { PLATFORM_GROUPS, platCls } from '../config/platforms.js';
-import { escHtml } from '../utils/format.js';
+import { escHtml, escAttr } from '../utils/format.js';
 
 export function getPlatforms(item) {
   if (Array.isArray(item.platforms) && item.platforms.length) return item.platforms;
@@ -45,7 +45,7 @@ export function buildPlatPicker(pickerId, selected = []) {
     <div class="plat-picker-chips">`;
     group.items.forEach(p => {
       const active = selectedSet.has(p) ? 'active' : '';
-      html += `<span class="plat-pick-chip ${active}" data-plat="${p}" onclick="togglePlatChip(this,'${pickerId}')">${p}</span>`;
+      html += `<span class="plat-pick-chip ${active}" data-plat="${escAttr(p)}" onclick="togglePlatChip(this,'${escAttr(pickerId)}')">${escHtml(p)}</span>`;
     });
     html += `</div>`;
   });

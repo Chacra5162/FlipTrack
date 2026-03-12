@@ -126,8 +126,7 @@ async function callEdgeFn(action, body = {}) {
   if (!resp.ok) {
     console.error('[eBay] API ERROR:', data.method, data.path, '→', data.ebayStatus || resp.status);
     console.error('[eBay] Error message:', data.error);
-    if (data.ebayErrors) console.error('[eBay] Full eBay errors:', JSON.stringify(data.ebayErrors, null, 2));
-    if (data.sentPayload) console.error('[eBay] Payload sent:', JSON.stringify(data.sentPayload));
+    if (data.ebayErrors) console.error('[eBay] eBay errors:', JSON.stringify(data.ebayErrors, null, 2));
     throw new Error(data.error || `Edge function error: ${resp.status}`);
   }
   return data;

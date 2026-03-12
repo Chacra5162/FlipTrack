@@ -86,7 +86,16 @@ async function callEdgeFn(action, body = {}) {
     throw new Error('Network error — check your internet connection');
   }
   clearTimeout(timer);
-  const data = await resp.json();
+  // Handle non-JSON responses (e.g., HTML error pages, 502 gateway errors)
+  const contentType = resp.headers.get('content-type') || '';
+  let data;
+  if (contentType.includes('application/json')) {
+    data = await resp.json();
+  } else {
+    const text = await resp.text();
+    if (!resp.ok) throw new Error(`Server error (${resp.status}): ${text.slice(0, 100)}`);
+    try { data = JSON.parse(text); } catch { throw new Error(`Unexpected response (${resp.status})`); }
+  }
   if (!resp.ok) throw new Error(data.error || `Edge function error: ${resp.status}`);
   return data;
 }
