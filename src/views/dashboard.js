@@ -31,6 +31,8 @@ function _popupThrottled(key, maxPerDay = 2) {
   } catch { return false; }
 }
 
+let _statsRendered = false;
+
 export function updateStats() {
   const invVal = inv.reduce((a,i)=>a+(i.price||0)*(i.qty||0),0);
   const units  = inv.reduce((a,i)=>a+(i.qty||0),0);
@@ -77,8 +79,14 @@ export function updateStats() {
   if(all.length){document.getElementById('alertItems').textContent=all.map(i=>`${i.name} (${i.qty} left)`).join(' · ');bn.classList.add('on');}
   else bn.classList.remove('on');
 
-  // Animate stat counters on first render
-  requestAnimationFrame(() => animateStatCounters());
+  // Only animate on the very first dashboard render per page load.
+  // Subsequent calls (from sync, realtime, etc.) just set the values directly
+  // to avoid a race where a second animation reads an intermediate textContent
+  // from a still-running first animation and locks onto the wrong target.
+  if (!_statsRendered) {
+    _statsRendered = true;
+    requestAnimationFrame(() => animateStatCounters());
+  }
 }
 
 export function updatePlatBreakdown() {
