@@ -26,13 +26,14 @@ function renderBreakdown() {
   const avgMargin  = totalValue ? totalProfit/totalValue : 0;
 
   // Build canonical category map for case-insensitive grouping
+  const UNCATEGORIZED = '(Uncategorized)';
+
   const _canonCatMap = new Map();
   inv.forEach(i => { const c=(i.category||'').trim(); if(c){ const k=c.toLowerCase(); if(!_canonCatMap.has(k)) _canonCatMap.set(k,c); } });
   const canonCat = c => _canonCatMap.get((c||'').toLowerCase()) || c || UNCATEGORIZED;
 
   // Build category → subcategory → items map
   const catMap = {}; // { catName: { value, units, items, cost, profit, subs: { subName: {...} } } }
-  const UNCATEGORIZED = '(Uncategorized)';
 
   for (const item of inv) {
     const cat = item.category ? canonCat(item.category) : UNCATEGORIZED;

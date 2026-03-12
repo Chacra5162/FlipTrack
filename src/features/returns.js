@@ -42,11 +42,11 @@ export function logReturn(saleId, reason, refundAmount, notes, restocked) {
     const item = getInvItem(sale.itemId);
     if (item) {
       item.sold = false;
-      markDirty(item.id, 'inv');
+      markDirty('inv', item.id);
     }
   }
 
-  markDirty(sale.id, 'sales');
+  markDirty('sales', sale.id);
   save();
   toast('Return logged ✓');
 }

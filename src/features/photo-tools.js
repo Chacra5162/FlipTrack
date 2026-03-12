@@ -389,7 +389,7 @@ export function renderPhotoToolsPanel(imgSrc, itemId) {
         <label class="pt-slider-row">
           <span>Contrast</span>
           <input type="range" min="-50" max="50" value="0" id="ptContrast"
-            oninput="ptAdjustPreview('${escHtml(itemId)}')">
+            oninput="ptAdjustPreview('${escAttr(itemId)}')">
         </label>
       </div>
     </div>
