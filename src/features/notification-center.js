@@ -220,7 +220,7 @@ export function getSalesVelocity() {
   return Object.values(catMap).map(c => ({
     ...c,
     avgDaysToSell: c.sold > 0 ? Math.round(c.totalDays / c.sold) : null,
-    sellThrough: c.items > 0 ? Math.round((c.sold / (c.items + c.sold)) * 100) : 0,
+    sellThrough: c.items > 0 ? Math.round((c.sold / c.items) * 100) : 0,
   })).sort((a, b) => (a.avgDaysToSell || 999) - (b.avgDaysToSell || 999));
 }
 

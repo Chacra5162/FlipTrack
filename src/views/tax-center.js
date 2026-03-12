@@ -18,6 +18,8 @@ let _showYearComparison = false;
 // ── TAX CALCULATIONS ───────────────────────────────────────────────────────
 
 const SE_TAX_RATE = 0.153; // 15.3% (12.4% Social Security + 2.9% Medicare)
+// Standard deduction by year (single filer)
+const STANDARD_DEDUCTION = { 2024: 14600, 2025: 15000, 2026: 15350 };
 // 2026 tax brackets (single filer) — updated per IRS Rev. Proc. 2025-36
 // Review annually at https://www.irs.gov/newsroom/irs-provides-tax-inflation-adjustments
 const INCOME_TAX_BRACKETS_2026 = [
@@ -39,7 +41,8 @@ function calcSETax(netIncome) {
 function calcIncomeTax(netIncome) {
   if (netIncome <= 0) return 0;
   const seTax = calcSETax(netIncome);
-  const taxableIncome = Math.max(0, netIncome - seTax / 2 - 15350); // 2026 standard deduction (single)
+  const deduction = STANDARD_DEDUCTION[_taxYear] || STANDARD_DEDUCTION[2026];
+  const taxableIncome = Math.max(0, netIncome - seTax / 2 - deduction);
   let tax = 0;
   for (const bracket of INCOME_TAX_BRACKETS_2026) {
     if (taxableIncome <= bracket.min) break;
@@ -271,7 +274,7 @@ export async function taxExportCSV() {
       '',
       'Expenses by Category',
       'Category,Amount',
-      ...Object.entries(m.expensesByCategory).map(([cat, amt]) => `"${cat}",${amt}`),
+      ...Object.entries(m.expensesByCategory).map(([cat, amt]) => `"${cat.replace(/"/g, '""')}",${amt}`),
     ].join('\n');
 
     _downloadCSV('fliptrack-tax-q' + _selectedQuarter + '-' + _taxYear + '.csv', csv);

@@ -217,7 +217,7 @@ export function renderBuyersView() {
       b.name.toLowerCase().includes(search) ||
       b.email.toLowerCase().includes(search) ||
       b.phone.includes(search) ||
-      (b.handles && Object.values(b.handles).some(h => h.toLowerCase().includes(search)))
+      (b.handles && Object.values(b.handles).some(h => h && h.toLowerCase().includes(search)))
     );
   });
 
@@ -225,11 +225,14 @@ export function renderBuyersView() {
   filtered.sort((a, b) => {
     if (_buyerSort === 'name') return a.name.localeCompare(b.name);
     if (_buyerSort === 'recent') return b.createdAt - a.createdAt;
-    // 'spent' (default)
-    const aSpent = sales.filter(s => s.buyerId === a.id).reduce((t, s) => t + (s.price || 0), 0);
-    const bSpent = sales.filter(s => s.buyerId === b.id).reduce((t, s) => t + (s.price || 0), 0);
-    return bSpent - aSpent;
+    // 'spent' (default) — precompute spending map to avoid O(n*m) in comparator
+    return 0;
   });
+  if (_buyerSort === 'spent' || (_buyerSort !== 'name' && _buyerSort !== 'recent')) {
+    const spentMap = {};
+    for (const s of sales) spentMap[s.buyerId] = (spentMap[s.buyerId] || 0) + (s.price || 0);
+    filtered.sort((a, b) => (spentMap[b.id] || 0) - (spentMap[a.id] || 0));
+  }
 
   // Paginate
   const paged = filtered.slice(_buyerPage * _buyerPageSize, (_buyerPage + 1) * _buyerPageSize);

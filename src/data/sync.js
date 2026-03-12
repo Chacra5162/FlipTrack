@@ -104,7 +104,7 @@ export async function pushToCloud() {
       }));
       try {
         const { error } = await _sb.from('ft_expenses').upsert(rows, { onConflict: 'id' });
-        if (error) console.warn('FlipTrack: expenses push error:', error.message);
+        if (error) throw new Error('expenses push: ' + error.message);
       } catch (e) {
         console.warn('FlipTrack: ft_expenses not available:', e.message);
       }
@@ -266,7 +266,7 @@ export async function pullFromCloud() {
         if (idx !== -1) {
           // Conflict resolution: remote wins if it's newer (server updated_at vs local _localUpdatedAt)
           const localTs = arr[idx]._localUpdatedAt || 0;
-          const remoteTs = row.updated_at ? new Date(row.updated_at).getTime() : Date.now();
+          const remoteTs = row.updated_at ? (new Date(row.updated_at).getTime() || Date.now()) : Date.now();
           if (remoteTs >= localTs) {
             arr[idx] = row.data;
           }
