@@ -165,8 +165,11 @@ export async function getAll(storeName) {
 }
 
 /**
- * Replace ALL records in a store with new ones
- * Clears the store and then adds all items in a single transaction
+ * Replace ALL records in a store with new ones.
+ * Uses put() (upsert) for each item in a single transaction — avoids the
+ * clear-then-write race condition where a crash between clear() and put()
+ * could lose all data. Stale records that are no longer in the items array
+ * are removed via a targeted cleanup pass within the same transaction.
  *
  * @param {string} storeName - Name of the object store
  * @param {Array} items - Array of items to store
@@ -181,23 +184,29 @@ export async function putAll(storeName, items) {
         const transaction = db.transaction([storeName], 'readwrite');
         const store = transaction.objectStore(storeName);
 
-        // Clear the store
-        const clearRequest = store.clear();
+        // Build a set of IDs we're writing so we can remove stale records
+        const keyPath = store.keyPath;
+        const activeIds = new Set(items.map(item => item[keyPath]));
 
-        clearRequest.onerror = () => {
-          logError(`putAll clear ${storeName}`, clearRequest.error);
-          reject(clearRequest.error);
-        };
+        // Upsert all current items
+        items.forEach((item) => {
+          try {
+            store.put(item);
+          } catch (error) {
+            logError(`putAll add ${storeName}`, error);
+          }
+        });
 
-        clearRequest.onsuccess = () => {
-          // Add all items — use put() for upsert behavior to avoid duplicate key errors
-          items.forEach((item) => {
-            try {
-              store.put(item);
-            } catch (error) {
-              logError(`putAll add ${storeName}`, error);
+        // Remove records that are no longer in the items array
+        const cursorReq = store.openKeyCursor();
+        cursorReq.onsuccess = () => {
+          const cursor = cursorReq.result;
+          if (cursor) {
+            if (!activeIds.has(cursor.key)) {
+              try { store.delete(cursor.key); } catch (e) { logError(`putAll cleanup ${storeName}`, e); }
             }
-          });
+            cursor.continue();
+          }
         };
 
         transaction.onerror = () => {

@@ -412,7 +412,7 @@ export async function generateForPlatform(itemId, platform, force = false) {
   // Enforce platform character limits as a hard guard
   const descLimit = _PLATFORM_DESC_LIMITS[platform];
   if (descLimit && result.description.length > descLimit) {
-    result.description = result.description.slice(0, descLimit - 3).replace(/\s\S*$/, '') + '...';
+    result.description = result.description.slice(0, descLimit - 3).replace(/\s+\S*$/, '') + '...';
   }
 
   // Cache on item

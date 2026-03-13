@@ -138,16 +138,8 @@ export function getPlatformFee(platform) {
 }
 
 // ── UTILITY FUNCTIONS ──────────────────────────────────────────────────────
-
-export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
-export const fmt = n => '$' + Number(n||0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-export const pct = n => (n*100).toFixed(1)+'%';
-export const ds = d => new Date(d).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
-export const escHtml = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
-export const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
-
-// Stock status calculation
-export const sc = (qty, alert, bulk) => !bulk ? (qty===0?'low':'ok') : qty===0?'low':qty<=(alert||2)?'warn':'ok';
+// Canonical definitions live in src/utils/format.js — re-export for backwards compat
+export { uid, fmt, pct, ds, escHtml, debounce, sc } from '../utils/format.js';
 
 // ── PAGINATION ─────────────────────────────────────────────────────────────
 export const DEFAULT_PAGE_SIZE = 50;

@@ -5,6 +5,7 @@
 
 import { inv, save } from './store.js';
 import { getCurrentUser, getSupabaseClient } from './auth.js';
+import { SB_URL } from '../config/constants.js';
 
 // ── STORAGE CONFIGURATION ──────────────────────────────────────────────────
 const IMG_BUCKET = 'item-images';
@@ -65,7 +66,8 @@ export async function deleteImageFromStorage(url) {
 }
 
 // ── HELPER: IS STORAGE URL? ───────────────────────────────────────────────
-export const isStorageUrl = s => typeof s === 'string' && s.startsWith('http');
+// Only treat URLs from our own Supabase storage as valid storage URLs
+export const isStorageUrl = s => typeof s === 'string' && s.startsWith(SB_URL + '/storage/');
 
 // ── MIGRATE BASE64 IMAGES TO STORAGE ───────────────────────────────────────
 export async function migrateImagesToStorage() {

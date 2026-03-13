@@ -64,7 +64,7 @@ export function markDirty(table, id) {
   const now = Date.now();
   if (table === 'inv') {
     _dirtyInv.add(id);
-    const item = inv.find(i => i.id === id);
+    const item = _invIndex[id] || inv.find(i => i.id === id);
     if (item) item._localUpdatedAt = now;
   }
   else if (table === 'sales') {
@@ -372,7 +372,7 @@ export function softDeleteItem(id) {
   const item = inv.find(i => i.id === id);
   if (!item) return;
   pushUndo('delete', { ...item });
-  _trash.push({ ...JSON.parse(JSON.stringify(item)), deletedAt: Date.now() });
+  _trash.push({ ...structuredClone(item), deletedAt: Date.now() });
   saveTrash();
   inv.splice(inv.indexOf(item), 1);
   markDeleted('ft_inventory', id);
@@ -448,10 +448,8 @@ export function saveSupplies() {
   try { localStorage.setItem('ft_supplies', JSON.stringify(supplies)); } catch (e) { console.warn('FlipTrack: supplies localStorage save failed:', e.message); toast('⚠ Supplies save error', true); }
 }
 
-export function saveLocalSupplies() {
-  if (_idbReady) putAll('supplies', supplies).catch(e => { console.warn('FlipTrack: supplies IDB local save failed:', e.message); toast('⚠ Supplies save error', true); });
-  try { localStorage.setItem('ft_supplies', JSON.stringify(supplies)); } catch (e) { console.warn('FlipTrack: supplies localStorage save failed:', e.message); toast('⚠ Supplies save error', true); }
-}
+// saveLocalSupplies is an alias for saveSupplies (kept for backwards compat)
+export const saveLocalSupplies = saveSupplies;
 
 
 // ── UTILITY FUNCTIONS FOR CALCULATIONS ──────────────────────────────────────

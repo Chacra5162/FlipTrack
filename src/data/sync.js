@@ -335,7 +335,7 @@ export async function syncNow() {
   setSyncStatus('syncing');
   try {
     await pullFromCloud();
-    await pushAllToCloud(); // Full push on manual sync
+    await pushToCloud(); // Delta push — only changed items
     setSyncStatus('connected');
     recordSync();
     refresh();

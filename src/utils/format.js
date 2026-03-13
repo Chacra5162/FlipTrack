@@ -4,8 +4,8 @@ export const fmt = n => { const v = Number(n||0); return '$' + (isFinite(v) ? v 
 // Percentage format
 export const pct = n => { const v = n*100; return (isFinite(v) ? v : 0).toFixed(1)+'%'; };
 
-// Unique ID generator
-export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+// Unique ID generator — uses crypto.randomUUID for collision safety
+export const uid = () => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2,10);
 
 // Date string format — local timezone aware (v2)
 const _dsRe = /^\d{4}-\d{2}-\d{2}$/;
