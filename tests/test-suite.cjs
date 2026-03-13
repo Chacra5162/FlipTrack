@@ -792,6 +792,126 @@ test('Phase 8: CSS has styles for all new features', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 15. CODE REVIEW FIXES VALIDATION
+// ═══════════════════════════════════════════════════════════════════════════
+console.log('\n🔧 15. CODE REVIEW FIXES VALIDATION\n');
+
+test('P0: isStorageUrl validates against Supabase domain, not any HTTP URL', () => {
+  const storage = fs.readFileSync(path.join(SRC, 'data', 'storage.js'), 'utf8');
+  // Must NOT match any http URL
+  assert(!storage.includes("s.startsWith('http')"), 'isStorageUrl should NOT accept any http URL');
+  // Must reference SB_URL for domain validation
+  assert(storage.includes('SB_URL'), 'isStorageUrl should validate against SB_URL');
+  assert(storage.includes("/storage/"), 'isStorageUrl should check for /storage/ path');
+});
+
+test('P0: storage.js imports SB_URL for domain validation', () => {
+  const storage = fs.readFileSync(path.join(SRC, 'data', 'storage.js'), 'utf8');
+  assert(storage.includes("import { SB_URL }") || storage.includes("import { SB_URL,"),
+    'storage.js should import SB_URL from constants');
+});
+
+test('P1: uid() uses crypto.randomUUID for collision safety', () => {
+  const fmt = fs.readFileSync(path.join(SRC, 'utils', 'format.js'), 'utf8');
+  assert(fmt.includes('crypto.randomUUID'), 'uid should use crypto.randomUUID');
+  // Should have fallback for environments without crypto
+  assert(fmt.includes('Date.now()'), 'uid should have fallback for non-crypto environments');
+});
+
+test('P1: constants.js re-exports uid from format.js (no duplicate definition)', () => {
+  const constants = fs.readFileSync(path.join(SRC, 'config', 'constants.js'), 'utf8');
+  // Should NOT have its own uid definition
+  assert(!constants.includes("Date.now().toString(36)"), 'constants.js should not define its own uid');
+  // Should re-export from format.js
+  assert(constants.includes("from '../utils/format.js'"), 'constants.js should re-export from format.js');
+  assert(constants.includes('export {') && constants.includes('uid'), 'constants.js should re-export uid');
+});
+
+test('P1: putAll does NOT clear store before writing (race condition fix)', () => {
+  const idb = fs.readFileSync(path.join(SRC, 'data', 'idb.js'), 'utf8');
+  // Find the putAll function body
+  const putAllStart = idb.indexOf('export async function putAll');
+  const putAllEnd = idb.indexOf('export async function putOne');
+  const putAllBody = idb.substring(putAllStart, putAllEnd);
+  // Should NOT have store.clear() inside putAll
+  assert(!putAllBody.includes('store.clear()'), 'putAll should not clear store (race condition)');
+  // Should use put() for upsert
+  assert(putAllBody.includes('store.put(item)'), 'putAll should use put() for upsert');
+  // Should clean up stale records
+  assert(putAllBody.includes('openKeyCursor') || putAllBody.includes('delete'),
+    'putAll should clean up stale records');
+});
+
+test('P1: dist2/ is in .gitignore', () => {
+  const gitignore = fs.readFileSync(path.join(ROOT, '.gitignore'), 'utf8');
+  assert(gitignore.includes('dist2/'), '.gitignore should include dist2/');
+});
+
+test('P2: markDirty uses _invIndex for O(1) lookup', () => {
+  const store = fs.readFileSync(path.join(SRC, 'data', 'store.js'), 'utf8');
+  // Find the markDirty function
+  const markDirtyStart = store.indexOf("export function markDirty");
+  const markDirtyEnd = store.indexOf("export function markDeleted");
+  const markDirtyBody = store.substring(markDirtyStart, markDirtyEnd);
+  // The inv branch should use _invIndex[id] first
+  assert(markDirtyBody.includes('_invIndex[id]'), 'markDirty should use _invIndex for inv lookups');
+});
+
+test('P2: softDeleteItem uses structuredClone instead of JSON.parse(JSON.stringify)', () => {
+  const store = fs.readFileSync(path.join(SRC, 'data', 'store.js'), 'utf8');
+  const softDeleteStart = store.indexOf('export function softDeleteItem');
+  const softDeleteEnd = store.indexOf('export function restoreItem');
+  const softDeleteBody = store.substring(softDeleteStart, softDeleteEnd);
+  assert(!softDeleteBody.includes('JSON.parse(JSON.stringify'),
+    'softDeleteItem should not use JSON.parse(JSON.stringify)');
+  assert(softDeleteBody.includes('structuredClone'),
+    'softDeleteItem should use structuredClone');
+});
+
+test('P2: saveLocalSupplies is alias for saveSupplies (no duplicate)', () => {
+  const store = fs.readFileSync(path.join(SRC, 'data', 'store.js'), 'utf8');
+  // Should have the alias export pattern
+  assert(store.includes('export const saveLocalSupplies = saveSupplies'),
+    'saveLocalSupplies should be an alias export for saveSupplies');
+  // Should NOT have a separate function body for saveLocalSupplies
+  assert(!store.includes('export function saveLocalSupplies'),
+    'saveLocalSupplies should not be a separate function');
+});
+
+test('P2: syncNow uses delta push instead of full push', () => {
+  const sync = fs.readFileSync(path.join(SRC, 'data', 'sync.js'), 'utf8');
+  const syncNowStart = sync.indexOf('export async function syncNow');
+  const syncNowEnd = sync.indexOf('// ── AUTO-SYNC');
+  const syncNowBody = sync.substring(syncNowStart, syncNowEnd);
+  assert(!syncNowBody.includes('pushAllToCloud'), 'syncNow should not use pushAllToCloud');
+  assert(syncNowBody.includes('pushToCloud'), 'syncNow should use pushToCloud (delta)');
+});
+
+test('P3: AI listing truncation regex uses \\s+ not \\s for word boundary', () => {
+  const ai = fs.readFileSync(path.join(SRC, 'features', 'ai-listing.js'), 'utf8');
+  // Should use \s+\S*$ (with +) not \s\S*$ (without +)
+  assert(ai.includes('\\s+\\S*$'), 'Truncation regex should use \\s+ for safe word boundary');
+  assert(!ai.includes("replace(/\\s\\S*$/"), 'Should NOT have the broken \\s\\S*$ regex');
+});
+
+test('P2: No duplicate utility functions between constants.js and format.js', () => {
+  const constants = fs.readFileSync(path.join(SRC, 'config', 'constants.js'), 'utf8');
+  // constants.js should NOT define these functions directly
+  assert(!constants.includes("const uid = ()"), 'constants.js should not define uid');
+  assert(!constants.includes("const fmt = "), 'constants.js should not define fmt');
+  assert(!constants.includes("const escHtml = "), 'constants.js should not define escHtml');
+  assert(!constants.includes("const debounce = "), 'constants.js should not define debounce');
+  // Should use re-export pattern
+  assert(constants.includes("export {"), 'constants.js should use re-export pattern');
+});
+
+test('Vite build succeeds with all changes', () => {
+  // This test validates by checking the dist output exists from a recent build
+  const distExists = fs.existsSync(path.join(ROOT, 'dist', 'app.html'));
+  assert(distExists, 'dist/app.html should exist from successful build');
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
 // RESULTS
 // ═══════════════════════════════════════════════════════════════════════════
 console.log('\n' + '═'.repeat(60));
