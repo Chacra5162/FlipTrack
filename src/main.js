@@ -1113,7 +1113,11 @@ setTimeout(_killSplash, 3000);
     rebuildInvIndex(); refresh();
     const savedView = localStorage.getItem('ft_view');
     if (savedView && savedView !== 'dashboard' && document.getElementById('view-' + savedView)) {
-      switchView(savedView);
+      // Temporarily bypass subscription gating during boot — tier hasn't loaded yet.
+      // After auth init the correct tier is applied and nav locks enforced.
+      const gate = window.__gateUtils;
+      window.__gateUtils = undefined;
+      try { switchView(savedView); } finally { window.__gateUtils = gate; }
     } else {
       renderDash();
     }

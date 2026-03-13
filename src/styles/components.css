@@ -444,6 +444,22 @@ textarea { resize:vertical; min-height:70px; }
 .sale-amt  { font-family:'Syne',sans-serif; font-weight:700; font-size:13px; color:var(--good); }
 
 /* ── ITEM IMAGES ── */
+/* Inline thumbnail — hidden by default, shown on mobile when photo column is hidden */
+.item-name-row { display: flex; align-items: center; gap: 8px; }
+.item-thumb-inline {
+  display: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+@media (max-width: 480px) {
+  .item-thumb-inline { display: block; }
+}
+
 .item-thumb {
   width: 40px;
   height: 40px;
