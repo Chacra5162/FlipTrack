@@ -288,6 +288,12 @@ import {
   recordLabelCost, getShippingCostSummary, saveShipLabelSettings
 } from './features/ship-labels.js';
 
+// ── Backup/Restore ────────────────────────────────────────────────────────────
+import { downloadBackup, restoreBackup } from './features/backup.js';
+
+// ── Sales Velocity Chart ──────────────────────────────────────────────────────
+import { renderSalesVelocity } from './features/sales-velocity.js';
+
 // ── Features (heavy modules — loaded on first use via lazy.js wrappers) ──────
 import {
   lazyScanner, lazyBatchScan, lazyPriceResearch,
@@ -510,7 +516,8 @@ Object.assign(window, {
 Object.assign(window, {
   openBatchScan, closeBatchScan,
   batchAddScanned, batchManualAdd, batchRemoveItem, batchAddAll,
-  printStickers, exportAll, exportCSV, importCSV, closeCsvMapper, applyCsvMapping
+  printStickers, exportAll, exportCSV, importCSV, closeCsvMapper, applyCsvMapping,
+  downloadBackup, restoreBackup
 });
 
 // Features: Book mode, Dimensions

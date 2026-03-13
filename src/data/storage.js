@@ -62,6 +62,7 @@ export async function deleteImageFromStorage(url) {
     await _sb.storage.from(IMG_BUCKET).remove([path]);
   } catch(e) {
     console.warn('FlipTrack: storage delete failed:', e.message);
+    // Storage delete failures are non-critical — orphaned files are cleaned up by bucket policies
   }
 }
 

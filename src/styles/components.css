@@ -3279,6 +3279,62 @@ textarea { resize:vertical; min-height:70px; }
 .view-hdr h2 { margin:0; font-size:16px; font-weight:700; }
 
 /* ── Responsive ──────────────────────────────────────────────────────────── */
+/* ── SALES VELOCITY CHART ────────────────────────────────────────────── */
+.sv-wrap { padding: 4px 0; }
+.sv-header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+}
+.sv-title {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px;
+  letter-spacing: -0.3px;
+}
+.sv-trend {
+  font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 600;
+}
+.sv-avg {
+  font-family: 'DM Mono', monospace;
+}
+.sv-empty { padding: 12px 0; }
+
+/* ── INVENTORY AGING SUMMARY ────────────────────────────────────────── */
+.aging-wrap { padding: 4px 0; }
+.aging-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.aging-title {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px;
+  letter-spacing: -0.3px;
+}
+.aging-bars { display: flex; flex-direction: column; gap: 6px; }
+.aging-row {
+  display: flex; align-items: center; gap: 8px;
+}
+.aging-label {
+  font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 600;
+  min-width: 70px;
+}
+.aging-bar-track {
+  flex: 1; height: 8px; background: rgba(255,255,255,0.04);
+  border-radius: 4px; overflow: hidden;
+}
+.aging-bar-fill {
+  height: 100%; border-radius: 4px; transition: width 0.3s ease;
+}
+.aging-count {
+  font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 700;
+  color: var(--fg); min-width: 24px; text-align: right;
+}
+
+/* ── KEYBOARD SHORTCUT TOOLTIPS ─────────────────────────────────────── */
+.kbd-hint {
+  display: inline-block; background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12); border-radius: 3px;
+  padding: 1px 5px; font-family: 'DM Mono', monospace; font-size: 9px;
+  color: var(--muted); margin-left: 6px; vertical-align: middle;
+  line-height: 1.4;
+}
+
 @media (max-width:600px) {
   .pc-grid { grid-template-columns:1fr; }
   .pc-metrics { grid-template-columns:1fr 1fr; }
@@ -3286,4 +3342,5 @@ textarea { resize:vertical; min-height:70px; }
   .ih-roi-section { grid-template-columns:1fr; }
   .ls-overview { flex-direction:column; text-align:center; }
   .sa-summary { grid-template-columns:repeat(2,1fr); }
+  .kbd-hint { display: none; }
 }

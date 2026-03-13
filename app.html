@@ -191,6 +191,8 @@
     </div>
     <div id="kpiGoalsSection"></div>
   </div>
+  <div id="salesVelocitySection" class="panel" style="animation-delay:.16s"></div>
+  <div id="agingSummarySection" class="panel" style="animation-delay:.17s;display:none"></div>
   <div id="profitHeatmap" class="panel" style="display:none;animation-delay:.18s">
     <div class="panel-header"><div class="panel-title">Profit Calendar</div></div>
   </div>
@@ -223,6 +225,13 @@
         <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
           <button class="pdf-btn" onclick="exportPLReport()">📊 P&L Report (PDF)</button>
           <button class="pdf-btn" onclick="exportTaxReport()">🧾 Tax Summary (PDF)</button>
+        </div>
+        <div style="margin-top:12px;border-top:1px solid rgba(255,255,255,0.06);padding-top:12px">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-family:'DM Mono',monospace">Backup &amp; Restore</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="pdf-btn" onclick="downloadBackup()">💾 Download Backup</button>
+            <label class="pdf-btn" style="cursor:pointer">📂 Restore Backup<input type="file" accept=".json" style="display:none" onchange="restoreBackup(this.files[0]);this.value=''"></label>
+          </div>
         </div>
       </div>
       <!-- Feature Showcase -->

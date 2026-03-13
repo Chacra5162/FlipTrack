@@ -129,6 +129,7 @@ export async function pushToCloud() {
     // Do NOT clearDirtyTracking here: dirty items that failed to push
     // need to stay dirty so the next sync retries them
     console.warn('FlipTrack: push failed, queueing for retry:', e.message);
+    toast('Sync failed — changes saved locally, will retry', true);
     await _queueDirtyItems();
     throw e;
   }
@@ -245,7 +246,11 @@ export async function pullFromCloud() {
     query_inv,
     query_sales,
   ]);
-  if (e1 || e2) throw new Error((e1 || e2).message);
+  if (e1 || e2) {
+    const msg = (e1 || e2).message;
+    console.warn('FlipTrack: pull failed:', msg);
+    throw new Error(msg);
+  }
 
   // Expenses (may not exist)
   let remoteExp = null;
@@ -343,6 +348,7 @@ export async function syncNow() {
     if (typeof window.updateDashStats === 'function') window.updateDashStats();
   } catch (e) {
     setSyncStatus('error', e.message);
+    toast('Cloud sync error — your data is safe locally', true);
   } finally {
     _isSyncing = false;
     setSyncInProgress(false);
