@@ -1209,9 +1209,27 @@ export async function publishEBayListing(itemId, options = {}) {
       }
     }
 
-    // Publish offer (makes it live)
+    // Publish offer (makes it live) — with retry for missing aspects
     console.log('[eBay] Publishing offer:', offerId);
-    const publishResp = await ebayAPI('POST', `${INVENTORY_API}/offer/${offerId}/publish`);
+    let publishResp;
+    try {
+      publishResp = await ebayAPI('POST', `${INVENTORY_API}/offer/${offerId}/publish`);
+    } catch (pubErr) {
+      const missing = _parseMissingAspects(pubErr.message || '');
+      if (missing.length === 0) throw pubErr;
+      // Patch inventory item with missing aspects and retry publish
+      console.log('[eBay] Publish failed — missing aspects:', missing.join(', '), '— patching and retrying');
+      const invPayload = _buildInventoryPayload(item);
+      if (!invPayload.product) invPayload.product = {};
+      if (!invPayload.product.aspects) invPayload.product.aspects = {};
+      for (const name of missing) {
+        if (invPayload.product.aspects[name]) continue;
+        const defaultFn = _ASPECT_DEFAULTS[name.toLowerCase()];
+        invPayload.product.aspects[name] = [defaultFn ? String(defaultFn(item)) : 'Does Not Apply'];
+      }
+      await ebayAPI('PUT', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`, invPayload);
+      publishResp = await ebayAPI('POST', `${INVENTORY_API}/offer/${offerId}/publish`);
+    }
     const listingId = publishResp.listingId;
 
     // Update local item
