@@ -334,7 +334,7 @@ function renderMatrixTab(inStock) {
     const health = getListingHealth(item);
 
     html += `<div class="cl-matrix-item">
-      <div class="cl-matrix-header" onclick="openDrawer('${escAttr(item.id)}')"
+      <div class="cl-matrix-header" onclick="openDrawer('${escAttr(item.id)}')">
         <span class="cl-matrix-name">${escHtml(item.name)}</span>
         <span class="cl-matrix-meta">${fmt(item.price || 0)} · Qty: ${item.qty || 0}</span>
       </div>
