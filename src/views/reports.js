@@ -222,7 +222,7 @@ export function renderReports() {
           const cls=EXP_CAT_CLASS[e.category]||'exp-other';
           return `<tr>
             <td style="color:var(--muted);font-size:11px">${ds(e.date)}</td>
-            <td><span class="exp-cat-badge ${cls}">${e.category}</span></td>
+            <td><span class="exp-cat-badge ${cls}">${escHtml(e.category)}</span></td>
             <td>${escHtml(e.description)}</td>
             <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:var(--danger)">${fmt(e.amount)}</td>
           </tr>`;

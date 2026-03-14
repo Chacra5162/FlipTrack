@@ -121,8 +121,8 @@ export function renderInsights() {
     const i = stat.item;
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
       <div style="min-width:0;flex:1">
-        <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer" onclick="openDrawer('${escAttr(i.id)}')">${i.name}</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:1px">${i.category||'—'}${i.subcategory?' · '+i.subcategory:''}</div>
+        <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer" onclick="openDrawer('${escAttr(i.id)}')">${escHtml(i.name)}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:1px">${escHtml(i.category||'—')}${i.subcategory?' · '+escHtml(i.subcategory):''}</div>
       </div>
       <div style="text-align:right;flex-shrink:0;margin-left:12px">${showMetric(stat)}</div>
     </div>`;
@@ -246,8 +246,8 @@ export function renderInsights() {
       return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
         <span style="width:22px;text-align:center;flex-shrink:0">${medal}</span>
         <div style="min-width:0;flex:1">
-          <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer" onclick="openDrawer('${escAttr(s.item.id)}')">${s.item.name}</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:1px">${s.item.category || '—'} · ~${velocity}/mo velocity</div>
+          <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer" onclick="openDrawer('${escAttr(s.item.id)}')">${escHtml(s.item.name)}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px">${escHtml(s.item.category || '—')} · ~${velocity}/mo velocity</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div style="font-size:13px;font-family:'Syne',sans-serif;font-weight:700;color:var(--accent)">${s.unitsSold} sold</div>
@@ -473,7 +473,7 @@ export function renderInsights() {
     topCats.map(([cat, d]) => `
       <div style="padding:6px 0">
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:12px;font-weight:600">${cat}</span>
+          <span style="font-size:12px;font-weight:600">${escHtml(cat)}</span>
           <span style="font-size:12px;font-family:'DM Mono',monospace;color:var(--good);font-weight:700">${fmt(d.profit)}</span>
         </div>
         <div style="font-size:10px;color:var(--muted);margin-top:2px">${d.units} unit${d.units!==1?'s':''} sold · ${fmt(d.revenue)} revenue · ${d.items} item${d.items!==1?'s':''}</div>
@@ -487,7 +487,7 @@ export function renderInsights() {
     topPlats.map(([plat, d]) => `
       <div style="padding:5px 0">
         <div style="display:flex;justify-content:space-between">
-          <span style="font-size:12px;font-weight:600">${plat}</span>
+          <span style="font-size:12px;font-weight:600">${escHtml(plat)}</span>
           <span style="font-size:12px;font-family:'DM Mono',monospace;color:var(--accent)">${fmt(d.revenue)}</span>
         </div>
         <div style="font-size:10px;color:var(--muted);margin-top:1px">${d.count} sale${d.count!==1?'s':''} · ${d.units} unit${d.units!==1?'s':''}</div>
@@ -534,7 +534,7 @@ export function renderInsights() {
     topExpCats.map(([cat,amt])=>`
       <div style="padding:5px 0">
         <div style="display:flex;justify-content:space-between">
-          <span style="font-size:12px">${cat}</span>
+          <span style="font-size:12px">${escHtml(cat)}</span>
           <span style="font-size:12px;font-family:'DM Mono',monospace;color:var(--danger)">${fmt(amt)}</span>
         </div>
         ${bar(amt, maxExpCat, 'var(--danger)')}

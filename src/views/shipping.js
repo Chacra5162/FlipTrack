@@ -535,7 +535,7 @@ export async function renderShippingView() {
                   <option value="">— Select Sale —</option>
                   ${sales.slice().reverse().slice(0, 20).map(s => {
                     const item = getInvItem(s.itemId);
-                    return `<option value="${s.id}">${item?.name || 'Item'} - ${s.buyerName || 'Buyer'}</option>`;
+                    return `<option value="${s.id}">${escHtml(item?.name || 'Item')} - ${escHtml(s.buyerName || 'Buyer')}</option>`;
                   }).join('')}
                 </select>
               </div>

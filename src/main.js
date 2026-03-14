@@ -1025,16 +1025,16 @@ function _globalSearch(q) {
 
   // Search sales
   const saleMatches = sales.filter(s => {
-    const it = inv.find(i => i.id === s.itemId);
+    const it = getInvItem(s.itemId);
     return it?.name?.toLowerCase().includes(ql) || (s.platform||'').toLowerCase().includes(ql);
   }).slice(0, 5);
   if (saleMatches.length) {
     results.push('<div class="gs-group-label">Sales</div>');
     for (const s of saleMatches) {
-      const it = inv.find(i => i.id === s.itemId);
+      const it = getInvItem(s.itemId);
       results.push(`<div class="gs-item" onclick="closeGlobalSearch();navTo('sales')">
         <span class="gs-item-icon">💸</span>
-        <div class="gs-item-info"><div class="gs-item-title">${escHtml(it?.name||'Deleted Item')}</div><div class="gs-item-sub">${escHtml(s.platform||'')} · ${s.date||''}</div></div>
+        <div class="gs-item-info"><div class="gs-item-title">${escHtml(it?.name||'Deleted Item')}</div><div class="gs-item-sub">${escHtml(s.platform||'')} · ${escHtml(s.date||'')}</div></div>
         <span class="gs-item-badge" style="background:rgba(0,200,136,0.1);color:var(--good)">${fmt(s.price)}</span>
       </div>`);
     }
@@ -1050,7 +1050,7 @@ function _globalSearch(q) {
     for (const ex of expMatches) {
       results.push(`<div class="gs-item" onclick="closeGlobalSearch();navTo('expenses')">
         <span class="gs-item-icon">🧾</span>
-        <div class="gs-item-info"><div class="gs-item-title">${escHtml(ex.description||'Expense')}</div><div class="gs-item-sub">${escHtml(ex.category||'')} · ${ex.date||''}</div></div>
+        <div class="gs-item-info"><div class="gs-item-title">${escHtml(ex.description||'Expense')}</div><div class="gs-item-sub">${escHtml(ex.category||'')} · ${escHtml(ex.date||'')}</div></div>
         <span class="gs-item-badge" style="background:rgba(255,107,107,0.1);color:var(--bad)">-${fmt(ex.amount)}</span>
       </div>`);
     }

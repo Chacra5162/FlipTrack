@@ -1,6 +1,6 @@
 // ── SUPPLIES ──────────────────────────────────────────────────────────────────
 import { supplies } from '../data/store.js';
-import { uid, fmt, escAttr } from '../utils/format.js';
+import { uid, fmt, escAttr, escHtml } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { getSupabaseClient, getCurrentUser } from '../data/auth.js';
 import { getActiveAccountId } from '../features/teams.js';
@@ -102,8 +102,8 @@ function renderSupplies() {
     const qtyColor = s.qty === 0 ? 'color:#ff6b6b;font-weight:700' : isLow ? 'color:#ffaa33;font-weight:700' : '';
     const lowTag = isLow ? `<span style="font-size:9px;background:rgba(255,107,107,0.15);color:#ff6b6b;padding:1px 6px;font-family:'DM Mono',monospace;margin-left:6px">LOW</span>` : '';
     return `<tr>
-      <td><div class="item-name">${s.name}${lowTag}</div></td>
-      <td><span class="cat-tag">${s.category||'Other'}</span></td>
+      <td><div class="item-name">${escHtml(s.name)}${lowTag}</div></td>
+      <td><span class="cat-tag">${escHtml(s.category||'Other')}</span></td>
       <td style="${qtyColor}">
         <div style="display:flex;align-items:center;gap:6px">
           <button onclick="updateSupplyQty('${escAttr(s.id)}',-1)" style="background:var(--surface3);border:1px solid var(--border);color:var(--text);width:22px;height:22px;cursor:pointer;font-size:14px;line-height:1;padding:0">−</button>
@@ -114,7 +114,7 @@ function renderSupplies() {
       </td>
       <td style="color:var(--muted);font-size:12px">${s.cost ? fmt(s.cost) : '—'}</td>
       <td style="color:var(--muted);font-size:12px">${s.alert || 5}</td>
-      <td style="color:var(--muted);font-size:11px">${s.notes||'—'}</td>
+      <td style="color:var(--muted);font-size:11px">${escHtml(s.notes||'—')}</td>
       <td style="text-align:right"><button class="btn-danger" style="font-size:11px;padding:4px 10px" onclick="delSupply('${escAttr(s.id)}')">Remove</button></td>
     </tr>`;
   }).join('');
