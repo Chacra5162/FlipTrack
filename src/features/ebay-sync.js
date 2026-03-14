@@ -1265,6 +1265,36 @@ export async function publishEBayListing(itemId, options = {}) {
     return { success: true, listingId };
   } catch (e) {
     console.error('[eBay] PUBLISH ERROR DETAIL:', e.message);
+    // Auto-reset: clear stale eBay refs and retry as a completely fresh listing
+    if (item.ebayItemId) {
+      console.log('[eBay] Auto-resetting stale eBay data and retrying as fresh item');
+      toast('Retrying as fresh listing…');
+      // Clean up stale data on eBay
+      try {
+        const staleOffers = await ebayAPI('GET', `${INVENTORY_API}/offer?sku=${encodeURIComponent(sku)}`);
+        for (const o of (staleOffers?.offers || [])) {
+          try { await ebayAPI('DELETE', `${INVENTORY_API}/offer/${o.offerId}`); } catch (_) {}
+        }
+      } catch (_) {}
+      try { await ebayAPI('DELETE', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`); } catch (_) {}
+      // Clear local eBay refs
+      delete item.ebayItemId;
+      delete item.ebayListingId;
+      if (item.platformStatus) delete item.platformStatus['eBay'];
+      markDirty('inv', itemId);
+      save();
+      // Retry: push + publish as brand new
+      try {
+        const pushResult = await pushItemToEBay(itemId);
+        if (pushResult.success) {
+          const pubResult = await publishEBayListing(itemId);
+          return pubResult;
+        }
+      } catch (retryErr) {
+        toast(`eBay listing error: ${retryErr.message}`, true);
+        return { success: false };
+      }
+    }
     toast(`eBay listing error: ${e.message}`, true);
     return { success: false };
   }
