@@ -383,9 +383,12 @@ function _buildInventoryPayload(item) {
     };
   }
 
-  // Add UPC if available
+  // Add UPC if available and valid (must be 12 or 13 digits)
   if (item.upc) {
-    payload.product.upc = [item.upc];
+    const upcClean = item.upc.replace(/[^0-9]/g, '');
+    if (upcClean.length === 12 || upcClean.length === 13) {
+      payload.product.upc = [upcClean];
+    }
   }
 
   // Add ISBN for books
