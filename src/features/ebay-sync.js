@@ -393,10 +393,9 @@ function _buildInventoryPayload(item) {
     payload.product.isbn = [item.isbn];
   }
 
-  // Add MPN if available
-  if (item.mpn) {
-    payload.product.mpn = item.mpn;
-  }
+  // Brand and MPN are required by most eBay categories as product identifiers
+  payload.product.brand = item.brand || 'Unbranded';
+  payload.product.mpn = item.mpn || 'Does Not Apply';
 
   return payload;
 }
