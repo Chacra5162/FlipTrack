@@ -172,6 +172,7 @@
   <div class="stat-card c4"><span class="stat-info-icon">?</span><div class="stat-tooltip">Return on investment — profit divided by total cost basis. Higher = better use of capital.</div><div class="stat-label">ROI</div><div class="stat-value" id="sROI">—</div><div class="stat-sub" id="sCOGS">$0 cost basis</div></div>
   <div class="stat-card c5" onclick="goToStockAlert()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goToStockAlert()}" role="button" tabindex="0" style="cursor:pointer" aria-label="Low Stock — click to view alerts"><span class="stat-info-icon">?</span><div class="stat-tooltip">Items below minimum stock threshold. Click to view and restock.</div><div class="stat-label">Low Stock</div><div class="stat-value" id="sLow">0</div><div class="stat-sub" id="sOut">0 out of stock</div></div>
   <div class="stat-card c3"><span class="stat-info-icon">?</span><div class="stat-tooltip">Average days from listing to first sale. Lower = faster turnover.</div><div class="stat-label">Avg Days to Sell</div><div class="stat-value" id="sAvgDays">—</div><div class="stat-sub" id="sAvgDaysSub">from list to sold</div></div>
+  <div class="stat-card c2"><span class="stat-info-icon">?</span><div class="stat-tooltip">Consecutive days with at least one sale. Keep the streak alive!</div><div class="stat-label">Sales Streak</div><div class="stat-value" id="sStreak">—</div><div class="stat-sub" id="sStreakSub">days in a row</div></div>
 </div>
 
 <!-- VIEW: DASHBOARD -->
@@ -181,6 +182,7 @@
     <div class="alert-items" id="alertItems"></div>
     <button class="alert-x" onclick="document.getElementById('alertBanner').classList.remove('on')" aria-label="Dismiss alert">×</button>
   </div>
+  <div id="offerAgingAlert" style="display:none"></div>
   <div id="priceAlerts" style="display:none"></div>
   <div id="deathPileSection" style="display:none"></div>
   <!-- KPI GOALS -->
@@ -392,7 +394,7 @@
         <thead><tr>
           <th>Item</th><th>Platform</th><th>Date</th><th>Qty</th>
           <th>Sold For</th><th>Unit Cost</th><th>Fees+Ship</th>
-          <th>Net Profit</th><th style="text-align:right">Actions</th>
+          <th>Net Profit</th><th>Tracking</th><th style="text-align:right">Actions</th>
         </tr></thead>
         <tbody id="salesBody"></tbody>
       </table>
@@ -475,6 +477,7 @@
   <div class="panel" style="animation:none;margin-bottom:14px;overflow:hidden">
     <div class="panel-header">
       <div class="panel-title">Add Expense</div>
+      <div style="display:flex;gap:6px"><label class="btn-secondary" style="font-size:10px;padding:4px 10px;cursor:pointer" title="Import expenses from CSV">📥 Import CSV<input type="file" accept=".csv,.tsv,.txt" style="display:none" onchange="importExpenseCSV(this.files[0]);this.value=''"></label></div>
     </div>
     <div style="padding:16px 18px;display:flex;flex-direction:column;gap:10px;box-sizing:border-box;width:100%;overflow:hidden">
       <div class="fgrp" style="margin:0;width:100%;overflow:hidden">
@@ -1153,7 +1156,7 @@
 <!-- ADD MODAL -->
 <div class="overlay" id="addOv" role="dialog" aria-modal="true" aria-label="Add New Item">
   <div class="modal">
-    <div class="modal-hd"><div class="modal-ttl">Add Inventory Item</div><div style="display:flex;gap:8px;align-items:center"><button class="btn-secondary" onclick="prefillFromLast()" style="font-size:10px;padding:4px 10px" title="Copy source, category, platforms from your last item" aria-label="Repeat last item">⟲ Repeat Last</button><button class="modal-x" onclick="closeAdd()" aria-label="Close add item dialog">×</button></div></div>
+    <div class="modal-hd"><div class="modal-ttl">Add Inventory Item</div><div style="display:flex;gap:8px;align-items:center"><button class="btn-secondary" onclick="quickList()" style="font-size:10px;padding:4px 10px" title="Take a photo to auto-identify and fill this form" aria-label="Snap photo to identify">📸 Snap</button><button class="btn-secondary" onclick="prefillFromLast()" style="font-size:10px;padding:4px 10px" title="Copy source, category, platforms from your last item" aria-label="Repeat last item">⟲ Repeat Last</button><button class="modal-x" onclick="closeAdd()" aria-label="Close add item dialog">×</button></div></div>
     <div class="modal-bd">
       <div class="add-form-tabs" style="display:flex;gap:0;border-bottom:1px solid var(--border);margin:-20px -22px 16px;padding:0 22px">
         <button class="add-form-tab active" onclick="addFormTab('basic',this)" style="flex:1;padding:9px 8px;background:transparent;border:none;color:var(--accent);font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;cursor:pointer;border-bottom:2px solid var(--accent)">Basic</button>
@@ -1437,6 +1440,7 @@
         <div class="fgrp"><label for="s_ship">Shipping Cost ($)</label><input type="number" id="s_ship" placeholder="0.00" step="0.01"></div>
         <div class="fgrp full"><label for="s_date">Date Sold</label><input type="date" id="s_date"></div>
         <div class="fgrp full"><label for="s_buyer">Buyer Name / Handle <span style="color:var(--muted);font-weight:400">(optional)</span></label><input type="text" id="s_buyer" placeholder="e.g. john_resells"></div>
+        <div class="fgrp full"><label for="s_tracking">Tracking Number <span style="color:var(--muted);font-weight:400">(optional)</span></label><input type="text" id="s_tracking" placeholder="e.g. 1Z999AA10123456784" style="font-family:'DM Mono',monospace"></div>
       </div>
     </div>
     <div class="modal-ft"><button class="btn-secondary" onclick="closeSold()">Cancel</button><button class="btn-primary" id="recSaleBtn" onclick="recSale()">Record Sale</button></div>

@@ -182,6 +182,8 @@ export function closeSold() {
   releaseFocus();
   const buyerEl = document.getElementById('s_buyer');
   if (buyerEl) buyerEl.value = '';
+  const trackEl = document.getElementById('s_tracking');
+  if (trackEl) trackEl.value = '';
   // Reset the save button so it's not stuck on "Saving…" when modal reopens
   const btn = document.getElementById('recSaleBtn');
   if (btn) { btn.disabled = false; btn.textContent = 'Record Sale'; }
@@ -239,7 +241,8 @@ export function recSale() {
     qty, platform,
     fees: isNaN(fees) ? 0 : fees,
     ship: isNaN(ship) ? 0 : ship,
-    date: document.getElementById('s_date').value || new Date().toISOString()
+    date: document.getElementById('s_date').value || new Date().toISOString(),
+    tracking: (document.getElementById('s_tracking')?.value || '').trim() || null,
   };
   pushUndo('sold', { itemId: activeSoldId, qty, saleId: sale.id });
   sales.push(sale);
@@ -379,6 +382,7 @@ export function renderSalesView() {
       <td style="color:var(--muted)">${fmt(it ? it.cost : 0)}</td>
       <td style="color:var(--muted)">${fmt((s.fees || 0) + (s.ship || 0))}</td>
       <td style="font-family:'Syne',sans-serif;font-weight:700;color:${pr >= 0 ? 'var(--good)' : 'var(--danger)'}">${fmt(pr)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)">${s.tracking ? `<a href="https://parcelsapp.com/en/tracking/${encodeURIComponent(s.tracking)}" target="_blank" rel="noopener" style="color:var(--accent)">${escHtml(s.tracking.slice(0, 18))}${s.tracking.length > 18 ? '…' : ''}</a>` : '—'}</td>
       <td><div class="td-acts"><button class="act-btn red" onclick="delSale('${escAttr(s.id)}')">✕</button></div></td>
     </tr>`;
   }).join('');

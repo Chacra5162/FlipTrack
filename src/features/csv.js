@@ -38,6 +38,67 @@ export function exportExpensesCSV() {
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='fliptrack-expenses.csv';a.click();toast('Expenses CSV exported ✓');
 }
 
+export function importExpenseCSV(file) {
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { toast('CSV too large (max 5MB)', true); return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const text = e.target.result.replace(/^\uFEFF/, '');
+      const sep = text.indexOf('\t') !== -1 && text.indexOf(',') === -1 ? '\t' : ',';
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length < 2) { toast('CSV appears empty', true); return; }
+
+      const parseRow = (line) => {
+        const cells = []; let cell = '', inQ = false;
+        for (let i = 0; i < line.length; i++) {
+          const c = line[i];
+          if (c === '"') { if (inQ && line[i+1] === '"') { cell += '"'; i++; } else inQ = !inQ; }
+          else if (c === sep && !inQ) { cells.push(cell.trim()); cell = ''; }
+          else cell += c;
+        }
+        cells.push(cell.trim());
+        return cells;
+      };
+
+      const headers = parseRow(lines[0]).map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
+      // Auto-detect columns
+      const dateIdx = headers.findIndex(h => h.includes('date'));
+      const catIdx = headers.findIndex(h => h.includes('category') || h.includes('type'));
+      const descIdx = headers.findIndex(h => h.includes('description') || h.includes('desc') || h.includes('memo') || h.includes('name'));
+      const amtIdx = headers.findIndex(h => h.includes('amount') || h.includes('total') || h.includes('price') || h.includes('cost'));
+
+      if (amtIdx === -1) { toast('Could not find an amount column', true); return; }
+
+      let imported = 0;
+      for (let i = 1; i < lines.length; i++) {
+        const cells = parseRow(lines[i]);
+        const amt = parseFloat((cells[amtIdx] || '').replace(/[$,]/g, ''));
+        if (isNaN(amt) || amt === 0) continue;
+        expenses.push({
+          id: uid(),
+          date: dateIdx >= 0 ? (cells[dateIdx] || localDate()) : localDate(),
+          category: catIdx >= 0 ? (cells[catIdx] || 'Other') : 'Other',
+          description: descIdx >= 0 ? (cells[descIdx] || '') : '',
+          amount: Math.abs(amt),
+        });
+        imported++;
+      }
+
+      if (imported) {
+        save(); refresh(); autoSync();
+        toast(`Imported ${imported} expense${imported > 1 ? 's' : ''} ✓`);
+        _sfx('kaching');
+      } else {
+        toast('No valid expenses found in CSV', true);
+      }
+    } catch (err) {
+      toast('CSV parse error: ' + err.message, true);
+    }
+  };
+  reader.readAsText(file);
+}
+
 export function exportAll() {
   exportCSV();
   setTimeout(() => exportSalesCSV(), 300);

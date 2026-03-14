@@ -365,6 +365,7 @@ const batchAddAll = _lw(lazyBatchScan, 'batchAddAll');
 const exportCSV = _lw(lazyCSV, 'exportCSV');
 const exportAll = _lw(lazyCSV, 'exportAll');
 const importCSV = _lw(lazyCSV, 'importCSV');
+const importExpenseCSV = _lw(lazyCSV, 'importExpenseCSV');
 const closeCsvMapper = _lw(lazyCSV, 'closeCsvMapper');
 const applyCsvMapping = _lw(lazyCSV, 'applyCsvMapping');
 
@@ -515,7 +516,7 @@ Object.assign(window, {
 Object.assign(window, {
   openBatchScan, closeBatchScan,
   batchAddScanned, batchManualAdd, batchRemoveItem, batchAddAll,
-  printStickers, exportAll, exportCSV, importCSV, closeCsvMapper, applyCsvMapping,
+  printStickers, exportAll, exportCSV, importCSV, importExpenseCSV, closeCsvMapper, applyCsvMapping,
   downloadBackup, restoreBackup
 });
 

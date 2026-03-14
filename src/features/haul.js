@@ -35,7 +35,24 @@ export function getHaulROI(haul, inv, sales) {
   const roi = totalCost ? profit / totalCost : 0;
   const margin = totalRevenue ? profit / totalRevenue : 0;
 
-  return { totalRevenue, totalCost, profit, roi, margin };
+  // Time-to-clear: avg days from haul date to sale date for sold items
+  let totalDays = 0, soldCount = 0;
+  const haulDate = haul.date ? new Date(haul.date).getTime() : 0;
+  if (haulDate) {
+    haul.itemIds.forEach(itemId => {
+      const itemSales = sales.filter(s => s.itemId === itemId);
+      for (const s of itemSales) {
+        const saleDate = new Date(s.date).getTime();
+        if (!isNaN(saleDate) && saleDate > haulDate) {
+          totalDays += Math.floor((saleDate - haulDate) / 86400000);
+          soldCount++;
+        }
+      }
+    });
+  }
+  const avgDaysToClear = soldCount > 0 ? Math.round(totalDays / soldCount) : null;
+
+  return { totalRevenue, totalCost, profit, roi, margin, avgDaysToClear, soldCount, totalItems: haul.itemIds.length };
 }
 
 /**

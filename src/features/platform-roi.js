@@ -71,6 +71,8 @@ export function computePlatformROI() {
     unsold: unsoldByPlat[p.name] || 0,
     topCategory: Object.entries(p.categories).sort((a, b) => b[1] - a[1])[0]?.[0] || '—',
     feeRate: p.revenue > 0 ? p.totalFees / p.revenue : 0,
+    returnCount: sales.filter(s => (s.platform || '') === p.name && s.returnInfo).length,
+    returnRate: p.sold > 0 ? sales.filter(s => (s.platform || '') === p.name && s.returnInfo).length / p.sold : 0,
   })).sort((a, b) => b.profit - a.profit);
 
   // Totals
@@ -135,7 +137,7 @@ export function renderPlatformROI() {
       <div class="ih-table-wrap">
         <table class="ih-table">
           <thead><tr>
-            <th>Platform</th><th>Sold</th><th>Revenue</th><th>Profit</th><th>Margin</th><th>ROI</th><th>Avg Days</th><th>Avg Fees</th><th>Fee Rate</th><th>Top Category</th>
+            <th>Platform</th><th>Sold</th><th>Revenue</th><th>Profit</th><th>Margin</th><th>ROI</th><th>Avg Days</th><th>Returns</th><th>Fee Rate</th><th>Top Category</th>
           </tr></thead>
           <tbody>
             ${d.platList.map(p => `<tr>
@@ -146,7 +148,7 @@ export function renderPlatformROI() {
               <td><span class="ih-pct ${p.margin >= 0.4 ? 'ih-good' : p.margin >= 0.2 ? 'ih-ok' : 'ih-bad'}">${Math.round(p.margin * 100)}%</span></td>
               <td class="${p.roi >= 1 ? 'ih-good' : p.roi >= 0.3 ? 'ih-ok' : 'ih-bad'}">${Math.round(p.roi * 100)}%</td>
               <td>${p.avgDaysToSell !== null ? p.avgDaysToSell + 'd' : '—'}</td>
-              <td>${fmt(p.avgFees)}</td>
+              <td class="${p.returnRate > 0.1 ? 'ih-bad' : p.returnRate > 0 ? 'ih-ok' : ''}">${p.returnCount > 0 ? `${p.returnCount} (${Math.round(p.returnRate * 100)}%)` : '—'}</td>
               <td style="color:var(--accent2)">${Math.round(p.feeRate * 100)}%</td>
               <td>${escHtml(p.topCategory)}</td>
             </tr>`).join('')}

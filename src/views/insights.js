@@ -757,6 +757,7 @@ export function renderInsights() {
       </div>
       ${kpis}
       ${revenueChart}
+      ${_buildBestDayInsight(sales)}
       ${_buildDayOfWeekHeatmap(sales, getInvItem)}
       ${_buildWeeklyTrend(sales, getInvItem)}
       ${agingSection}
@@ -787,6 +788,38 @@ export function renderInsights() {
       ${!sellers.length && !stale.length && !inStockCount ? '<div style="text-align:center;color:var(--muted);font-size:13px;padding:40px 0;font-family:\'DM Mono\',monospace">Add some inventory items to start seeing insights ↗</div>' : ''}
     </div>`;
   _insightsCache = el.innerHTML;
+}
+
+// ── Best Day to List Insight ─────────────────────────────────────────────────
+function _buildBestDayInsight(salesData) {
+  if (salesData.length < 10) return '';
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const dayCounts = [0, 0, 0, 0, 0, 0, 0];
+  const dayRevenue = [0, 0, 0, 0, 0, 0, 0];
+  for (const s of salesData) {
+    const d = new Date(s.date);
+    if (isNaN(d)) continue;
+    dayCounts[d.getDay()]++;
+    dayRevenue[d.getDay()] += (s.price || 0) * (s.qty || 1);
+  }
+  const bestCountDay = dayCounts.indexOf(Math.max(...dayCounts));
+  const bestRevDay = dayRevenue.indexOf(Math.max(...dayRevenue));
+  const bestCount = dayCounts[bestCountDay];
+  const bestRev = dayRevenue[bestRevDay];
+  const totalSales = dayCounts.reduce((a, c) => a + c, 0);
+  const pctOfSales = totalSales > 0 ? Math.round(bestCount / totalSales * 100) : 0;
+
+  return `<div style="background:var(--surface2);border:1px solid var(--border);padding:16px 18px;margin-bottom:12px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:8px">
+      <span style="font-size:16px">📅</span>
+      <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--accent)">Best Days to Sell</span>
+    </div>
+    <div style="font-size:12px;color:var(--text);line-height:1.6">
+      <div>Most sales happen on <strong style="color:var(--good)">${days[bestCountDay]}s</strong> — ${pctOfSales}% of all sales (${bestCount} total)</div>
+      ${bestRevDay !== bestCountDay ? `<div>Highest revenue on <strong style="color:var(--accent)">${days[bestRevDay]}s</strong> — ${fmt(bestRev)}</div>` : ''}
+      <div style="margin-top:6px;color:var(--muted);font-size:11px">Tip: Schedule your new listings for ${days[(bestCountDay + 6) % 7]} evening to catch ${days[bestCountDay]} buyers</div>
+    </div>
+  </div>`;
 }
 
 // ── Day-of-Week Sales Heatmap ────────────────────────────────────────────────

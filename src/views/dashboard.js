@@ -4,6 +4,7 @@ import { getPlatforms, renderPlatTags } from '../features/platforms.js';
 import { toast } from '../utils/dom.js';
 import { openDrawer } from '../modals/drawer.js';
 import { getDeathPileStats, getUrgencyLevel } from '../features/death-pile.js';
+import { getOffers } from '../features/offers.js';
 import { animateStatCounters } from '../features/animated-counters.js';
 import { mountProfitHeatmap } from '../features/profit-heatmap.js';
 import { renderCSVExportPanel } from '../features/csv-templates.js';
@@ -80,6 +81,21 @@ export function updateStats() {
   if(all.length){document.getElementById('alertItems').textContent=all.map(i=>`${i.name} (${i.qty} left)`).join(' · ');bn.classList.add('on');}
   else bn.classList.remove('on');
 
+  // Sales streak — consecutive days with at least one sale
+  const saleDates = new Set(sales.map(s => (s.date || '').slice(0, 10)).filter(Boolean));
+  let streak = 0;
+  const today = new Date();
+  for (let d = 0; d < 365; d++) {
+    const check = new Date(today);
+    check.setDate(check.getDate() - d);
+    const key = check.toISOString().slice(0, 10);
+    if (saleDates.has(key)) streak++;
+    else if (d > 0) break; // allow today to have no sales yet
+    else continue;
+  }
+  document.getElementById('sStreak').textContent = streak > 0 ? streak + 'd' : '—';
+  document.getElementById('sStreakSub').textContent = streak > 0 ? `${streak} day${streak > 1 ? 's' : ''} in a row` : 'make a sale today!';
+
   // Only animate on the very first dashboard render per page load.
   // Subsequent calls (from sync, realtime, etc.) just set the values directly
   // to avoid a race where a second animation reads an intermediate textContent
@@ -116,6 +132,29 @@ export function updatePlatBreakdown() {
       <div class="plat-bw"><div class="plat-bar"><div class="plat-fill" style="width:${total?v/total*100:0}%;background:${colors[n]||'#57c8ff'}"></div></div></div>
       <span class="plat-val">${fmt(v)}</span>
     </div>`).join('');
+}
+
+function renderOfferAgingAlert() {
+  const el = document.getElementById('offerAgingAlert');
+  if (!el) return;
+  const pending = getOffers().filter(o => o.status === 'pending');
+  const aging = pending.filter(o => (Date.now() - (o.date || o.createdAt || 0)) > 86400000);
+  if (!aging.length) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  el.innerHTML = `
+    <div class="panel" style="border-left:3px solid var(--warn);animation-delay:.05s">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px">
+        <div>
+          <div style="font-weight:700;font-size:13px;color:var(--warn)">📬 ${aging.length} Pending Offer${aging.length > 1 ? 's' : ''} Aging</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">${aging.map(o => {
+            const days = Math.floor((Date.now() - (o.date || o.createdAt)) / 86400000);
+            const item = getInvItem(o.itemId);
+            return `${escHtml(item?.name || 'Item')} — ${fmt(o.amount)} (${days}d ago)`;
+          }).join(' · ')}</div>
+        </div>
+        <button class="btn-secondary" style="font-size:10px;padding:4px 10px;white-space:nowrap" onclick="document.getElementById('offerAgingAlert').style.display='none'">Dismiss</button>
+      </div>
+    </div>`;
 }
 
 export function updateSalesLog() {
@@ -238,6 +277,7 @@ export function renderDash() {
   updatePlatBreakdown();
   updateSalesLog();
 
+  renderOfferAgingAlert();
   renderPriceAlerts();
   renderDeathPile();
   mountProfitHeatmap();
