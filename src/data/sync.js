@@ -117,7 +117,7 @@ export async function pushToCloud() {
     for (const [table, ids] of Object.entries(dirty.deleted)) {
       if (ids.length) {
         try {
-          const { error } = await _sb.from(table).delete().in('id', ids);
+          const { error } = await _sb.from(table).delete().eq('account_id', accountId).in('id', ids);
           if (error) { console.warn(`FlipTrack: delete from ${table} failed:`, error.message); deletesFailed = true; }
         } catch (e) {
           console.warn(`FlipTrack: delete from ${table} failed:`, e.message);
@@ -212,8 +212,9 @@ export async function pushDeleteToCloud(table, ids) {
   const _sb = getSupabaseClient();
   const _currentUser = getCurrentUser();
   if (!_sb || !_currentUser || !ids.length) return;
+  const accountId = getActiveAccountId();
   try {
-    await _sb.from(table).delete().in('id', ids);
+    await _sb.from(table).delete().eq('account_id', accountId).in('id', ids);
   } catch (e) {
     console.warn(`FlipTrack: delete from ${table} failed:`, e.message);
   }

@@ -105,8 +105,10 @@ export async function replayQueue(sb, accountId) {
         const { error } = await sb.from(entry.table).upsert(upsertRows, { onConflict: 'id' });
         if (error) throw new Error(error.message);
       } else if (entry.action === 'delete') {
+        const allowedTables = ['ft_inventory', 'ft_sales', 'ft_expenses'];
+        if (!allowedTables.includes(entry.table)) throw new Error(`Invalid table: ${entry.table}`);
         const ids = Array.isArray(entry.payload) ? entry.payload : [entry.payload];
-        await sb.from(entry.table).delete().in('id', ids);
+        await sb.from(entry.table).delete().eq('account_id', accountId).in('id', ids);
       }
       // Success — remove from queue
       await _removeEntry(entry.id);

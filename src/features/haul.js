@@ -18,29 +18,26 @@ export function getHaulROI(haul, inv, sales) {
     return { totalRevenue: 0, totalCost: 0, profit: 0, roi: 0, margin: 0 };
   }
 
+  // Build O(1) lookup maps to avoid O(n²) find/filter inside loops
+  const invMap = new Map(inv.map(i => [i.id, i]));
+  const salesByItem = new Map();
+  for (const s of sales) {
+    if (!salesByItem.has(s.itemId)) salesByItem.set(s.itemId, []);
+    salesByItem.get(s.itemId).push(s);
+  }
+
   let totalRevenue = 0;
   let totalCost = haul.totalSpent || 0;
-
-  haul.itemIds.forEach(itemId => {
-    const item = inv.find(i => i.id === itemId);
-    if (!item) return;
-
-    // Find sales for this item
-    const itemSales = sales.filter(s => s.itemId === itemId);
-    const saleAmount = itemSales.reduce((sum, s) => sum + (s.amount || 0), 0);
-    totalRevenue += saleAmount;
-  });
-
-  const profit = totalRevenue - totalCost;
-  const roi = totalCost ? profit / totalCost : 0;
-  const margin = totalRevenue ? profit / totalRevenue : 0;
-
-  // Time-to-clear: avg days from haul date to sale date for sold items
   let totalDays = 0, soldCount = 0;
   const haulDate = haul.date ? new Date(haul.date).getTime() : 0;
-  if (haulDate) {
-    haul.itemIds.forEach(itemId => {
-      const itemSales = sales.filter(s => s.itemId === itemId);
+
+  for (const itemId of haul.itemIds) {
+    const item = invMap.get(itemId);
+    if (!item) continue;
+    const itemSales = salesByItem.get(itemId) || [];
+    totalRevenue += itemSales.reduce((sum, s) => sum + (s.price || 0) * (s.qty || 1), 0);
+
+    if (haulDate) {
       for (const s of itemSales) {
         const saleDate = new Date(s.date).getTime();
         if (!isNaN(saleDate) && saleDate > haulDate) {
@@ -48,8 +45,12 @@ export function getHaulROI(haul, inv, sales) {
           soldCount++;
         }
       }
-    });
+    }
   }
+
+  const profit = totalRevenue - totalCost;
+  const roi = totalCost ? profit / totalCost : 0;
+  const margin = totalRevenue ? profit / totalRevenue : 0;
   const avgDaysToClear = soldCount > 0 ? Math.round(totalDays / soldCount) : null;
 
   return { totalRevenue, totalCost, profit, roi, margin, avgDaysToClear, soldCount, totalItems: haul.itemIds.length };
@@ -63,9 +64,8 @@ export function getHaulROI(haul, inv, sales) {
  */
 export function getHaulItems(haul, inv) {
   if (!haul || !haul.itemIds) return [];
-  return haul.itemIds
-    .map(itemId => inv.find(i => i.id === itemId))
-    .filter(Boolean);
+  const invMap = new Map(inv.map(i => [i.id, i]));
+  return haul.itemIds.map(id => invMap.get(id)).filter(Boolean);
 }
 
 /**

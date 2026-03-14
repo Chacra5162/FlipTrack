@@ -88,7 +88,7 @@ export function updateStats() {
   for (let d = 0; d < 365; d++) {
     const check = new Date(today);
     check.setDate(check.getDate() - d);
-    const key = check.toISOString().slice(0, 10);
+    const key = `${check.getFullYear()}-${String(check.getMonth()+1).padStart(2,'0')}-${String(check.getDate()).padStart(2,'0')}`;
     if (saleDates.has(key)) streak++;
     else if (d > 0) break; // allow today to have no sales yet
     else continue;

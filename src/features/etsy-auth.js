@@ -99,6 +99,11 @@ async function callEdgeFn(action, body = {}) {
     throw new Error('Network error — check your internet connection');
   }
   clearTimeout(timer);
+  const contentType = resp.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    const text = await resp.text();
+    throw new Error(`Edge function returned non-JSON (${resp.status}): ${text.slice(0, 100)}`);
+  }
   const data = await resp.json();
   if (!resp.ok) throw new Error(data.error || `Edge function error: ${resp.status}`);
   return data;

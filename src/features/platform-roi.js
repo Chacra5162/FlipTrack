@@ -41,6 +41,7 @@ export function computePlatformROI() {
     p.sold++;
     p.revenue += (sale.price || 0);
     p.profit += profit;
+    if (sale.returnInfo) p.returnCount = (p.returnCount || 0) + 1;
     p.totalFees += fees;
     p.totalCost += cost;
     p.totalDays += days;
@@ -71,8 +72,8 @@ export function computePlatformROI() {
     unsold: unsoldByPlat[p.name] || 0,
     topCategory: Object.entries(p.categories).sort((a, b) => b[1] - a[1])[0]?.[0] || '—',
     feeRate: p.revenue > 0 ? p.totalFees / p.revenue : 0,
-    returnCount: sales.filter(s => (s.platform || '') === p.name && s.returnInfo).length,
-    returnRate: p.sold > 0 ? sales.filter(s => (s.platform || '') === p.name && s.returnInfo).length / p.sold : 0,
+    returnCount: p.returnCount || 0,
+    returnRate: p.sold > 0 ? (p.returnCount || 0) / p.sold : 0,
   })).sort((a, b) => b.profit - a.profit);
 
   // Totals

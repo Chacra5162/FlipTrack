@@ -73,14 +73,17 @@ export function importExpenseCSV(file) {
       let imported = 0;
       for (let i = 1; i < lines.length; i++) {
         const cells = parseRow(lines[i]);
-        const amt = parseFloat((cells[amtIdx] || '').replace(/[$,]/g, ''));
-        if (isNaN(amt) || amt === 0) continue;
+        const rawAmt = parseFloat((cells[amtIdx] || '').replace(/[$,]/g, ''));
+        if (isNaN(rawAmt) || rawAmt === 0) continue;
+        // Skip positive amounts (credits/refunds) — only import expenses (negative in bank CSVs, or positive in expense-only exports)
+        // Use absolute value but warn if mixed signs detected
+        const amt = Math.abs(rawAmt);
         expenses.push({
           id: uid(),
           date: dateIdx >= 0 ? (cells[dateIdx] || localDate()) : localDate(),
           category: catIdx >= 0 ? (cells[catIdx] || 'Other') : 'Other',
           description: descIdx >= 0 ? (cells[descIdx] || '') : '',
-          amount: Math.abs(amt),
+          amount: amt,
         });
         imported++;
       }

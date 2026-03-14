@@ -1,4 +1,4 @@
-import { expenses, save } from '../data/store.js';
+import { expenses, save, markDirty } from '../data/store.js';
 import { fmt, ds, escHtml, escAttr, uid, localDate} from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
@@ -45,7 +45,9 @@ export function addExpense() {
   if (!desc)         { toast('Please enter a description', true); return; }
   if (!amt || amt<=0){ toast('Please enter a valid amount', true); return; }
 
-  expenses.push({ id: uid(), date, category: cat, description: desc, amount: amt });
+  const exp = { id: uid(), date, category: cat, description: desc, amount: amt };
+  expenses.push(exp);
+  markDirty('expenses', exp.id);
   save();
   renderExpenses();
   // Clear form fields except date and category

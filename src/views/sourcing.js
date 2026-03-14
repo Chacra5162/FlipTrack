@@ -6,6 +6,7 @@
 import { inv, sales, save, refresh, markDirty } from '../data/store.js';
 import { getMeta, setMeta } from '../data/idb.js';
 import { getCurrentUser, getSupabaseClient } from '../data/auth.js';
+import { getActiveAccountId } from '../features/teams.js';
 import { fmt, ds, uid, escHtml, escAttr, pct, localDate} from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { renderPagination } from '../utils/pagination.js';
@@ -32,7 +33,7 @@ export async function initHauls() {
     if (_sb && user) {
       const { data, error } = await _sb.from('ft_hauls')
         .select('id, data')
-        .eq('account_id', user.id);
+        .eq('account_id', getActiveAccountId());
       if (!error && data && data.length > 0) {
         _hauls = data.map(row => ({ id: row.id, ...row.data }));
         // Persist to IDB/localStorage for offline use
@@ -78,7 +79,7 @@ async function _pushHaulsToCloud() {
   const user = getCurrentUser();
   if (!_sb || !user || !navigator.onLine) return;
 
-  const accountId = user.id;
+  const accountId = getActiveAccountId();
   const rows = _hauls.map(h => {
     const { id, ...data } = h;
     return { id, account_id: accountId, data, updated_at: new Date().toISOString() };

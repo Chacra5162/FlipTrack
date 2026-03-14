@@ -212,10 +212,7 @@
   .item-meta .cat-tag:nth-child(n+2) { display: none; }
   .item-meta .barcode-badge { display: none; }
 
-  /* Smaller stock stepper on phone (fine pointer only — coarse-pointer rule keeps 44px) */
-  @media (pointer: fine) {
-    .stepper-btn { width: 24px; height: 24px; font-size: 13px; min-width: 24px; min-height: 24px; }
-  }
+  /* Stepper size reduction moved to flattened query below */
   .stepper-val { font-size: 11px; min-width: 18px; }
   .stock-bar { display: none; }
 
@@ -288,6 +285,11 @@
   [style*="overflow-x:auto"] { max-width: 100%; }
 
   /* iOS zoom prevention moved to (hover: none) and (pointer: coarse) query below */
+}
+
+/* Smaller stepper on phone with mouse/stylus (not touch) */
+@media (max-width: 480px) and (pointer: fine) {
+  .stepper-btn { width: 24px; height: 24px; font-size: 13px; min-width: 24px; min-height: 24px; }
 }
 
 /* Touch — ensure minimum 44px tap targets (WCAG / Apple HIG) */

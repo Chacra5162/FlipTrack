@@ -2,8 +2,8 @@
 import { supplies } from '../data/store.js';
 import { uid, fmt, escAttr } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
-import { getSupabaseClient } from '../data/auth.js';
-import { getCurrentUser } from '../data/auth.js';
+import { getSupabaseClient, getCurrentUser } from '../data/auth.js';
+import { getActiveAccountId } from '../features/teams.js';
 
 function saveSupplies() {
   localStorage.setItem('ft_supplies', JSON.stringify(supplies));
@@ -15,7 +15,7 @@ async function syncSupplies() {
   const _currentUser = getCurrentUser();
   if (!_sb || !_currentUser) return;
   try {
-    const acctId = _currentUser.id;
+    const acctId = getActiveAccountId();
     const rows = supplies.map(s => ({ id: s.id, account_id: acctId, data: s }));
     await _sb.from('ft_supplies').upsert(rows, { onConflict: 'id' });
   } catch {}
@@ -26,7 +26,7 @@ async function pullSupplies() {
   const _currentUser = getCurrentUser();
   if (!_sb || !_currentUser) return;
   try {
-    const acctId = _currentUser.id;
+    const acctId = getActiveAccountId();
     const { data } = await _sb.from('ft_supplies').select('data').eq('account_id', acctId);
     if (data && data.length) {
       supplies.length = 0;

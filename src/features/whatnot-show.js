@@ -232,7 +232,7 @@ export async function markShowItemSold(showId, itemId, salePrice) {
 
   // Auto-delist on other platforms
   if (item.qty !== undefined) item.qty = Math.max(0, (item.qty || 1) - 1);
-  markDirty(itemId);
+  markDirty('inv', itemId);
   save();
 
   const price = salePrice || item.price || 0;
