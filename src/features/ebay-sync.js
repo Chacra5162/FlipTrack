@@ -515,7 +515,7 @@ function _buildAspects(item) {
   if (item.style) aspects['Style'] = [item.style];
   if (item.pattern) aspects['Pattern'] = [item.pattern];
   if (item.model) aspects['Model'] = [item.model];
-  if (item.mpn) aspects['MPN'] = [item.mpn];
+  aspects['MPN'] = [item.mpn || 'Does Not Apply'];
 
   // Size Type & Department — required by most eBay clothing/apparel categories.
   // Always send these when detectable; eBay ignores unneeded aspects silently.
