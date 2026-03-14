@@ -124,7 +124,7 @@ export function updateSalesLog() {
   if(!sales.length){el.innerHTML='<div class="empty-state"><div class="empty-state-icon">💰</div><div class="empty-state-text">No sales recorded yet. Sell an item and log it here!</div><button class="empty-state-cta" onclick="openSoldModal()">Record a Sale →</button></div>';return;}
   const colors=['#57c8ff','#ff6b35','#7b61ff','#57ff9a','#ffb800'];
   el.innerHTML=[...sales].reverse().slice(0,8).map((s,i)=>{
-    const it=inv.find(x=>x.id===s.itemId);
+    const it=getInvItem(s.itemId);
     const nm=it?escHtml(it.name):'Unknown';
     const pr=(s.price||0)*(s.qty||0)-(it?(it.cost||0)*(s.qty||0):0)-(s.fees||0)-(s.ship||0);
     return `<div class="sale-item">
@@ -181,7 +181,7 @@ export function renderPriceAlerts() {
   // Find in-stock items with no sales, listed 14+ days
   const staleItems = inv.filter(item => {
     if ((item.qty || 0) <= 0) return false;
-    const hasSales = sales.some(s => s.itemId === item.id);
+    const hasSales = getSalesForItem(item.id).length > 0;
     if (hasSales) return false;
     const added = new Date(item.added || now);
     const days = Math.floor((now - added) / msDay);

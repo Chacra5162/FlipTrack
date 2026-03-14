@@ -4,7 +4,7 @@
  * or listed but stale with no activity. Escalating urgency levels.
  */
 
-import { inv, sales } from '../data/store.js';
+import { inv, sales, getSalesForItem } from '../data/store.js';
 import { fmt, ds, escHtml, escAttr } from '../utils/format.js';
 import { getPlatforms } from './platforms.js';
 import { getItemShowsWithoutSale, getItemShowHistory } from './whatnot-show.js';
@@ -50,12 +50,13 @@ export function getDeathPileItems(items) {
     if ((item.qty || 0) <= 0) continue; // Sold or out of stock — skip
 
     const addedDate = item.added ? new Date(item.added).getTime() : now;
+    if (isNaN(addedDate)) continue; // Invalid date — skip
     const daysInInventory = Math.floor((now - addedDate) / msDay);
 
     if (daysInInventory < 7) continue; // Too new to worry about
 
     const platforms = getPlatforms(item);
-    const hasSale = sales.some(s => s.itemId === item.id);
+    const hasSale = getSalesForItem(item.id).length > 0;
     const hasActiveListing = platforms.length > 0 &&
       Object.values(item.platformStatus || {}).some(s => s === 'active');
 

@@ -118,6 +118,10 @@ export async function initDB() {
         // Re-open after the other tab's upgrade completes
         setTimeout(() => initDB().catch(e => {
           isInitializing = false;
+          // Drain queued operations so their promises don't hang forever
+          while (operationQueue.length) {
+            operationQueue.shift().reject(new Error('IDB re-init failed: ' + e.message));
+          }
           console.warn('IDB re-init failed:', e.message);
         }), 500);
       };

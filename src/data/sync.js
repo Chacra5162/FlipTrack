@@ -113,19 +113,23 @@ export async function pushToCloud() {
     }
 
     // ── Push deletes ──
+    let deletesFailed = false;
     for (const [table, ids] of Object.entries(dirty.deleted)) {
       if (ids.length) {
         try {
-          await _sb.from(table).delete().in('id', ids);
+          const { error } = await _sb.from(table).delete().in('id', ids);
+          if (error) { console.warn(`FlipTrack: delete from ${table} failed:`, error.message); deletesFailed = true; }
         } catch (e) {
           console.warn(`FlipTrack: delete from ${table} failed:`, e.message);
+          deletesFailed = true;
         }
       }
     }
 
     // ── Record last sync timestamp ──
     await setMeta('lastSyncPush', new Date().toISOString()).catch(e => console.warn('FlipTrack: sync push timestamp save failed:', e.message));
-    clearDirtyTracking();
+    if (!deletesFailed) clearDirtyTracking();
+    else console.warn('FlipTrack: some deletes failed, will retry on next sync');
   } catch (e) {
     // Network error during push — queue everything for retry
     // Do NOT clearDirtyTracking here: dirty items that failed to push

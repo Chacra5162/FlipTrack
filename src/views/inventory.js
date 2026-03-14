@@ -20,8 +20,8 @@ import {
 
 // Local state for drag and drop and filtering
 let dragSrc = null;
-let subcatFilt = 'all';
-let subsubcatFilt = 'all';
+export let subcatFilt = 'all';
+export let subsubcatFilt = 'all';
 let stockFilt = 'all';
 let smokeFilt = 'all';       // 'all' | 'smoke-free' | 'smoke-exposure' | 'unset'
 let conditionFilt = 'all';   // 'all' | 'NWT' | 'NWOT' | 'EUC' | etc.
@@ -290,7 +290,7 @@ export function sortItems(items){
   return [...items].sort((a,b)=>{
     if(v==='added-desc') return new Date(b.added)-new Date(a.added);
     if(v==='added-asc')  return new Date(a.added)-new Date(b.added);
-    if(v==='name-asc')   return a.name.localeCompare(b.name);
+    if(v==='name-asc')   return (a.name||'').localeCompare(b.name||'');
     if(v==='margin-desc')return calc(b).m-calc(a).m;
     if(v==='qty-asc')    return (a.qty||0)-(b.qty||0);
     if(v==='price-desc') return (b.price||0)-(a.price||0);
@@ -317,7 +317,7 @@ export function renderInv() {
     items = _filterCache.items;
   } else {
     items=inv.filter(i=>{
-      const mq=!q||i.name.toLowerCase().includes(q)||(i.sku||'').toLowerCase().includes(q)||(i.category||'').toLowerCase().includes(q)||(i.subcategory||'').toLowerCase().includes(q)||(i.subtype||'').toLowerCase().includes(q)||(i.upc||'').toLowerCase().includes(q);
+      const mq=!q||(i.name||'').toLowerCase().includes(q)||(i.sku||'').toLowerCase().includes(q)||(i.category||'').toLowerCase().includes(q)||(i.subcategory||'').toLowerCase().includes(q)||(i.subtype||'').toLowerCase().includes(q)||(i.upc||'').toLowerCase().includes(q);
       const mp=platFilt.size===0||getPlatforms(i).some(p=>platFilt.has(p));
       const iCat=(i.category||'').toLowerCase(); const mc=catFilt.size===0||[...catFilt].some(f=>f.toLowerCase()===iCat);
       const ms=subcatFilt==='all'||(i.subcategory||'')===subcatFilt;

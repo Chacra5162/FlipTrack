@@ -35,7 +35,7 @@ export function renderReports() {
   // Calc sales metrics
   let revenue = 0, cogs = 0, fees = 0;
   for (const s of periodSales) {
-    const it = inv.find(i => i.id === s.itemId);
+    const it = getInvItem(s.itemId);
     revenue += (s.price||0) * (s.qty||0);
     cogs    += it ? (it.cost||0) * (s.qty||0) : 0;
     fees    += (s.fees||0) + (s.ship||0);
@@ -86,7 +86,7 @@ export function renderReports() {
   // ── Profit by Category ────────────────────────────────────────────────────
   const catProfit = {};
   for (const s of periodSales) {
-    const it = inv.find(i => i.id === s.itemId);
+    const it = getInvItem(s.itemId);
     const cat = it ? (it.category || 'Uncategorized') : 'Unknown';
     if (!catProfit[cat]) catProfit[cat] = { revenue: 0, cogs: 0, fees: 0, profit: 0, count: 0 };
     const rev = (s.price || 0) * (s.qty || 0);
@@ -130,7 +130,7 @@ export function renderReports() {
   for (const s of periodSales) {
     const plat = s.platform || 'Unknown';
     if (!platProfit[plat]) platProfit[plat] = { revenue: 0, cogs: 0, fees: 0, profit: 0, count: 0 };
-    const it = inv.find(i => i.id === s.itemId);
+    const it = getInvItem(s.itemId);
     const rev = (s.price || 0) * (s.qty || 0);
     const cost = it ? (it.cost || 0) * (s.qty || 0) : 0;
     const fee = (s.fees || 0) + (s.ship || 0);
@@ -297,7 +297,7 @@ export function renderPLStatement() {
   // All-time figures
   let revenue = 0, cogs = 0, totalFees = 0, totalShip = 0;
   for (const s of sales) {
-    const it = inv.find(i => i.id === s.itemId);
+    const it = getInvItem(s.itemId);
     revenue   += (s.price || 0) * (s.qty || 0);
     cogs      += it ? (it.cost || 0) * (s.qty || 0) : 0;
     totalFees += (s.fees || 0);
@@ -327,7 +327,7 @@ export function renderPLStatement() {
     const mEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
     const mSales = sales.filter(s => { const sd = new Date(s.date); return sd >= mStart && sd <= mEnd; });
     const mRev = mSales.reduce((a, s) => a + (s.price || 0) * (s.qty || 0), 0);
-    const mCogs = mSales.reduce((a, s) => { const it = inv.find(i => i.id === s.itemId); return a + (it ? (it.cost || 0) * (s.qty || 0) : 0); }, 0);
+    const mCogs = mSales.reduce((a, s) => { const it = getInvItem(s.itemId); return a + (it ? (it.cost || 0) * (s.qty || 0) : 0); }, 0);
     const mFees = mSales.reduce((a, s) => a + (s.fees || 0) + (s.ship || 0), 0);
     const mExp = expenses.filter(e => { const ed = new Date(e.date); return ed >= mStart && ed <= mEnd; }).reduce((a, e) => a + (e.amount || 0), 0);
     const mNet = mRev - mCogs - mFees - mExp;

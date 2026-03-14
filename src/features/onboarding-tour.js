@@ -617,6 +617,7 @@ export function startTour() {
 
 export function endTour() {
   if (_overlayEl) {
+    if (_overlayEl._keyHandler) document.removeEventListener('keydown', _overlayEl._keyHandler);
     _overlayEl.classList.remove('on');
     _overlayEl.style.display = 'none';
     const spotlight = document.getElementById('tourSpotlight');

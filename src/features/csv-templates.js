@@ -187,7 +187,7 @@ export function exportPlatformCSV(templateKey, filterPlatform) {
 export function exportSalesCSV() {
   const tpl = TEMPLATES.sales_report;
   const rows = sales.map(s => {
-    const item = inv.find(i => i.id === s.itemId);
+    const item = getInvItem(s.itemId);
     const cost = item ? (item.cost || 0) * (s.qty || 1) : 0;
     const revenue = (s.price || 0) * (s.qty || 1);
     const profit = revenue - cost - (s.fees || 0) - (s.ship || 0);
@@ -219,7 +219,7 @@ export function exportTaxCSV() {
 
   // Sales as income
   for (const s of sales) {
-    const item = inv.find(i => i.id === s.itemId);
+    const item = getInvItem(s.itemId);
     rows.push({
       'Category': 'Revenue',
       'Description': item ? item.name : 'Sale',

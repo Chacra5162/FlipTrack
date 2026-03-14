@@ -3,7 +3,7 @@
  * Tracks: low stock alerts, sync events, price changes, stale inventory
  */
 
-import { inv, sales, getInvItem } from '../data/store.js';
+import { inv, sales, getInvItem, getSalesForItem } from '../data/store.js';
 import { fmt, escHtml, escAttr } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 
@@ -141,7 +141,7 @@ export function generateStockAlerts() {
   const stale = inv.filter(i => {
     if ((i.qty || 0) <= 0) return false;
     const days = Math.floor((now - new Date(i.added || now).getTime()) / 86400000);
-    return days >= 60 && !sales.some(s => s.itemId === i.id);
+    return days >= 60 && !getSalesForItem(i.id).length;
   });
 
   if (outOfStock.length) {
@@ -158,7 +158,7 @@ export function generateStockAlerts() {
   const reprice30 = inv.filter(i => {
     if ((i.qty || 0) <= 0) return false;
     const days = Math.floor((now - new Date(i.added || now).getTime()) / 86400000);
-    return days >= 30 && days < 60 && !sales.some(s => s.itemId === i.id);
+    return days >= 30 && days < 60 && !getSalesForItem(i.id).length;
   });
   if (reprice30.length) {
     addNotification('price', 'Reprice Suggestion',

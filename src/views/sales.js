@@ -307,10 +307,10 @@ export function renderSalesView() {
   }
   // Apply date range filter
   if (_salesDateFrom) {
-    filtered = filtered.filter(s => s.date >= _salesDateFrom);
+    filtered = filtered.filter(s => (s.date || '').slice(0, 10) >= _salesDateFrom);
   }
   if (_salesDateTo) {
-    filtered = filtered.filter(s => s.date <= _salesDateTo);
+    filtered = filtered.filter(s => (s.date || '').slice(0, 10) <= _salesDateTo);
   }
 
   // Compute totals from filtered results (not all sales)

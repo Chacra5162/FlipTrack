@@ -273,7 +273,7 @@ export function calcBestListingDay(sales) {
 
   sales.forEach(sale => {
     const date = new Date(sale.date);
-    const dayListed = new Date(date.getTime() - (Math.random() * 7 * 24 * 60 * 60 * 1000)).getDay();
+    const dayListed = date.getDay();
     const revenue = (sale.price || 0) * (sale.qty || 1);
     dayPerformance[dayListed] += revenue;
   });

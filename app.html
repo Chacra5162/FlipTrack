@@ -1333,7 +1333,7 @@
             <option value="Plastic"><option value="Wood"><option value="Glass"><option value="Ceramic">
           </datalist>
         </div>
-        <div class="fgrp full"><label>eBay Description <button type="button" class="btn-sm" style="margin-left:8px;font-size:11px;padding:2px 8px" onclick="window.aiGenerateDesc?.('add')" aria-label="Generate eBay description using AI">✨ AI Generate</button></label><textarea id="f_ebay_desc" placeholder="Leave blank to auto-generate with AI when listing on eBay" style="min-height:60px"></textarea></div>
+        <div class="fgrp full"><label for="f_ebay_desc">eBay Description</label> <button type="button" class="btn-sm" style="margin-left:8px;font-size:11px;padding:2px 8px" onclick="window.aiGenerateDesc?.('add')" aria-label="Generate eBay description using AI">✨ AI Generate</button><textarea id="f_ebay_desc" placeholder="Leave blank to auto-generate with AI when listing on eBay" style="min-height:60px"></textarea></div>
         <div class="fgrp full"><label>Notes</label><textarea id="f_notes" placeholder="Condition, sourcing, etc."></textarea></div>
         <div class="fgrp full" id="f_dim_section">
           <label style="display:flex;align-items:center;justify-content:space-between">
@@ -1653,7 +1653,7 @@
     <span class="bnav-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
     <span class="bnav-lbl">Sales</span>
   </button>
-  <button class="bnav-btn" id="bn-more" onclick="toggleBnavMore(event)">
+  <button class="bnav-btn" id="bn-more" onclick="toggleBnavMore(event)" aria-haspopup="menu" aria-expanded="false">
     <span class="bnav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></span>
     <span class="bnav-lbl">More</span>
   </button>

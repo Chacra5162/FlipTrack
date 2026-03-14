@@ -107,6 +107,7 @@ export function rebuildInvIndex() {
     _salesByItemId.get(s.itemId).push(s);
   }
   _expIndex = Object.fromEntries(expenses.map(e => [e.id, e]));
+  rebuildCatIndex();
 }
 
 export function getInvItem(id) {
@@ -353,12 +354,19 @@ export function refresh() {
 function titleCase(s) {
   return s.replace(/\w\S*/g, t => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase());
 }
+// Category index for O(1) normalization lookups
+let _catIndex = {};
+export function rebuildCatIndex() {
+  _catIndex = {};
+  for (const i of inv) {
+    if (i.category) _catIndex[i.category.toLowerCase()] = i.category;
+  }
+}
 export function normCat(input) {
   if (!input || typeof input !== 'string') return input;
   const trimmed = input.trim();
   const lower = trimmed.toLowerCase();
-  const existing = inv.find(i => (i.category || '').toLowerCase() === lower);
-  return existing ? existing.category : titleCase(trimmed);
+  return _catIndex[lower] || titleCase(trimmed);
 }
 // Normalize all existing category names in inventory to prevent duplicates
 export function normalizeAllCategories() {

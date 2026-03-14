@@ -26,18 +26,23 @@ function toggleBnavMore(e) {
   e.stopPropagation();
   const popup = document.getElementById('bnavMorePopup');
   const backdrop = document.getElementById('bnavMoreBackdrop');
+  const btn = document.getElementById('bn-more');
   const isOpen = popup.classList.toggle('open');
   popup.style.display = isOpen ? 'block' : 'none';
   backdrop.style.display = isOpen ? 'block' : 'none';
+  if (btn) btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  if (isOpen) { const first = popup.querySelector('.bnav-more-item'); if (first) first.focus(); }
 }
 
 function closeBnavMore() {
   const popup = document.getElementById('bnavMorePopup');
   const backdrop = document.getElementById('bnavMoreBackdrop');
+  const btn = document.getElementById('bn-more');
   popup.classList.remove('open');
   backdrop.classList.remove('open');
   popup.style.display = 'none';
   backdrop.style.display = 'none';
+  if (btn) { btn.setAttribute('aria-expanded', 'false'); btn.focus(); }
 }
 
 // Show bottom nav when header tabs are hidden (≤820px)

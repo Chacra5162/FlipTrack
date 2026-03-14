@@ -54,6 +54,8 @@ export function updateSmokeSlider(pfx) {
     if (lblExp) lblExp.classList.add('on-exp');
   }
   // v === 1 is neutral — no highlights
+  const smokeLabels = ['Smoke Free', 'Unknown', 'Smoke Exposure'];
+  slider.setAttribute('aria-valuetext', smokeLabels[v]);
 }
 
 export function getSmokeValue(pfx) {

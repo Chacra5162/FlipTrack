@@ -4,7 +4,7 @@
  * Trending arrows on KPIs. Seasonality detection by category.
  */
 
-import { inv, sales, expenses } from '../data/store.js';
+import { inv, sales, expenses, getInvItem } from '../data/store.js';
 import { fmt, pct, escHtml } from '../utils/format.js';
 
 // ── DATE HELPERS ──────────────────────────────────────────────────────────
@@ -28,11 +28,11 @@ function _periodMetrics(fromDate, toDate) {
 
   const revenue = periodSales.reduce((s, sale) => s + (sale.price || 0), 0);
   const cost = periodSales.reduce((s, sale) => {
-    const item = inv.find(i => i.id === sale.itemId);
+    const item = getInvItem(sale.itemId);
     return s + (item?.cost || 0);
   }, 0);
   const fees = periodSales.reduce((s, sale) => {
-    const item = inv.find(i => i.id === sale.itemId);
+    const item = getInvItem(sale.itemId);
     return s + (item?.fees || 0) + (sale.fees || 0);
   }, 0);
   const expTotal = periodExpenses.reduce((s, e) => s + (e.amount || 0), 0);

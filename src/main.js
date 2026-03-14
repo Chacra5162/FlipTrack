@@ -847,8 +847,17 @@ function switchView(name, el) {
   else if (name === 'returns') renderReturns();
   else if (name === 'listingscore') renderListingScores();
   else if (name === 'marginalerts') renderMarginAlerts();
+
+  // Update page title for screen readers
+  document.title = `FlipTrack — ${name.charAt(0).toUpperCase() + name.slice(1)}`;
 }
 window.switchView = switchView;
+
+// Re-render whichever view is currently active (called after sync to refresh stale views)
+window.renderCurrentView = function() {
+  const current = localStorage.getItem('ft_view') || 'dashboard';
+  switchView(current, null);
+};
 
 // ── Grouped nav dropdown logic ──────────────────────────────────────────────
 function toggleNavGroup(groupName) {
@@ -859,6 +868,8 @@ function toggleNavGroup(groupName) {
   closeAllNavGroups();
   if (!wasOpen) {
     group.classList.add('open');
+    const btn = group.querySelector('.nav-group-btn');
+    if (btn) btn.setAttribute('aria-expanded', 'true');
     // Close on outside click
     const close = (e) => {
       if (!group.contains(e.target)) {
@@ -870,7 +881,11 @@ function toggleNavGroup(groupName) {
   }
 }
 function closeAllNavGroups() {
-  document.querySelectorAll('.nav-group').forEach(g => g.classList.remove('open'));
+  document.querySelectorAll('.nav-group').forEach(g => {
+    g.classList.remove('open');
+    const btn = g.querySelector('.nav-group-btn');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  });
 }
 function navTo(viewName, btnEl) {
   closeAllNavGroups();
@@ -1145,13 +1160,10 @@ setTimeout(_killSplash, 3000);
     if (wOv) { wOv.style.opacity = '0'; setTimeout(() => wOv.remove(), 300); }
   };
 
-  // Bottom nav visibility
+  // Bottom nav visibility (listener already registered at module eval in bnav.js)
   updateBnavVisibility();
-  window.addEventListener('resize', updateBnavVisibility);
 
-  // Online/offline
-  window.addEventListener('online', updateOnlineStatus);
-  window.addEventListener('offline', updateOnlineStatus);
+  // Online/offline (listeners already registered at module eval in offline.js)
   if (!navigator.onLine) updateOnlineStatus();
 
   // Platform pickers

@@ -1,5 +1,6 @@
 // ── BARCODES ────────────────────────────────────────────────────────────────
-import { inv, sel, platFilt, catFilt, subcatFilt, subsubcatFilt } from '../data/store.js';
+import { inv, sel, platFilt, catFilt } from '../data/store.js';
+import { subcatFilt, subsubcatFilt } from '../views/inventory.js';
 import { getPlatforms } from '../features/platforms.js';
 import { getItemImages } from '../features/images.js';
 import { toast } from '../utils/dom.js';
@@ -59,7 +60,7 @@ export function printStickers(selectedOnly, ids) {
     // All filtered items currently visible
     const q = (document.getElementById('invSearch').value||'').toLowerCase();
     items = inv.filter(i => {
-      const mq = !q || i.name.toLowerCase().includes(q) || (i.sku||'').toLowerCase().includes(q);
+      const mq = !q || (i.name||'').toLowerCase().includes(q) || (i.sku||'').toLowerCase().includes(q);
       const mp = platFilt.size===0 || getPlatforms(i).some(p=>platFilt.has(p));
       const _ic=(i.category||'').toLowerCase(); const mc=catFilt.size===0||[...catFilt].some(f=>f.toLowerCase()===_ic);
       const ms = subcatFilt==='all' || (i.subcategory||'')===subcatFilt;

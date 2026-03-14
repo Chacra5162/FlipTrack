@@ -212,8 +212,10 @@
   .item-meta .cat-tag:nth-child(n+2) { display: none; }
   .item-meta .barcode-badge { display: none; }
 
-  /* Smaller stock stepper on phone */
-  .stepper-btn { width: 24px; height: 24px; font-size: 13px; min-width: 24px; min-height: 24px; }
+  /* Smaller stock stepper on phone (fine pointer only — coarse-pointer rule keeps 44px) */
+  @media (pointer: fine) {
+    .stepper-btn { width: 24px; height: 24px; font-size: 13px; min-width: 24px; min-height: 24px; }
+  }
   .stepper-val { font-size: 11px; min-width: 18px; }
   .stock-bar { display: none; }
 
@@ -292,7 +294,7 @@
 @media (hover: none) and (pointer: coarse) {
   .filter-chip   { padding: 10px 14px; font-size: 11px; min-height: 44px; box-sizing: border-box; }
   .act-btn       { min-height: 44px; min-width: 44px; }
-  .td-acts .act-btn { min-width: unset; min-height: 36px; }
+  .td-acts .act-btn { min-width: unset; min-height: 44px; }
   .btn-primary   { min-height: 44px; padding: 10px 20px; }
   .btn-secondary { min-height: 44px; }
   .btn-danger    { min-height: 44px; }
