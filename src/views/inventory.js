@@ -439,21 +439,55 @@ export function startPriceEdit(span, id) {
   if(!item) return;
   const inp=document.createElement('input');
   inp.className='price-inp'; inp.type='number'; inp.step='0.01'; inp.value=item.price||0;
+  const origSpan = span.cloneNode(true);
+  origSpan.onclick = () => startPriceEdit(origSpan, id);
   span.replaceWith(inp); inp.focus(); inp.select();
   let committed=false;const commit=()=>{if(committed)return;committed=true;const v=parseFloat(inp.value);if(!isNaN(v)&&v>=0){const oldP=item.price||0;item.price=v;markDirty('inv',item.id);inp.style.background='var(--good)';inp.style.color='#fff';inp.style.transition='background 0.2s';save();refresh();setTimeout(()=>renderInv(),200);toast('Price updated ✓');if(v!==oldP&&v>0){logPriceChange(item.id,v,'manual');if(item.ebayItemId&&isEBayConnected()){pushEBayPrice(item.id).then(r=>{if(r.success)toast('eBay price synced ✓');}).catch(e=>console.warn('[eBay] Price push:',e.message));}}}else renderInv();};
   inp.addEventListener('blur',commit);
-  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();inp.blur();}if(e.key==='Escape'){inp.removeEventListener('blur',commit);renderInv();}});
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();inp.blur();}if(e.key==='Escape'){inp.removeEventListener('blur',commit);inp.replaceWith(origSpan);}});
 }
 
 // ── STOCK STEPPER ─────────────────────────────────────────────────────────────
 
 const _debouncedStockSave = debounce(() => { save(); refresh(); }, 300);
 
+/** Patch only the stock cell + action cell for a single row in-place */
+function _patchStockRow(id) {
+  const tr = document.querySelector(`#invBody tr[data-id="${escAttr(id)}"]`);
+  if (!tr) { renderInv(); return; } // item not on current page — fallback
+  const item = getInvItem(id);
+  if (!item) return;
+  const c = sc(item.qty, item.lowAlert, item.bulk);
+  let maxQ = 1;
+  for (let i = 0; i < inv.length; i++) { const q = inv[i].qty || 0; if (q > maxQ) maxQ = q; }
+  const bp = Math.min(100, ((item.qty || 0) / maxQ) * 100);
+  const eid = escAttr(item.id);
+  // Patch stock cell
+  const stockCell = tr.querySelector('.stock-cell');
+  if (stockCell) {
+    stockCell.innerHTML = `
+      <div class="stepper">
+        <button class="stepper-btn" aria-label="Decrease quantity" onclick="adjStock('${eid}',-1)">−</button>
+        <span class="stepper-val sv-${c}" title="${c==='low'?'Low stock':c==='warn'?'Warning':'In stock'}">${item.qty||0}${c==='low'?' ⚠':c==='warn'?' ⚡':''}</span>
+        <button class="stepper-btn" aria-label="Increase quantity" onclick="adjStock('${eid}',+1)">+</button>
+      </div>
+      <div class="mini-bar"><div class="mb-fill mf-${c}" style="width:${bp}%"></div></div>`;
+  }
+  // Patch action cell (Sold vs Out badge)
+  const actDiv = tr.querySelector('.td-acts');
+  if (actDiv) {
+    actDiv.innerHTML = `
+      ${item.qty>0?`<button class="act-btn" onclick="openSoldModal('${eid}')">Sold ›</button>`:`<span class="out-badge">Out</span>`}
+      <button class="act-btn" onclick="openDrawer('${eid}')">Edit</button>
+      <button class="act-btn red" onclick="delItem('${eid}')">✕</button>`;
+  }
+}
+
 export function adjStock(id, d) {
   const item=inv.find(i=>i.id===id); if(!item) return;
   item.qty=Math.max(0,(item.qty||0)+d);
   markDirty('inv',item.id);
-  _debouncedStockSave(); renderInv();
+  _debouncedStockSave(); _patchStockRow(id);
   if(item.bulk&&item.qty===0) toast('⚠ Out of stock!',true);
   else if(item.bulk&&item.qty<=(item.lowAlert||2)) toast(`⚠ Low: ${item.qty} left`,true);
 }
