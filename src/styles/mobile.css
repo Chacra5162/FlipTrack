@@ -381,7 +381,7 @@
   background: var(--surface2);
   border: 1px solid var(--border);
   min-width: 180px;
-  max-height: calc(100dvh - 60px - env(safe-area-inset-bottom) - 16px);
+  max-height: calc(100dvh - 60px - env(safe-area-inset-bottom) - env(safe-area-inset-top) - 16px);
   overflow-y: auto;
   overscroll-behavior: contain;
   z-index: 500;
