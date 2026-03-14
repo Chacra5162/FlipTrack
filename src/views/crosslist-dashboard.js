@@ -67,6 +67,7 @@ let _wnCalcCost = '';
 let _wnCalcTax = '';
 let _wnBuilderSelected = new Set(); // selected item IDs in smart builder
 let _clTab = 'overview'; // 'overview', 'matrix', 'templates'
+let _clShowAllSingle = false;
 
 // ── RENDER ────────────────────────────────────────────────────────────────
 
@@ -238,7 +239,9 @@ function renderOverviewTab(inStock, expiring, expired, stats) {
 
   // ── SINGLE PLATFORM ──
   if (stats.itemsSinglePlatform > 0) {
-    const single = inStock.filter(i => getPlatforms(i).length === 1).slice(0, 6);
+    const allSingle = inStock.filter(i => getPlatforms(i).length === 1);
+    const showAll = _clShowAllSingle;
+    const single = showAll ? allSingle : allSingle.slice(0, 6);
     html += `<div class="cl-section">
       <h3 class="cl-section-title" style="color:var(--accent3)">☝ Single Platform (${stats.itemsSinglePlatform})</h3>
       <p style="color:var(--muted);font-size:12px;margin-bottom:8px">These items could reach more buyers if crosslisted</p>
@@ -255,7 +258,11 @@ function renderOverviewTab(inStock, expiring, expired, stats) {
         </div>
       </div>`;
     }
-    html += `</div></div>`;
+    html += `</div>`;
+    if (allSingle.length > 6) {
+      html += `<button class="btn-secondary" onclick="clToggleAllSingle()" style="margin-top:8px;width:100%;font-size:11px">${showAll ? 'Show Less' : `Show All ${allSingle.length} Items`}</button>`;
+    }
+    html += `</div>`;
   }
 
   // ── QUICK CROSSLIST TIPS ──
@@ -463,6 +470,7 @@ function renderTemplatesTab() {
 
 // ── ACTIONS ───────────────────────────────────────────────────────────────
 
+export function clToggleAllSingle() { _clShowAllSingle = !_clShowAllSingle; renderCrosslistDashboard(); }
 export function clSwitchTab(tab) { _clTab = tab; _clPage = 0; renderCrosslistDashboard(); }
 export function clSetSearch(v) { _clSearch = v || ''; _clPage = 0; renderCrosslistDashboard(); }
 export function clSetPlatFilter(v) { _clPlatFilter = v || 'all'; _clPage = 0; renderCrosslistDashboard(); }
