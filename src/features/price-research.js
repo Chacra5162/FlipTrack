@@ -186,9 +186,10 @@ export function renderPriceResults(upc, product) {
     const sorted = [...offers].sort((a,b) => (a.price||999) - (b.price||999));
     offerRows = sorted.slice(0, 8).map(o => {
       const price = o.price ? fmt(o.price) : '—';
-      const merchant = o.merchant || o.domain || 'Merchant';
-      const cond  = o.condition ? `· ${o.condition}` : '';
-      const link  = o.link || '#';
+      const merchant = escHtml(o.merchant || o.domain || 'Merchant');
+      const cond  = o.condition ? `· ${escHtml(o.condition)}` : '';
+      const rawLink = o.link || '';
+      const link = /^https?:\/\//.test(rawLink) ? escAttr(rawLink) : '#';
       return `<div class="pr-price-row">
         <div class="pr-price-left">
           <div class="pr-price-title">${merchant}</div>
@@ -243,11 +244,11 @@ export function renderPriceResults(upc, product) {
   const productCard = `<div class="pr-product-card">
     ${img ? `<img class="pr-product-img" src="${img}" alt="" onerror="this.style.display='none'">` : ''}
     <div>
-      <div class="pr-product-name">${name}</div>
+      <div class="pr-product-name">${escHtml(name)}</div>
       <div class="pr-product-meta">
-        ${brand ? `<span>🏷 ${brand}</span>` : ''}
-        <span>📦 UPC: ${upc}</span>
-        ${product?.category ? `<span>· ${product.category}</span>` : ''}
+        ${brand ? `<span>🏷 ${escHtml(brand)}</span>` : ''}
+        <span>📦 UPC: ${escHtml(upc)}</span>
+        ${product?.category ? `<span>· ${escHtml(product.category)}</span>` : ''}
       </div>
       ${low ? `<div class="pr-product-lowest">Recorded range: <strong>${fmt(low)}</strong>${msrp ? ` – ${fmt(msrp)}` : ''}</div>` : ''}
     </div>

@@ -7,7 +7,7 @@
  * Etsy v3 API reference: https://developers.etsy.com/documentation/
  */
 
-import { inv, save, refresh, markDirty, getInvItem } from '../data/store.js';
+import { inv, sales, save, refresh, markDirty, getInvItem } from '../data/store.js';
 import { etsyAPI, isEtsyConnected, getEtsyShopId } from './etsy-auth.js';
 import { markPlatformStatus, setListingDate } from './crosslist.js';
 import { autoDlistOnSale } from './crosslist.js';
@@ -688,8 +688,7 @@ export async function fetchEtsyListingStats() {
  * Build an analytics summary from local receipt/sale data.
  */
 export function getEtsyAnalyticsSummary() {
-  const etsySales = (typeof window !== 'undefined' && window.sales || [])
-    .filter(s => (s.platform || '').toLowerCase() === 'etsy');
+  const etsySales = sales.filter(s => (s.platform || '').toLowerCase() === 'etsy');
   const totalRevenue = etsySales.reduce((sum, s) => sum + (s.price || 0), 0);
   const avgPrice = etsySales.length ? totalRevenue / etsySales.length : 0;
 

@@ -179,12 +179,14 @@ export function evaluateRules() {
       // Check no sales days (if specified)
       if (noSalesDays > 0) {
         const itemSalesForRule = getSalesForItem(item.id);
-        if (!itemSalesForRule.length) return;
-        const lastSale = itemSalesForRule.reduce((best, s) =>
-          new Date(s.date || 0) > new Date(best.date || 0) ? s : best
-        );
-        const daysSinceLastSale = (now - new Date(lastSale.date || 0).getTime()) / (24 * 3600000);
-        if (daysSinceLastSale < noSalesDays) return;
+        if (itemSalesForRule.length) {
+          const lastSale = itemSalesForRule.reduce((best, s) =>
+            new Date(s.date || 0) > new Date(best.date || 0) ? s : best
+          );
+          const daysSinceLastSale = (now - new Date(lastSale.date || 0).getTime()) / (24 * 3600000);
+          if (daysSinceLastSale < noSalesDays) return;
+        }
+        // Items with zero sales fall through — they most need repricing
       }
 
       // Calculate suggested price

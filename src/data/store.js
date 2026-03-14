@@ -89,6 +89,8 @@ export function markDeleted(table, id) {
 
 // ── PERFORMANCE: Inventory index for O(1) lookups ─────────────────────────
 let _invIndex = {};
+let _salesIndex = {};
+let _expIndex = {};
 
 // ── PERFORMANCE: Sales-by-item-ID index for O(1) lookups ──────────────────
 let _salesByItemId = new Map();
@@ -306,7 +308,7 @@ export function clearStoreTimers() {
 let _lsDebounce = null;
 function _scheduleLSSave() {
   clearTimeout(_lsDebounce);
-  _lsDebounce = setTimeout(_saveToLocalStorage, 500);
+  _lsDebounce = setTimeout(_saveToLocalStorage, 5000);
 }
 
 /** Write to localStorage as backup */

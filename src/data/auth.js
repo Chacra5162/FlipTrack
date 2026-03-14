@@ -5,7 +5,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { SB_URL, SB_KEY } from '../config/constants.js';
-import { inv, sales, expenses, save, refresh, clearStoreTimers } from './store.js';
+import { inv, sales, expenses, save, refresh, clearStoreTimers, setSyncInProgress } from './store.js';
 import { syncNow, autoSync, pullSupplies, startRealtime, stopRealtime, setSyncStatus, stopPoll, clearSyncTimers } from './sync.js';
 import { deleteMeta } from './idb.js';
 import { setOfflineUser } from '../features/offline.js';
@@ -171,7 +171,7 @@ export async function authSignOut() {
   _currentUser = null;
   await _sb.auth.signOut();
 
-  // ── CLEAR ALL LOCAL DATA ──────────────────────────────────────────────
+  // ── CLEAR ALL LOCAL DATA (after signOut resolves) ─────────────────────
   inv.length = 0;
   sales.length = 0;
   expenses.length = 0;
@@ -269,10 +269,18 @@ async function _startSession(user) {
     }
 
     // 10 second timeout on pull to prevent infinite hang
-    await Promise.race([
-      syncNow(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Sync timed out')), 10000))
-    ]);
+    try {
+      await Promise.race([
+        syncNow(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Sync timed out')), 10000))
+      ]);
+    } catch (e) {
+      if (e.message === 'Sync timed out') {
+        // Reset sync guard so auto-sync isn't permanently blocked
+        setSyncInProgress(false);
+        console.warn('FlipTrack: initial sync timed out, will retry via auto-sync');
+      } else throw e;
+    }
 
     // Pull supplies from cloud (separate table)
     pullSupplies().catch(e => console.warn('FlipTrack: supplies pull error:', e.message));

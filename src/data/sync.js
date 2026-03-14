@@ -245,9 +245,14 @@ export async function pullFromCloud() {
     query_sales = query_sales.gt('updated_at', lastPull);
   }
 
-  const [{ data: remoteInv, error: e1 }, { data: remoteSales, error: e2 }] = await Promise.all([
+  // Fetch inventory, sales, and expenses in parallel
+  let query_exp = _sb.from('ft_expenses').select('id, data, updated_at').eq('account_id', accountId);
+  if (lastPull) query_exp = query_exp.gt('updated_at', lastPull);
+
+  const [{ data: remoteInv, error: e1 }, { data: remoteSales, error: e2 }, expResult] = await Promise.all([
     query_inv,
     query_sales,
+    query_exp.then(r => r).catch(() => ({ data: null, error: null })),
   ]);
   if (e1 || e2) {
     const msg = (e1 || e2).message;
@@ -255,14 +260,7 @@ export async function pullFromCloud() {
     throw new Error(msg);
   }
 
-  // Expenses (may not exist)
-  let remoteExp = null;
-  try {
-    let q = _sb.from('ft_expenses').select('id, data, updated_at').eq('account_id', accountId);
-    if (lastPull) q = q.gt('updated_at', lastPull);
-    const { data, error } = await q;
-    if (!error) remoteExp = data;
-  } catch (_) {}
+  const remoteExp = expResult.error ? null : expResult.data;
 
   if (lastPull) {
     // ── DELTA MERGE with conflict resolution: compare updated_at timestamps ──
@@ -274,7 +272,7 @@ export async function pullFromCloud() {
         if (idx !== -1) {
           // Conflict resolution: remote wins if it's newer (server updated_at vs local _localUpdatedAt)
           const localTs = arr[idx]._localUpdatedAt || 0;
-          const remoteTs = row.updated_at ? new Date(row.updated_at).getTime() : Date.now();
+          const remoteTs = row.updated_at ? new Date(row.updated_at).getTime() : 0;
           if (remoteTs >= localTs) {
             arr[idx] = row.data;
           }
@@ -520,7 +518,7 @@ export function initOfflineQueue() {
       const sb = getSupabaseClient();
       const user = getCurrentUser();
       if (!sb || !user) return null;
-      return { sb, accountId: user.id };
+      return { sb, accountId: getActiveAccountId() };
     },
     (result) => {
       if (result.ok > 0) {

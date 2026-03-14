@@ -33,11 +33,13 @@ export async function uploadImageToStorage(dataUrl, itemId, slotIdx) {
 
   const blob = dataUrlToBlob(dataUrl);
   const userId = _currentUser.id;
-  const filename = `${itemId}_${slotIdx}_${Date.now()}.jpg`;
+  const mime = blob.type || 'image/jpeg';
+  const ext = mime.split('/')[1] || 'jpg';
+  const filename = `${itemId}_${slotIdx}_${Date.now()}.${ext}`;
   const path = `${userId}/${filename}`;
 
   const { error } = await _sb.storage.from(IMG_BUCKET).upload(path, blob, {
-    contentType: 'image/jpeg',
+    contentType: mime,
     upsert: true
   });
 

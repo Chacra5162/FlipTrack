@@ -187,7 +187,7 @@ export function renderDeathPileWidget() {
   html += `<div class="dp-list">`;
   for (const dp of topItems) {
     html += `
-      <div class="dp-item" onclick="openDrawer('${escAttr(dp.item.id)}')"
+      <div class="dp-item" onclick="openDrawer('${escAttr(dp.item.id)}')">
         <span class="dp-urgency" style="color:${dp.urgency.color}">${dp.urgency.icon}</span>
         <div class="dp-item-info">
           <div class="dp-item-name">${escHtml((dp.item.name || 'Item').slice(0, 40))}</div>
@@ -250,7 +250,7 @@ export function renderDeathPileView() {
 
     for (const dp of levelItems) {
       html += `
-        <div class="dp-row" onclick="openDrawer('${escAttr(dp.item.id)}')"
+        <div class="dp-row" onclick="openDrawer('${escAttr(dp.item.id)}')">
           <div class="dp-row-main">
             <span class="dp-row-name">${escHtml((dp.item.name || 'Item').slice(0, 50))}</span>
             <span class="dp-row-cat">${escHtml(dp.item.category || '')}</span>

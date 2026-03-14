@@ -28,7 +28,7 @@ export function computeInventoryHealth() {
   // 1. Aging breakdown
   const aging = AGING_BUCKETS.map(b => ({ ...b, items: [], value: 0, count: 0 }));
   for (const item of unsold) {
-    const days = _daysSince(item.date || item.createdAt);
+    const days = _daysSince(item.added);
     const bucket = aging.find(b => days <= b.max) || aging[aging.length - 1];
     bucket.items.push(item);
     bucket.value += (item.price || 0);
@@ -45,7 +45,7 @@ export function computeInventoryHealth() {
       const sale = getSalesForItem(item.id)[0];
       if (sale) {
         catStats[cat].revenue += sale.price || 0;
-        catStats[cat].totalDays += _daysSince(item.date || item.createdAt);
+        catStats[cat].totalDays += _daysSince(item.added);
       }
     }
     if (!item.deleted) catStats[cat].listed++;
@@ -78,7 +78,7 @@ export function computeInventoryHealth() {
       soldPrice: sale.price || 0,
       profit,
       roi,
-      daysToSell: _daysSince(item.date || item.createdAt),
+      daysToSell: _daysSince(item.added),
       category: item.category || 'Uncategorized',
     });
   }
@@ -104,7 +104,7 @@ export function computeInventoryHealth() {
   const totalValue = unsold.reduce((s, i) => s + (i.price || 0), 0);
   const totalCost = unsold.reduce((s, i) => s + (i.cost || 0), 0);
   const avgAge = unsold.length > 0
-    ? Math.round(unsold.reduce((s, i) => s + _daysSince(i.date || i.createdAt), 0) / unsold.length)
+    ? Math.round(unsold.reduce((s, i) => s + _daysSince(i.added), 0) / unsold.length)
     : 0;
   const staleCount = aging.filter(b => b.max >= 61).reduce((s, b) => s + b.count, 0);
   const staleValue = aging.filter(b => b.max >= 61).reduce((s, b) => s + b.value, 0);

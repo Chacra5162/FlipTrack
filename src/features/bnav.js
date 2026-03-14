@@ -71,7 +71,7 @@ window.addEventListener('resize', updateBnavVisibility);
     dragging = false;
     drawer.style.transition = '';
     const delta = currentY - startY;
-    if (delta > 120) { closeDrawer(); }
+    if (delta > 120) { window.closeDrawer?.(); }
     else { drawer.style.transform = ''; }
   });
 })();

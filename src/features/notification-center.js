@@ -3,7 +3,7 @@
  * Tracks: low stock alerts, sync events, price changes, stale inventory
  */
 
-import { inv, sales } from '../data/store.js';
+import { inv, sales, getInvItem } from '../data/store.js';
 import { fmt, escHtml, escAttr } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 
@@ -205,7 +205,7 @@ export function getSalesVelocity() {
     catMap[cat].items++;
   }
   for (const sale of sales) {
-    const item = inv.find(i => i.id === sale.itemId);
+    const item = getInvItem(sale.itemId);
     const cat = item?.category || 'Uncategorized';
     if (!catMap[cat]) catMap[cat] = { cat, items: 0, sold: 0, totalDays: 0, revenue: 0, profit: 0 };
     catMap[cat].sold++;

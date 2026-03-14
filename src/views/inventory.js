@@ -669,18 +669,19 @@ export function bulkExportCSV() {
     const it = getInvItem(id);
     if (!it) continue;
     const plats = getPlatforms(it).join('; ');
+    const san = v => { const s = String(v); return /^[=+\-@]/.test(s) ? "'" + s : s; };
     const row = [
-      `"${(it.name || '').replace(/"/g, '""')}"`,
-      `"${(it.sku || '').replace(/"/g, '""')}"`,
-      `"${(it.upc || '').replace(/"/g, '""')}"`,
-      `"${(it.category || '').replace(/"/g, '""')}"`,
-      `"${(it.subcategory || '').replace(/"/g, '""')}"`,
-      `"${plats.replace(/"/g, '""')}"`,
+      `"${san(it.name || '').replace(/"/g, '""')}"`,
+      `"${san(it.sku || '').replace(/"/g, '""')}"`,
+      `"${san(it.upc || '').replace(/"/g, '""')}"`,
+      `"${san(it.category || '').replace(/"/g, '""')}"`,
+      `"${san(it.subcategory || '').replace(/"/g, '""')}"`,
+      `"${san(plats).replace(/"/g, '""')}"`,
       (it.cost || 0).toFixed(2),
       (it.price || 0).toFixed(2),
       it.qty || 0,
-      `"${(it.condition || '').replace(/"/g, '""')}"`,
-      `"${(it.source || '').replace(/"/g, '""')}"`,
+      `"${san(it.condition || '').replace(/"/g, '""')}"`,
+      `"${san(it.source || '').replace(/"/g, '""')}"`,
       `"${it.added || ''}"`,
       daysListed(it)
     ];

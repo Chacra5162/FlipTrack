@@ -199,6 +199,7 @@ export function offerAdd(itemId) {
 
   const div = document.createElement('div');
   div.className = 'panel';
+  div.id = 'offerAddPanel';
   div.innerHTML = `
     <div class="panel-header"><div class="panel-title">New Offer · ${escHtml(item.name)}</div></div>
     ${html}
@@ -229,7 +230,8 @@ export function offerAddConfirm(itemId) {
   });
 
   toast('Offer recorded');
-  document.querySelector('.panel-header').closest('.panel').remove();
+  const panel = document.getElementById('offerAddPanel');
+  if (panel) panel.remove();
 }
 
 export function offerAccept(id) {

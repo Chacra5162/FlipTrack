@@ -5,6 +5,8 @@
 @import './modals.css';
 @import './profit-dashboard.css';
 @import './mobile.css';
+@import './mobile-enhancements.css';
+@import './gating.css';
 
 /* ═══════════════════════════════════════════════════════════════
    VISUAL ENHANCEMENTS — pure CSS, no HTML changes

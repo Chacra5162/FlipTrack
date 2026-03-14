@@ -114,8 +114,12 @@ export async function initDB() {
       db.onversionchange = () => {
         db.close();
         db = null;
+        isInitializing = true; // queue operations during re-open
         // Re-open after the other tab's upgrade completes
-        setTimeout(() => initDB().catch(e => console.warn('IDB re-init failed:', e.message)), 500);
+        setTimeout(() => initDB().catch(e => {
+          isInitializing = false;
+          console.warn('IDB re-init failed:', e.message);
+        }), 500);
       };
       isInitializing = false;
       processQueue();

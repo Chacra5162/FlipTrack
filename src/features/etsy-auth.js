@@ -58,7 +58,20 @@ export async function initEtsyAuth(supabaseClient) {
 
 async function getAuthHeaders() {
   if (!_sb) throw new Error('Not authenticated');
-  const { data: { session } } = await _sb.auth.getSession();
+  let { data: { session } } = await _sb.auth.getSession();
+
+  // If no session or token expired/about to expire, force a refresh
+  if (!session || (session.expires_at && session.expires_at * 1000 < Date.now() + 60000)) {
+    const { data, error } = await _sb.auth.refreshSession();
+    if (error) {
+      console.warn('FlipTrack: refresh token failed:', error.message);
+      await _sb.auth.signOut();
+      toast('Session expired — please log in again', true);
+      throw new Error('Session expired');
+    }
+    if (data.session) session = data.session;
+  }
+
   if (!session) throw new Error('Session expired — please log in again');
   return {
     'Content-Type': 'application/json',

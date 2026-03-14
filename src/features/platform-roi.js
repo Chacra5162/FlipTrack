@@ -36,7 +36,7 @@ export function computePlatformROI() {
     const fees = item.fees || sale.fees || 0;
     const ship = item.ship || 0;
     const profit = (sale.price || 0) - cost - fees - ship;
-    const days = _daysBetween(item.date || item.createdAt, sale.date);
+    const days = _daysBetween(item.added, sale.date);
 
     p.sold++;
     p.revenue += (sale.price || 0);

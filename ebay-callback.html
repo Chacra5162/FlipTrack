@@ -85,7 +85,7 @@
       showError(errorDesc || error || 'eBay authorization was denied or cancelled.');
     } else if (code) {
       // Signal parent window (popup flow)
-      if (window.opener && typeof window.opener.handleEBayCallback === 'function') {
+      if (window.opener && window.opener.origin === window.location.origin && typeof window.opener.handleEBayCallback === 'function') {
         try {
           window.opener.handleEBayCallback(code, state);
           showSuccess();

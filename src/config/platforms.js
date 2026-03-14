@@ -29,7 +29,7 @@ export const platCls = p => ({
   'Craigslist':'plt-craigslist','OfferUp':'plt-offerup','Nextdoor':'plt-nextdoor',
   'Whatnot':'plt-whatnot','TikTok Shop':'plt-tiktok','Instagram':'plt-instagram',
   'Shopify':'plt-shopify','Walmart Marketplace':'plt-walmart','Newegg':'plt-newegg',
-  'Bonanza':'plt-bonanza','Ruby Lane':'plt-bonanza','Chairish':'plt-chairish',
+  'Bonanza':'plt-bonanza','Ruby Lane':'plt-ruby-lane','Chairish':'plt-chairish',
   '1stDibs':'plt-1stdibs','Swappa':'plt-swappa','Decluttr':'plt-decluttr',
 }[p]||'plt-other');
 

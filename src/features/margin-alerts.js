@@ -52,7 +52,7 @@ export function scanMarginAlerts() {
     const ship = item.ship || 0;
     const profit = price - cost - fees - ship;
     const margin = price > 0 ? (profit / price) * 100 : 0;
-    const days = _daysSince(item.date || item.createdAt);
+    const days = _daysSince(item.added);
 
     // Low margin alert
     if (price > 0 && cost > 0 && margin < _thresholds.minMarginPct) {

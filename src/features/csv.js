@@ -286,6 +286,7 @@ export function closeCsvMapper() {
   if (ov) ov.classList.remove('on');
   releaseFocus();
   document.getElementById('csvImportInput').value = '';
+  delete window._csvMapState;
 }
 
 export function applyCsvMapping() {

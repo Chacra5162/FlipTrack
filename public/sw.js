@@ -92,7 +92,7 @@ async function staleWhileRevalidate(request) {
       trimCache();
     }
     return res;
-  }).catch(() => cached);
+  }).catch(() => cached || new Response('Offline', { status: 503, statusText: 'Offline' }));
 
   // Return cached version immediately if available, otherwise wait for network
   return cached || fetchPromise;

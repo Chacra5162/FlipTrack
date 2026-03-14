@@ -9,7 +9,11 @@ const TIER_ORDER = { free: 0, pro: 1, unlimited: 2 };
 
 /** Compare two tiers. Returns true if userTier >= requiredTier */
 export function canAccess(userTier, requiredTier) {
-  return (TIER_ORDER[userTier] || 0) >= (TIER_ORDER[requiredTier] || 0);
+  if (requiredTier && !(requiredTier in TIER_ORDER)) {
+    console.error(`canAccess: unknown requiredTier "${requiredTier}"`);
+    return false; // fail closed
+  }
+  return (TIER_ORDER[userTier] ?? 0) >= (TIER_ORDER[requiredTier] ?? 0);
 }
 
 /** Get numeric level for a tier */
@@ -34,6 +38,14 @@ export const VIEW_TIER_MAP = {
   shipping:   'pro',
   buyers:     'pro',
   sourcing:   'pro',
+  // Pro (analytics views)
+  periodcompare:    'pro',
+  platformroi:      'pro',
+  returns:          'pro',
+  invhealth:        'pro',
+  sourcinganalytics:'pro',
+  listingscore:     'pro',
+  marginalerts:     'pro',
   // Unlimited
   tax:        'unlimited',
 };

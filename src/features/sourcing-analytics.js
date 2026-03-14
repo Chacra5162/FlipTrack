@@ -36,7 +36,7 @@ export function computeSourcingAnalytics() {
       s.sold++;
       s.totalRevenue += sale.price || 0;
       s.totalProfit += (sale.price || 0) - (item.cost || 0) - (item.fees || 0) - (item.ship || 0);
-      s.totalDaysToSell += _daysSince(item.date || item.createdAt);
+      s.totalDaysToSell += _daysSince(item.added);
     } else if (!item.sold) {
       s.unsold++;
     }

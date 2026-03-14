@@ -85,7 +85,7 @@
       showError(errorDesc || error || 'Etsy authorization was denied or cancelled.');
     } else if (code) {
       // Signal parent window (popup flow)
-      if (window.opener && typeof window.opener.handleEtsyCallback === 'function') {
+      if (window.opener && window.opener.origin === window.location.origin && typeof window.opener.handleEtsyCallback === 'function') {
         try {
           window.opener.handleEtsyCallback(code, state);
           showSuccess();

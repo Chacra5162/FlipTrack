@@ -133,11 +133,20 @@ export function openKPIGoalEditor() {
   `;
   document.body.appendChild(modal);
   requestAnimationFrame(() => modal.classList.add('on'));
+  // Escape key to dismiss
+  modal._escHandler = e => { if (e.key === 'Escape') closeKPIGoalEditor(); };
+  document.addEventListener('keydown', modal._escHandler);
+  // Backdrop click to dismiss
+  modal.addEventListener('click', e => { if (e.target === modal) closeKPIGoalEditor(); });
 }
 
 export function closeKPIGoalEditor() {
   const m = document.getElementById('kpiModal');
-  if (m) { m.classList.remove('on'); setTimeout(() => m.remove(), 200); }
+  if (m) {
+    if (m._escHandler) document.removeEventListener('keydown', m._escHandler);
+    m.classList.remove('on');
+    setTimeout(() => m.remove(), 200);
+  }
 }
 
 export function saveKPIGoals() {

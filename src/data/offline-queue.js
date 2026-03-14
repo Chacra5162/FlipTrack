@@ -100,7 +100,7 @@ export async function replayQueue(sb, accountId) {
         const upsertRows = rows.map(r => ({
           ...r,
           account_id: accountId,
-          updated_at: new Date(entry.ts).toISOString(),
+          updated_at: new Date().toISOString(),
         }));
         const { error } = await sb.from(entry.table).upsert(upsertRows, { onConflict: 'id' });
         if (error) throw new Error(error.message);

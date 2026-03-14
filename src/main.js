@@ -5,8 +5,7 @@
  */
 
 // ── CSS (Vite handles bundling) ───────────────────────────────────────────────
-import './styles/index.css';
-import './styles/gating.css';
+import './styles/index.css'; // gating.css is imported via index.css
 
 // ── Config ────────────────────────────────────────────────────────────────────
 import { SB_URL, SB_KEY, IMG_BUCKET } from './config/constants.js';
