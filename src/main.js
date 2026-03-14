@@ -145,7 +145,7 @@ import {
 import { generateListingLink, copyListingText } from './features/deep-links.js';
 import { initTemplates } from './features/listing-templates.js';
 import {
-  renderCrosslistDashboard, clSwitchTab, clSetSearch, clSetPlatFilter, clSetStatusFilter,
+  renderCrosslistDashboard, clSwitchTab, clToggleAllSingle, clSetSearch, clSetPlatFilter, clSetStatusFilter,
   clRelistItem, clDelistItem, clCycleStatus, clOpenLink, clCopyListing,
   clBulkRelistExpired, clAddTemplate, clDeleteTemplate, clSaveTemplate,
   clToggleAutoRelist, clRunAutoRelist, clBulkPrice,
@@ -532,7 +532,7 @@ Object.assign(window, { markDirty, markDeleted });
 
 // Crosslisting
 Object.assign(window, {
-  renderCrosslistDashboard, clSwitchTab, clSetSearch, clSetPlatFilter, clSetStatusFilter,
+  renderCrosslistDashboard, clSwitchTab, clToggleAllSingle, clSetSearch, clSetPlatFilter, clSetStatusFilter,
   clRelistItem, clDelistItem, clCycleStatus, clOpenLink, clCopyListing,
   clBulkRelistExpired, clAddTemplate, clDeleteTemplate, clSaveTemplate,
   markPlatformStatus, relistItem, copyListingText,
