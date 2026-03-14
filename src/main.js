@@ -1235,6 +1235,8 @@ setTimeout(_killSplash, 3000);
   } catch (e) { console.warn('FlipTrack: feature module init error:', e.message); }
   if (_tier !== 'free') {
     try { initShippingModals(); } catch (e) { console.warn('FlipTrack: shipping modals error:', e.message); }
+    // Re-render dashboard after Pro features init so offer aging alert shows
+    if (typeof window.renderCurrentView === 'function') window.renderCurrentView();
   }
 
   // Demo data trigger removed — was causing unwanted prompts

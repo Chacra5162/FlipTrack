@@ -16,6 +16,7 @@ import {
   sc,
   mkc,
   margCls,
+  getSalesForItem,
 } from '../data/store.js';
 
 // Local state for drag and drop and filtering
@@ -43,6 +44,7 @@ import { SUBCATS, SUBSUBCATS } from '../config/categories.js';
 import { toast } from '../utils/dom.js';
 import { pushDeleteToCloud, autoSync } from '../data/sync.js';
 import { getPlatforms, renderPlatTags, sanitizePlatforms } from '../features/platforms.js';
+import { getDaysUntilExpiry } from '../features/crosslist.js';
 import { getItemImages } from '../features/images.js';
 import { renderPagination } from '../utils/pagination.js';
 import { logPriceChange } from '../features/price-history.js';
@@ -408,7 +410,16 @@ export function renderInv() {
       <td style="color:var(--muted)">${fmt(cost)}</td>
       <td><span class="price-disp" title="Click to edit inline" onclick="startPriceEdit(this,'${eid}')">${fmt(price)}</span></td>
       <td><span class="margin-badge ${margCls(m)}">${pct(m)}</span></td>
-      <td class="days-col">${(()=>{const _dl=daysListed(item);return `<span class="days-badge${_dl>=60?' stale':_dl>=30?' aging':''}" title="Listed ${_dl} days">${_dl}d</span>`;})()}</td>
+      <td class="days-col">${(()=>{
+        const _dl=daysListed(item);
+        const _itemSales=getSalesForItem(item.id);
+        const _lastSaleDays=_itemSales.length?Math.floor((Date.now()-Math.max(..._itemSales.map(s=>new Date(s.date).getTime())))/86400000):null;
+        const _plats=getPlatforms(item);
+        const _expMin=_plats.reduce((min,p)=>{const d=getDaysUntilExpiry(p,item.platformListingDates?.[p]);return d!==null&&(min===null||d<min)?d:min;},null);
+        return `<span class="days-badge${_dl>=60?' stale':_dl>=30?' aging':''}" title="Listed ${_dl} days">${_dl}d</span>`
+          +(_lastSaleDays!==null?`<span style="font-size:9px;color:${_lastSaleDays>30?'var(--warn)':'var(--muted)'};display:block;margin-top:2px" title="Last sale ${_lastSaleDays} days ago">${_lastSaleDays}d ago</span>`:'')
+          +(_expMin!==null&&_expMin<=7?`<span style="font-size:9px;color:var(--warn);display:block;margin-top:2px" title="Listing expires in ${_expMin} days">⏳${_expMin}d</span>`:'');
+      })()}</td>
       <td class="photos-col">${_imgs.length?`<span class="photo-count-badge" title="${_imgs.length} photo${_imgs.length>1?'s':''}">${_imgs.length} 📷</span>`:`<span class="photo-count-badge empty" title="No photos">0</span>`}</td>
       <td><div class="td-acts">
         ${item.qty>0?`<button class="act-btn" onclick="openSoldModal('${eid}')">Sold ›</button>`:`<span class="out-badge">Out</span>`}

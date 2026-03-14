@@ -32,7 +32,17 @@ export async function safeRefreshSession() {
   _refreshPromise = (async () => {
     try {
       const { data, error } = await _sb.auth.refreshSession();
-      if (error) throw error;
+      if (error) {
+        // Refresh token revoked/expired — force sign out
+        if (error.message?.includes('token') || error.status === 400 || error.status === 401) {
+          console.warn('FlipTrack: refresh token revoked, signing out');
+          _currentUser = null;
+          try { await _sb.auth.signOut(); } catch (_) {}
+          setSyncStatus('disconnected');
+          showAuthModal();
+        }
+        throw error;
+      }
       if (data.session) _currentUser = data.session.user;
       return data;
     } finally {

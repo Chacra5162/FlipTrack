@@ -291,10 +291,40 @@ export async function pullFromCloud() {
     mergeArray(sales, remoteSales);
     mergeArray(expenses, remoteExp);
   } else {
-    // ── FULL PULL: replace all local data ──
-    if (remoteInv) { inv.length = 0; inv.push(...remoteInv.map(r => r.data).filter(Boolean)); }
-    if (remoteSales) { sales.length = 0; sales.push(...remoteSales.map(r => r.data).filter(Boolean)); }
-    if (remoteExp) { expenses.length = 0; expenses.push(...remoteExp.map(r => r.data).filter(Boolean)); }
+    // ── FULL PULL: replace all local data, preserving any dirty local items ──
+    const dirty = getDirtyItems();
+    const dirtyInvMap = new Map(dirty.inv.map(i => [i.id, i]));
+    const dirtySalesMap = new Map(dirty.sales.map(s => [s.id, s]));
+    const dirtyExpMap = new Map(dirty.expenses.map(e => [e.id, e]));
+
+    if (remoteInv) {
+      inv.length = 0;
+      inv.push(...remoteInv.map(r => r.data).filter(Boolean));
+      // Re-apply dirty local items that may have been overwritten
+      for (const [id, item] of dirtyInvMap) {
+        const idx = inv.findIndex(i => i.id === id);
+        if (idx !== -1) inv[idx] = item;
+        else inv.push(item);
+      }
+    }
+    if (remoteSales) {
+      sales.length = 0;
+      sales.push(...remoteSales.map(r => r.data).filter(Boolean));
+      for (const [id, sale] of dirtySalesMap) {
+        const idx = sales.findIndex(s => s.id === id);
+        if (idx !== -1) sales[idx] = sale;
+        else sales.push(sale);
+      }
+    }
+    if (remoteExp) {
+      expenses.length = 0;
+      expenses.push(...remoteExp.map(r => r.data).filter(Boolean));
+      for (const [id, exp] of dirtyExpMap) {
+        const idx = expenses.findIndex(e => e.id === id);
+        if (idx !== -1) expenses[idx] = exp;
+        else expenses.push(exp);
+      }
+    }
   }
 
   // Record pull timestamp
