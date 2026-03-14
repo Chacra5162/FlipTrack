@@ -4,7 +4,7 @@
  * Uses dirty tracking from store.js to minimize data transfer.
  */
 
-import { localDate } from '../utils/format';
+import { localDate } from '../utils/format.js';
 import { SB_URL, SB_KEY } from '../config/constants.js';
 import {
   inv, sales, expenses, supplies,
@@ -67,13 +67,15 @@ export async function pushToCloud() {
   }
 
   const accountId = getActiveAccountId();
-  const dirty = getDirtyItems();
 
   try {
     // ── Upload any pending base64 images to Storage before push ──
     try { await migrateImagesToStorage(); } catch (e) {
       console.warn('FlipTrack: image migration skipped:', e.message);
     }
+
+    // Snapshot dirty items AFTER migration so URLs are up-to-date
+    const dirty = getDirtyItems();
 
     // ── Push changed inventory rows ──
     if (dirty.inv.length) {
@@ -130,6 +132,7 @@ export async function pushToCloud() {
     // need to stay dirty so the next sync retries them
     console.warn('FlipTrack: push failed, queueing for retry:', e.message);
     toast('Sync failed — changes saved locally, will retry', true);
+    await waitForPersist();
     await _queueDirtyItems();
     throw e;
   }
@@ -442,6 +445,7 @@ export function startRealtime() {
 function _onRealtimeChange(payload) {
   clearTimeout(_rtDebounce);
   _rtDebounce = setTimeout(async () => {
+    if (_isSyncing) return; // skip — syncNow() will handle it
     try {
       await pullFromCloud();
       refresh();

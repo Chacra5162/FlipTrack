@@ -5,9 +5,9 @@
  */
 
 import { inv, sales, getInvItem } from '../data/store.js';
-import { fmt, pct, ds, escHtml, escAttr } from '../utils/format.js';
+import { fmt, pct, ds, escHtml, escAttr, daysSince } from '../utils/format.js';
 
-function _daysSince(d) { return d ? Math.floor((Date.now() - new Date(d).getTime()) / 86400000) : 0; }
+const _daysSince = daysSince;
 
 // ── COMPUTE SOURCE METRICS ────────────────────────────────────────────────
 

@@ -120,8 +120,9 @@ export async function createTeam(name) {
 
 function _genCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no I/O/0/1 for clarity
+  const bytes = crypto.getRandomValues(new Uint8Array(6));
   let code = '';
-  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  for (let i = 0; i < 6; i++) code += chars[bytes[i] % chars.length];
   return code;
 }
 

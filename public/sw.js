@@ -19,6 +19,9 @@ const PRECACHE = [
   './favicon.ico',
   './icons/icon-192.png',
   './icons/icon-512.png',
+  './ebay-callback.html',
+  './etsy-callback.html',
+  './offline.html',
 ];
 
 // Regex: Vite hashed filenames like index-DZJH950b.js or index-CkgpLNDD.css
@@ -67,7 +70,13 @@ async function networkFirst(request) {
     return res;
   } catch {
     const cached = await caches.match(request);
-    return cached || new Response('Offline', { status: 503, statusText: 'Offline' });
+    if (cached) return cached;
+    // Return offline page for navigation requests
+    if (request.mode === 'navigate') {
+      const offlinePage = await caches.match('./offline.html');
+      if (offlinePage) return offlinePage;
+    }
+    return new Response('Offline', { status: 503, statusText: 'Offline' });
   }
 }
 

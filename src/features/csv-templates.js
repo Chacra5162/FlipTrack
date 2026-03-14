@@ -4,7 +4,7 @@
  * Mercari, and other platforms' bulk listing tools.
  */
 
-import { localDate } from '../utils/format';
+import { localDate } from '../utils/format.js';
 import { inv, sales, expenses, getInvItem } from '../data/store.js';
 import { getPlatforms } from './platforms.js';
 import { PLATFORM_FEES } from '../config/platforms.js';

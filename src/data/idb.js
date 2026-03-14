@@ -9,14 +9,15 @@
  */
 
 const DB_NAME = 'fliptrack';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORES = {
   inventory: { keyPath: 'id' },
   sales: { keyPath: 'id' },
   expenses: { keyPath: 'id' },
   supplies: { keyPath: 'id' },
   trash: { keyPath: 'id' },
-  meta: { keyPath: 'key' }
+  meta: { keyPath: 'key' },
+  syncQueue: { keyPath: 'id', autoIncrement: true }
 };
 
 let db = null;
@@ -110,6 +111,12 @@ export async function initDB() {
 
     request.onsuccess = () => {
       db = request.result;
+      db.onversionchange = () => {
+        db.close();
+        db = null;
+        // Re-open after the other tab's upgrade completes
+        setTimeout(() => initDB().catch(e => console.warn('IDB re-init failed:', e.message)), 500);
+      };
       isInitializing = false;
       processQueue();
       resolve(db);
@@ -122,7 +129,9 @@ export async function initDB() {
       Object.entries(STORES).forEach(([storeName, config]) => {
         if (!database.objectStoreNames.contains(storeName)) {
           try {
-            database.createObjectStore(storeName, { keyPath: config.keyPath });
+            const opts = { keyPath: config.keyPath };
+            if (config.autoIncrement) opts.autoIncrement = true;
+            database.createObjectStore(storeName, opts);
           } catch (error) {
             logError(`create store ${storeName}`, error);
           }

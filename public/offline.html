@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FlipTrack — Offline</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0a0a0f; color:#e0e0e0; font-family:'Segoe UI',system-ui,sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; text-align:center; padding:20px; }
+  .wrap { max-width:400px; }
+  .icon { font-size:64px; margin-bottom:20px; }
+  h1 { font-size:22px; font-weight:700; margin-bottom:8px; }
+  p { font-size:14px; color:#888; line-height:1.5; margin-bottom:24px; }
+  button { background:#57c8ff; color:#000; border:none; padding:12px 28px; font-size:14px; font-weight:700; cursor:pointer; border-radius:4px; }
+  button:hover { background:#7dd8ff; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="icon">📡</div>
+  <h1>You're Offline</h1>
+  <p>FlipTrack needs an internet connection to load this page. Your data is safe — it will sync when you're back online.</p>
+  <button onclick="location.reload()">Try Again</button>
+</div>
+</body>
+</html>

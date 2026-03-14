@@ -4,7 +4,7 @@
  * Supports automatic repricing based on time-listed, sales velocity, and market conditions
  */
 
-import { inv, sales, save, refresh, markDirty, pushUndo } from '../data/store.js';
+import { inv, sales, save, refresh, markDirty, pushUndo, getSalesForItem } from '../data/store.js';
 import { fmt, pct, uid, escHtml, escAttr } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { getMeta, setMeta } from '../data/idb.js';
@@ -169,7 +169,7 @@ export function evaluateRules() {
       }
 
       // Check days listed condition
-      const createdAt = item.createdAt || item.listedAt || 0;
+      const createdAt = item.added ? new Date(item.added).getTime() : 0;
       const daysOld = (now - createdAt) / (24 * 3600000);
       if (daysListed > 0 && daysOld < daysListed) return;
 
@@ -178,11 +178,12 @@ export function evaluateRules() {
 
       // Check no sales days (if specified)
       if (noSalesDays > 0) {
-        const lastSale = sales
-          .filter(s => s.itemId === item.id)
-          .sort((a, b) => (b.soldAt || 0) - (a.soldAt || 0))[0];
-        if (!lastSale) return;
-        const daysSinceLastSale = (now - (lastSale.soldAt || 0)) / (24 * 3600000);
+        const itemSalesForRule = getSalesForItem(item.id);
+        if (!itemSalesForRule.length) return;
+        const lastSale = itemSalesForRule.reduce((best, s) =>
+          new Date(s.date || 0) > new Date(best.date || 0) ? s : best
+        );
+        const daysSinceLastSale = (now - new Date(lastSale.date || 0).getTime()) / (24 * 3600000);
         if (daysSinceLastSale < noSalesDays) return;
       }
 

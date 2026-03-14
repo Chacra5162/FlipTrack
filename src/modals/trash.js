@@ -22,7 +22,7 @@ export function openTrashModal() {
         <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(item.name)}</div>
         <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">${item.sku || '—'} · ${agoStr}</div>
       </div>
-      <button onclick="restoreItem(${idx});closeTrashModal()" style="background:none;border:1px solid var(--good);color:var(--good);font-size:10px;padding:4px 10px;cursor:pointer;font-family:'DM Mono',monospace">Restore</button>
+      <button onclick="restoreItem('${item.id}');closeTrashModal()" style="background:none;border:1px solid var(--good);color:var(--good);font-size:10px;padding:4px 10px;cursor:pointer;font-family:'DM Mono',monospace">Restore</button>
     </div>`;
   }).reverse().join('');
 

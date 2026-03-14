@@ -5,6 +5,9 @@
 
 import { fmt, pct, localDate } from '../utils/format.js';
 
+/** Build an O(1) lookup map from inv array — avoids O(n²) find() inside loops */
+const _invMap = (inv) => new Map(inv.map(i => [i.id, i]));
+
 /**
  * Calculate sell-through rate: units sold ÷ units listed in time window
  * @param {Object} inv - Inventory data
@@ -17,13 +20,13 @@ export function calcSellThroughRate(inv, sales, days = 30) {
   cutoffDate.setDate(cutoffDate.getDate() - days);
 
   const unitsSold = sales.reduce((sum, sale) => {
-    const saleDate = new Date(sale.sold_date);
-    return saleDate >= cutoffDate ? sum + sale.quantity : sum;
+    const saleDate = new Date(sale.date);
+    return saleDate >= cutoffDate ? sum + (sale.qty || 1) : sum;
   }, 0);
 
   const unitsListed = inv.reduce((sum, item) => {
-    const listedDate = new Date(item.listed_date);
-    return listedDate >= cutoffDate ? sum + item.quantity : sum;
+    const listedDate = new Date(item.added);
+    return listedDate >= cutoffDate ? sum + (item.qty || 0) : sum;
   }, 0);
 
   const rate = unitsListed > 0 ? (unitsSold / unitsListed) * 100 : 0;
@@ -44,13 +47,14 @@ export function calcSellThroughRate(inv, sales, days = 30) {
  * @returns {Object} { turnover_rate, cogs, avg_inventory_value, times_per_year }
  */
 export function calcInventoryTurnRate(inv, sales, expenses) {
+  const im = _invMap(inv);
   const cogs = sales.reduce((sum, sale) => {
-    const item = inv.find(i => i.id === sale.item_id);
-    return sum + (item ? item.cost * sale.quantity : 0);
+    const item = im.get(sale.itemId);
+    return sum + (item ? (item.cost || 0) * (sale.qty || 1) : 0);
   }, 0);
 
   const avgInventoryValue = inv.length > 0
-    ? inv.reduce((sum, item) => sum + (item.cost * item.quantity), 0) / inv.length
+    ? inv.reduce((sum, item) => sum + ((item.cost || 0) * (item.qty || 0)), 0) / inv.length
     : 0;
 
   const turnoverRate = avgInventoryValue > 0 ? cogs / avgInventoryValue : 0;
@@ -72,11 +76,11 @@ export function calcInventoryTurnRate(inv, sales, expenses) {
  * @returns {Object} { days_to_breakeven, current_invested, current_revenue, daily_net }
  */
 export function calcCashFlowProjection(inv, sales, expenses) {
-  const currentInvested = inv.reduce((sum, item) => sum + (item.cost * item.quantity), 0);
-  const currentRevenue = sales.reduce((sum, sale) => sum + sale.revenue, 0);
-  const currentProfit = currentRevenue - expenses.total;
+  const currentInvested = inv.reduce((sum, item) => sum + ((item.cost || 0) * (item.qty || 0)), 0);
+  const currentRevenue = sales.reduce((sum, sale) => sum + ((sale.price || 0) * (sale.qty || 1)), 0);
+  const currentProfit = currentRevenue - (expenses.total || 0);
 
-  const dailyNet = sales.length > 0 ? currentProfit / Math.max(1, Math.floor((new Date() - new Date(sales[0].sold_date)) / (1000 * 60 * 60 * 24))) : 0;
+  const dailyNet = sales.length > 0 ? currentProfit / Math.max(1, Math.floor((new Date() - new Date(sales[0].date)) / (1000 * 60 * 60 * 24))) : 0;
 
   const daysToBreakeven = dailyNet > 0 ? Math.ceil((currentInvested - currentProfit) / dailyNet) : null;
 
@@ -98,7 +102,7 @@ export function calcSeasonalTrends(sales, months = 12) {
   const monthData = {};
 
   sales.forEach(sale => {
-    const date = new Date(sale.sold_date);
+    const date = new Date(sale.date);
     const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
     if (!monthData[monthKey]) {
@@ -110,9 +114,9 @@ export function calcSeasonalTrends(sales, months = 12) {
       };
     }
 
-    monthData[monthKey].revenue += sale.revenue || 0;
+    monthData[monthKey].revenue += (sale.price || 0) * (sale.qty || 1);
     monthData[monthKey].cost += sale.cost || 0;
-    monthData[monthKey].units += sale.quantity || 1;
+    monthData[monthKey].units += sale.qty || 1;
     monthData[monthKey].count += 1;
   });
 
@@ -135,10 +139,11 @@ export function calcSeasonalTrends(sales, months = 12) {
  * @returns {Array} Array of { platform, category, avgDaysToSell, revenue, margin }
  */
 export function calcPlatformComparison(inv, sales) {
+  const im = _invMap(inv);
   const platformData = {};
 
   sales.forEach(sale => {
-    const item = inv.find(i => i.id === sale.item_id);
+    const item = im.get(sale.itemId);
     if (!item) return;
 
     const key = `${sale.platform}-${item.category}`;
@@ -153,13 +158,13 @@ export function calcPlatformComparison(inv, sales) {
       };
     }
 
-    const listedDate = new Date(item.listed_date);
-    const soldDate = new Date(sale.sold_date);
+    const listedDate = new Date(item.added);
+    const soldDate = new Date(sale.date);
     const daysToSell = Math.floor((soldDate - listedDate) / (1000 * 60 * 60 * 24));
 
     platformData[key].days.push(daysToSell);
-    platformData[key].revenue += sale.revenue || 0;
-    platformData[key].cost += item.cost * sale.quantity;
+    platformData[key].revenue += (sale.price || 0) * (sale.qty || 1);
+    platformData[key].cost += (item.cost || 0) * (sale.qty || 1);
     platformData[key].count += 1;
   });
 
@@ -179,10 +184,11 @@ export function calcPlatformComparison(inv, sales) {
  * @returns {Array} Array of { category, units_per_month, monthly_revenue, sell_through_rate }
  */
 export function calcVelocityByCategory(inv, sales) {
+  const im = _invMap(inv);
   const categoryData = {};
 
   sales.forEach(sale => {
-    const item = inv.find(i => i.id === sale.item_id);
+    const item = im.get(sale.itemId);
     if (!item) return;
 
     if (!categoryData[item.category]) {
@@ -193,8 +199,8 @@ export function calcVelocityByCategory(inv, sales) {
       };
     }
 
-    categoryData[item.category].units += sale.quantity || 1;
-    categoryData[item.category].revenue += sale.revenue || 0;
+    categoryData[item.category].units += sale.qty || 1;
+    categoryData[item.category].revenue += (sale.price || 0) * (sale.qty || 1);
   });
 
   inv.forEach(item => {
@@ -205,10 +211,10 @@ export function calcVelocityByCategory(inv, sales) {
         items_listed: 0
       };
     }
-    categoryData[item.category].items_listed += item.quantity;
+    categoryData[item.category].items_listed += item.qty || 0;
   });
 
-  const monthsActive = Math.max(1, Math.ceil((new Date() - new Date(sales[0]?.sold_date || Date.now())) / (1000 * 60 * 60 * 24 * 30)));
+  const monthsActive = Math.max(1, Math.ceil((new Date() - new Date(sales[0]?.date || Date.now())) / (1000 * 60 * 60 * 24 * 30)));
 
   return Object.entries(categoryData).map(([category, data]) => ({
     category,
@@ -225,6 +231,7 @@ export function calcVelocityByCategory(inv, sales) {
  * @returns {Array} Array of { day, units_sold, total_profit, avg_profit_per_unit }
  */
 export function calcProfitByDayOfWeek(sales, inv) {
+  const im = _invMap(inv);
   const dayData = {
     0: { name: 'Sunday', units: 0, profit: 0 },
     1: { name: 'Monday', units: 0, profit: 0 },
@@ -236,12 +243,13 @@ export function calcProfitByDayOfWeek(sales, inv) {
   };
 
   sales.forEach(sale => {
-    const item = inv.find(i => i.id === sale.item_id);
-    const date = new Date(sale.sold_date);
+    const item = im.get(sale.itemId);
+    const date = new Date(sale.date);
     const day = date.getDay();
-    const profit = (sale.revenue || 0) - (item ? item.cost * sale.quantity : 0);
+    const revenue = (sale.price || 0) * (sale.qty || 1);
+    const profit = revenue - (item ? (item.cost || 0) * (sale.qty || 1) : 0);
 
-    dayData[day].units += sale.quantity || 1;
+    dayData[day].units += sale.qty || 1;
     dayData[day].profit += profit;
   });
 
@@ -264,9 +272,10 @@ export function calcBestListingDay(sales) {
   };
 
   sales.forEach(sale => {
-    const date = new Date(sale.sold_date);
+    const date = new Date(sale.date);
     const dayListed = new Date(date.getTime() - (Math.random() * 7 * 24 * 60 * 60 * 1000)).getDay();
-    dayPerformance[dayListed] += sale.revenue || 0;
+    const revenue = (sale.price || 0) * (sale.qty || 1);
+    dayPerformance[dayListed] += revenue;
   });
 
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -291,13 +300,13 @@ export function calcRevenueForecasts(sales, daysAhead = 30) {
   const dailyRevenue = {};
 
   sales.forEach(sale => {
-    const date = new Date(sale.sold_date);
+    const date = new Date(sale.date);
     const dayKey = localDate(date);
 
     if (!dailyRevenue[dayKey]) {
       dailyRevenue[dayKey] = 0;
     }
-    dailyRevenue[dayKey] += sale.revenue || 0;
+    dailyRevenue[dayKey] += (sale.price || 0) * (sale.qty || 1);
   });
 
   const revenues = Object.values(dailyRevenue);
@@ -327,17 +336,18 @@ export function calcRevenueForecasts(sales, daysAhead = 30) {
  * @returns {Object} { units_needed, units_already_sold, breakeven_revenue, gap }
  */
 export function calcBreakEvenAnalysis(inv, sales, expenses) {
-  const totalInvested = inv.reduce((sum, item) => sum + (item.cost * item.quantity), 0);
+  const im = _invMap(inv);
+  const totalInvested = inv.reduce((sum, item) => sum + ((item.cost || 0) * (item.qty || 0)), 0);
   const totalExpenses = expenses.total || 0;
   const totalRequired = totalInvested + totalExpenses;
 
-  const unitsSold = sales.reduce((sum, sale) => sum + (sale.quantity || 1), 0);
-  const avgProfit = unitsSold > 0
-    ? (sales.reduce((sum, sale) => sum + (sale.revenue || 0), 0) - sales.reduce((sum, sale) => {
-      const item = inv.find(i => i.id === sale.item_id);
-      return sum + (item ? item.cost * sale.quantity : 0);
-    }, 0)) / unitsSold
-    : 0;
+  const unitsSold = sales.reduce((sum, sale) => sum + (sale.qty || 1), 0);
+  const totalRevenue = sales.reduce((sum, sale) => sum + ((sale.price || 0) * (sale.qty || 1)), 0);
+  const totalCost = sales.reduce((sum, sale) => {
+    const item = im.get(sale.itemId);
+    return sum + (item ? (item.cost || 0) * (sale.qty || 1) : 0);
+  }, 0);
+  const avgProfit = unitsSold > 0 ? (totalRevenue - totalCost) / unitsSold : 0;
 
   const unitsNeeded = avgProfit > 0 ? Math.ceil(totalRequired / avgProfit) : null;
   const gap = unitsNeeded ? Math.max(0, unitsNeeded - unitsSold) : null;

@@ -12,6 +12,9 @@ import { setOfflineUser } from '../features/offline.js';
 import { stopEBaySyncInterval } from '../features/ebay-sync.js';
 import { stopEtsySyncInterval } from '../features/etsy-sync.js';
 import { initTeam, getTeam, getMyRole } from '../features/teams.js';
+import { clearReportTimers } from '../views/reports.js';
+import { stopStockAlertChecks } from '../features/push-notifications.js';
+import { disableAutoRelist } from '../features/crosslist.js';
 
 // ── SUPABASE CLIENT & AUTH STATE ───────────────────────────────────────────
 let _sb = null;
@@ -160,6 +163,11 @@ export async function authSignOut() {
   stopEBaySyncInterval();
   stopEtsySyncInterval();
 
+  // ── STOP LEAKED TIMERS/INTERVALS ────────────────────────────────────────
+  clearReportTimers();
+  stopStockAlertChecks();
+  disableAutoRelist();
+
   _currentUser = null;
   await _sb.auth.signOut();
 
@@ -183,6 +191,12 @@ export async function authSignOut() {
   // ── CLEAR SYNC METADATA FROM INDEXEDDB ────────────────────────────────
   await deleteMeta('lastSyncPush').catch(e => console.warn('FlipTrack: delete lastSyncPush failed:', e.message));
   await deleteMeta('lastSyncPull').catch(e => console.warn('FlipTrack: delete lastSyncPull failed:', e.message));
+
+  // ── CLEAR MARKETPLACE AUTH STATE FROM INDEXEDDB ────────────────────────
+  await deleteMeta('ebay_csrf_state').catch(() => {});
+  await deleteMeta('etsy_csrf_state').catch(() => {});
+  await deleteMeta('ebay_auth').catch(() => {});
+  await deleteMeta('etsy_auth').catch(() => {});
 
   refresh();
   setSyncStatus('disconnected');

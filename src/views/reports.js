@@ -621,6 +621,13 @@ export function undoSaleDeletion() {
   toast('Sale restored ✓');
 }
 
+/** Clear sale deletion timer — call on sign-out to prevent cross-session leaks */
+export function clearReportTimers() {
+  clearTimeout(_deletedSaleTimer);
+  _deletedSaleTimer = null;
+  _deletedSale = null;
+}
+
 async function _commitSaleDeletion() {
   if (!_deletedSale) return;
   const id = _deletedSale.id;

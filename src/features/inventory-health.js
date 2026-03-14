@@ -4,8 +4,8 @@
  * and actionable insights about where money is stuck.
  */
 
-import { inv, sales, getInvItem } from '../data/store.js';
-import { fmt, pct, ds, escHtml, escAttr } from '../utils/format.js';
+import { inv, sales, getInvItem, getSalesForItem } from '../data/store.js';
+import { fmt, pct, ds, escHtml, escAttr, daysSince } from '../utils/format.js';
 
 // ── AGING BUCKETS ─────────────────────────────────────────────────────────
 const AGING_BUCKETS = [
@@ -15,10 +15,8 @@ const AGING_BUCKETS = [
   { label: '90+ days',   max: Infinity, cls: 'age-dead' },
 ];
 
-function _daysSince(dateStr) {
-  if (!dateStr) return 999;
-  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
-}
+// _daysSince consolidated into daysSince() in utils/format.js
+const _daysSince = d => d ? daysSince(d) : 999;
 
 // ── COMPUTE HEALTH METRICS ────────────────────────────────────────────────
 
@@ -44,7 +42,7 @@ export function computeInventoryHealth() {
     if (!catStats[cat]) catStats[cat] = { listed: 0, sold: 0, revenue: 0, cost: 0, totalDays: 0 };
     if (item.sold) {
       catStats[cat].sold++;
-      const sale = allSales.find(s => s.itemId === item.id);
+      const sale = getSalesForItem(item.id)[0];
       if (sale) {
         catStats[cat].revenue += sale.price || 0;
         catStats[cat].totalDays += _daysSince(item.date || item.createdAt);

@@ -97,7 +97,7 @@ export async function generateListing(item, opts = {}) {
 
     const prompt = _buildPrompt(item, platform, tone, opts.includeKeywords !== false);
 
-    console.log('[AI] Invoking anthropic-proxy…', { platform, tone, itemName: item.name });
+    console.log('[AI] Invoking anthropic-proxy…', { platform, tone });
 
     const { data, error } = await _sb.functions.invoke('anthropic-proxy', {
       body: {

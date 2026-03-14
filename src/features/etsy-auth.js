@@ -5,7 +5,7 @@
  * through the Supabase Edge Function `etsy-auth`.
  */
 
-import { localDate } from '../utils/format';
+import { localDate } from '../utils/format.js';
 import { SB_URL, SB_KEY } from '../config/constants.js';
 import { getMeta, setMeta } from '../data/idb.js';
 import { toast } from '../utils/dom.js';

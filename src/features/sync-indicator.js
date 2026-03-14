@@ -3,7 +3,7 @@
  * Shows "Last synced: X ago" near the sync dot + pending changes badge
  */
 
-import { localDate } from '../utils/format';
+import { localDate } from '../utils/format.js';
 import { getDirtyItems } from '../data/store.js';
 
 const STORAGE_KEY = 'ft_last_sync';

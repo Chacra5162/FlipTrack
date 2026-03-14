@@ -6,7 +6,7 @@
  */
 
 import { inv, sales, getInvItem } from '../data/store.js';
-import { fmt, escHtml, escAttr } from '../utils/format.js';
+import { fmt, escHtml, escAttr, daysSince } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 
 // ── THRESHOLD CONFIG ──────────────────────────────────────────────────────
@@ -39,7 +39,7 @@ export function initMarginAlerts() {
 
 // ── SCAN FOR ALERTS ───────────────────────────────────────────────────────
 
-function _daysSince(d) { return d ? Math.floor((Date.now() - new Date(d).getTime()) / 86400000) : 999; }
+const _daysSince = d => d ? daysSince(d) : 999;
 
 export function scanMarginAlerts() {
   const unsold = inv.filter(i => !i.sold && !i.deleted);

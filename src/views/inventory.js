@@ -34,11 +34,10 @@ let _filterCache = { key: null, items: null };
 
 /** Calculate days since item was listed */
 export function daysListed(item) {
-  if (!item.added) return 0;
-  return Math.floor((Date.now() - new Date(item.added).getTime()) / 86400000);
+  return daysSince(item.added);
 }
 
-import { fmt, pct, escHtml, escAttr, debounce, uid, localDate} from '../utils/format.js';
+import { fmt, pct, escHtml, escAttr, debounce, uid, localDate, daysSince} from '../utils/format.js';
 import { PLATFORMS, PLATFORM_GROUPS, platCls } from '../config/platforms.js';
 import { SUBCATS, SUBSUBCATS } from '../config/categories.js';
 import { toast } from '../utils/dom.js';
@@ -380,16 +379,18 @@ export function renderInv() {
     const bp=Math.min(100,((item.qty||0)/maxQ)*100);
     const isSel=sel.has(item.id);
     const eid = escAttr(item.id);
+    const _imgs = getItemImages(item);
+    const _img0 = _imgs[0];
     return `<tr data-id="${eid}" class="${isSel?'sel':''}">
       <td class="cb-col"><input type="checkbox" ${isSel?'checked':''} onchange="toggleSel('${eid}',this)"></td>
       <td><span class="drag-handle" draggable="true" ondragstart="dStart(event,'${eid}')" ondragover="dOver(event)" ondrop="dDrop(event,'${eid}')">⠿</span></td>
-      <td>${(getItemImages(item)[0])
-        ? `<img class="item-thumb" loading="lazy" src="${getItemImages(item)[0]}" alt="${escHtml(item.name)}" onclick="openLightbox('${eid}')">`
+      <td>${_img0
+        ? `<img class="item-thumb" loading="lazy" src="${escAttr(_img0)}" alt="${escHtml(item.name)}" onclick="openLightbox('${eid}')">`
         : `<div class="item-thumb-placeholder" title="Add photo" onclick="openDrawer('${eid}')">＋</div>`
       }</td>
       <td>
-        <div class="item-name-row">${(getItemImages(item)[0])
-          ? `<img class="item-thumb-inline" loading="lazy" src="${getItemImages(item)[0]}" alt="" onclick="event.stopPropagation();openLightbox('${eid}')">`
+        <div class="item-name-row">${_img0
+          ? `<img class="item-thumb-inline" loading="lazy" src="${escAttr(_img0)}" alt="" onclick="event.stopPropagation();openLightbox('${eid}')">`
           : ''}<div class="item-name" onclick="openDrawer('${eid}')">${escHtml(item.name)}</div></div>
         <div class="item-meta"><span class="item-sku">${escHtml(item.sku||'—')}</span>${item.upc?`<span class="upc-tag">${escHtml(item.upc)}</span>`:''}${item.category?`<span class="cat-tag">${escHtml(item.category)}</span>`:''} ${item.subcategory?`<span class="cat-tag" style="background:rgba(87,200,255,0.1);color:var(--accent)">${escHtml(item.subcategory)}</span>`:''} ${item.subtype?`<span class="cat-tag" style="background:rgba(123,97,255,0.15);color:var(--accent3)">${escHtml(item.subtype)}</span>`:''} ${item.condition?`<span class="cat-tag" style="background:rgba(87,255,154,0.08);color:var(--good)">${escHtml(item.condition)}</span>`:''} ${item.source?`<span class="cat-tag" style="background:rgba(255,107,53,0.1);color:var(--accent2)">📍${escHtml(item.source)}</span>`:''}${item.author?`<span class="book-meta-tag">✍ ${escHtml(item.author)}</span>`:''}${item.edition?`<span class="book-meta-tag">${escHtml(item.edition)} ed.</span>`:''}${item.signed?`<span class="book-meta-tag" style="background:rgba(255,215,0,0.15);color:#d4a017;border-color:rgba(255,215,0,0.3)">✒ Signed</span>`:''}</div>
       </td>
@@ -407,8 +408,8 @@ export function renderInv() {
       <td style="color:var(--muted)">${fmt(cost)}</td>
       <td><span class="price-disp" title="Click to edit inline" onclick="startPriceEdit(this,'${eid}')">${fmt(price)}</span></td>
       <td><span class="margin-badge ${margCls(m)}">${pct(m)}</span></td>
-      <td class="days-col"><span class="days-badge${daysListed(item)>=60?' stale':daysListed(item)>=30?' aging':''}" title="Listed ${daysListed(item)} days">${daysListed(item)}d</span></td>
-      <td class="photos-col">${(()=>{const imgs=getItemImages(item);const cnt=imgs.length;return cnt?`<span class="photo-count-badge" title="${cnt} photo${cnt>1?'s':''}">${cnt} 📷</span>`:`<span class="photo-count-badge empty" title="No photos">0</span>`;})()}</td>
+      <td class="days-col">${(()=>{const _dl=daysListed(item);return `<span class="days-badge${_dl>=60?' stale':_dl>=30?' aging':''}" title="Listed ${_dl} days">${_dl}d</span>`;})()}</td>
+      <td class="photos-col">${_imgs.length?`<span class="photo-count-badge" title="${_imgs.length} photo${_imgs.length>1?'s':''}">${_imgs.length} 📷</span>`:`<span class="photo-count-badge empty" title="No photos">0</span>`}</td>
       <td><div class="td-acts">
         ${item.qty>0?`<button class="act-btn" onclick="openSoldModal('${eid}')">Sold ›</button>`:`<span class="out-badge">Out</span>`}
         <button class="act-btn" onclick="openDrawer('${eid}')">Edit</button>

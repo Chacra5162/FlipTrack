@@ -8,10 +8,13 @@ import { getPlatforms } from './platforms.js';
 import { calc } from '../data/store.js';
 import { autoSync } from '../data/sync.js';
 
+/** Neutralize spreadsheet formula injection — prefix cells starting with =, +, -, @ */
+const _sanitizeCell = v => { const s = String(v); return /^[=+\-@]/.test(s) ? "'" + s : s; };
+
 export function exportCSV(){
   const rows=[['Name','SKU','UPC','Category','Subcategory','Source','Condition','Platforms','Qty','Cost','Price','Fees','Ship','Margin','Notes','Added','ISBN','Author','Publisher','Edition','Printing','Year','Signed','Sales Rank']];
   for(const i of inv){const {m}=calc(i);rows.push([i.name,i.sku||'',i.upc||'',i.category||'',i.subcategory||'',i.source||'',i.condition||'',getPlatforms(i).join(';'),i.qty,i.cost,i.price,i.fees||0,i.ship||0,pct(m),i.notes||'',i.added||'',i.isbn||'',i.author||'',i.publisher||'',i.edition||'',i.printing||'',i.pubYear||'',i.signed?'Yes':'',i.salesRank||'']);}
-  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const csv=rows.map(r=>r.map(v=>`"${_sanitizeCell(String(v)).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='fliptrack-inventory.csv';a.click();toast('Inventory CSV exported ✓');
 }
 
@@ -22,7 +25,7 @@ export function exportSalesCSV() {
     const pr = (s.price||0)*(s.qty||0) - (it?(it.cost||0)*(s.qty||0):0) - (s.fees||0) - (s.ship||0);
     rows.push([s.date, it?it.name:'Deleted Item', it?it.sku:'', s.platform||'', s.qty, s.price, s.listPrice||'', s.fees||0, s.ship||0, pr.toFixed(2)]);
   }
-  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const csv=rows.map(r=>r.map(v=>`"${_sanitizeCell(String(v)).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='fliptrack-sales.csv';a.click();toast('Sales CSV exported ✓');
 }
 
@@ -31,7 +34,7 @@ export function exportExpensesCSV() {
   for (const e of expenses) {
     rows.push([e.date, e.category, e.description, e.amount]);
   }
-  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const csv=rows.map(r=>r.map(v=>`"${_sanitizeCell(String(v)).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='fliptrack-expenses.csv';a.click();toast('Expenses CSV exported ✓');
 }
 
@@ -252,7 +255,7 @@ function _showColumnMapper(headers, autoColMap, lines, parseRow, aliases) {
       if (idx === col) { mappedField = field; break; }
     }
     html += `<tr>
-      <td style="font-weight:600;font-size:12px">${originalHeaders[col] || 'Column ' + (col+1)}</td>
+      <td style="font-weight:600;font-size:12px">${escHtml(originalHeaders[col] || 'Column ' + (col+1))}</td>
       <td style="font-size:11px;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escAttr(sample)}">${escHtml(sample) || '—'}</td>
       <td><select class="csv-map-select" data-col="${col}">
         <option value="">— Skip —</option>

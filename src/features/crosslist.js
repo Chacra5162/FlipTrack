@@ -4,7 +4,7 @@
  * expired/expiring listing detection, and listing health scoring.
  */
 
-import { localDate } from '../utils/format';
+import { localDate } from '../utils/format.js';
 import { inv, save, refresh, markDirty } from '../data/store.js';
 import { toast } from '../utils/dom.js';
 import { getPlatforms } from './platforms.js';

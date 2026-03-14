@@ -1,4 +1,4 @@
-import { inv, sales, getInvItem, calc, sc, margCls, mkc, save, refresh, markDirty } from '../data/store.js';
+import { inv, sales, getInvItem, getSalesForItem, calc, sc, margCls, mkc, save, refresh, markDirty } from '../data/store.js';
 import { fmt, pct, ds, escHtml, escAttr, localDate} from '../utils/format.js';
 import { getPlatforms, renderPlatTags } from '../features/platforms.js';
 import { toast } from '../utils/dom.js';
@@ -61,7 +61,7 @@ export function updateStats() {
   const daysArr = [];
   for (const it of inv) {
     if (!it.added) continue;
-    const itemSales = sales.filter(s => s.itemId === it.id);
+    const itemSales = getSalesForItem(it.id);
     if (!itemSales.length) continue;
     const saleDates = itemSales.map(s => new Date(s.date).getTime()).filter(t => !isNaN(t));
     if (!saleDates.length) continue;
@@ -112,7 +112,7 @@ export function updatePlatBreakdown() {
   if(!entries.length){el.innerHTML='<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">Record your first sale to see revenue breakdown by platform</div><button class="empty-state-cta" onclick="switchView(\'sales\',document.querySelectorAll(\'.nav-tab\')[3])">Go to Sales →</button></div>';return;}
   el.innerHTML=entries.map(([n,v])=>`
     <div class="plat-row">
-      <span class="plat-name">${n}</span>
+      <span class="plat-name">${escHtml(n)}</span>
       <div class="plat-bw"><div class="plat-bar"><div class="plat-fill" style="width:${total?v/total*100:0}%;background:${colors[n]||'#57c8ff'}"></div></div></div>
       <span class="plat-val">${fmt(v)}</span>
     </div>`).join('');
@@ -125,7 +125,7 @@ export function updateSalesLog() {
   const colors=['#57c8ff','#ff6b35','#7b61ff','#57ff9a','#ffb800'];
   el.innerHTML=[...sales].reverse().slice(0,8).map((s,i)=>{
     const it=inv.find(x=>x.id===s.itemId);
-    const nm=it?it.name:'Unknown';
+    const nm=it?escHtml(it.name):'Unknown';
     const pr=(s.price||0)*(s.qty||0)-(it?(it.cost||0)*(s.qty||0):0)-(s.fees||0)-(s.ship||0);
     return `<div class="sale-item">
       <div class="sale-dot" style="background:${colors[i%5]}"></div>

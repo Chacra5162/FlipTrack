@@ -19,11 +19,14 @@ export const ds = d => {
 // Local date string (YYYY-MM-DD) — avoids UTC timezone shift from toISOString()
 export const localDate = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
-// HTML escape
-export const escHtml = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
+// HTML escape (pure string — no DOM allocation)
+export const escHtml = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 // HTML attribute escape (for values inside onclick="..." etc.)
 export const escAttr = s => String(s || '').replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+// Days since a date string (or 0 if falsy) — shared utility for aging/stale calculations
+export const daysSince = d => d ? Math.floor((Date.now() - new Date(d).getTime()) / 86400000) : 0;
 
 // Debounce utility
 export const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };

@@ -1,4 +1,4 @@
-import { inv, sales, expenses, getInvItem } from '../data/store.js';
+import { inv, sales, expenses, getInvItem, getSalesForItem } from '../data/store.js';
 import { fmt, pct, ds, escHtml, escAttr } from '../utils/format.js';
 import { getPlatforms } from '../features/platforms.js';
 
@@ -31,7 +31,7 @@ export function renderInsights() {
 
   // ── Per-item stats ────────────────────────────────────────────────────────
   const itemStats = inv.map(item => {
-    const itemSales = sales.filter(s => s.itemId === item.id);
+    const itemSales = getSalesForItem(item.id);
     const revenue   = itemSales.reduce((a,s) => a + (s.price||0)*(s.qty||0), 0);
     const unitsSold = itemSales.reduce((a,s) => a + (s.qty||0), 0);
     const profit    = itemSales.reduce((a,s) => a + (s.price||0)*(s.qty||0) - (item.cost||0)*(s.qty||0) - (s.fees||0) - (s.ship||0), 0);
@@ -134,7 +134,7 @@ export function renderInsights() {
 
   // ── Sell-Through Rate calc (needed for KPIs) ─────────────────────────────
   const totalUnitsAdded = inv.reduce((a, i) => {
-    const iSales = sales.filter(s => s.itemId === i.id);
+    const iSales = getSalesForItem(i.id);
     const sold = iSales.reduce((t, s) => t + (s.qty || 0), 0);
     return a + (i.qty || 0) + sold;
   }, 0);
@@ -291,7 +291,7 @@ export function renderInsights() {
   // Category ROI
   const catROI = Object.entries(catMap).map(([cat, d]) => {
     const catCost = inv.filter(i => (i.category || 'Uncategorized').toLowerCase() === cat.toLowerCase())
-      .reduce((a, i) => a + (i.cost || 0) * ((i.qty || 0) + sales.filter(s => s.itemId === i.id).reduce((t, s) => t + (s.qty || 0), 0)), 0);
+      .reduce((a, i) => a + (i.cost || 0) * ((i.qty || 0) + getSalesForItem(i.id).reduce((t, s) => t + (s.qty || 0), 0)), 0);
     const roi = catCost > 0 ? d.profit / catCost : 0;
     return { name: cat, profit: d.profit, cost: catCost, roi, units: d.units };
   }).filter(r => r.units > 0).sort((a, b) => b.roi - a.roi).slice(0, 5);
@@ -305,10 +305,10 @@ export function renderInsights() {
   // Platform ROI
   const platROI = Object.entries(platMap).map(([plat, d]) => {
     const platCost = sales.filter(s => {
-      const it = inv.find(i => i.id === s.itemId);
+      const it = getInvItem(s.itemId);
       return (s.platform || (it ? it.platform || 'Other' : 'Other')) === plat;
     }).reduce((a, s) => {
-      const it = inv.find(i => i.id === s.itemId);
+      const it = getInvItem(s.itemId);
       return a + (it ? (it.cost || 0) * (s.qty || 0) : 0);
     }, 0);
     const platProfit = d.revenue - platCost;

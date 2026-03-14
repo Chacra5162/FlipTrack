@@ -35,9 +35,9 @@ export function setSyncInProgress(val) {
 /** Get and reset dirty sets for sync */
 export function getDirtyItems() {
   const result = {
-    inv: [..._dirtyInv].map(id => _invIndex[id] || inv.find(i => i.id === id)).filter(Boolean),
-    sales: [..._dirtySales].map(id => sales.find(s => s.id === id)).filter(Boolean),
-    expenses: [..._dirtyExp].map(id => expenses.find(e => e.id === id)).filter(Boolean),
+    inv: [..._dirtyInv].map(id => _invIndex[id]).filter(Boolean),
+    sales: [..._dirtySales].map(id => _salesIndex[id]).filter(Boolean),
+    expenses: [..._dirtyExp].map(id => _expIndex[id]).filter(Boolean),
     deleted: {
       ft_inventory: [..._deletedIds.ft_inventory],
       ft_sales: [..._deletedIds.ft_sales],
@@ -69,18 +69,16 @@ export function markDirty(table, id) {
   }
   else if (table === 'sales') {
     _dirtySales.add(id);
-    const s = sales.find(x => x.id === id);
+    const s = _salesIndex[id];
     if (s) s._localUpdatedAt = now;
   }
   else if (table === 'expenses') {
     _dirtyExp.add(id);
-    const e = expenses.find(x => x.id === id);
+    const e = _expIndex[id];
     if (e) e._localUpdatedAt = now;
   }
   else if (table === 'supplies') {
     _dirtySupplies.add(id);
-    const sp = supplies.find(x => x.id === id);
-    if (sp) sp._localUpdatedAt = now;
   }
 }
 
@@ -92,12 +90,30 @@ export function markDeleted(table, id) {
 // ── PERFORMANCE: Inventory index for O(1) lookups ─────────────────────────
 let _invIndex = {};
 
+// ── PERFORMANCE: Sales-by-item-ID index for O(1) lookups ──────────────────
+let _salesByItemId = new Map();
+
+/** Rebuild all indexes. Called by save() and refresh(). */
 export function rebuildInvIndex() {
   _invIndex = Object.fromEntries(inv.map(i => [i.id, i]));
+  // Rebuild both sales indexes in a single pass
+  _salesByItemId = new Map();
+  _salesIndex = {};
+  for (const s of sales) {
+    _salesIndex[s.id] = s;
+    if (!_salesByItemId.has(s.itemId)) _salesByItemId.set(s.itemId, []);
+    _salesByItemId.get(s.itemId).push(s);
+  }
+  _expIndex = Object.fromEntries(expenses.map(e => [e.id, e]));
 }
 
 export function getInvItem(id) {
   return _invIndex[id] || null;
+}
+
+/** Get all sales for an item by ID — O(1) lookup */
+export function getSalesForItem(id) {
+  return _salesByItemId.get(id) || [];
 }
 
 // ── PERFORMANCE: Computation cache (dirty flag pattern) ───────────────────
@@ -237,8 +253,8 @@ export const save = () => {
   // Synchronous IDB write (fire-and-forget, batched)
   _schedulePersist();
 
-  // Still write to localStorage as backup (quick, synchronous)
-  _saveToLocalStorage();
+  // Write to localStorage as backup (debounced to avoid blocking main thread)
+  _scheduleLSSave();
 
   // Only trigger auto-sync if save succeeded AND no sync already in progress
   if (_lastSaveOk && !_syncInProgress) autoSync();
@@ -247,10 +263,17 @@ export const save = () => {
 /** Debounced persist to IndexedDB (batches rapid saves) */
 function _schedulePersist() {
   clearTimeout(_saveDebounce);
+  // Set promise immediately so waitForPersist() awaits the pending write
+  if (!_pendingPersistResolve) {
+    _persistPromise = new Promise(r => { _pendingPersistResolve = r; });
+  }
   _saveDebounce = setTimeout(() => {
-    _persistPromise = _persistPromise.then(() => _persistToIDB()).catch(e => { console.warn('FlipTrack: IDB persist chain error:', e.message); });
+    const resolve = _pendingPersistResolve;
+    _pendingPersistResolve = null;
+    _persistToIDB().then(resolve).catch(e => { console.warn('FlipTrack: IDB persist chain error:', e.message); resolve(); });
   }, 200);
 }
+let _pendingPersistResolve = null;
 
 /** Write all data to IndexedDB */
 async function _persistToIDB() {
@@ -276,6 +299,14 @@ export function waitForPersist() {
 export function clearStoreTimers() {
   clearTimeout(_saveDebounce);
   _saveDebounce = null;
+  clearTimeout(_lsDebounce);
+  _lsDebounce = null;
+}
+
+let _lsDebounce = null;
+function _scheduleLSSave() {
+  clearTimeout(_lsDebounce);
+  _lsDebounce = setTimeout(_saveToLocalStorage, 500);
 }
 
 /** Write to localStorage as backup */
