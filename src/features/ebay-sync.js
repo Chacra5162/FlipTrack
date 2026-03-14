@@ -552,6 +552,14 @@ function _parseMissingAspects(msg) {
   const re = /item specific (\w[\w\s/&'-]*?) is missing/gi;
   let m;
   while ((m = re.exec(msg)) !== null) names.push(m[1].trim());
+  // eBay also uses "Input data for tag <X> is invalid or missing" format
+  const re2 = /tag <(\w+)> is invalid or missing/gi;
+  while ((m = re2.exec(msg)) !== null) {
+    const tag = m[1].trim();
+    // BrandMPN is a combined tag — ensure both Brand and MPN are present
+    if (tag === 'BrandMPN') { names.push('Brand'); names.push('MPN'); }
+    else names.push(tag);
+  }
   return names;
 }
 
