@@ -381,9 +381,11 @@
   background: var(--surface2);
   border: 1px solid var(--border);
   min-width: 180px;
-  max-height: calc(100dvh - 60px - env(safe-area-inset-bottom) - env(safe-area-inset-top) - 16px);
+  max-height: calc(100vh - 60px - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 44px) - 16px);
+  max-height: calc(100dvh - 60px - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 44px) - 16px);
   overflow-y: auto;
   overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   z-index: 500;
   box-shadow: 0 -4px 24px rgba(0,0,0,0.4);
   animation: slideIn 0.18s ease;
