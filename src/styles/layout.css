@@ -7,8 +7,7 @@ header {
     padding-top: calc(18px + env(safe-area-inset-top));
   }
   border-bottom: 1px solid var(--border);
-  background: rgba(10,10,15,0.9);
-  backdrop-filter: blur(16px);
+  background: rgba(10,10,15,0.97);
   position: sticky;
   top: 0;
   z-index: 200;

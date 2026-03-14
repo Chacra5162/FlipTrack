@@ -37,6 +37,10 @@ body::after {
   .stat-card, .panel { animation: none !important; }
   * { transition-duration: 0.01ms !important; }
 }
+/* Disable expensive ambient animation on mobile/tablet */
+@media (max-width: 820px) {
+  body::after { animation: none; opacity: 0.5; }
+}
 
 /* ── Logo — neon glow ── */
 .logo span {
