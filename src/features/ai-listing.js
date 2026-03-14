@@ -77,6 +77,13 @@ export function initAIListing(supabaseClient) {
  */
 export async function generateListing(item, opts = {}) {
   if (_generating) throw new Error('Already generating — please wait');
+  // Self-heal: grab Supabase client if initAIListing missed it
+  if (!_sb) {
+    try {
+      const { getSupabaseClient } = await import('../data/auth.js');
+      _sb = getSupabaseClient();
+    } catch (_) {}
+  }
   if (!_sb) throw new Error('Sign in to use AI features');
 
   // Ensure we have a fresh session token before calling the Edge Function
