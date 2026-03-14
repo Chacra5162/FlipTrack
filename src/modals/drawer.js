@@ -184,28 +184,34 @@ export function openDrawer(id) {
     loadBookFields('d', item);
     loadCoverSlider('d', item.coverType || null);
   }
-  if (window.renderDrawerImg) window.renderDrawerImg(item.id);
-  renderDrawerBarcode(item);
-  loadDimsToForm('d', item);
-  suggestPackaging('d');
-  // Populate shipping summary
-  const shipSummary = document.getElementById('d_ship_summary');
-  if (shipSummary) {
-    const dims = [];
-    const wMaj = parseFloat(item.weightMaj) || 0;
-    const wMin = parseFloat(item.weightMin) || 0;
-    if (wMaj || wMin) {
-      const wLabel = item.dimUnit === 'cm' ? `${wMaj} kg ${wMin} g` : `${wMaj} lb ${wMin} oz`;
-      dims.push(wLabel);
-    }
-    if (item.dimL && item.dimW && item.dimH) dims.push(`${item.dimL}×${item.dimW}×${item.dimH} ${item.dimUnit || 'in'}`);
-    shipSummary.textContent = dims.length ? `Package: ${dims.join(' · ')}` : 'Add dimensions above to see package info';
-  }
-  const sh=document.getElementById('dHistory');
-  sh.innerHTML = renderItemTimeline(id);
+
+  // Show drawer immediately, defer heavy operations to after animation
   document.getElementById('drawerOv').classList.add('on');
   document.getElementById('drawer').classList.add('on');
-  setTimeout(() => trapFocus('#drawer'), 100);
+
+  // Defer non-critical rendering to avoid blocking the drawer animation
+  requestAnimationFrame(() => {
+    if (window.renderDrawerImg) window.renderDrawerImg(item.id);
+    renderDrawerBarcode(item);
+    loadDimsToForm('d', item);
+    suggestPackaging('d');
+    // Populate shipping summary
+    const shipSummary = document.getElementById('d_ship_summary');
+    if (shipSummary) {
+      const dims = [];
+      const wMaj = parseFloat(item.weightMaj) || 0;
+      const wMin = parseFloat(item.weightMin) || 0;
+      if (wMaj || wMin) {
+        const wLabel = item.dimUnit === 'cm' ? `${wMaj} kg ${wMin} g` : `${wMaj} lb ${wMin} oz`;
+        dims.push(wLabel);
+      }
+      if (item.dimL && item.dimW && item.dimH) dims.push(`${item.dimL}×${item.dimW}×${item.dimH} ${item.dimUnit || 'in'}`);
+      shipSummary.textContent = dims.length ? `Package: ${dims.join(' · ')}` : 'Add dimensions above to see package info';
+    }
+    const sh=document.getElementById('dHistory');
+    sh.innerHTML = renderItemTimeline(id);
+    trapFocus('#drawer');
+  });
 }
 
 export function drawerTab(name, btn) {
