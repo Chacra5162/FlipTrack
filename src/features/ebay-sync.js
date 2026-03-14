@@ -1098,7 +1098,20 @@ export async function publishEBayListing(itemId, options = {}) {
   // Generate AI description if user left it blank
   await _ensureDescription(item);
 
-  // Re-push inventory item to ensure latest aspects AND valid condition are on eBay
+  // Delete existing stale inventory item and re-create with correct brand/mpn
+  try {
+    console.log('[eBay] Deleting stale inventory item to re-create with brand/mpn');
+    // Delete any existing offers first (eBay won't delete inventory items with offers)
+    try {
+      const existingOffers = await ebayAPI('GET', `${INVENTORY_API}/offer?sku=${encodeURIComponent(sku)}`);
+      for (const o of (existingOffers?.offers || [])) {
+        await ebayAPI('DELETE', `${INVENTORY_API}/offer/${o.offerId}`);
+      }
+    } catch (_) {}
+    try { await ebayAPI('DELETE', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`); } catch (_) {}
+  } catch (_) {}
+
+  // Push fresh inventory item with all required fields
   try {
     const invPayload = _buildInventoryPayload(item);
     invPayload.condition = String(validEnum); // use validated condition
@@ -1106,19 +1119,21 @@ export async function publishEBayListing(itemId, options = {}) {
     if (invPayload.product?.aspects) {
       await _fillMissingAspects(invPayload.product.aspects, categoryId, item);
     }
-    console.log('[eBay] Re-pushing inventory item with validated condition:', validEnum);
+    console.log('[eBay] Pushing fresh inventory item with validated condition:', validEnum);
     await _putInventoryWithRetry(sku, invPayload, item);
-    console.log('[eBay] Inventory re-push succeeded');
+    console.log('[eBay] Inventory push succeeded');
   } catch (invErr) {
-    console.warn('[eBay] Full re-push failed:', invErr.message, '— trying aspect-only patch');
+    console.warn('[eBay] Full push failed:', invErr.message, '— trying aspect-only patch');
     try {
       const existing = await ebayAPI('GET', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`);
       const aspects = _buildAspects(item);
       await _fillMissingAspects(aspects, categoryId, item);
       if (!existing.product) existing.product = {};
       existing.product.aspects = { ...(existing.product.aspects || {}), ...aspects };
+      existing.product.brand = item.brand || 'Unbranded';
+      existing.product.mpn = item.mpn || 'Does Not Apply';
       existing.condition = String(validEnum); // fix condition on existing item too
-      console.log('[eBay] Patching aspects + condition on existing inventory item');
+      console.log('[eBay] Patching aspects + brand/mpn + condition on existing inventory item');
       await ebayAPI('PUT', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`, existing);
       console.log('[eBay] Aspect patch succeeded');
     } catch (patchErr) {
@@ -1221,7 +1236,9 @@ export async function publishEBayListing(itemId, options = {}) {
       const existing = await ebayAPI('GET', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`);
       if (!existing.product) existing.product = {};
       if (!existing.product.aspects) existing.product.aspects = {};
-      // Force-set Brand and MPN from local item data
+      // Force-set Brand and MPN at both product level and aspects level
+      existing.product.brand = item.brand || 'Unbranded';
+      existing.product.mpn = item.mpn || 'Does Not Apply';
       existing.product.aspects['Brand'] = [item.brand || 'Unbranded'];
       existing.product.aspects['MPN'] = [item.mpn || 'Does Not Apply'];
       for (const name of missing) {
@@ -1230,7 +1247,7 @@ export async function publishEBayListing(itemId, options = {}) {
         const defaultFn = _ASPECT_DEFAULTS[name.toLowerCase()];
         existing.product.aspects[name] = [defaultFn ? String(defaultFn(item)) : 'Does Not Apply'];
       }
-      console.log('[eBay] Patching inventory item with aspects:', JSON.stringify(existing.product.aspects));
+      console.log('[eBay] Patching inventory item with brand/mpn + aspects:', JSON.stringify(existing.product.aspects));
       await ebayAPI('PUT', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`, existing);
       publishResp = await ebayAPI('POST', `${INVENTORY_API}/offer/${offerId}/publish`);
     }
