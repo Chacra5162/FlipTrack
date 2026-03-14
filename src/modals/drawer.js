@@ -280,9 +280,9 @@ export function renderListingStatus(item) {
     // eBay-specific action buttons
     const needsEbayPush = p === 'eBay' && !item.ebayItemId && isEBayConnected();
     const needsEbayPublish = p === 'eBay' && item.ebayItemId && !item.ebayListingId && isEBayConnected();
-    // AI Copy for platforms without direct API
+    // AI Copy for platforms without direct API, or API platforms when not connected
     const noApiPlats = ['Poshmark','Mercari','Depop','Grailed','Facebook Marketplace','StockX','GOAT','Vinted'];
-    const isNoApi = noApiPlats.includes(p);
+    const showAICopy = noApiPlats.includes(p) || (p === 'eBay' && !isEBayConnected());
     const hasCached = item.crosslistCache?.[p];
     return `<div class="ls-badge-enhanced" data-status="${st}" data-plat="${escHtml(p)}">
       <div class="ls-badge-top">
@@ -296,7 +296,7 @@ export function renderListingStatus(item) {
         <div class="ls-badge-actions">
           ${needsEbayPush ? `<button class="btn-xs btn-accent" onclick="clPushToEBay('${escAttr(item.id)}')">List on eBay</button>` : ''}
           ${needsEbayPublish ? `<button class="btn-xs btn-accent" onclick="clPublishOnEBay('${escAttr(item.id)}')">Publish</button>` : ''}
-          ${isNoApi ? `<button class="btn-xs btn-accent" onclick="clAICopy('${escAttr(item.id)}','${escAttr(p)}')">${hasCached ? '📋 Copy' : '✨ AI Copy'}</button>` : ''}
+          ${showAICopy ? `<button class="btn-xs btn-accent" onclick="clAICopy('${escAttr(item.id)}','${escAttr(p)}')">${hasCached ? '📋 Copy' : '✨ AI Copy'}</button>` : ''}
           ${isExpiredOrDelisted ? `<button class="btn-xs btn-accent" onclick="clRelistFromDrawer('${escAttr(item.id)}','${escAttr(p)}')">Relist</button>` : ''}
           <button class="btn-xs" onclick="clOpenLink('${escAttr(p)}','${escAttr(item.id)}')" title="Open on ${escHtml(p)}">↗</button>
           <button class="btn-xs" onclick="clCopyListing('${escAttr(item.id)}')" title="Copy listing text">📋</button>

@@ -362,9 +362,9 @@ function renderMatrixTab(inStock) {
       const ebayStatusLabel = needsEbayPush ? 'Not on eBay yet'
         : needsEbayPublish ? 'Draft — not published'
         : (STATUS_LABELS[st] || st);
-      // Platforms without direct API get an "AI Copy" button for smart crosslisting
+      // AI Copy for platforms without direct API, or API platforms when not connected
       const noApiPlats = ['Poshmark','Mercari','Depop','Grailed','Facebook Marketplace','StockX','GOAT','Vinted'];
-      const isNoApi = noApiPlats.includes(p);
+      const showAICopy = noApiPlats.includes(p) || (p === 'eBay' && !isEBayConnected());
       const hasCached = item.crosslistCache?.[p];
 
       html += `<div class="cl-plat-row">
@@ -377,7 +377,7 @@ function renderMatrixTab(inStock) {
           <div class="cl-plat-actions">
             ${needsEbayPush ? `<button class="btn-xs btn-accent" onclick="clPushToEBay('${escAttr(item.id)}')">List on eBay</button>` : ''}
             ${needsEbayPublish ? `<button class="btn-xs btn-accent" onclick="clPublishOnEBay('${escAttr(item.id)}')">Publish</button>` : ''}
-            ${isNoApi ? `<button class="btn-xs btn-accent" onclick="clAICopy('${escAttr(item.id)}','${escAttr(p)}')" title="Generate AI listing optimized for ${escHtml(p)} and copy to clipboard">✨ ${hasCached ? 'Copy' : 'AI Copy'}</button>` : ''}
+            ${showAICopy ? `<button class="btn-xs btn-accent" onclick="clAICopy('${escAttr(item.id)}','${escAttr(p)}')" title="Generate AI listing optimized for ${escHtml(p)} and copy to clipboard">✨ ${hasCached ? 'Copy' : 'AI Copy'}</button>` : ''}
             <button class="btn-xs" onclick="clCycleStatus('${escAttr(item.id)}','${escAttr(p)}')" title="Change status">⟳</button>
             <button class="btn-xs" onclick="clCopyListing('${escAttr(item.id)}')" title="Copy listing text">📋</button>
             <button class="btn-xs" onclick="clOpenLink('${escAttr(p)}','${escAttr(item.id)}')" title="Open platform">↗</button>

@@ -1217,17 +1217,22 @@ export async function publishEBayListing(itemId, options = {}) {
     } catch (pubErr) {
       const missing = _parseMissingAspects(pubErr.message || '');
       if (missing.length === 0) throw pubErr;
-      // Patch inventory item with missing aspects and retry publish
-      console.log('[eBay] Publish failed — missing aspects:', missing.join(', '), '— patching and retrying');
-      const invPayload = _buildInventoryPayload(item);
-      if (!invPayload.product) invPayload.product = {};
-      if (!invPayload.product.aspects) invPayload.product.aspects = {};
+      // Fetch existing inventory item from eBay and patch aspects directly
+      console.log('[eBay] Publish failed — missing aspects:', missing.join(', '), '— fetching existing item and patching');
+      const existing = await ebayAPI('GET', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`);
+      if (!existing.product) existing.product = {};
+      if (!existing.product.aspects) existing.product.aspects = {};
+      // Force-set Brand and MPN from local item data
+      existing.product.aspects['Brand'] = [item.brand || 'Unbranded'];
+      existing.product.aspects['MPN'] = [item.mpn || 'Does Not Apply'];
       for (const name of missing) {
-        if (invPayload.product.aspects[name]) continue;
+        if (name === 'Brand' || name === 'MPN') continue; // already handled
+        if (existing.product.aspects[name]) continue;
         const defaultFn = _ASPECT_DEFAULTS[name.toLowerCase()];
-        invPayload.product.aspects[name] = [defaultFn ? String(defaultFn(item)) : 'Does Not Apply'];
+        existing.product.aspects[name] = [defaultFn ? String(defaultFn(item)) : 'Does Not Apply'];
       }
-      await ebayAPI('PUT', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`, invPayload);
+      console.log('[eBay] Patching inventory item with aspects:', JSON.stringify(existing.product.aspects));
+      await ebayAPI('PUT', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`, existing);
       publishResp = await ebayAPI('POST', `${INVENTORY_API}/offer/${offerId}/publish`);
     }
     const listingId = publishResp.listingId;
