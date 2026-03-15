@@ -6,16 +6,18 @@
  * Uses the ebay-auth.js proxy for all API calls.
  */
 
-import { inv, save, refresh, markDirty, getInvItem } from '../data/store.js';
+import { inv, sales, save, refresh, markDirty, getInvItem } from '../data/store.js';
 import { ebayAPI, isEBayConnected } from './ebay-auth.js';
 import { markPlatformStatus, setListingDate } from './crosslist.js';
 import { autoDlistOnSale } from './crosslist.js';
 import { logSalePrice, logPriceChange } from './price-history.js';
+import { logReturn } from './returns.js';
 import { toast } from '../utils/dom.js';
 import { getMeta, setMeta } from '../data/idb.js';
 import { escHtml, localDate} from '../utils/format.js';
 import { generateListing } from './ai-listing.js';
 import { addNotification } from './notification-center.js';
+import { sendNotification } from './push-notifications.js';
 import { sfx } from '../utils/sfx.js';
 
 // ── CONSTANTS ──────────────────────────────────────────────────────────────
@@ -52,23 +54,44 @@ let _policiesCache = null;
 let _locationKeyCache = null;
 let _aspectsCache = {};  // categoryId → { required: [...], timestamp }
 let _orderSyncErrorLogged = false; // throttle repeated order-sync warnings
+let _processedReturnIds = new Set(); // avoid duplicate return/cancel notifications
+let _returnCheckInterval = null;
+const RETURN_CHECK_WINDOW = 30 * 86400000; // 30 days
 
 // ── INITIALIZATION ─────────────────────────────────────────────────────────
 
 export async function initEBaySync() {
   _lastSyncTime = await getMeta('ebay_last_sync');
+  try {
+    const ids = await getMeta('ebay_processed_returns');
+    if (ids) _processedReturnIds = new Set(JSON.parse(ids));
+  } catch (_) {}
 }
 
 /**
  * Start periodic eBay sync (every 5 minutes).
+ * Return/cancel checks run every 30 minutes.
  */
 export function startEBaySyncInterval() {
   if (_syncInterval) clearInterval(_syncInterval);
+  if (_returnCheckInterval) clearInterval(_returnCheckInterval);
   _syncInterval = setInterval(() => {
     if (isEBayConnected() && !_syncing) {
       pullEBayListings().catch(e => { console.warn('eBay sync error:', e.message); toast('eBay sync failed — will retry', true); });
     }
   }, 300000); // 5 minutes
+  // Return/cancel check — less frequent, broader window
+  _returnCheckInterval = setInterval(() => {
+    if (isEBayConnected() && !_syncing) {
+      _syncEBayReturns().catch(e => console.warn('eBay return check error:', e.message));
+    }
+  }, 1800000); // 30 minutes
+  // Run first return check after a short delay on startup
+  setTimeout(() => {
+    if (isEBayConnected() && !_syncing) {
+      _syncEBayReturns().catch(e => console.warn('eBay return check error:', e.message));
+    }
+  }, 15000);
 }
 
 export function stopEBaySyncInterval() {
@@ -241,6 +264,124 @@ async function _syncEBayOrders() {
       console.warn('eBay orders sync error:', e.message);
       _orderSyncErrorLogged = true;
     }
+  }
+}
+
+/**
+ * Check recent eBay orders for cancellations and returns.
+ * Runs on a broader window (30 days) to catch returns on older orders.
+ * Fires urgent notifications so users can respond quickly.
+ */
+async function _syncEBayReturns() {
+  try {
+    const fmtDate = d => d.toISOString().replace(/\.\d{3}Z$/, 'Z');
+    const since = fmtDate(new Date(Date.now() - RETURN_CHECK_WINDOW));
+    const now = fmtDate(new Date());
+
+    let offset = 0;
+    const limit = 50;
+    let hasMore = true;
+
+    while (hasMore) {
+      const filter = `creationdate:[${since}..${now}]`;
+      const resp = await ebayAPI('GET',
+        `${FULFILLMENT_API}/order?filter=${encodeURIComponent(filter)}&limit=${limit}&offset=${offset}`
+      );
+
+      const orders = resp.orders || [];
+      if (orders.length < limit) hasMore = false;
+
+      for (const order of orders) {
+        const orderId = order.orderId;
+
+        // ── Check for cancellation requests ──
+        const cancelState = order.cancelStatus?.cancelState;
+        if (cancelState && cancelState !== 'NONE_REQUESTED') {
+          const cancelKey = `cancel-${orderId}`;
+          if (!_processedReturnIds.has(cancelKey)) {
+            _processedReturnIds.add(cancelKey);
+            const lineItem = order.lineItems?.[0];
+            const sku = lineItem?.sku;
+            const local = sku ? inv.find(i => i.ebayItemId === sku || i.sku === sku) : null;
+            const label = local?.name || lineItem?.title || sku || 'Unknown item';
+            const price = parseFloat(lineItem?.total?.value || order.pricingSummary?.total?.value || '0');
+            const reason = order.cancelStatus?.cancelRequests?.[0]?.cancelReason || 'Buyer requested';
+
+            // Map eBay cancel states to user-friendly labels
+            const stateLabel = cancelState === 'CANCEL_REQUESTED' ? 'Cancel Requested'
+              : cancelState === 'CANCEL_PENDING' ? 'Cancel Pending'
+              : cancelState === 'CANCEL_CLOSED_WITH_REFUND' ? 'Cancelled & Refunded'
+              : cancelState === 'CANCEL_CLOSED_NO_REFUND' ? 'Cancelled (No Refund)'
+              : 'Cancellation';
+
+            // Try to find matching sale and log return
+            if (local) {
+              const sale = sales.find(s => s.itemId === local.id && s.platform === 'eBay' && !s.returnInfo);
+              if (sale) {
+                logReturn(sale.id, `eBay Cancel: ${reason}`, price, `Auto-detected: ${stateLabel}`, cancelState.includes('REFUND'));
+              }
+              // Restock if cancel is confirmed
+              if (cancelState === 'CANCEL_CLOSED_WITH_REFUND' || cancelState === 'CANCEL_CLOSED_NO_REFUND') {
+                local.qty = (local.qty || 0) + (parseInt(lineItem?.quantity, 10) || 1);
+                markPlatformStatus(local.id, 'eBay', 'active');
+                markDirty('inv', local.id);
+              }
+            }
+
+            // Urgent notification
+            const priceStr = price > 0 ? ` ($${price.toFixed(2)})` : '';
+            toast(`⚠️ eBay ${stateLabel}: ${label}${priceStr}`, true);
+            addNotification('sale', `⚠️ ${stateLabel}`, `${label}${priceStr} — ${reason}`, local?.id || null);
+            sendNotification(`eBay ${stateLabel}`, `${label}${priceStr} — ${reason}`, cancelKey);
+            try { sfx.urgent(); } catch (_) {}
+          }
+        }
+
+        // ── Check for refunds (returns) on line items ──
+        for (const lineItem of (order.lineItems || [])) {
+          const refunds = lineItem.refunds || [];
+          for (const refund of refunds) {
+            const refundKey = `refund-${orderId}-${refund.refundId || refund.refundDate}`;
+            if (_processedReturnIds.has(refundKey)) continue;
+            _processedReturnIds.add(refundKey);
+
+            const sku = lineItem.sku;
+            const local = sku ? inv.find(i => i.ebayItemId === sku || i.sku === sku) : null;
+            const label = local?.name || lineItem.title || sku || 'Unknown item';
+            const refundAmount = parseFloat(refund.refundAmount?.value || lineItem.total?.value || '0');
+
+            // Try to find matching sale and log return
+            if (local) {
+              const sale = sales.find(s => s.itemId === local.id && s.platform === 'eBay' && !s.returnInfo);
+              if (sale) {
+                logReturn(sale.id, 'eBay Return/Refund', refundAmount, `Auto-detected refund on order ${orderId}`, true);
+              }
+              // Restock the item
+              local.qty = (local.qty || 0) + (parseInt(lineItem.quantity, 10) || 1);
+              markPlatformStatus(local.id, 'eBay', 'active');
+              markDirty('inv', local.id);
+            }
+
+            // Urgent notification
+            const amtStr = refundAmount > 0 ? ` ($${refundAmount.toFixed(2)})` : '';
+            toast(`⚠️ eBay Return: ${label}${amtStr}`, true);
+            addNotification('sale', '⚠️ eBay Return', `${label} refunded${amtStr}`, local?.id || null);
+            sendNotification('eBay Return', `${label} refunded${amtStr}`, refundKey);
+            try { sfx.urgent(); } catch (_) {}
+          }
+        }
+      }
+
+      offset += limit;
+    }
+
+    // Persist processed IDs (keep last 500 to prevent unbounded growth)
+    const ids = [..._processedReturnIds].slice(-500);
+    _processedReturnIds = new Set(ids);
+    await setMeta('ebay_processed_returns', JSON.stringify(ids));
+
+  } catch (e) {
+    console.warn('[eBay] Return/cancel sync error:', e.message);
   }
 }
 

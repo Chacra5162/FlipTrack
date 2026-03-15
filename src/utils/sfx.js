@@ -47,6 +47,14 @@ export const sfx = (() => {
       tone(174.61,'sine',  0.16, 0.05, 0.12);  // F3
       if (navigator.vibrate) navigator.vibrate([60, 20, 30]);  // heavy-then-light, money going out
     },
+    // Urgent alert — descending warning tone (return/cancel)
+    urgent() {
+      tone(880,    'square', 0.12, 0,    0.10);  // A5
+      tone(698.46, 'square', 0.14, 0.12, 0.10);  // F5
+      tone(523.25, 'square', 0.16, 0.24, 0.10);  // C5
+      tone(440,    'square', 0.18, 0.36, 0.18);  // A4 (held)
+      if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);  // urgent pattern
+    },
   };
 })();
 
