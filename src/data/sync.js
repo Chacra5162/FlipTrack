@@ -32,12 +32,23 @@ export function setSyncStatus(state, msg) {
   const map = {
     disconnected: { cls: '',          txt: 'Offline' },
     connected:    { cls: 'connected', txt: `Synced ${now}` },
+    saving:       { cls: 'saving',    txt: 'Saving…' },
     syncing:      { cls: 'syncing',   txt: 'Syncing…' },
     error:        { cls: 'error',     txt: msg || 'Sync error' },
   };
   const s = map[state] || map.disconnected;
   if (s.cls) dot.classList.add(s.cls);
   lbl.textContent = s.txt;
+
+  // Progress bar
+  const bar = document.getElementById('syncProgressBar');
+  if (bar) {
+    if (state === 'saving' || state === 'syncing') {
+      bar.classList.add('active');
+    } else {
+      bar.classList.remove('active');
+    }
+  }
 }
 
 

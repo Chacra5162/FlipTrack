@@ -255,6 +255,9 @@ export const save = () => {
   _cacheDirty = true;
   _chipsBuiltForData = null;
 
+  // Immediate visual feedback — show "Saving…" status
+  _showSaveStatus();
+
   // Synchronous IDB write (fire-and-forget, batched)
   _schedulePersist();
 
@@ -264,6 +267,16 @@ export const save = () => {
   // Only trigger auto-sync if save succeeded AND no sync already in progress
   if (_lastSaveOk && !_syncInProgress) _autoSyncCallback();
 };
+
+/** Lightweight DOM update for immediate save feedback (no sync.js import needed) */
+function _showSaveStatus() {
+  const dot = document.getElementById('syncDot');
+  const lbl = document.getElementById('syncDotLbl');
+  const bar = document.getElementById('syncProgressBar');
+  if (dot) { dot.className = 'sync-dot saving'; }
+  if (lbl) { lbl.textContent = 'Saving…'; }
+  if (bar) { bar.classList.add('active'); }
+}
 
 /** Debounced persist to IndexedDB (batches rapid saves) */
 function _schedulePersist() {
