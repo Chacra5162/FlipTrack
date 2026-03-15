@@ -5,10 +5,13 @@
  * standalone lookup. Maintains an in-memory cache with TTL.
  */
 
-import { inv, sales, getInvItem } from '../data/store.js';
+import { inv, sales, getInvItem, markDirty, save, refresh } from '../data/store.js';
 import { getSupabaseClient } from '../data/auth.js';
 import { fmt, escHtml, escAttr, ds } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
+import { logPriceChange } from './price-history.js';
+import { pushEBayPrice } from './ebay-sync.js';
+import { isEBayConnected } from './ebay-auth.js';
 
 // ── CACHE ─────────────────────────────────────────────────────────────────
 const CACHE_TTL = 1800000; // 30 minutes
@@ -314,6 +317,15 @@ export function renderCompsPanel(result, opts = {}) {
         <div class="comps-suggest-price">${fmt(suggested)}</div>
         <div class="comps-suggest-note">5% below median for competitive pricing</div>
         ${comparison}
+        <div class="comps-suggest-actions">
+          <button type="button" class="comps-accept-btn" onclick="compsUsePrice(${suggested})">Accept ${fmt(suggested)}</button>
+          <div class="comps-drop-row">
+            <button type="button" class="comps-drop-btn" onclick="compsUsePrice(${Math.round(result.medianPrice * 0.90 * 100) / 100})">-10%</button>
+            <button type="button" class="comps-drop-btn" onclick="compsUsePrice(${Math.round(result.medianPrice * 0.85 * 100) / 100})">-15%</button>
+            <button type="button" class="comps-drop-btn" onclick="compsUsePrice(${Math.round(result.medianPrice * 0.80 * 100) / 100})">-20%</button>
+            <button type="button" class="comps-drop-btn" onclick="compsUsePrice(${Math.round(result.medianPrice * 0.75 * 100) / 100})">-25%</button>
+          </div>
+        </div>
       </div>`;
   }
 
@@ -474,14 +486,38 @@ export function triggerAddComps() {
 }
 
 /**
- * Apply suggested price to the add-item form price field.
+ * Apply suggested price — works in both drawer and add-item contexts.
  */
 export function compsUsePrice(price) {
-  const el = document.getElementById('f_price');
-  if (el) {
-    el.value = price;
+  const rounded = Math.round(price * 100) / 100;
+
+  // Drawer context: update the item directly
+  const drawerId = window.activeDrawId || null;
+  const dEl = document.getElementById('d_price');
+  if (drawerId && dEl) {
+    const item = getInvItem(drawerId);
+    if (item) {
+      const oldPrice = item.price || 0;
+      dEl.value = rounded;
+      item.price = rounded;
+      logPriceChange(item.id, rounded, 'comps');
+      markDirty('inv', item.id);
+      save();
+      refresh();
+      if (item.ebayItemId && isEBayConnected()) {
+        pushEBayPrice(item.id).catch(e => console.warn('[Comps] eBay push:', e.message));
+      }
+      toast(`Price set to ${fmt(rounded)} from comps`);
+      return;
+    }
+  }
+
+  // Add-item context: set the form field
+  const fEl = document.getElementById('f_price');
+  if (fEl) {
+    fEl.value = rounded;
     if (window.prevProfit) window.prevProfit();
-    toast('Price set from comps ✓');
+    toast(`Price set to ${fmt(rounded)} from comps`);
   }
 }
 

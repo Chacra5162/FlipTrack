@@ -1980,6 +1980,12 @@ textarea { resize:vertical; min-height:70px; }
 .comps-price-high { font-size: 10px; color: var(--accent2); margin-top: 4px; display: block; }
 .comps-price-low { font-size: 10px; color: #4caf50; margin-top: 4px; display: block; }
 .comps-price-ok { font-size: 10px; color: var(--accent); margin-top: 4px; display: block; }
+.comps-suggest-actions { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.comps-accept-btn { width: 100%; padding: 8px; background: var(--accent); color: var(--bg); border: none; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: 'DM Mono', monospace; transition: opacity 0.15s; }
+.comps-accept-btn:hover { opacity: 0.85; }
+.comps-drop-row { display: flex; gap: 6px; }
+.comps-drop-btn { flex: 1; padding: 6px 4px; background: var(--surface3, #2a2a2e); color: var(--text); border: 1px solid var(--border); border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; font-family: 'DM Mono', monospace; transition: all 0.15s; }
+.comps-drop-btn:hover { background: var(--accent2); color: var(--bg); border-color: var(--accent2); }
 
 /* Confidence badges */
 .comps-conf-high { color: #4caf50; font-size: 10px; }
