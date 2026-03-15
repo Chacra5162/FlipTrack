@@ -1,0 +1,2321 @@
+================================================================================
+                        FLIPTRACK USER GUIDE
+              The all-in-one reseller dashboard for tracking
+          inventory, sales, profits, and cross-platform listings.
+                      Version 1.9 -- March 2026
+================================================================================
+
+
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+
+  1.  Subscription Tiers
+  2.  Getting Started
+  3.  Dashboard
+  4.  Profit Dashboard
+  5.  Inventory
+  6.  Adding Items
+  7.  Item Editor (Drawer)
+  8.  Sales Log
+  9.  Expenses
+  10. Supplies
+  11. Insights & Analytics
+  12. Reports
+  13. Value Breakdown
+  14. Crosslist Dashboard
+  15. Shipping
+  16. Sourcing & Hauls
+  17. Tax Center
+  18. Buyers CRM
+  19. Photos & Image Tools
+  20. Scanner & Product Identification
+  21. Repricing Rules
+  22. Notifications
+  23. Flip Score
+  24. Source Score
+  25. Seasonal Demand Calendar
+  26. Social Photo Gallery
+  27. Donation Tracker
+  28. Voice-Powered Adding
+  29. Community Pricing
+  30. Keyboard Shortcuts
+  31. Accessibility
+  32. Quick List
+  33. Multi-User Team Support
+  34. In-App Guided Tour
+  35. Offline Mode & Cloud Sync
+  36. Backup & Restore
+  37. Supported Platforms
+  38. Data Management
+  39. Inventory Health
+  40. Sourcing Analytics
+  41. Platform ROI
+  42. Period Compare
+  43. Returns Tracking
+  44. Listing Scores
+  45. Margin Alerts
+  46. AI-Powered Features
+  47. What's New in Version 2.0
+
+
+================================================================================
+1. SUBSCRIPTION TIERS
+================================================================================
+
+FlipTrack offers three subscription tiers to match your reselling needs.
+Features above your current tier appear in the navigation with a lock icon
+and show an upgrade prompt when clicked.
+
+  Free ........... $0     -- Get started
+  Pro ............ $12/mo -- Grow your business
+  Unlimited ...... $25/mo -- Full power
+
+FREE TIER
+--------------------------------------------------------------------------------
+Core tools to get started with reselling:
+
+  - Inventory (50 items)
+    Track up to 50 items with full details, photos, and platform tagging.
+    A soft-cap warning appears at the limit.
+
+  - Dashboard
+    Full dashboard with KPI cards, goals, profit calendar, death pile,
+    and quick export.
+
+  - Sales & Expenses
+    Record unlimited sales and expenses with filtering, search, and
+    running totals.
+
+  - Supplies & CSV
+    Track supplies with low-stock alerts. Import and export inventory
+    via CSV.
+
+PRO TIER -- $12/MONTH
+--------------------------------------------------------------------------------
+Everything in Free, plus the tools to scale your business:
+
+  - Insights & Profit
+    Full Insights analytics, Profit Dashboard with per-item analysis,
+    and Value Breakdown view.
+
+  - Reports
+    P&L statements, trend analysis, and period comparisons with PDF export.
+
+  - Crosslist (Copy & List)
+    AI-generated listing text, templates, status matrix, and Copy & List
+    workflow for all platforms.
+
+  - AI Features
+    AI Identify, AI Listing Generator, Price Research, and marketplace
+    comparables.
+
+  - Sourcing & Buyers
+    Haul tracking with per-location ROI, and Buyer CRM with tier-based
+    profiles.
+
+  - Shipping
+    Shipping queue, packing slips, return tracking, and bulk fulfillment
+    tools.
+
+  - Flip Score & Source Score
+    Unified 0-100 Flip Score for every item. BUY/PASS/MAYBE verdict when
+    sourcing. Arbitrage alerts and seasonal demand calendar.
+
+  - Social Gallery & Haul Receipts
+    Generate branded photo collages for social media. Download shareable
+    receipt PNGs after sourcing hauls.
+
+UNLIMITED TIER -- $25/MONTH
+--------------------------------------------------------------------------------
+Everything in Pro, plus premium integrations and automation:
+
+  - eBay & Etsy APIs
+    Direct API integration: publish, sync, and manage eBay listings.
+    Etsy price sync on save.
+
+  - Whatnot Tools
+    Show planning, Smart Builder, analytics, cloning, run sheets, and
+    show CSV exports.
+
+  - Batch Tools
+    Batch Barcode Scanner and Batch List mode for rapid multi-item
+    workflows.
+
+  - Tax Center
+    Quarterly estimates, Schedule C prep, mileage log, and year-over-year
+    comparison.
+
+  - Repricing Rules
+    Automated repricing engine with custom rules, platform targeting,
+    and eBay auto-push.
+
+  - Photo Tools
+    Background removal, auto-enhance, watermarking, batch processing,
+    and square padding.
+
+  - Voice Add & Donations
+    Hands-free item entry via voice. Donate death pile items with
+    tax-deductible FMV tracking on Schedule C.
+
+TIP: You can use FlipTrack without an account on the Free tier -- all data
+stays local. Upgrade anytime from the upgrade modal that appears when you
+tap a locked feature.
+
+
+================================================================================
+2. GETTING STARTED
+================================================================================
+
+FlipTrack is a Progressive Web App (PWA) -- it works in your browser and
+can be installed to your home screen for a native app experience. All data
+syncs to the cloud via Supabase so you can access it from any device.
+
+SIGN UP & LOGIN
+--------------------------------------------------------------------------------
+
+  1. Create an account
+     Click the "Sign Up" button in the top-right corner. Enter your email
+     and a password, then verify your email address.
+
+  2. Log in
+     After verifying, log in with your credentials. Your account menu
+     appears in the top-right showing your sync status.
+
+  3. Install the PWA (optional)
+     On mobile, tap "Add to Home Screen" from your browser menu. On
+     desktop, look for the install icon in the address bar. This gives
+     you a full-screen app experience.
+
+NAVIGATION
+--------------------------------------------------------------------------------
+
+FlipTrack's 22 views are organized into three grouped dropdown menus in
+the header, keeping the interface clean and uncluttered. Navigation groups
+include ARIA expanded states for screen reader accessibility. Features
+above your tier display a lock icon.
+
+  Business:   Dashboard, Profit, Insights, Reports, Expenses, Tax Center,
+              Period Compare, Platform ROI, Returns
+
+  Inventory:  All Items, Supplies, Value Breakdown, Sourcing & Hauls,
+              Inventory Health, Sourcing Analytics, Listing Scores,
+              Margin Alerts
+
+  Selling:    Sales Log, Crosslist, Shipping, Buyers
+
+Click any group to reveal its views. The active group highlights in blue
+so you always know where you are. On mobile, all views are accessible
+from the bottom navigation bar's "More" popup.
+
+TIP: Triple-tap the FlipTrack logo to load demo data -- great for
+exploring features before adding your own inventory.
+
+
+================================================================================
+3. DASHBOARD
+================================================================================
+
+Your command center -- a real-time overview of your reselling business.
+The dashboard updates automatically as you add items, record sales, and
+track expenses.
+
+  Inventory Value ....... $4,280
+  Revenue ............... $2,145
+  Net Profit ............ $892
+  ROI ................... 68.2%
+  Low Stock ............. 3
+  Avg Days to Sell ...... 12.4
+
+DASHBOARD WIDGETS
+--------------------------------------------------------------------------------
+
+  - KPI Stat Cards
+    Six key metrics at a glance: inventory value, revenue, net profit,
+    ROI, low stock alerts, and average days to sell.
+
+  - Monthly Goals
+    Set custom revenue and profit targets. Track your progress with
+    visual progress bars that update in real-time.
+
+  - Profit Calendar
+    Heatmap calendar showing daily profit -- green for profitable days,
+    red for losses. Click any day for details.
+
+  - Platform Breakdown
+    Pie chart showing revenue distribution across all your selling
+    platforms, color-coded by platform.
+
+  - Death Pile
+    Identifies stale inventory that hasn't sold. Items are scored by
+    urgency (0-100) so you know what to reprice or delist.
+
+  - Restock Alerts
+    Banner notification for items that are out of stock or below your
+    set threshold. Never miss a restock opportunity.
+
+  - Sales Velocity Chart
+    SVG bar chart showing items sold per week over the last 8 weeks.
+    Includes trend indicator (up/down arrow with percentage), weekly
+    average line, and hover tooltips with revenue details.
+
+  - Inventory Aging Summary
+    Visual breakdown of aging inventory in 30/60/90+ day buckets with
+    bar indicators. Shows how many items are aging and the total cost
+    at risk, helping you identify what needs repricing or delisting.
+
+QUICK EXPORT & BACKUP
+--------------------------------------------------------------------------------
+
+The dashboard includes a Quick Export section for downloading CSV templates
+and generating PDF reports. It also features a Backup & Restore panel
+where you can download a full JSON backup of all your data (inventory,
+sales, expenses, supplies) or restore from a previous backup file.
+
+TIP: Download a JSON backup regularly for peace of mind. The backup
+includes all item data, sales history, expenses, and supplies in a single
+file you can restore at any time.
+
+
+================================================================================
+4. PROFIT DASHBOARD
+================================================================================
+
+A deep dive into your profitability with per-item, per-platform, and
+per-category breakdowns. Filter by date range and sort by any metric.
+
+  Revenue ........ $2,145
+  COGS ........... $984
+  Fees ........... $269
+  Gross Profit ... $892
+  Margin ......... 41.6%
+
+  Example items:
+    Nike Air Max 90 ......... Revenue $165 | Cost $45  | Profit $98.75  | 59.8%
+    Vintage Levi's 501 ...... Revenue $89  | Cost $12  | Profit $67.42  | 75.8%
+    PS5 Controller .......... Revenue $52  | Cost $35  | Profit $10.26  | 19.7%
+
+FEATURES
+--------------------------------------------------------------------------------
+
+  - Date Range Filters
+    Switch between All Time, Last 7 Days, 30 Days, 90 Days, or
+    Year-to-Date to analyze specific periods.
+
+  - Sort & Filter
+    Sort by profit, ROI, margin, or revenue. Filter by platform or
+    category to drill into specific segments.
+
+  - Platform Breakdown
+    See revenue and profit per selling platform to identify your most
+    profitable channels.
+
+  - Category Profitability
+    Understand which product categories are driving the most profit and
+    which need adjustment.
+
+
+================================================================================
+5. INVENTORY
+================================================================================
+
+Your complete product catalog. Every item you source, list, and sell is
+managed here with rich filtering, sorting, inline editing, and bulk
+operations.
+
+FILTERING
+--------------------------------------------------------------------------------
+
+The inventory view has a powerful multi-filter system. Combine any of
+these filters to narrow down your catalog:
+
+  - Platform
+    Filter by any selling platform -- eBay, Etsy, Poshmark, Mercari,
+    Amazon, Facebook Marketplace, Depop, and more.
+
+  - Category & Subcategory
+    Filter by category, then drill into subcategory. Subcategory options
+    update dynamically based on your selection.
+
+  - Stock Level
+    In Stock, Low Stock, or Out of Stock. Quickly find items that need
+    restocking.
+
+  - Condition & Smoke
+    Filter by item condition (NWT, NWOT, EUC, etc.) and smoke exposure
+    (Smoke-Free, Exposure, Unset).
+
+SORTING
+--------------------------------------------------------------------------------
+
+Sort your inventory by name, price, cost, margin %, ROI, days listed,
+or date added -- in ascending or descending order.
+
+BULK OPERATIONS
+--------------------------------------------------------------------------------
+
+Select multiple items using checkboxes, then perform batch actions:
+
+  - Bulk Delete
+    Delete multiple items at once with undo capability. Items go to
+    trash first.
+
+  - Bulk Mark as Sold
+    Record sales for multiple items simultaneously.
+
+  - Bulk Price Edit
+    Adjust prices for selected items by percentage or fixed amount.
+    Preview changes before applying.
+
+  - Bulk Category & Platform
+    Reassign categories or change platform listings for multiple items
+    at once.
+
+INLINE EDITING
+--------------------------------------------------------------------------------
+
+Click any price in the inventory table to edit it inline -- no need to
+open the full editor. Use the +/- buttons next to the quantity field for
+quick stock adjustments.
+
+
+================================================================================
+6. ADDING ITEMS
+================================================================================
+
+The Add Item modal is your primary way to get products into FlipTrack.
+Access it from the "+ Add Item" button in the header or with Ctrl+N.
+
+  1. Enter item details
+     Name, category, subcategory. FlipTrack auto-detects Books for
+     special fields (ISBN, Amazon rank, FBA calculator).
+
+  2. Set pricing
+     Enter your list price and cost. FlipTrack instantly shows expected
+     profit and margin percentage.
+
+  3. Choose platforms
+     Select which platforms you'll list on. Platform-specific fees are
+     automatically factored into profit calculations.
+
+  4. Add attributes & photos
+     Set condition, smoke exposure, color, size, brand, dimensions,
+     and upload product photos with drag-and-drop.
+
+TIP -- Prefill: Click "Prefill from Last" to copy details from your most
+recently added item -- great when listing similar products in bulk.
+
+BOOK MODE
+--------------------------------------------------------------------------------
+
+When you select "Books" as the category, special fields appear: ISBN
+lookup (auto-populates title, author, publisher), Amazon sales rank, FBA
+fee calculator, and book-specific condition tags (Like New, Very Good,
+Good, Acceptable, Reading Copy, Collectible). You can also scan ISBNs
+with your device camera.
+
+
+================================================================================
+7. ITEM EDITOR (DRAWER)
+================================================================================
+
+Click any item in the inventory table to open the slide-out Drawer editor.
+This is your full item management panel with everything in one place.
+
+  - Details & Pricing
+    Edit name, category, price, cost. See real-time profit/margin
+    preview as you adjust values.
+
+  - Platform & Listing
+    Manage which platforms the item is listed on. View listing status
+    per platform with expiration dates.
+
+  - Photos
+    Upload, crop, rotate, enhance, and manage product photos. Remove
+    backgrounds with AI.
+
+  - Dimensions & Shipping
+    Enter weight and dimensions. FlipTrack suggests optimal packaging
+    and estimates shipping costs.
+
+  - Condition & Attributes
+    Set condition tag, smoke exposure, color, size, material, brand,
+    model, style, and pattern.
+
+  - Price History
+    View a chart of all price changes over time, including sale prices.
+
+TIP: Changes auto-save when you close the drawer. Use the "Duplicate"
+button to quickly create similar listings.
+
+
+================================================================================
+8. SALES LOG
+================================================================================
+
+Record every sale with platform, price, fees, and shipping costs.
+FlipTrack automatically calculates your net profit per transaction.
+
+  1. Mark an item as sold
+     Click the cart icon on any inventory item, or use the "Mark as
+     Sold" button in the drawer.
+
+  2. Enter sale details
+     Choose the selling platform, enter the sale price, quantity, and
+     shipping cost. Fees are auto-estimated based on platform fee
+     structures.
+
+  3. Review & confirm
+     The modal shows expected profit after fees. Choose per-unit or
+     total pricing. Optionally back-date the sale.
+
+BUNDLE SALES
+--------------------------------------------------------------------------------
+
+Toggle "Bundle" in the sold modal to sell multiple items in a single
+transaction. When enabled, you can select additional items from your
+inventory. The total sale price auto-populates from the combined list
+prices, and the revenue is split proportionally across items based on
+their individual list prices. A red/green comparison shows how the
+bundle price compares to the original combined total, so you can
+instantly see the discount given.
+
+BUYER ADDRESS (SHIP-TO)
+--------------------------------------------------------------------------------
+
+The sold modal includes a collapsible "Ship-to Address" section with
+fields for street, city, state, and ZIP code. When filled in, this
+address auto-populates packing slips generated from the sale record,
+saving time on fulfillment.
+
+SALES FILTERING
+--------------------------------------------------------------------------------
+
+Filter your sales history by date range and keyword search. The summary
+totals (revenue, fees, profit) update to reflect only the filtered
+results.
+
+TIP: Sales automatically create buyer records. If the same buyer
+purchases again, their profile is updated with cumulative data in the
+Buyers CRM.
+
+
+================================================================================
+9. EXPENSES
+================================================================================
+
+Track every business expense to maintain accurate profit numbers.
+Expenses feed into your Reports and Tax Center automatically.
+
+EXPENSE CATEGORIES
+--------------------------------------------------------------------------------
+
+  - Shipping Supplies      - Packaging
+  - Platform Fees          - Sourcing
+  - Storage                - Printing
+  - Software               - Marketing
+  - Returns                - Office
+  - Other
+
+Each expense requires a date, category, description, and amount. Use the
+search bar and date filters to find specific expenses. All expenses are
+included in your P&L reports.
+
+
+================================================================================
+10. SUPPLIES
+================================================================================
+
+Track your packing and shipping supplies inventory -- boxes, mailers,
+tape, bubble wrap, labels, tissue, thank-you cards, and more. Set
+low-stock thresholds for automatic alerts.
+
+  - Add Supplies
+    Enter name, quantity, cost, and a low-stock threshold. FlipTrack
+    alerts you when stock drops below the threshold.
+
+  - Quick Adjustments
+    Increment or decrement quantities with +/- buttons, or set exact
+    values. Changes sync to the cloud immediately.
+
+  - Low Stock Alerts
+    A banner appears on the dashboard when any supply falls below its
+    threshold. Never run out of boxes again!
+
+
+================================================================================
+11. INSIGHTS & ANALYTICS
+================================================================================
+
+Data-driven intelligence about your reselling business. Insights analyzes
+your inventory, sales, and performance to surface actionable
+recommendations.
+
+  - Category Rankings
+    Top categories by revenue, profit, units sold, and total items. See
+    which categories deliver the best margins.
+
+  - Platform Performance
+    Revenue and margin breakdown by platform. Identify which channels
+    perform best for your products.
+
+  - Seller Velocity
+    How fast items sell. Identifies fast movers vs. slow movers and
+    stagnant inventory.
+
+  - Top Performers
+    Best-selling items and highest-margin items. Helps you understand
+    what to source more of.
+
+  - Dead Stock
+    Items that have never sold or are moving extremely slowly. Candidates
+    for repricing or delisting.
+
+  - Trend Snapshots
+    30, 60, and 90-day performance snapshots showing revenue trends,
+    seasonal patterns, and sell-through rates.
+
+
+================================================================================
+12. REPORTS
+================================================================================
+
+Generate professional Profit & Loss statements on a weekly or monthly
+basis. Navigate between periods to compare performance over time.
+
+  Example P&L -- February 2026:
+
+    Revenue ..................... $2,145.00
+      Cost of Goods Sold ........ ($984.00)
+      Platform Fees ............. ($269.33)
+    Gross Profit ................ $891.67
+      Shipping Supplies ......... ($42.00)
+      Packaging ................. ($18.50)
+      Software .................. ($9.99)
+    Net Profit .................. $821.18
+    Margin ...................... 38.3%
+
+HOW TO USE
+--------------------------------------------------------------------------------
+
+  1. Choose period mode
+     Toggle between Weekly and Monthly using the buttons at the top.
+
+  2. Navigate periods
+     Use the Previous / Next arrows to move between weeks or months.
+
+  3. Export PDF
+     Click "Export PDF" to download a formatted P&L statement for your
+     records or tax preparation.
+
+
+================================================================================
+13. VALUE BREAKDOWN
+================================================================================
+
+Visualize your inventory value distributed across categories and
+subcategories. Understand where your money is tied up and which categories
+contribute most to your business.
+
+Each category row shows: total value, % of total, unit count, profit
+contribution, and average margin. Click any category to expand subcategory
+details. Click a subcategory to filter the inventory view to just those
+items.
+
+
+================================================================================
+14. CROSSLIST DASHBOARD
+================================================================================
+
+Manage your multi-platform listings from a single interface. Track listing
+status, sync with eBay and Etsy APIs, manage Whatnot live shows, and keep
+all your platforms in sync.
+
+OVERVIEW TAB
+--------------------------------------------------------------------------------
+
+Shows summary stats across all platforms: total active listings, expired
+listings, platforms connected, and quick action buttons.
+
+STATUS MATRIX
+--------------------------------------------------------------------------------
+
+A grid showing each item's listing status on each platform (Active,
+Expired, Not Listed). Example:
+
+  Item               eBay     Etsy      Poshmark   Mercari
+  ----               ----     ----      --------   -------
+  Nike Air Max 90    Active   Expired   --         Active
+  Vintage Levi's     Active   Active    Active     --
+  iPhone Case        --       Not Listed Active    Active
+
+EBAY INTEGRATION (LIVE)
+--------------------------------------------------------------------------------
+
+eBay is currently the only platform with full direct API integration.
+
+  Connect eBay -> Pull Listings -> Push Updates -> Publish Live
+
+Connect your eBay account via OAuth. FlipTrack can sync your active
+listings, push new items to eBay, publish drafts live, and end listings
+-- all from the Crosslist panel. All API calls have a 15-second timeout
+with clear error messages if the connection is slow. On mobile, OAuth
+uses a redirect flow instead of a popup for reliability. Failed auto-list
+and crosslist cache operations now show toast notifications instead of
+failing silently.
+
+EBAY LISTING RECONCILIATION
+--------------------------------------------------------------------------------
+
+eBay listings that are ended or deleted externally (directly on eBay, by
+another tool, or expired) are automatically detected during sync and
+marked as "ended" in FlipTrack. This keeps your Crosslist Status Matrix
+accurate without manual cleanup.
+
+FLIPTRACK AS PRICE SOURCE OF TRUTH
+--------------------------------------------------------------------------------
+
+Price synchronization is one-directional: FlipTrack pushes prices to
+eBay, never the other way around. When you update a price in FlipTrack,
+it is automatically pushed to your eBay listing. This ensures FlipTrack
+remains the single source of truth for pricing across all platforms.
+
+AUTO-PUSH REPRICING TO EBAY & ETSY
+--------------------------------------------------------------------------------
+
+Repricing rules now automatically push updated prices to both eBay and
+Etsy when a rule fires. Previously, repriced items only updated locally
+-- now the new price is synced to live listings on both platforms in
+real time.
+
+CROSS-PLATFORM AUTO-DELIST ON SALE
+--------------------------------------------------------------------------------
+
+When a sale is detected through eBay or Etsy order sync, FlipTrack
+automatically decrements the item quantity and -- if the item is fully
+sold out (qty reaches 0) -- marks all other active platform listings
+as "sold-elsewhere." This prevents overselling across platforms. The
+same logic applies when you record a sale manually through the Sales
+view.
+
+  Sale detected (eBay/Etsy sync) -> Qty decremented -> Qty = 0?
+    -> Auto-delist other platforms
+
+ETSY INTEGRATION
+--------------------------------------------------------------------------------
+
+Etsy push is now live. When pushing a listing to Etsy, FlipTrack shows
+a taxonomy picker (Etsy's required category tree) and a shipping profile
+selector so your listings go live immediately instead of being created
+as drafts.
+
+Additional Etsy sub-tabs:
+
+  - Shop Stats
+    View favorites, total sold, active listings, and revenue summaries
+    pulled from your Etsy shop.
+
+  - Reviews
+    Star rating average, distribution bar, and your 10 most recent
+    reviews with rating and message.
+
+  - Shipments
+    View pending (unshipped) orders. Enter tracking numbers and carrier,
+    then mark as shipped directly to Etsy.
+
+  - Tags
+    View and edit listing tags (max 13). Get AI-suggested tags based on
+    title and category. Push updated tags to Etsy.
+
+  - Photos
+    Push product photos from FlipTrack to your Etsy listings via the API.
+
+  - Price & Qty Sync
+    Push price and quantity changes to Etsy. Bi-directional quantity sync
+    keeps both systems in alignment.
+
+WHATNOT LIVE SHOW TOOLS
+--------------------------------------------------------------------------------
+
+NOTE: Whatnot is not directly integrated via API. FlipTrack provides a
+set of planning and tracking tools to help you prepare for and analyze
+your Whatnot live shows -- you'll still run your shows on Whatnot itself.
+
+Plan and track your live shows: create show records, build item lineups
+from your inventory, mark items as sold during or after the show, track
+viewer peaks and expenses, and generate run sheets and prep lists. After
+shows, the analytics panel shows best day/time recommendations,
+sell-through rates, and category performance across all your recorded
+shows.
+
+TEMPLATES & AUTO-RELIST
+--------------------------------------------------------------------------------
+
+Save listing templates per category with variables that auto-fill from
+item attributes. Enable auto-relist rules (daily, weekly, or disabled)
+to keep listings fresh across platforms.
+
+COPY & LIST (POSHMARK, DEPOP & MORE)
+--------------------------------------------------------------------------------
+
+For platforms without direct API integration -- Poshmark, Depop, Mercari,
+Grailed, Facebook Marketplace, and others -- FlipTrack provides a
+"Copy & List" workflow to make crosslisting fast and easy.
+
+  Select Item -> AI Copy -> Text on Clipboard -> Open Platform
+    -> Paste & Post
+
+In the Crosslist Status Matrix, each item row shows action buttons per
+platform:
+
+  - AI Copy
+    Generates a platform-optimized listing description using AI, tailored
+    to the specific platform's style and format (e.g., hashtag-heavy for
+    Poshmark, clean and concise for Depop). The text is automatically
+    copied to your clipboard.
+
+  - Copy Listing
+    Copies your default listing text (or template-based text) to the
+    clipboard -- title, condition, category, notes, and a shipping
+    message.
+
+  - Open Platform
+    Opens the platform's listing creation page in a new tab (e.g.,
+    poshmark.com/create-listing or depop.com/products/create). Just
+    paste your text and upload photos.
+
+  - Cycle Status
+    Manually update the listing status (Active, Expired, Not Listed) to
+    keep your Status Matrix accurate.
+
+Step-by-step:
+
+  1. Click "AI Copy" on the platform row
+     FlipTrack generates a listing optimized for that platform and copies
+     it to your clipboard.
+
+  2. Click the open arrow to open the platform
+     The platform's listing creation page opens in a new browser tab.
+
+  3. Paste, add photos, and publish
+     Paste your listing text (Ctrl+V), upload your product photos, set
+     the price, and publish. Then cycle the status in FlipTrack to
+     "Active" so your Status Matrix stays up to date.
+
+BATCH LISTING: Select multiple items in the Inventory view and use
+"Batch List" mode to generate listing text for all of them at once,
+then work through each platform sequentially.
+
+
+================================================================================
+15. SHIPPING
+================================================================================
+
+Manage your fulfillment workflow from sale to delivery.
+
+  - Ship Queue
+    All unshipped orders across all platforms in one list. Filter by
+    platform, status, or date range.
+
+  - Mark Shipped
+    Mark individual or batch orders as shipped with tracking numbers.
+    Updates across all connected platforms.
+
+  - Packing Slips
+    Generate and print packing slips -- single or batch. Customize with
+    your seller info, logo, and format preferences.
+
+  - Rate Calculator
+    Estimate rates from USPS, UPS, and FedEx based on weight and
+    dimensions. Compares carriers to find the cheapest option.
+
+  - Returns
+    Log and track customer returns with reason codes and status tracking.
+
+  - Export
+    Export your shipping log as CSV for records or carrier integration.
+
+
+================================================================================
+16. SOURCING & HAULS
+================================================================================
+
+Track where you buy your inventory and how each sourcing trip performs.
+
+  1. Log a haul
+     Record a sourcing trip with date, location (thrift store, estate
+     sale, etc.), total spent, and notes.
+
+  2. Link items
+     Associate inventory items with the haul. FlipTrack splits costs
+     evenly across linked items.
+
+  3. Track ROI
+     As items sell, FlipTrack calculates per-haul ROI, revenue, and
+     profit. See which sources deliver the best returns.
+
+SOURCE PERFORMANCE
+--------------------------------------------------------------------------------
+
+Aggregated stats by location show: total hauls, total spent, total
+revenue, item count, ROI, and margin. Ranked by performance to identify
+your most profitable sources.
+
+HAUL ROI RECEIPTS
+--------------------------------------------------------------------------------
+
+After a sourcing trip, click "Share Receipt" on any haul card to generate
+a branded 1080x1350 receipt-style PNG. The receipt shows haul name, date,
+location, item count, total invested, estimated value, projected profit,
+ROI percentage, and a mini item list -- perfect for sharing on Instagram
+or with your reseller community.
+
+
+================================================================================
+17. TAX CENTER
+================================================================================
+
+Quarterly tax estimates and Schedule C preparation.
+
+  - Quarterly Estimates
+    Q1-Q4 breakdown with IRS due dates. Calculates self-employment tax
+    (15.3%) and federal income tax based on 2025 brackets.
+
+  - Schedule C
+    Full sole proprietor breakdown: revenue, COGS, gross profit, business
+    expenses, and net profit -- organized just like the IRS form.
+
+  - Mileage Log
+    Track business miles for the vehicle deduction ($0.655/mile for 2025).
+    Add entries with date, start/end locations, and miles driven.
+
+  - Year Comparison
+    Compare tax liability across years to spot trends and plan ahead.
+
+NOTE: FlipTrack provides estimates for planning purposes. Consult a tax
+professional for actual tax filing.
+
+
+================================================================================
+18. BUYERS CRM
+================================================================================
+
+Build relationships with repeat customers.
+
+BUYER TIERS
+--------------------------------------------------------------------------------
+
+  New ......... $0
+  Regular ..... $50+
+  VIP ......... $200+
+  Elite ....... $500+
+
+Each buyer profile tracks: name, email, phone, platform handles, total
+spent, number of purchases, items bought, and a communication log for
+notes and conversations. Buyers are automatically created when you
+record sales.
+
+
+================================================================================
+19. PHOTOS & IMAGE TOOLS
+================================================================================
+
+Professional product photography tools built right into FlipTrack.
+Upload images via drag-and-drop or file picker (max 15 MB per image).
+
+  - Crop & Rotate
+    Crop to any aspect ratio, rotate, and flip images. Perfect for
+    straightening product shots.
+
+  - Auto-Enhance
+    One-click brightness, contrast, and color correction for better
+    listing photos.
+
+  - Background Removal
+    AI-powered background removal creates clean, white-background
+    product shots.
+
+  - Square Pad
+    Add white padding to make photos square -- perfect for marketplace
+    listings that require square images.
+
+  - Watermark
+    Add your branding watermark to protect product photos from being
+    stolen.
+
+  - Batch Processing
+    Apply enhancements to multiple images at once for efficient listing
+    preparation.
+
+
+================================================================================
+20. SCANNER & PRODUCT IDENTIFICATION
+================================================================================
+
+BARCODE SCANNER
+--------------------------------------------------------------------------------
+
+Use your device camera to scan UPC, ISBN, or EAN barcodes. FlipTrack
+looks up the product and auto-populates item details. Works with front
+and back cameras.
+
+BATCH SCAN
+--------------------------------------------------------------------------------
+
+Scan multiple items in one session using Ctrl+B. Each scanned item is
+queued, and you can adjust quantities or remove items before adding them
+all to inventory at once.
+
+AI IDENTIFY
+--------------------------------------------------------------------------------
+
+Take a photo of any item, and FlipTrack's AI will identify it --
+extracting brand, category, color, condition, and suggested pricing.
+Comps are now auto-fetched after identification, showing a comp-verified
+price badge with median, range, and confidence level. Enter your cost to
+get an instant BUY, PASS, or MAYBE sourcing verdict with estimated profit
+and days-to-sell.
+
+PRICE RESEARCH
+--------------------------------------------------------------------------------
+
+Look up comparable prices by UPC or keyword across eBay, Amazon, and
+Etsy. View recent sold listings to determine optimal pricing. Integrates
+with the barcode scanner for instant lookups.
+
+COMPARABLES (COMPS)
+--------------------------------------------------------------------------------
+
+Fetch recently sold comparable listings from eBay via a Supabase edge
+function powered by the eBay Browse API -- no OAuth required. Results are
+cached for 30 minutes. If the edge function is unavailable, FlipTrack
+falls back to your own local sales data.
+
+  - Price Distribution
+    Visual histogram showing the price range of comparable sold listings,
+    with average, median, low, and high prices.
+
+  - Suggested Pricing
+    Confidence-based price suggestion (high, medium, low) based on comp
+    data. One-click "Use Price" button in the add-item form. Accept/drop
+    percentage buttons let you quickly adjust the suggested price up or
+    down by a fixed percentage.
+
+  - Drawer Comps Tab
+    Each item's detail drawer includes a Comps tab showing live market
+    data, price comparison vs your current listing price, and links to
+    search external marketplaces.
+
+  - Add-Item Inline Comps
+    When adding a new item, comps are automatically fetched when you
+    finish typing the item name. A suggestion row appears with market
+    price and a one-click apply button.
+
+  - Community Pricing Data
+    Anonymous aggregated sold prices across all FlipTrack users. Opt-in
+    to contribute and query community medians with percentile ranges.
+    Privacy-first: only sold prices shared, never individual data.
+
+
+================================================================================
+21. REPRICING RULES
+================================================================================
+
+Automate price adjustments with rule-based repricing. Set conditions and
+let FlipTrack handle price drops on stale inventory.
+
+  Example rules:
+    Stale 30-day drop ... Unsold > 30 days .... -10% ......... Active
+    Floor price ......... Margin < 15% ........ Hold price ... Active
+    Weekend bump ........ Sat/Sun ............. Round to .99 . Paused
+
+RULE OPTIONS
+--------------------------------------------------------------------------------
+
+Conditions include days listed, margin thresholds, platform-specific
+triggers, and Whatnot show performance. Actions include percentage drop,
+fixed amount drop, percentage raise, and "Set to Comp Median" --
+market-driven pricing that uses live eBay comp data instead of blind
+percentage adjustments. Rules can be applied to single items or your
+entire inventory. When a repriced item has a live eBay listing, price
+changes are automatically pushed to eBay. Etsy price sync is also
+supported.
+
+
+================================================================================
+22. NOTIFICATIONS
+================================================================================
+
+FlipTrack sends in-app and (optionally) browser push notifications to
+keep you informed. Click the bell icon in the header to open the
+notification center.
+
+NOTIFICATION TYPES
+--------------------------------------------------------------------------------
+
+  - Low Stock Alerts
+    When supply quantities drop below your set thresholds.
+
+  - Sales Velocity
+    Alerts when items are selling faster or slower than usual.
+
+  - Whatnot Reminders
+    Upcoming show reminders and post-show summaries.
+
+  - Sale Notifications
+    Confirmation when a sale is successfully recorded.
+
+  - Daily Sales Digest
+    Every morning, see yesterday's sales count, revenue, profit, and
+    selling streak as an in-app notification and optional browser push.
+    Never miss a day's results.
+
+  - Arbitrage Alerts
+    Flags items priced 20%+ below market (raise your price) or 30%+
+    above (consider lowering), based on live comp data.
+
+
+================================================================================
+23. FLIP SCORE
+================================================================================
+
+Every inventory item gets a unified 0-100 Flip Score that combines four
+key metrics into a single sortable number. Find your best performers and
+identify items that need attention at a glance.
+
+  - Margin (0-30 pts)
+    Higher profit margins earn more points. Items with 60%+ margin get
+    full marks; below 15% scores near zero.
+
+  - Freshness (0-25 pts)
+    Newer items score higher. Items listed within 3 days get full points;
+    items over 90 days score zero.
+
+  - Listing Quality (0-25 pts)
+    Based on your Listing Score (photos, title, description, pricing,
+    metadata). Better listings = higher Flip Score.
+
+  - Demand Signal (0-20 pts)
+    Items with more sales and recent activity score higher. A sale within
+    14 days gets a bonus boost.
+
+Grades: A (80+), B (60+), C (40+), D (20+), F (<20). Sort your inventory
+by Flip Score to prioritize which items to promote, reprice, or delist.
+
+PRO TIER: Flip Score column appears in the inventory table. Hover the
+score to see the full breakdown.
+
+
+================================================================================
+24. SOURCE SCORE
+================================================================================
+
+When scanning an item at a store with AI Identify, enter your cost to get
+an instant sourcing verdict. FlipTrack calculates estimated profit,
+margin, comp confidence, and days-to-sell from your own category history.
+
+  - BUY
+    Margin > 40% with medium+ comp confidence. Strong profit potential
+    with market validation.
+
+  - MAYBE
+    Margin 15-40% or low comp confidence. Decent opportunity but research
+    further before committing.
+
+  - PASS
+    Margin < 15%, no comps, or estimated profit under $3. Not worth the
+    effort.
+
+  - Days-to-Sell Estimate
+    Uses your own sales history to estimate how long similar items take
+    to sell in that category. Fast-selling categories get a score bonus.
+
+PRO TIER: Source Score integrates with Comps Auto-Pricing -- the comp
+data is fetched automatically after AI identification.
+
+
+================================================================================
+25. SEASONAL DEMAND CALENDAR
+================================================================================
+
+A per-category monthly demand heatmap showing when your items sell
+fastest. Requires at least 3 months of sales history. Displays in the
+Insights view.
+
+  - 12-Month Heatmap
+    Color-coded monthly grid for all categories and per-category
+    breakdowns. Darker green = more sales that month.
+
+  - Actionable Insights
+    Auto-generated insight strings like "Your Electronics sell 3x faster
+    in November" help you time your sourcing and listing strategy.
+
+
+================================================================================
+26. SOCIAL PHOTO GALLERY
+================================================================================
+
+Generate branded photo collages from your inventory for Instagram, TikTok,
+and other social platforms. Select items from inventory, choose a layout,
+and download or copy the image.
+
+  - Layout Options
+    2x2 grid (1080x1080), 3x3 grid (1080x1080), single hero with
+    details (1080x1350), and stories format (1080x1920).
+
+  - Branded Overlays
+    Each cell shows the item photo with name and price overlays.
+    FlipTrack watermark in the corner. Brand fonts and accent colors.
+
+  - Download & Copy
+    Download as PNG or copy directly to clipboard for instant sharing.
+    Access via the bulk menu after selecting items.
+
+HOW TO USE: Select items with checkboxes in inventory -> click "More"
+-> "Create Gallery" -> choose layout -> download or copy.
+
+
+================================================================================
+27. DONATION TRACKER
+================================================================================
+
+Items stuck in the death pile at critical or extreme urgency show a
+"Donate" button. Record the fair market value and organization name,
+and FlipTrack automatically creates a tax-deductible expense entry.
+
+  - Tax Deduction
+    Donations are recorded as expenses with category "donation" and
+    appear as a Charitable Donations line in your Schedule C summary
+    in Tax Center.
+
+  - IRS Compliance
+    For donations over $250, FlipTrack displays a reminder that IRS
+    requires written acknowledgment from the receiving organization.
+
+UNLIMITED TIER: The Donate button appears on death pile items at critical
+(60+ days) and extreme (90+ days) urgency levels.
+
+
+================================================================================
+28. VOICE-POWERED ADDING
+================================================================================
+
+Add items hands-free during sourcing runs using your device's microphone.
+FlipTrack uses the Web Speech API to continuously listen and parse item
+details from natural speech.
+
+  - Natural Language Parsing
+    Say "Nike Air Max size 10 twenty dollars good condition" and
+    FlipTrack extracts: name, price ($20), and condition (Good).
+
+  - Batch Queue
+    Items queue up as you speak. Review, remove any mistakes, then tap
+    "Add to Inventory" to transfer them to the add-item form.
+
+  - Browser Support
+    Works in Chrome, Edge, and Safari. Falls back gracefully with a
+    "Voice not supported" message on unsupported browsers.
+
+ACCESS: Open from the Tools menu in the header (Voice Add). Unlimited
+tier only.
+
+
+================================================================================
+29. COMMUNITY PRICING
+================================================================================
+
+Anonymous aggregated sales data across all FlipTrack users. Opt in to
+contribute your sold prices and access community-wide medians,
+percentiles, and volume data.
+
+  - Privacy-First
+    Only sold prices are shared -- never listed prices, item photos, or
+    user identities. No individual data is ever exposed; only aggregated
+    statistics are returned.
+
+  - Aggregated Stats
+    Query by category, brand, and condition to see median price,
+    25th/75th percentiles, and total sale count from the community pool.
+
+  - Opt-In Toggle
+    Community pricing is off by default. Toggle on from settings to start
+    contributing and accessing community data in the Comps panel.
+
+PRO TIER: Community pricing data appears as a section in the Comps panel
+alongside eBay sold data and your own local sales history.
+
+
+================================================================================
+30. KEYBOARD SHORTCUTS
+================================================================================
+
+Power user shortcuts for faster navigation and actions. Shortcuts are
+disabled when typing in input fields. Shortcut hints now appear as small
+badges on relevant buttons throughout the interface, so you can discover
+them naturally.
+
+  Shortcut          Action                      Badge Shown On
+  --------          ------                      --------------
+  Ctrl + N          Open Add Item modal         Add Item button
+  Ctrl + F          Jump to Inventory search    Search input placeholder
+  Ctrl + E          Export all data              Export button
+  Ctrl + B          Open Batch Scan             Batch Scan button
+  Escape            Close any open modal,       --
+                    drawer, or overlay
+
+TIP: On macOS, use Cmd instead of Ctrl. The Escape key works even when
+focused on an input field. Shortcut badges are hidden on mobile to save
+space.
+
+
+================================================================================
+31. ACCESSIBILITY
+================================================================================
+
+FlipTrack is designed to be accessible to all users. Version 1.7
+completes the accessibility overhaul with WCAG-aligned improvements
+across the entire application, including 44px minimum touch targets on
+mobile, focus trapping in all modals and overlays, aria-labels on 88+
+icon-only buttons, aria-hidden on decorative emoji, and aria-current on
+active navigation.
+
+USER SETTINGS
+--------------------------------------------------------------------------------
+
+  - Font Size
+    Slider from 80% to 130%, plus preset buttons: Small, Default, Large,
+    and XL. Your preference is saved.
+
+  - Reading Font
+    Choose between the default font (DM Mono) and a dyslexia-friendly
+    option (OpenDyslexic). Adjustable weight.
+
+  - Theme Toggle
+    Light and dark modes with high-contrast support. Your preference
+    persists across sessions.
+
+BUILT-IN ACCESSIBILITY
+--------------------------------------------------------------------------------
+
+  - Focus Indicators
+    All interactive elements -- buttons, links, tabs, selects, menu
+    items -- show visible :focus-visible outlines for keyboard navigation.
+
+  - ARIA Labels
+    88 icon-only buttons across all views now have descriptive
+    aria-labels. Close buttons, nav groups, stat cards, and all
+    interactive elements are labeled for screen readers.
+
+  - Form Labels
+    All form inputs -- bulk action selects, sliders, toggles -- are
+    properly associated with <label> elements.
+
+  - Image Alt Text
+    All product images use item names as alt text. Emoji placeholders
+    include role="img" and aria-label. Lightbox dynamically updates alt
+    text with item name and photo counter.
+
+  - Focus Trapping
+    All modals and overlays trap keyboard focus inside and return focus
+    to the trigger element on close -- including add item, record sale,
+    price research, identify, item drawer, batch scan, lightbox,
+    scanner, CSV mapper, materials, trash, sold, and shipping.
+
+  - Touch Targets
+    All interactive elements meet the 44px minimum touch target size on
+    mobile, compliant with WCAG 2.1 and Apple Human Interface Guidelines.
+
+  - Dialog Semantics
+    Modals use role="dialog" with aria-modal and aria-labelledby. ARIA
+    live regions announce dynamic content updates.
+
+  - Nav Groups
+    Expandable navigation sections include aria-expanded state,
+    announcing open/closed status to assistive technology.
+
+
+================================================================================
+32. QUICK LIST
+================================================================================
+
+Quick List is a streamlined camera-to-listing pipeline that lets you go
+from taking a photo to a fully populated Add Item form in seconds.
+Available from the header Tools menu and the mobile bottom nav bar.
+
+  Open Camera -> Snap Photo -> AI Identify -> Pre-filled Form
+    -> Save & List
+
+HOW IT WORKS
+--------------------------------------------------------------------------------
+
+  1. Launch Quick List
+     Click "Quick List" from the Tools menu in the header, or tap the
+     camera icon in the mobile bottom nav. Your device camera opens
+     immediately.
+
+  2. Capture the item
+     Take a photo of the product. FlipTrack automatically sends the
+     image to the AI Identify engine as soon as you capture it -- no
+     extra button press needed.
+
+  3. Review & save
+     The Add Item form opens pre-filled with AI-detected details --
+     name, category, brand, color, condition, and suggested pricing.
+     Adjust any fields, add platforms, and save.
+
+TIP: Quick List auto-populates the full item detail set including
+subcategory, condition, color, and dimensions when the AI identifies
+them. Review the suggested price against comps before saving.
+
+
+================================================================================
+33. MULTI-USER TEAM SUPPORT
+================================================================================
+
+Collaborate with partners, employees, or virtual assistants by creating
+a team. Team members share the owner's inventory, sales, and expenses
+with role-based access control.
+
+GETTING STARTED
+--------------------------------------------------------------------------------
+
+  1. Create a team
+     Open the Team panel from your account menu and click "Create Team."
+     Give your team a name -- you are automatically assigned the Owner
+     role.
+
+  2. Invite members
+     Generate a 6-character invite code and share it with your team
+     members. Codes can be single-use or multi-use. Members join by
+     entering the code in their own FlipTrack account.
+
+  3. Assign roles
+     Set each member's role to control what they can do with the shared
+     inventory.
+
+ROLES
+--------------------------------------------------------------------------------
+
+  Owner .... Full access, manage team
+  Editor ... Add, edit, delete items
+  Viewer ... Read-only access
+
+HOW SHARING WORKS
+--------------------------------------------------------------------------------
+
+When a member joins a team, their sync queries automatically use the team
+owner's account ID. This means all team members see the same inventory,
+sales, and expense data. Editors can add and modify items; viewers can
+browse and generate reports but cannot change data.
+
+  - Row-Level Security
+    All team data is protected by Supabase RLS policies. Members can
+    only access data their role permits, enforced at the database level.
+
+  - Real-Time Sync
+    Changes made by any team member sync in real-time to all other
+    members via WebSocket subscriptions.
+
+  - Shared Analytics
+    All analytics views -- Profit Dashboard, Inventory Health, Platform
+    ROI, and more -- reflect the shared team data.
+
+  - Solo Mode
+    Users without a team continue to work in solo mode with their own
+    private data, exactly as before.
+
+NOTE: Team support requires a cloud account (logged in). The team feature
+is not available in offline-only mode.
+
+
+================================================================================
+34. IN-APP GUIDED TOUR
+================================================================================
+
+FlipTrack includes a comprehensive guided tour that walks you through
+every major feature with 47 interactive steps across 11 sections. The
+tour highlights each feature on-screen with tooltips that explain what it
+does and how to use it.
+
+TOUR SECTIONS
+--------------------------------------------------------------------------------
+
+  1.  Dashboard
+      KPI cards, goals & profit calendar, platform breakdown, and quick
+      activity views.
+
+  2.  Adding Inventory
+      Add Item form, AI Identification, barcode scanning, batch scan,
+      Quick List, and prefill features.
+
+  3.  Inventory Management
+      Filters, sorting, bulk actions, inline editing, and the item
+      detail drawer.
+
+  4.  Sales & Profit
+      Recording sales, sales log, and the Profit Dashboard.
+
+  5.  Crosslisting
+      Crosslist dashboard, status matrix, eBay integration, and Copy &
+      List workflow.
+
+  6.  Tools & Settings
+      CSV import/export, accessibility panel, notifications, and account
+      settings.
+
+  7.  Advanced Analytics
+      Inventory Health, Sourcing Analytics, Platform ROI, Period Compare,
+      Returns Tracking, Listing Scores, and Margin Alerts.
+
+  8.  Smart Pricing
+      Flip Score, Source Score, Comps Auto-Pricing, Arbitrage Alerts,
+      Seasonal Demand Calendar, and Community Pricing.
+
+  9.  Content & Engagement
+      Social Photo Gallery, Haul ROI Receipts, Daily Sales Digest, and
+      Voice-Powered Adding.
+
+  10. Advanced Features
+      Donation Tracker, Smart Repricing with Comps, and market-driven
+      pricing rules.
+
+SMART NAVIGATION
+--------------------------------------------------------------------------------
+
+The tour automatically navigates to the correct view for each step -- if
+the tour reaches a step that requires the Inventory view, FlipTrack
+switches to it seamlessly. Steps targeting elements that are not currently
+visible (e.g., desktop-only buttons on mobile) are automatically skipped.
+
+TIP: Launch the tour anytime from the Help menu. First-time users see a
+prompt to start the tour after signing in.
+
+
+================================================================================
+35. OFFLINE MODE & CLOUD SYNC
+================================================================================
+
+FlipTrack works fully offline. All data is stored locally in your
+browser's IndexedDB. When you're online, changes sync to Supabase in
+real-time for multi-device access.
+
+HOW IT WORKS
+--------------------------------------------------------------------------------
+
+  Local Edit -> IndexedDB -> Cloud Sync -> All Devices
+
+When you go offline, an amber banner appears at the top of the screen:
+"You are offline -- data will sync when you reconnect." All changes queue
+automatically. When connectivity returns, queued changes push to the
+cloud and a toast notification confirms sync completion. A mutex-based
+sync guard prevents concurrent sync operations from corrupting data. All
+sync failures now display user-facing toast notifications (e.g., "Sync
+failed -- changes saved locally, will retry" and "Cloud sync error --
+your data is safe locally") so issues are never silent.
+
+LOGOUT CLEANUP
+--------------------------------------------------------------------------------
+
+Signing out now performs a comprehensive cleanup: all background sync
+intervals (eBay/Etsy polling) are stopped, IndexedDB metadata is cleared,
+localStorage data is purged, and realtime channel subscriptions are
+removed. This ensures a clean state for the next session.
+
+SYNC INDICATOR
+--------------------------------------------------------------------------------
+
+The sync icon in the header shows your current status: spinning during
+sync, a checkmark when synced, or a warning badge when changes are
+pending. The timestamp shows when data was last synced.
+
+TIP: Install FlipTrack as a PWA for the best offline experience. The
+Service Worker caches all app assets for instant loading even without
+internet.
+
+
+================================================================================
+36. BACKUP & RESTORE
+================================================================================
+
+FlipTrack lets you download a complete JSON backup of all your data and
+restore from it at any time. This is independent of cloud sync -- it's
+your personal safety net.
+
+DOWNLOAD BACKUP
+--------------------------------------------------------------------------------
+
+  1. Open Quick Export
+     On the Dashboard, scroll to the Quick Export panel in the right
+     column.
+
+  2. Click "Download Backup"
+     A JSON file named fliptrack-backup-YYYY-MM-DD.json downloads to
+     your device containing all inventory, sales, expenses, and supplies
+     data.
+
+RESTORE FROM BACKUP
+--------------------------------------------------------------------------------
+
+  1. Click "Restore Backup"
+     In the same Quick Export panel, click the Restore Backup button and
+     select your JSON backup file.
+
+  2. Confirm the restore
+     A confirmation dialog shows the backup date and item counts.
+     Confirming REPLACES ALL CURRENT DATA with the backup contents and
+     syncs to the cloud.
+
+WARNING: Restoring a backup replaces all your current data. Make sure to
+download a fresh backup first if you want to preserve your current state.
+
+WHAT'S INCLUDED
+--------------------------------------------------------------------------------
+
+  - Inventory
+    All items with full details: names, SKUs, UPCs, categories,
+    platforms, pricing, conditions, images (URLs), dimensions, and
+    custom fields.
+
+  - Sales
+    Complete sales history with prices, quantities, fees, shipping
+    costs, dates, and buyer information.
+
+  - Expenses
+    All expense records with categories, amounts, dates, and
+    descriptions.
+
+  - Supplies
+    Packing supplies inventory with quantities and costs.
+
+
+================================================================================
+37. SUPPORTED PLATFORMS
+================================================================================
+
+FlipTrack supports tracking inventory and sales across 15+ selling
+platforms, each with accurate fee structures built in.
+
+  Platform          Transaction Fee      Processing
+  --------          ---------------      ----------
+  eBay              12.9% + $0.30        Included
+  Etsy              6.5% + $0.20         3% + $0.25
+  Poshmark          20% (orders > $15)   Included
+  Mercari           10%                  2.9% + $0.50
+  Amazon            15% (avg)            Included
+  Facebook MP       5% (shipped)         Included
+  Depop             10%                  Included
+  Whatnot           8%                   2.9% + $0.30
+
+eBay is the only platform with live API integration. Etsy integration is
+coming soon. All other platforms (Poshmark, Depop, Mercari, Grailed,
+Facebook Marketplace, etc.) are supported via the "Copy & List" workflow
+-- use AI-generated listing text, deep links, and manual status tracking
+in the Status Matrix. Whatnot is supported with planning and analytics
+tools (not direct API). You can record sales from any platform.
+
+
+================================================================================
+38. DATA MANAGEMENT
+================================================================================
+
+IMPORT & EXPORT
+--------------------------------------------------------------------------------
+
+  - CSV Import
+    Bulk-add items from a CSV file. FlipTrack maps columns to item
+    fields automatically.
+
+  - CSV Export
+    Export your inventory, sales, tax summary, or show data as CSV files
+    for spreadsheets or external tools.
+
+  - PDF Reports
+    Generate formatted P&L statements, tax summaries, and analytics as
+    downloadable PDFs.
+
+  - Barcodes
+    Generate UPC/EAN barcodes and QR codes. Print barcode label stickers
+    with custom sizing.
+
+TRASH & RECOVERY
+--------------------------------------------------------------------------------
+
+Deleted items go to the Trash first -- they are not permanently removed
+immediately. Open the Trash modal to restore individual items or empty
+the trash permanently. This acts as a safety net against accidental
+deletions.
+
+
+================================================================================
+39. INVENTORY HEALTH
+================================================================================
+
+The Inventory Health dashboard gives you a diagnostic view of your unsold
+inventory -- how old it is, where your money is stuck, and which
+categories turn over fastest. Use it to identify stale inventory and
+optimize your sourcing decisions.
+
+  Active Items .... 87
+  Listed Value .... $4,280
+  Avg Age ......... 34d
+  Stale (60d+) .... 12
+  $ Stuck ......... $890
+
+AGING BREAKDOWN
+--------------------------------------------------------------------------------
+
+Items are grouped into four age buckets -- 0-30 days (fresh), 31-60 days
+(aging), 61-90 days (stale), and 90+ days (dead stock). Color-coded bars
+show how your inventory distributes across these buckets, with item
+counts and dollar values for each.
+
+CATEGORY TURNOVER
+--------------------------------------------------------------------------------
+
+A sortable table showing sell-through rate, average days to sell, and ROI
+for each product category. Quickly identify which categories are hot
+sellers and which are dragging down your overall performance.
+
+ROI RANKING
+--------------------------------------------------------------------------------
+
+Side-by-side columns showing your top 8 and bottom 8 items by return on
+investment. Click any item to open its detail drawer. Helps you double
+down on winners and learn from underperformers.
+
+INVENTORY COMPOSITION
+--------------------------------------------------------------------------------
+
+Visual bar charts breaking down your unsold inventory by category,
+condition, and platform. See at a glance where your money is concentrated.
+
+TIP: Check the "Stale" count weekly. Items over 60 days should be
+candidates for repricing, bundling, or relisting on additional platforms.
+
+
+================================================================================
+40. SOURCING ANALYTICS
+================================================================================
+
+Sourcing Analytics complements the Sourcing & Hauls view by analyzing the
+profitability of your sourcing locations and trips over time. See which
+thrift stores, estate sales, and online sources deliver the best ROI.
+
+  - Source ROI
+    Per-source breakdown showing total items purchased, items sold,
+    revenue, profit, and ROI percentage. Identifies your most and least
+    profitable sourcing locations.
+
+  - Trend Analysis
+    Monthly sourcing spend and return trends. See if your sourcing is
+    becoming more or less efficient over time.
+
+  - Best Finds
+    Highlights your highest-ROI individual items by source, so you know
+    what kinds of finds to look for at each location.
+
+  - Cost-per-Item
+    Average cost per item by source and overall, helping you set smarter
+    sourcing budgets.
+
+TIP: Pair Sourcing Analytics with Inventory Health to see not just where
+you source cheaply, but where sourced items actually sell fastest.
+
+
+================================================================================
+41. PLATFORM ROI
+================================================================================
+
+Compare the performance of every selling platform side by side. Platform
+ROI shows revenue share, average margins, fee impact, and sell-through
+speed for each marketplace you use.
+
+  Platform    Sold   Revenue   Margin   Avg Days   Fee Rate
+  --------    ----   -------   ------   --------   --------
+  eBay        42     $2,840    52%      14d        13%
+  Poshmark    18     $1,120    48%      21d        20%
+  Mercari     12     $680      38%      18d        10%
+
+REVENUE SHARE
+--------------------------------------------------------------------------------
+
+Visual bar chart showing what percentage of your total revenue comes from
+each platform. Helps you decide where to focus your crosslisting efforts.
+
+PLATFORM COMPARISON TABLE
+--------------------------------------------------------------------------------
+
+Full metrics table with sold count, revenue, profit, margin, ROI, average
+days to sell, average fees, fee rate, and top-selling category per
+platform.
+
+TIP: High fee rates don't always mean low profit. A platform with 20%
+fees but 3x faster sell-through might be more profitable overall. Check
+the "Avg Days" column.
+
+
+================================================================================
+42. PERIOD COMPARE
+================================================================================
+
+Period Compare shows your business performance side by side across time
+windows -- this week vs last week, this month vs last month, and a
+rolling 30-day comparison. Trending arrows highlight which metrics are
+improving or declining.
+
+  Revenue ...... $1,240 (up 18%)
+  Profit ....... $482   (up 12%)
+  Items Sold ... 14     (down 8%)
+  Avg Sale ..... $88.57 (up 28%)
+
+COMPARISON WINDOWS
+--------------------------------------------------------------------------------
+
+  - Weekly
+    This week vs last week with six KPIs: revenue, profit, items sold,
+    items listed, average sale price, and expenses.
+
+  - Monthly
+    This month vs last month -- same KPIs with trend arrows showing
+    percentage change.
+
+  - Rolling 30 Days
+    Last 30 days vs the previous 30 days -- smooths out week-to-week
+    noise for a clearer picture.
+
+12-MONTH TREND CHART
+--------------------------------------------------------------------------------
+
+A bar chart showing monthly revenue and profit for the past 12 months,
+plus a sortable monthly breakdown table. Identifies seasonal patterns
+and long-term growth trends.
+
+TIP: Use the rolling 30-day comparison to set monthly goals. If you're
+consistently trending up, raise your targets.
+
+
+================================================================================
+43. RETURNS TRACKING
+================================================================================
+
+Track returns and refunds with reason codes, refund amounts, and restock
+status. Returns Tracking identifies problem categories and items so you
+can reduce your return rate over time.
+
+  - Log a Return
+    Click "Log Return" to select a sale, choose a reason code (9 built-in
+    options like "Not as described" or "Defective"), enter the refund
+    amount, and optionally restock the item back to inventory.
+
+  - Return Analytics
+    Dashboard cards showing total returns, return rate, total refunded,
+    and revenue lost. Updated in real time as you log returns.
+
+  - Reason Breakdown
+    Visual bar chart of return reasons ranked by frequency -- quickly see
+    if "Not as described" or "Defective" is your biggest issue.
+
+  - Problem Categories
+    Table showing which product categories have the highest return rates,
+    so you can improve descriptions or avoid problematic items.
+
+  - Automatic eBay Return Detection
+    FlipTrack checks your eBay orders every 30 minutes for cancellations
+    and refunds. When detected, an urgent notification fires -- in-app
+    toast, sound alert, and browser push notification. The return is
+    auto-logged in your Returns Tracking with the correct reason and
+    refund amount, and the item is automatically restocked to inventory.
+
+  - Restocking Fix
+    Restocking a returned item now correctly increments the item quantity
+    in inventory (previously it only toggled the sold status without
+    updating quantity).
+
+NOTE: When you check "Restock item," the returned item is automatically
+marked as unsold in your inventory, its quantity is incremented, and it
+becomes available for relisting.
+
+
+================================================================================
+44. LISTING SCORES
+================================================================================
+
+Listing Scores grades every unsold item on a scale from A to F based on
+listing completeness -- title quality, photos, description length,
+pricing, and platform coverage. Actionable suggestions help you improve
+weak listings.
+
+  Overall Grade .... B+
+  A Grade .......... 14
+  B Grade .......... 28
+  C Grade .......... 18
+  D/F Grade ........ 7
+
+SCORING CRITERIA
+--------------------------------------------------------------------------------
+
+Each item is scored on title length, photo count, description quality,
+whether a price is set, if a category is assigned, and how many platforms
+it's listed on. The overall grade is weighted and combines into a letter
+grade with color coding.
+
+ITEM-LEVEL SUGGESTIONS
+--------------------------------------------------------------------------------
+
+Each item shows its individual grade plus specific tips -- for example,
+"Add 2 more photos," "Write a longer description," or "List on more
+platforms." Click any item to open its editor and make improvements.
+
+TIP: Focus on D and F graded items first -- even small improvements like
+adding a photo or filling in the category can dramatically improve
+visibility.
+
+
+================================================================================
+45. MARGIN ALERTS
+================================================================================
+
+Margin Alerts continuously scans your unsold inventory and flags items
+that fall below your profit thresholds. Set your own minimum margin
+percentage, minimum dollar profit, and stale-day cutoff to catch problems
+before they hurt your bottom line.
+
+CONFIGURABLE THRESHOLDS
+--------------------------------------------------------------------------------
+
+Adjust three key thresholds directly on the page. Changes save to your
+browser instantly and persist across sessions:
+
+  - Min Margin %
+    Alert when an item's profit margin is below this percentage
+    (default: 20%). Critical alert if margin is negative.
+
+  - Min Profit $
+    Alert when dollar profit is below this amount (default: $5). Catches
+    items where the margin percentage looks fine but actual dollars are
+    too low.
+
+  - Stale Days
+    Flag items that have been listed longer than this many days
+    (default: 60). Critical alert at 120+ days.
+
+ALERT SEVERITY
+--------------------------------------------------------------------------------
+
+Alerts are color-coded by severity -- critical (red), high (orange), and
+medium (yellow). Each alert shows the item name, the specific issue, and
+links directly to the item editor so you can take action immediately.
+
+NO-PRICE DETECTION
+--------------------------------------------------------------------------------
+
+Items with cost recorded but no listing price set get an automatic "high"
+alert -- money is invested but the item isn't priced for sale.
+
+NOTE: Margin Alerts use your current listing price, not comp data. If
+you've repriced an item but the price field hasn't been updated, the
+alert may not reflect the true margin.
+
+
+================================================================================
+46. AI-POWERED FEATURES
+================================================================================
+
+  - AI Listing Generator
+    Generate platform-optimized product descriptions using AI. Adapts
+    tone and formatting for eBay, Etsy, Amazon, and more.
+
+  - AI Identification
+    Snap a photo and let AI identify the product -- brand, category,
+    condition, and suggested price.
+
+  - AI Background Removal
+    Remove cluttered backgrounds from product photos for clean,
+    professional listings.
+
+  - AI Tag Suggestions
+    Get optimized tag recommendations for Etsy listings based on title,
+    description, and category analysis.
+
+
+================================================================================
+47. WHAT'S NEW IN VERSION 2.0
+================================================================================
+
+Version 2.0 is a major release focused on automation, platform
+integrations, and mobile experience. Bundle sales, automatic eBay return
+detection, live Etsy push, and a redesigned mobile layout headline 14 new
+features and improvements.
+
+NEW FEATURES (V2.0)
+--------------------------------------------------------------------------------
+
+  - Bundle Sales
+    Sell multiple items in a single transaction. The "Bundle" toggle in
+    the sold modal lets you select items, auto-populates the total from
+    list prices, and splits revenue proportionally. Red/green comparison
+    shows discount vs. original total.
+
+  - Buyer Address & Packing Slip Integration
+    Collapsible Ship-to Address fields (street, city, state, ZIP) in the
+    sold modal. Addresses auto-populate packing slips for faster
+    fulfillment.
+
+  - Automatic eBay Return & Cancellation Detection
+    FlipTrack checks eBay orders every 30 minutes for cancellations and
+    refunds. Fires urgent notifications (toast, sound, push). Auto-logs
+    returns and restocks items.
+
+  - eBay Listing Reconciliation
+    Listings ended or deleted externally on eBay are automatically
+    detected and marked as "ended" in FlipTrack during sync.
+
+  - FlipTrack as Price Source of Truth
+    One-directional price sync: FlipTrack pushes prices to eBay (never
+    pulled from eBay). Repricing rules auto-push to both eBay and Etsy.
+
+  - Etsy Taxonomy & Shipping Profile Selection
+    Etsy push now shows a taxonomy picker and shipping profile selector
+    so listings go live immediately instead of as drafts.
+
+  - Save/Sync Progress Bar
+    Immediate visual feedback when saving or syncing data. A progress bar
+    shows operation status so you always know when your data is safe.
+
+  - iOS PWA Fix (appPrompt)
+    Custom appPrompt replaces the broken native window.prompt on iOS PWA,
+    restoring full functionality for all prompt-based inputs.
+
+  - New Categories
+    Four new inventory categories added: Sneakers, Jewelry, Video Games,
+    and Media. Better organization for specialized resellers.
+
+  - Mobile Inventory Card Layout
+    Redesigned mobile inventory view with a card-based layout optimized
+    for touch interaction and small screens.
+
+  - eBay Comps (Browse API)
+    Comps are now powered by the eBay Browse API via a Supabase edge
+    function, providing richer market pricing data with accept/drop
+    percentage buttons on suggested prices.
+
+  - Flip Score Tuning
+    Flip Score formula updated so high-margin items are no longer
+    penalized for age. Better reflects true resale potential for
+    slow-but-profitable inventory.
+
+  - Improved Onboarding
+    Welcome CTA for new users, empty dashboard banner with
+    getting-started guidance, and friendlier error messages throughout
+    the app.
+
+  - View Persistence (URL Hash Routing)
+    URL hash routing keeps you on the current page when you refresh. No
+    more losing your place -- bookmarkable views and back-button
+    navigation.
+
+PREVIOUS: VERSION 1.9
+--------------------------------------------------------------------------------
+
+Version 1.9 connects FlipTrack's existing AI, comps, and analytics
+systems into user-facing flows that no competitor has. 12 new features
+across 6 phases -- smart sourcing verdicts, market-driven repricing,
+social content generation, voice input, donation tracking, and community
+pricing.
+
+FEATURES ADDED IN V1.9
+--------------------------------------------------------------------------------
+
+  - Comps Auto-Pricing
+    AI Identify now auto-fetches comp data from eBay sold listings. A
+    comp-verified price badge shows median, range, and confidence level.
+
+  - Source Score (BUY/PASS/MAYBE)
+    Enter your cost in the Identify results to get an instant sourcing
+    verdict with estimated profit, margin analysis, and days-to-sell.
+
+  - Flip Score (0-100)
+    Every item gets a unified score combining margin, freshness, listing
+    quality, and demand signal. Sortable column. Grades A through F.
+
+  - Daily Sales Digest
+    Morning notification with yesterday's sales count, revenue, profit,
+    and selling streak. In-app and optional browser push.
+
+  - Smart Reprice with Comps
+    New "Set to Comp Median" repricing action uses live eBay market data
+    instead of blind percentage drops.
+
+  - Arbitrage Alerts
+    Scans inventory against market comps to flag underpriced and
+    overpriced items with suggested actions.
+
+  - Social Photo Gallery
+    Generate branded photo collages (2x2, 3x3, hero, stories) from
+    selected inventory items for social media.
+
+  - Seasonal Demand Calendar
+    Per-category monthly demand heatmap in Insights with auto-generated
+    timing insights.
+
+  - Haul ROI Receipts
+    Generate branded receipt PNGs for sourcing hauls. Shows items, cost,
+    value, profit, and ROI.
+
+  - Donation Tracker
+    Donate death pile items with FMV recording. Auto-populates Charitable
+    Donations line in Schedule C.
+
+  - Voice-Powered Adding
+    Hands-free item entry via Web Speech API. Parses item names, prices,
+    and conditions from natural speech.
+
+  - Community Pricing
+    Opt-in anonymous aggregated sales data across all FlipTrack users.
+    Query community medians and percentiles by category.
+
+PREVIOUS: VERSION 1.8
+--------------------------------------------------------------------------------
+
+Version 1.8 added sales momentum tracking, smarter dashboard
+intelligence, CSV expense imports, listing expiry visibility, tracking
+number logging, return rate analysis, and 94 bug fixes.
+
+FEATURES ADDED IN V1.8
+--------------------------------------------------------------------------------
+
+  - Selling Streak Counter
+    A streak widget on the dashboard counts consecutive days you've made
+    at least one sale.
+
+  - Best Days to Sell Insight
+    The Insights view surfaces your best-performing day of the week by
+    sales volume and revenue.
+
+  - Offer Aging Alerts
+    A dashboard banner flags pending offers older than 24 hours with
+    item names and amounts.
+
+  - Snap to Add
+    The Add Item modal has a Snap button that opens your camera and runs
+    AI Identify in one tap.
+
+  - Tracking Number Logging
+    Enter carrier tracking numbers when recording a sale. Numbers display
+    as clickable tracking links.
+
+  - Return Rate in Platform ROI
+    The Platform ROI comparison table now includes a return rate column.
+
+  - CSV Expense Import
+    Bulk-import expenses from any CSV file. Auto-detects columns from
+    bank exports and PayPal histories.
+
+  - Listing Expiry & Sale Badges
+    Inventory rows show days since last sale and listing expiry
+    countdowns.
+
+  - 94 Bug Fixes
+    Fixed XSS escaping gaps, O(n^2) performance issues, team data
+    isolation bugs, offline sync reliability, accessibility, and mobile
+    CSS compatibility.
+
+PREVIOUS: VERSION 1.7
+--------------------------------------------------------------------------------
+
+Version 1.7 added dashboard intelligence (sales velocity charts,
+inventory aging), full data backup & restore, keyboard shortcut
+discoverability, and improved error handling across the sync layer.
+
+FEATURES ADDED IN V1.7
+--------------------------------------------------------------------------------
+
+  - Sales Velocity Chart
+    SVG bar chart on the dashboard showing items sold per week over the
+    last 8 weeks with trend indicator and hover tooltips.
+
+  - Inventory Aging Summary
+    Dashboard panel breaking down inventory into aging buckets with
+    visual progress bars and cost at risk.
+
+  - JSON Backup & Restore
+    Download a complete JSON backup of all data. Restore from any
+    previous backup with confirmation dialog.
+
+  - Keyboard Shortcut Hints
+    Shortcuts displayed as badge hints on corresponding buttons.
+    Auto-detects Mac vs. Windows. Hidden on mobile.
+
+IMPROVEMENTS (V1.7)
+--------------------------------------------------------------------------------
+
+  - Sync Error Toasts
+    All sync failures now display user-facing toast notifications instead
+    of silent console warnings.
+
+  - New CSS Components
+    Added styled components for sales velocity chart, inventory aging
+    summary, and keyboard shortcut badges.
+
+PREVIOUS: VERSION 1.6
+--------------------------------------------------------------------------------
+
+Version 1.6 added Quick List, multi-user team support, enhanced
+comparables pricing, and a comprehensive in-app guided tour, plus
+significant accessibility and security improvements.
+
+NEW FEATURES (V1.6)
+--------------------------------------------------------------------------------
+
+  - Quick List Pipeline
+    Camera-to-listing in seconds: open camera, snap a photo, AI
+    auto-identifies the item, and a pre-filled Add Item form appears.
+
+  - Multi-User Team Support
+    Create teams, invite members with 6-character codes, assign roles,
+    and share inventory with real-time sync.
+
+  - Enhanced Comparables
+    eBay comps powered by a Supabase edge function with app-level
+    credentials. Includes price distribution histograms and confidence-
+    based pricing suggestions.
+
+  - In-App Guided Tour
+    42-step interactive tour across 11 sections covering every view.
+
+ACCESSIBILITY & DESIGN (V1.6)
+--------------------------------------------------------------------------------
+
+  - 6 New Focus Traps
+  - CSS Color System (replaced 16 hardcoded hex colors with variables)
+  - Enhanced ARIA (31 emoji nav icons with aria-hidden="true")
+  - Landing Page Polish
+
+SECURITY FIXES (V1.6)
+--------------------------------------------------------------------------------
+
+  - CSRF Fix in OAuth
+  - XSS Hardening
+  - Offline Retry Fix
+  - Critical Bug Fixes
+
+PREVIOUS: VERSION 1.5
+--------------------------------------------------------------------------------
+
+Version 1.5 introduced Phase 9: Analytics & Intelligence -- seven new
+views providing deep visibility into inventory health, sourcing
+performance, platform ROI, period trends, returns tracking, listing
+quality, and margin alerts.
+
+PHASE 9: ANALYTICS & INTELLIGENCE (V1.5)
+--------------------------------------------------------------------------------
+
+  - Inventory Health
+  - Sourcing Analytics
+  - Platform ROI
+  - Period Compare
+  - Returns Tracking
+  - Listing Scores
+  - Margin Alerts
+
+BUG FIXES & IMPROVEMENTS (V1.5)
+--------------------------------------------------------------------------------
+
+  - Dashboard Value Fix (animated counter race conditions)
+  - Sync Stats Refresh (stats refresh after every sync)
+  - CSS Completeness (23 missing classes added)
+  - Chart Accuracy (profit bar scaling, trend arrow edge cases)
+
+PREVIOUS: VERSION 1.4
+--------------------------------------------------------------------------------
+
+Version 1.4 focused on deep security hardening, reliability improvements,
+mobile experience, and comprehensive accessibility.
+
+SECURITY HARDENING
+--------------------------------------------------------------------------------
+
+  - XSS Prevention (19 Files)
+  - External Data Escaping
+
+RELIABILITY IMPROVEMENTS
+--------------------------------------------------------------------------------
+
+  - API Timeouts (15-second AbortController)
+  - Toast Notifications (silent failures eliminated)
+  - Enhanced Sync Guard (mutex-based)
+  - Comprehensive Logout
+  - Date Timezone Fix
+  - Breakdown Fix (clickable subcategory rows)
+
+MOBILE & TOUCH
+--------------------------------------------------------------------------------
+
+  - 44px Touch Targets
+  - Mobile OAuth Redirect
+  - Batch Scan Mobile (photo capture mode)
+  - iOS Safe Area
+
+ACCESSIBILITY (V1.4)
+--------------------------------------------------------------------------------
+
+  - 88 Icon Button Labels
+  - Product Image Alt Text
+  - Focus Trapping
+  - Z-Index Consolidation
+
+FONT & DISPLAY
+--------------------------------------------------------------------------------
+
+  - Font Size Presets
+  - Mobile Button Layout
+
+PREVIOUS: VERSION 1.3
+--------------------------------------------------------------------------------
+
+Version 1.3 brought the subscription tier system, comprehensive
+accessibility foundations, and initial reliability hardening.
+
+VERSION 1.3 FEATURES
+--------------------------------------------------------------------------------
+
+  - Subscription Tiers (Free, Pro $12/mo, Unlimited $25/mo)
+  - Upgrade Modal
+  - User Profiles
+  - Auto-Delist on Sale Sync
+  - Performance: Code Splitting (78% smaller initial JS payload)
+
+VERSION 1.3 ACCESSIBILITY
+--------------------------------------------------------------------------------
+
+  - Keyboard Focus Indicators
+  - ARIA Labels & Roles
+  - Form Compliance
+  - Image Accessibility
+
+VERSION 1.3 RELIABILITY
+--------------------------------------------------------------------------------
+
+  - Sync Guard
+  - Auth Guard
+  - Notification Guard
+  - Timer Cleanup
+  - CSS Completeness
+  - Graceful Fallbacks
+
+PREVIOUS: VERSION 1.2 HIGHLIGHTS
+--------------------------------------------------------------------------------
+
+  - Profit Dashboard
+  - Sales Analytics
+  - Photo Tools
+  - Advanced Bulk Actions
+
+
+================================================================================
+
+FlipTrack v2.0 -- Built for resellers, by resellers.
+Know your real reselling profit.
+
+(c) 2026 FlipTrack. All rights reserved.
+
+================================================================================
