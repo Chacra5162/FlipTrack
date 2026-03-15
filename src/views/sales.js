@@ -28,6 +28,8 @@ import { renderPagination } from '../utils/pagination.js';
 
 let activeSoldId = null;
 let _sPriceType = 'each'; // 'each' or 'total'
+let _bundleMode = false;
+let _bundleItems = new Set(); // item IDs in the bundle
 let _salePage = 0;
 const _salePageSize = 50;
 let _salesSearch = '';
@@ -184,10 +186,81 @@ export function closeSold() {
   if (buyerEl) buyerEl.value = '';
   const trackEl = document.getElementById('s_tracking');
   if (trackEl) trackEl.value = '';
+  // Clear address fields
+  ['s_address', 's_city', 's_state', 's_zip'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  // Reset bundle mode
+  _bundleMode = false;
+  _bundleItems.clear();
+  const bs = document.getElementById('bundleSection');
+  if (bs) bs.style.display = 'none';
+  const bt = document.getElementById('bundleToggle');
+  if (bt) { bt.textContent = '+ Bundle'; bt.style.borderColor = 'var(--border)'; bt.style.color = ''; }
   // Reset the save button so it's not stuck on "Saving…" when modal reopens
   const btn = document.getElementById('recSaleBtn');
   if (btn) { btn.disabled = false; btn.textContent = 'Record Sale'; }
   activeSoldId = null;
+}
+
+// ── BUNDLE MODE ───────────────────────────────────────────────────────────────
+
+export function toggleBundleMode() {
+  _bundleMode = !_bundleMode;
+  const section = document.getElementById('bundleSection');
+  const btn = document.getElementById('bundleToggle');
+  if (_bundleMode) {
+    section.style.display = '';
+    btn.textContent = 'Cancel Bundle';
+    btn.style.borderColor = 'var(--accent)';
+    btn.style.color = 'var(--accent)';
+    // Add the current item to bundle if one is selected
+    if (activeSoldId) _bundleItems.add(activeSoldId);
+    _renderBundleList();
+  } else {
+    section.style.display = 'none';
+    btn.textContent = '+ Bundle';
+    btn.style.borderColor = 'var(--border)';
+    btn.style.color = '';
+    _bundleItems.clear();
+  }
+}
+
+export function filterBundleItems() {
+  _renderBundleList();
+}
+
+export function toggleBundleItem(itemId) {
+  if (_bundleItems.has(itemId)) _bundleItems.delete(itemId);
+  else _bundleItems.add(itemId);
+  _renderBundleList();
+  // Update count
+  const countEl = document.getElementById('bundleCount');
+  if (countEl) countEl.textContent = `(${_bundleItems.size} items)`;
+}
+
+function _renderBundleList() {
+  const listEl = document.getElementById('bundleItemList');
+  const selEl = document.getElementById('bundleSelected');
+  const countEl = document.getElementById('bundleCount');
+  if (!listEl) return;
+
+  const q = (document.getElementById('bundleSearch')?.value || '').toLowerCase();
+  const available = inv.filter(i => (i.qty || 0) > 0 && !i.sold && !i.deleted);
+  const filtered = q ? available.filter(i => (i.name || '').toLowerCase().includes(q) || (i.sku || '').toLowerCase().includes(q)) : available.slice(0, 30);
+
+  listEl.innerHTML = filtered.map(i => {
+    const checked = _bundleItems.has(i.id) ? 'checked' : '';
+    return `<label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--border);cursor:pointer;font-size:11px">
+      <input type="checkbox" ${checked} onchange="toggleBundleItem('${escAttr(i.id)}')" style="cursor:pointer">
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(i.name || i.sku || 'Untitled')}</span>
+      <span style="color:var(--muted);font-family:'DM Mono',monospace">${fmt(i.price || 0)}</span>
+    </label>`;
+  }).join('');
+
+  // Show selected items summary
+  const selected = [..._bundleItems].map(id => getInvItem(id)).filter(Boolean);
+  const totalList = selected.reduce((a, i) => a + (i.price || 0), 0);
+  if (countEl) countEl.textContent = `(${_bundleItems.size} items · ${fmt(totalList)} list value)`;
+  if (selEl) selEl.textContent = selected.length ? `Selected: ${selected.map(i => i.name || i.sku).join(', ')}` : '';
 }
 
 // ── RECORD SALE ───────────────────────────────────────────────────────────────
@@ -198,6 +271,11 @@ export function recSale() {
   if (btn?.disabled) return;
   if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
   const reenableBtn = () => { if (btn) { btn.disabled = false; btn.textContent = 'Record Sale'; } };
+
+  // Bundle mode: process multiple items
+  if (_bundleMode && _bundleItems.size > 1) {
+    return _recBundleSale(reenableBtn);
+  }
 
   const item = getInvItem(activeSoldId);
   if (!item) { toast('Item not found — it may have been deleted', true); reenableBtn(); closeSold(); return; }
@@ -236,6 +314,12 @@ export function recSale() {
   // Convert to per-unit price for storage
   const price = _sPriceType === 'total' ? rawPrice / qty : rawPrice;
   const platform = document.getElementById('s_platform').value || 'Other';
+  // Capture buyer address fields
+  const buyerAddress = (document.getElementById('s_address')?.value || '').trim() || null;
+  const buyerCity = (document.getElementById('s_city')?.value || '').trim() || null;
+  const buyerState = (document.getElementById('s_state')?.value || '').trim().toUpperCase() || null;
+  const buyerZip = (document.getElementById('s_zip')?.value || '').trim() || null;
+
   const sale = {
     id: uid(), itemId: activeSoldId, price, listPrice: item.price || 0,
     qty, platform,
@@ -243,6 +327,7 @@ export function recSale() {
     ship: isNaN(ship) ? 0 : ship,
     date: document.getElementById('s_date').value || new Date().toISOString(),
     tracking: (document.getElementById('s_tracking')?.value || '').trim() || null,
+    buyerAddress, buyerCity, buyerState, buyerZip,
   };
   pushUndo('sold', { itemId: activeSoldId, qty, saleId: sale.id });
   sales.push(sale);
@@ -274,6 +359,70 @@ export function recSale() {
   _sfx.sale();
   showUndoToast('Item marked as sold');
   // Prompt for materials used if any supplies exist
+  openMaterialsModal(() => {});
+}
+
+// ── BUNDLE SALE RECORDING ─────────────────────────────────────────────────────
+
+function _recBundleSale(reenableBtn) {
+  const priceEl = document.getElementById('s_price');
+  const totalPrice = parseNum(priceEl.value, { fieldName: 'Total Price' });
+  if (!totalPrice) { toast('Enter the total bundle price', true); reenableBtn(); return; }
+
+  const feesEl = document.getElementById('s_fees');
+  const fees = parseNum(feesEl.value, { fieldName: 'Fees', allowZero: true }) || 0;
+  const shipEl = document.getElementById('s_ship');
+  const ship = parseNum(shipEl.value, { fieldName: 'Shipping', allowZero: true }) || 0;
+  const platform = document.getElementById('s_platform').value || 'Other';
+  const date = document.getElementById('s_date').value || new Date().toISOString();
+  const tracking = (document.getElementById('s_tracking')?.value || '').trim() || null;
+  const buyerName = (document.getElementById('s_buyer')?.value || '').trim();
+  const buyerAddress = (document.getElementById('s_address')?.value || '').trim() || null;
+  const buyerCity = (document.getElementById('s_city')?.value || '').trim() || null;
+  const buyerState = (document.getElementById('s_state')?.value || '').trim().toUpperCase() || null;
+  const buyerZip = (document.getElementById('s_zip')?.value || '').trim() || null;
+
+  const items = [..._bundleItems].map(id => getInvItem(id)).filter(Boolean);
+  if (!items.length) { toast('No items in bundle', true); reenableBtn(); return; }
+
+  // Split price proportionally by list price
+  const totalListPrice = items.reduce((a, i) => a + (i.price || 1), 0) || items.length;
+  const bundleId = uid();
+
+  let buyer = null;
+  if (buyerName) buyer = getOrCreateBuyer(buyerName, platform);
+
+  for (const item of items) {
+    const proportion = (item.price || 1) / totalListPrice;
+    const itemPrice = Math.round(totalPrice * proportion * 100) / 100;
+    const itemFees = Math.round(fees * proportion * 100) / 100;
+    const itemShip = Math.round(ship * proportion * 100) / 100;
+
+    const sale = {
+      id: uid(), itemId: item.id, price: itemPrice, listPrice: item.price || 0,
+      qty: 1, platform, bundleId,
+      fees: itemFees, ship: itemShip,
+      date, tracking, buyerAddress, buyerCity, buyerState, buyerZip,
+    };
+    if (buyer) sale.buyerId = buyer.id;
+
+    sales.push(sale);
+    markDirty('sales', sale.id);
+    logSalePrice(item.id, itemPrice, platform);
+
+    item.qty = Math.max(0, (item.qty || 1) - 1);
+    if (!item.platformStatus) item.platformStatus = {};
+    item.platformStatus[platform] = 'sold';
+    if (item.qty <= 0) autoDlistOnSale(item.id, platform);
+    markDirty('inv', item.id);
+  }
+
+  save();
+  closeSold();
+  refresh();
+  if (typeof window.updateDashStats === 'function') window.updateDashStats();
+  _sfx.sale();
+  toast(`Bundle sale recorded: ${items.length} items for ${fmt(totalPrice)}`);
   openMaterialsModal(() => {});
 }
 

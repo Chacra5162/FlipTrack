@@ -1413,8 +1413,20 @@
 <!-- SOLD MODAL -->
 <div class="overlay" id="soldOv" role="dialog" aria-modal="true" aria-label="Record Sale" onclick="if(event.target===this)closeSold()">
   <div class="modal">
-    <div class="modal-hd"><div class="modal-ttl">Record Sale</div><button class="modal-x" onclick="closeSold()" aria-label="Close record sale dialog">×</button></div>
+    <div class="modal-hd">
+      <div class="modal-ttl">Record Sale</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button type="button" id="bundleToggle" onclick="toggleBundleMode()" class="btn-ghost" style="font-size:10px;padding:4px 10px;border:1px solid var(--border)">+ Bundle</button>
+        <button class="modal-x" onclick="closeSold()" aria-label="Close record sale dialog">×</button>
+      </div>
+    </div>
     <div class="modal-bd">
+      <div id="bundleSection" style="display:none;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:600;margin-bottom:6px;color:var(--accent)">Bundle Items <span id="bundleCount" style="color:var(--muted);font-weight:400"></span></div>
+        <input type="text" id="bundleSearch" placeholder="Search items to add..." oninput="filterBundleItems()" style="width:100%;padding:8px 10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:11px;border-radius:6px;margin-bottom:6px;box-sizing:border-box">
+        <div id="bundleItemList" style="max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:6px"></div>
+        <div id="bundleSelected" style="margin-top:6px;font-size:10px;color:var(--muted)"></div>
+      </div>
       <div class="sold-info" id="soldInfo"></div>
       <div class="form-grid">
         <div class="fgrp">
@@ -1446,6 +1458,17 @@
         <div class="fgrp full"><label for="s_date">Date Sold</label><input type="date" id="s_date"></div>
         <div class="fgrp full"><label for="s_buyer">Buyer Name / Handle <span style="color:var(--muted);font-weight:400">(optional)</span></label><input type="text" id="s_buyer" placeholder="e.g. john_resells"></div>
         <div class="fgrp full"><label for="s_tracking">Tracking Number <span style="color:var(--muted);font-weight:400">(optional)</span></label><input type="text" id="s_tracking" placeholder="e.g. 1Z999AA10123456784" style="font-family:'DM Mono',monospace"></div>
+        <details class="fgrp full" style="border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-top:4px">
+          <summary style="font-size:11px;color:var(--muted);cursor:pointer;user-select:none">Ship-to Address <span style="font-size:10px">(for packing slips)</span></summary>
+          <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px">
+            <input type="text" id="s_address" placeholder="Street address" style="padding:8px 10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;border-radius:6px">
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px">
+              <input type="text" id="s_city" placeholder="City" style="padding:8px 10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;border-radius:6px">
+              <input type="text" id="s_state" placeholder="State" maxlength="2" style="padding:8px 10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;border-radius:6px;text-transform:uppercase">
+              <input type="text" id="s_zip" placeholder="ZIP" maxlength="10" style="padding:8px 10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;border-radius:6px">
+            </div>
+          </div>
+        </details>
       </div>
     </div>
     <div class="modal-ft"><button class="btn-secondary" onclick="closeSold()">Cancel</button><button class="btn-primary" id="recSaleBtn" onclick="recSale()">Record Sale</button></div>
