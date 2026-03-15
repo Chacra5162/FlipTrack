@@ -295,6 +295,114 @@ const TOUR_STEPS = [
     viewRequirement: 'marginalerts',
   },
 
+  /* ── SECTION 7.5: SMART PRICING & SOURCING ─────────────────────────── */
+  {
+    section: 'Smart Pricing',
+    target: '#headerIdBtn',
+    title: 'Comps Auto-Pricing',
+    desc: 'When you Identify an item, FlipTrack now auto-fetches comp data from eBay sold listings. The comp-verified price appears as a badge with median, range, and confidence level — no manual research needed.',
+    position: 'bottom-left',
+    desktopOnly: true,
+    viewRequirement: 'dashboard',
+  },
+  {
+    section: 'Smart Pricing',
+    target: '#headerIdBtn',
+    title: 'Source Score — BUY / PASS / MAYBE',
+    desc: 'Enter your cost in the Identify results and get an instant BUY, MAYBE, or PASS verdict. Factors in margin, comp confidence, estimated profit, and days-to-sell from your own category history.',
+    position: 'bottom-left',
+    desktopOnly: true,
+    viewRequirement: 'dashboard',
+  },
+  {
+    section: 'Smart Pricing',
+    target: '.flip-score-col',
+    fallbackTarget: '#invBody',
+    title: 'Flip Score (0-100)',
+    desc: 'Every item gets a Flip Score combining margin (30pts), freshness (25pts), listing quality (25pts), and demand signal (20pts). Sort your inventory by Flip Score to find your best and worst performers. Pro tier only.',
+    position: 'top',
+    viewRequirement: 'inventory',
+  },
+  {
+    section: 'Smart Pricing',
+    target: '#repricingContent',
+    fallbackTarget: '#view-insights',
+    title: 'Smart Reprice with Comps',
+    desc: 'Create repricing rules that set prices to the comp median — market-driven pricing instead of blind percentage drops. Works alongside your existing time-based rules.',
+    position: 'top',
+    viewRequirement: 'insights',
+  },
+  {
+    section: 'Smart Pricing',
+    target: '#arbitrageSlot',
+    fallbackTarget: '#view-insights',
+    title: 'Arbitrage Alerts',
+    desc: 'FlipTrack scans your inventory against market comps and flags items priced 20%+ below market (raise your price!) or 30%+ above (consider lowering). Shows in Insights.',
+    position: 'top',
+    viewRequirement: 'insights',
+  },
+
+  /* ── SECTION 7.6: CONTENT & ENGAGEMENT ────────────────────────────── */
+  {
+    section: 'Content & Engagement',
+    target: '#notifBellBtn',
+    fallbackTarget: '#notifBadge',
+    title: 'Daily Sales Digest',
+    desc: 'Every morning, FlipTrack shows yesterday\'s sales count, revenue, profit, and selling streak as an in-app notification and optional browser push. Never miss a day\'s results.',
+    position: 'bottom-left',
+    viewRequirement: 'dashboard',
+  },
+  {
+    section: 'Content & Engagement',
+    target: '#bulkMenu',
+    fallbackTarget: '#bulkBar',
+    title: 'Social Photo Gallery',
+    desc: 'Select items and click "Create Gallery" in the bulk menu to generate branded collages for Instagram/TikTok. Choose 2x2 grid, 3x3 grid, hero, or stories layout with price overlays and FlipTrack branding.',
+    position: 'bottom',
+    viewRequirement: 'inventory',
+  },
+  {
+    section: 'Content & Engagement',
+    target: '#seasonalSection',
+    fallbackTarget: '#view-insights',
+    title: 'Seasonal Demand Calendar',
+    desc: 'A monthly heatmap showing when your categories sell best. "Your Electronics sell 3x faster in November." Helps you stock up on the right items at the right time.',
+    position: 'top',
+    viewRequirement: 'insights',
+  },
+
+  /* ── SECTION 7.7: SOURCING & HAULS ────────────────────────────────── */
+  {
+    section: 'Operations',
+    target: '#view-sourcing',
+    fallbackTarget: '#sourcingContent',
+    title: 'Haul ROI Receipts',
+    desc: 'After a sourcing trip, click "Share Receipt" on any haul card to generate a branded 1080x1350 receipt PNG. Shows items, total spent, estimated value, profit, and ROI — perfect for sharing on social media.',
+    position: 'top',
+    viewRequirement: 'sourcing',
+  },
+
+  /* ── SECTION 7.8: ADVANCED FEATURES ───────────────────────────────── */
+  {
+    section: 'Advanced Features',
+    target: '#view-tax',
+    fallbackTarget: '#taxContent',
+    title: 'Donation Tracker',
+    desc: 'Items sitting in your death pile at critical/extreme urgency show a Donate button. Record the fair market value and organization — it auto-populates as a Charitable Donations line in your Schedule C.',
+    position: 'top',
+    viewRequirement: 'tax',
+  },
+  {
+    section: 'Advanced Features',
+    target: '#headerBatchBtn',
+    fallbackTarget: '#headerAddBtn',
+    title: 'Voice-Powered Adding',
+    desc: 'Open Voice Add from the Tools menu to dictate items hands-free. FlipTrack uses the Web Speech API to parse item names, prices ("twenty dollars"), and conditions from natural speech. Great during sourcing runs.',
+    position: 'bottom-left',
+    desktopOnly: true,
+    viewRequirement: 'dashboard',
+  },
+
   /* ── SECTION 8: CROSSLISTING & PLATFORMS ─────────────────────────────── */
   {
     section: 'Crosslisting',
