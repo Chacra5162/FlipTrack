@@ -26,14 +26,15 @@ export function computeSourceScore({ compData, aiResult, userCost }) {
   const feeRate = 0.13;
   const estFees = sellPrice * feeRate;
   const estimatedProfit = sellPrice - userCost - estFees;
-  const margin = sellPrice > 0 ? (sellPrice - userCost) / sellPrice : 0;
+  // Net margin (after fees) for accurate verdict
+  const netMargin = sellPrice > 0 ? (sellPrice - userCost - estFees) / sellPrice : 0;
 
-  // ── Margin scoring ────────────────────────────────────────────────
-  if (margin >= 0.5) { score += 40; reasons.push(`${Math.round(margin * 100)}% margin — excellent`); }
-  else if (margin >= 0.4) { score += 30; reasons.push(`${Math.round(margin * 100)}% margin — strong`); }
-  else if (margin >= 0.25) { score += 20; reasons.push(`${Math.round(margin * 100)}% margin — decent`); }
-  else if (margin >= 0.15) { score += 10; reasons.push(`${Math.round(margin * 100)}% margin — thin`); }
-  else { reasons.push(`${Math.round(margin * 100)}% margin — too low`); }
+  // ── Margin scoring (uses net margin after ~13% fees) ──────────────
+  if (netMargin >= 0.4) { score += 40; reasons.push(`${Math.round(netMargin * 100)}% net margin — excellent`); }
+  else if (netMargin >= 0.3) { score += 30; reasons.push(`${Math.round(netMargin * 100)}% net margin — strong`); }
+  else if (netMargin >= 0.2) { score += 20; reasons.push(`${Math.round(netMargin * 100)}% net margin — decent`); }
+  else if (netMargin >= 0.1) { score += 10; reasons.push(`${Math.round(netMargin * 100)}% net margin — thin`); }
+  else { reasons.push(`${Math.round(netMargin * 100)}% net margin — too low`); }
 
   // ── Comp confidence scoring ───────────────────────────────────────
   const confidence = compData?.confidence || 'low';
@@ -70,8 +71,8 @@ export function computeSourceScore({ compData, aiResult, userCost }) {
 
   // ── Final verdict ─────────────────────────────────────────────────
   let verdict;
-  if (margin >= 0.4 && confidence !== 'low') verdict = 'BUY';
-  else if (margin >= 0.15 || (margin >= 0.1 && confidence === 'high')) verdict = 'MAYBE';
+  if (netMargin >= 0.3 && confidence !== 'low') verdict = 'BUY';
+  else if (netMargin >= 0.1 || (netMargin >= 0.05 && confidence === 'high')) verdict = 'MAYBE';
   else verdict = 'PASS';
 
   // Override: if profit < $3, always PASS

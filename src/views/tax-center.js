@@ -222,7 +222,7 @@ function renderScheduleC(metrics) {
     { line: 10, label: 'Commissions & fees (platforms)', value: fmt(metrics.platformFees) },
     { line: 22, label: 'Supplies', value: fmt(metrics.expensesByCategory['Supplies'] || 0) },
     { line: 27, label: 'Other expenses', value: fmt((metrics.expensesByCategory['Shipping Supplies'] || 0) + (metrics.expensesByCategory['Software'] || 0)) },
-    { line: 'C', label: 'Charitable Donations (Schedule A)', value: fmt(getDonationTotal(_taxYear)), note: true },
+    { line: '—', label: 'Charitable Donations (itemize on Schedule A)', value: fmt(getDonationTotal(_taxYear)), note: true },
   ];
 
   const rows = scheduleLines.map(item => `

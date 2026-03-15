@@ -288,8 +288,16 @@ export function setSubsubcatFilt(s,el){
 
 export function setSort(v){document.getElementById('sortSel').value=v;renderInv();}
 
+// Pre-computed flip score cache — rebuilt per renderInv() call, avoids O(n log n) recomputation in sort
+let _flipScoreCache = new Map();
+
 export function sortItems(items){
   const v=document.getElementById('sortSel').value;
+  // Pre-compute flip scores once if sorting by flip score (avoids O(n log n) calls in comparator)
+  if(v==='flip-desc'){
+    _flipScoreCache=new Map();
+    for(const item of items) _flipScoreCache.set(item.id,computeFlipScore(item));
+  }
   return [...items].sort((a,b)=>{
     if(v==='added-desc') return new Date(b.added)-new Date(a.added);
     if(v==='added-asc')  return new Date(a.added)-new Date(b.added);
@@ -303,7 +311,7 @@ export function sortItems(items){
     if(v==='days-asc')   return daysListed(a)-daysListed(b);
     if(v==='profit-desc')return calc(b).pu-calc(a).pu;
     if(v==='profit-asc') return calc(a).pu-calc(b).pu;
-    if(v==='flip-desc') return computeFlipScore(b).score-computeFlipScore(a).score;
+    if(v==='flip-desc') return (_flipScoreCache.get(b.id)?.score||0)-(_flipScoreCache.get(a.id)?.score||0);
     return 0;
   });
 }
@@ -422,7 +430,7 @@ export function renderInv() {
           +(_lastSaleDays!==null?`<span style="font-size:9px;color:${_lastSaleDays>30?'var(--warn)':'var(--muted)'};display:block;margin-top:2px" title="Last sale ${_lastSaleDays} days ago">${_lastSaleDays}d ago</span>`:'')
           +(_expMin!==null&&_expMin<=7?`<span style="font-size:9px;color:var(--warn);display:block;margin-top:2px" title="Listing expires in ${_expMin} days">⏳${_expMin}d</span>`:'');
       })()}</td>
-      <td class="flip-score-col pro-gate">${(()=>{const fs=computeFlipScore(item);const _fc=fs.score>=80?'var(--good)':fs.score>=60?'var(--accent)':fs.score>=40?'var(--warn)':'var(--danger)';return `<span class="flip-badge" style="color:${_fc}" title="Margin:${fs.breakdown.margin} Fresh:${fs.breakdown.freshness} List:${fs.breakdown.listing} Demand:${fs.breakdown.demand}">${fs.score}<sup>${fs.grade}</sup></span>`;})()}</td>
+      <td class="flip-score-col pro-gate">${(()=>{const fs=_flipScoreCache.get(item.id)||computeFlipScore(item);const _fc=fs.score>=80?'var(--good)':fs.score>=60?'var(--accent)':fs.score>=40?'var(--warn)':'var(--danger)';return `<span class="flip-badge" style="color:${_fc}" title="Margin:${fs.breakdown.margin} Fresh:${fs.breakdown.freshness} List:${fs.breakdown.listing} Demand:${fs.breakdown.demand}">${fs.score}<sup>${fs.grade}</sup></span>`;})()}</td>
       <td class="photos-col">${_imgs.length?`<span class="photo-count-badge" title="${_imgs.length} photo${_imgs.length>1?'s':''}">${_imgs.length} 📷</span>`:`<span class="photo-count-badge empty" title="No photos">0</span>`}</td>
       <td><div class="td-acts">
         ${item.qty>0?`<button class="act-btn" onclick="openSoldModal('${eid}')">Sold ›</button>`:`<span class="out-badge">Out</span>`}

@@ -196,7 +196,7 @@ async function _renderGalleryPreview() {
   preview.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:11px">Generating preview…</div>';
   try {
     const dataUrl = await generateCollage(_selectedItems, _currentLayout);
-    preview.innerHTML = `<img src="${dataUrl}" style="max-width:100%;border-radius:6px;border:1px solid var(--border)">`;
+    preview.innerHTML = `<img src="${escAttr(dataUrl)}" style="max-width:100%;border-radius:6px;border:1px solid var(--border)">`;
   } catch (e) {
     preview.innerHTML = `<div style="text-align:center;padding:20px;color:var(--danger);font-size:11px">Failed to generate preview</div>`;
   }

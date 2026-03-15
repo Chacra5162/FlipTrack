@@ -5,7 +5,7 @@
  */
 
 import { calc, getSalesForItem } from '../data/store.js';
-import { scoreItem } from '../features/listing-score.js';
+import { scoreItem } from './listing-score.js';
 import { daysSince } from '../utils/format.js';
 
 /**

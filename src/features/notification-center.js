@@ -251,13 +251,14 @@ export function checkDailyDigest() {
   }, 0);
   const profit = revenue - fees - cogs;
 
-  // Calculate streak — consecutive days with at least 1 sale
+  // Calculate streak — consecutive days with at least 1 sale (O(n) via Set)
+  const saleDates = new Set(sales.map(s => (s.date || '').slice(0, 10)));
   let streak = 1;
   for (let d = 2; d <= 365; d++) {
     const check = new Date(today);
     check.setDate(check.getDate() - d);
     const dStr = check.toISOString().slice(0, 10);
-    if (sales.some(s => (s.date || '').slice(0, 10) === dStr)) streak++;
+    if (saleDates.has(dStr)) streak++;
     else break;
   }
 

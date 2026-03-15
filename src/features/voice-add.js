@@ -187,16 +187,41 @@ export function voiceRemoveItem(index) {
   _renderVoiceUI();
 }
 
+// Queue of items remaining after the first is transferred to the add form
+let _voiceQueue = [];
+
 /**
- * Add all pending items to inventory via the Add Item form.
+ * Add pending items to inventory one at a time via the Add Item form.
+ * Transfers the first item, queues the rest for voiceAddNext().
  */
 export function voiceAddAll() {
   if (!_pendingItems.length) { toast('No items to add', true); return; }
 
-  // Transfer the first item to the add form
+  // Save remaining items to a persistent queue before closing
+  _voiceQueue = _pendingItems.slice(1);
   const item = _pendingItems[0];
   closeVoiceAdd();
 
+  _transferToAddForm(item);
+}
+
+/**
+ * Transfer the next queued voice item to the add form.
+ * Called after user saves the current item.
+ */
+export function voiceAddNext() {
+  if (!_voiceQueue.length) { toast('Voice queue empty', true); return; }
+  const item = _voiceQueue.shift();
+  if (window.openAddModal) window.openAddModal();
+  _transferToAddForm(item);
+}
+
+/**
+ * Get count of remaining queued voice items.
+ */
+export function voiceQueueCount() { return _voiceQueue.length; }
+
+function _transferToAddForm(item) {
   if (window.openAddModal) window.openAddModal();
 
   setTimeout(() => {
@@ -213,6 +238,7 @@ export function voiceAddAll() {
       }
     }
     if (window.prevProfit) window.prevProfit();
-    toast(`Pre-filled from voice: "${item.name}"${_pendingItems.length > 1 ? ` (+${_pendingItems.length - 1} more queued)` : ''}`);
+    const remaining = _voiceQueue.length;
+    toast(`Pre-filled from voice: "${item.name}"${remaining ? ` (${remaining} more queued — use voiceAddNext)` : ''}`);
   }, 200);
 }

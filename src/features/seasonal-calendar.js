@@ -37,14 +37,15 @@ export function computeSeasonalData(category) {
   if (totalSales >= 10) {
     const avg = totalSales / 12;
     const bestMonth = monthCounts.indexOf(Math.max(...monthCounts));
-    const worstMonth = monthCounts.indexOf(Math.min(...monthCounts.filter(c => c > 0) || [0]));
+    const nonZeroMonths = monthCounts.filter(c => c > 0);
+    const worstMonth = nonZeroMonths.length ? monthCounts.indexOf(Math.min(...nonZeroMonths)) : -1;
     const multiplier = avg > 0 ? (monthCounts[bestMonth] / avg).toFixed(1) : '1.0';
 
     if (monthCounts[bestMonth] > avg * 1.5) {
       const label = category || 'Your items';
       insights.push(`${label} sell ${multiplier}x faster in ${MONTHS[bestMonth]}`);
     }
-    if (monthCounts[worstMonth] > 0 && monthCounts[worstMonth] < avg * 0.5) {
+    if (worstMonth !== -1 && monthCounts[worstMonth] < avg * 0.5) {
       insights.push(`${MONTHS[worstMonth]} is your slowest month — consider discounting`);
     }
   }

@@ -287,7 +287,7 @@ import { scanArbitrageOpportunities } from './features/arbitrage-alerts.js';
 import { openGalleryBuilder, closeGalleryBuilder, setGalleryLayout, downloadCollage, copyCollage, generateCollage } from './features/social-gallery.js';
 import { computeSeasonalData, renderSeasonalCalendar } from './features/seasonal-calendar.js';
 import { donateItem, getDonations, getDonationTotal, renderDonationLog } from './features/donations.js';
-import { openVoiceAdd, closeVoiceAdd, voiceRemoveItem, voiceAddAll } from './features/voice-add.js';
+import { openVoiceAdd, closeVoiceAdd, voiceRemoveItem, voiceAddAll, voiceAddNext, voiceQueueCount } from './features/voice-add.js';
 import { toggleCommunityOptIn, contributeSales, queryCommunityPricing, isCommunityOptedIn } from './features/community-pricing.js';
 import { renderMarginAlerts, updateMarginThreshold, initMarginAlerts } from './features/margin-alerts.js';
 import {
@@ -671,7 +671,7 @@ Object.assign(window, {
 });
 
 // Voice Add
-Object.assign(window, { openVoiceAdd, closeVoiceAdd, voiceRemoveItem, voiceAddAll });
+Object.assign(window, { openVoiceAdd, closeVoiceAdd, voiceRemoveItem, voiceAddAll, voiceAddNext, voiceQueueCount });
 
 // Community Pricing
 Object.assign(window, { toggleCommunityOptIn, isCommunityOptedIn });

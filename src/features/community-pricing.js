@@ -37,7 +37,8 @@ export async function contributeSales() {
   const _sb = getSupabaseClient();
   if (!_sb) return;
 
-  // Get sales from last 7 days that haven't been contributed yet
+  // Get recent sales that haven't been contributed yet.
+  // On first opt-in, only contributes last 7 days (privacy: avoids bulk-uploading entire history)
   const lastContrib = parseInt(localStorage.getItem('ft_community_last') || '0');
   const cutoff = new Date(lastContrib || Date.now() - 7 * 86400000);
 

@@ -17,14 +17,20 @@ export async function scanArbitrageOpportunities() {
   const opportunities = [];
   const candidates = inv.filter(i => i.price > 0 && i.qty > 0 && i.name);
 
-  // Batch comp lookups (cached 30 min, so fast for repeat calls)
-  const results = await Promise.allSettled(
-    candidates.map(item =>
-      suggestPrice(item.name, item.condition).then(comp => ({ item, comp }))
-    )
-  );
+  // Batch comp lookups with concurrency cap (cached 30 min, so repeats are instant)
+  const BATCH_SIZE = 8;
+  const allResults = [];
+  for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
+    const batch = candidates.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map(item =>
+        suggestPrice(item.name, item.condition).then(comp => ({ item, comp }))
+      )
+    );
+    allResults.push(...results);
+  }
 
-  for (const result of results) {
+  for (const result of allResults) {
     if (result.status !== 'fulfilled') continue;
     const { item, comp } = result.value;
     if (!comp || !comp.median || comp.count < 3) continue;

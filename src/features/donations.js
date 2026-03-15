@@ -18,7 +18,7 @@ export async function donateItem(itemId, fmv, org) {
   const item = getInvItem(itemId);
   if (!item) { toast('Item not found', true); return; }
 
-  const donationFmv = fmv || item.price || 0;
+  const donationFmv = fmv != null && fmv !== '' ? Number(fmv) : (item.price || 0);
   const orgName = org || 'Charitable Organization';
 
   if (!await appConfirm({
