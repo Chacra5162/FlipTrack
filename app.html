@@ -1556,8 +1556,31 @@
     </div>
   </div>
 </div>
+<!-- ETSY LISTING SETTINGS MODAL -->
+<div class="modal-ov" id="etsyListOv" role="dialog" aria-modal="true" aria-labelledby="etsyListTitle" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:24px">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px 24px;max-width:440px;width:100%">
+    <h3 id="etsyListTitle" style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:4px">Push to Etsy</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:16px">Select a category and shipping profile so the listing goes live (not as a draft).</p>
+    <div style="margin-bottom:12px">
+      <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px">Etsy Category *</label>
+      <select id="etsyTaxonomySelect" style="width:100%;padding:9px 12px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;border-radius:6px;box-sizing:border-box">
+        <option value="">Loading categories...</option>
+      </select>
+    </div>
+    <div style="margin-bottom:16px">
+      <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px">Shipping Profile *</label>
+      <select id="etsyShipProfileSelect" style="width:100%;padding:9px 12px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;border-radius:6px;box-sizing:border-box">
+        <option value="">Loading profiles...</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button id="etsyListCancel" class="btn btn-ghost" style="padding:10px 20px;font-size:13px">Cancel</button>
+      <button id="etsyListOk" class="btn btn-primary" style="padding:10px 20px;font-size:13px">Push to Etsy</button>
+    </div>
+  </div>
+</div>
 <style>
-  #confirmOv.on, #promptOv.on { display:flex !important; }
+  #confirmOv.on, #promptOv.on, #etsyListOv.on { display:flex !important; }
 </style>
 
 <!-- BATCH SCAN OVERLAY -->

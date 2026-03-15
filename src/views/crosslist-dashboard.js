@@ -29,7 +29,8 @@ import {
   fetchEtsyReceiptsPending, pushEtsyTracking, getEtsyCarriers,
   pushEtsyPrice, pushEtsyPriceBulk,
   fetchEtsyListingTags, suggestEtsyTags, pushEtsyTags,
-  calcEtsyFees, syncEtsyExpenses
+  calcEtsyFees, syncEtsyExpenses,
+  getEtsyTaxonomies, getEtsyShippingProfiles
 } from '../features/etsy-sync.js';
 import {
   getUpcomingShows, getPastShows, getShow, createShow, updateShow, deleteShow,
@@ -816,11 +817,71 @@ export async function clEtsySync() {
   renderCrosslistDashboard();
 }
 
+// Cached Etsy settings so user doesn't re-select every time
+let _etsyTaxCache = null;
+let _etsyShipCache = null;
+let _lastEtsyTaxId = null;
+let _lastEtsyShipId = null;
+
 export async function clPushToEtsy(itemId) {
-  const result = await pushItemToEtsy(itemId);
-  if (result.success) {
-    renderCrosslistDashboard();
+  const ov = document.getElementById('etsyListOv');
+  if (!ov) {
+    // Fallback: push without settings (creates draft)
+    const result = await pushItemToEtsy(itemId);
+    if (result.success) renderCrosslistDashboard();
+    return;
   }
+
+  // Load taxonomies and shipping profiles (cached after first load)
+  const taxSel = document.getElementById('etsyTaxonomySelect');
+  const shipSel = document.getElementById('etsyShipProfileSelect');
+
+  if (!_etsyTaxCache) {
+    taxSel.innerHTML = '<option value="">Loading categories...</option>';
+    try {
+      _etsyTaxCache = await getEtsyTaxonomies();
+      taxSel.innerHTML = '<option value="">-- Select category --</option>' +
+        _etsyTaxCache.map(t => `<option value="${t.id}">${escHtml(t.name)}</option>`).join('');
+    } catch { taxSel.innerHTML = '<option value="">Failed to load</option>'; }
+  }
+  if (_lastEtsyTaxId) taxSel.value = _lastEtsyTaxId;
+
+  if (!_etsyShipCache) {
+    shipSel.innerHTML = '<option value="">Loading profiles...</option>';
+    try {
+      _etsyShipCache = await getEtsyShippingProfiles();
+      shipSel.innerHTML = '<option value="">-- Select profile --</option>' +
+        _etsyShipCache.map(p => `<option value="${p.shipping_profile_id}">${escHtml(p.title)}</option>`).join('');
+    } catch { shipSel.innerHTML = '<option value="">Failed to load</option>'; }
+  }
+  if (_lastEtsyShipId) shipSel.value = _lastEtsyShipId;
+
+  // Show modal and wait for user action
+  ov.classList.add('on');
+
+  return new Promise(resolve => {
+    const okBtn = document.getElementById('etsyListOk');
+    const cancelBtn = document.getElementById('etsyListCancel');
+    const cleanup = () => { ov.classList.remove('on'); okBtn.removeEventListener('click', onOk); cancelBtn.removeEventListener('click', onCancel); };
+
+    const onOk = async () => {
+      const taxonomyId = parseInt(taxSel.value, 10) || null;
+      const shippingProfileId = parseInt(shipSel.value, 10) || null;
+      // Remember selections for next push
+      _lastEtsyTaxId = taxSel.value;
+      _lastEtsyShipId = shipSel.value;
+      cleanup();
+
+      const result = await pushItemToEtsy(itemId, { taxonomyId, shippingProfileId });
+      if (result.success) renderCrosslistDashboard();
+      resolve(result);
+    };
+
+    const onCancel = () => { cleanup(); resolve({ success: false }); };
+
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+  });
 }
 
 export async function clDeactivateEtsyListing(itemId) {

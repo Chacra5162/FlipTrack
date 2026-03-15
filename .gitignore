@@ -3,3 +3,6 @@ dist/
 dist2/
 .DS_Store
 *.local
+.env
+.env.local
+.env.production
