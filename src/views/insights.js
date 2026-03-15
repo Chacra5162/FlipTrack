@@ -6,19 +6,17 @@ import { renderSeasonalCalendar } from '../features/seasonal-calendar.js';
 
 // Cache: always recompute on render to avoid stale data
 let _insightsCache = null;
-let _lastInvLen = -1;
-let _lastSalesLen = -1;
+let _lastDataKey = '';
 
 // ── INSIGHTS ──────────────────────────────────────────────────────────────────
 
 export function renderInsights() {
   const el = document.getElementById('insightsContent');
   if (!el) return;
-  // Invalidate cache when data lengths change (cheap check)
-  const cacheDirty = inv.length !== _lastInvLen || sales.length !== _lastSalesLen;
-  if (!cacheDirty && _insightsCache) { el.innerHTML = _insightsCache; return; }
-  _lastInvLen = inv.length;
-  _lastSalesLen = sales.length;
+  // Invalidate cache when data changes (lengths or in-place mutations via save)
+  const dataKey = `${inv.length}:${sales.length}:${Date.now() >> 12}`;
+  if (dataKey === _lastDataKey && _insightsCache) { el.innerHTML = _insightsCache; return; }
+  _lastDataKey = dataKey;
 
   if (!sales.length && !inv.length) {
     el.innerHTML = `<div class="panel" style="animation:none"><div class="empty-state"><div class="empty-icon">🔍</div><p>No data yet.<br>Add inventory and record some sales to see insights.</p></div></div>`;

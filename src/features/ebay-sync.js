@@ -119,6 +119,14 @@ export async function pullEBayListings() {
     let hasMore = true;
     const seenSkus = new Set(); // Track SKUs found on eBay for reconciliation
 
+    // Build O(1) lookup maps to avoid O(n²) inv.find() inside the loop
+    const bySku = new Map();
+    const byEbayId = new Map();
+    for (const item of inv) {
+      if (item.sku) bySku.set(item.sku, item);
+      if (item.ebayItemId) byEbayId.set(item.ebayItemId, item);
+    }
+
     while (hasMore) {
       const resp = await ebayAPI('GET',
         `${INVENTORY_API}/inventory_item?limit=${limit}&offset=${offset}`
@@ -130,12 +138,8 @@ export async function pullEBayListings() {
       for (const ebayItem of items) {
         const sku = ebayItem.sku;
         seenSkus.add(sku);
-        // Try to match by SKU first, then by stored eBay item ID
-        let local = inv.find(i =>
-          i.sku && i.sku === sku
-        ) || inv.find(i =>
-          i.ebayItemId && i.ebayItemId === sku
-        );
+        // O(1) match by SKU first, then by stored eBay item ID
+        let local = bySku.get(sku) || byEbayId.get(sku);
 
         if (local) {
           matched++;
@@ -242,12 +246,19 @@ async function _syncEBayOrders() {
     );
 
     const orders = resp.orders || [];
+    // Build O(1) lookup maps
+    const orderBySku = new Map();
+    const orderByEbayId = new Map();
+    for (const item of inv) {
+      if (item.sku) orderBySku.set(item.sku, item);
+      if (item.ebayItemId) orderByEbayId.set(item.ebayItemId, item);
+    }
     for (const order of orders) {
       for (const lineItem of (order.lineItems || [])) {
         const sku = lineItem.sku;
         if (!sku) continue;
 
-        const local = inv.find(i => i.ebayItemId === sku || i.sku === sku);
+        const local = orderByEbayId.get(sku) || orderBySku.get(sku);
         if (local && local.platformStatus?.eBay !== 'sold') {
           // Decrement quantity by sold amount
           const soldQty = parseInt(lineItem.quantity, 10) || 1;
@@ -296,6 +307,14 @@ async function _syncEBayReturns() {
     const since = fmtDate(new Date(Date.now() - RETURN_CHECK_WINDOW));
     const now = fmtDate(new Date());
 
+    // Build O(1) lookup maps
+    const retBySku = new Map();
+    const retByEbayId = new Map();
+    for (const item of inv) {
+      if (item.sku) retBySku.set(item.sku, item);
+      if (item.ebayItemId) retByEbayId.set(item.ebayItemId, item);
+    }
+
     let offset = 0;
     const limit = 50;
     let hasMore = true;
@@ -320,7 +339,7 @@ async function _syncEBayReturns() {
             _processedReturnIds.add(cancelKey);
             const lineItem = order.lineItems?.[0];
             const sku = lineItem?.sku;
-            const local = sku ? inv.find(i => i.ebayItemId === sku || i.sku === sku) : null;
+            const local = sku ? (retByEbayId.get(sku) || retBySku.get(sku)) : null;
             const label = local?.name || lineItem?.title || sku || 'Unknown item';
             const price = parseFloat(lineItem?.total?.value || order.pricingSummary?.total?.value || '0');
             const reason = order.cancelStatus?.cancelRequests?.[0]?.cancelReason || 'Buyer requested';
@@ -364,7 +383,7 @@ async function _syncEBayReturns() {
             _processedReturnIds.add(refundKey);
 
             const sku = lineItem.sku;
-            const local = sku ? inv.find(i => i.ebayItemId === sku || i.sku === sku) : null;
+            const local = sku ? (retByEbayId.get(sku) || retBySku.get(sku)) : null;
             const label = local?.name || lineItem.title || sku || 'Unknown item';
             const refundAmount = parseFloat(refund.refundAmount?.value || lineItem.total?.value || '0');
 

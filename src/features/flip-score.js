@@ -26,7 +26,10 @@ export function computeFlipScore(item) {
   else if (m > 0) margin = 5;
 
   // ── Freshness (0-25 pts) — newer items score higher ───────────────
+  // High-margin items (>40%) get a freshness floor to avoid penalizing
+  // valuable slow-movers like rare collectibles sitting 90+ days
   const daysOld = daysSince(item.added);
+  const freshFloor = m >= 0.4 ? 10 : 0;
   let freshness = 0;
   if (daysOld <= 3) freshness = 25;
   else if (daysOld <= 7) freshness = 22;
@@ -34,6 +37,7 @@ export function computeFlipScore(item) {
   else if (daysOld <= 30) freshness = 13;
   else if (daysOld <= 60) freshness = 7;
   else if (daysOld <= 90) freshness = 3;
+  freshness = Math.max(freshness, freshFloor);
 
   // ── Listing Quality (0-25 pts) — from listing-score.js ────────────
   const ls = scoreItem(item);

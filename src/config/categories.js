@@ -102,6 +102,47 @@ export const CAT_TREE = {
       'Beading & Jewelry':   ['Beads', 'Wire', 'Tools', 'Findings', 'Kits', 'Charms'],
     }
   },
+  Sneakers: {
+    subcats: {
+      'Nike':                ['Air Jordan', 'Air Max', 'Dunk', 'Air Force 1', 'Blazer', 'React', 'Flyknit'],
+      'Adidas':              ['Yeezy', 'Ultraboost', 'NMD', 'Stan Smith', 'Superstar', 'Forum', 'Samba'],
+      'New Balance':         ['550', '990', '2002R', '327', '574', '530', '1906R'],
+      'Converse':            ['Chuck Taylor', 'One Star', 'Run Star', 'Jack Purcell'],
+      'Vans':                ['Old Skool', 'Sk8-Hi', 'Authentic', 'Era', 'Slip-On'],
+      'Other Brands':        ['Reebok', 'Puma', 'ASICS', 'Salomon', 'On Running', 'Hoka', 'Crocs'],
+      'Designer':            ['Gucci', 'Balenciaga', 'Louis Vuitton', 'Prada', 'Dior', 'Off-White'],
+    }
+  },
+  Jewelry: {
+    subcats: {
+      'Necklaces':           ['Chains', 'Pendants', 'Chokers', 'Lockets', 'Statement', 'Layering'],
+      'Rings':               ['Engagement', 'Wedding Bands', 'Statement', 'Stackable', 'Signet', 'Vintage'],
+      'Bracelets':           ['Bangles', 'Cuffs', 'Chain', 'Beaded', 'Charm', 'Tennis'],
+      'Earrings':            ['Studs', 'Hoops', 'Drops', 'Clip-On', 'Huggie', 'Statement'],
+      'Watches':             ['Luxury', 'Smart Watches', 'Vintage', 'Digital', 'Dress', 'Sport'],
+      'Fine Jewelry':        ['Gold', 'Silver', 'Platinum', 'Diamonds', 'Gemstones', 'Estate'],
+      'Costume Jewelry':     ['Vintage', 'Designer', 'Fashion', 'Sets', 'Brooches'],
+    }
+  },
+  'Video Games': {
+    subcats: {
+      'PlayStation':         ['PS5', 'PS4', 'PS3', 'PS2', 'PS1', 'PSP', 'PS Vita'],
+      'Xbox':                ['Series X/S', 'One', '360', 'Original'],
+      'Nintendo':            ['Switch', 'Wii U', 'Wii', '3DS', 'DS', 'GameCube', 'N64', 'SNES', 'NES', 'Game Boy'],
+      'PC Gaming':           ['Steam Deck', 'GPUs', 'Peripherals', 'Components'],
+      'Retro':               ['Atari', 'Sega', 'Neo Geo', 'TurboGrafx', 'Retro Handhelds'],
+      'Accessories':         ['Controllers', 'Headsets', 'Charging Docks', 'Cases', 'Memory Cards'],
+    }
+  },
+  Media: {
+    subcats: {
+      'Vinyl Records':       ['Rock', 'Pop', 'Jazz', 'Hip-Hop', 'Country', 'Classical', 'Soundtracks', 'Rare Pressings'],
+      'CDs':                 ['Rock', 'Pop', 'Hip-Hop', 'Country', 'Classical', 'Compilations', 'Limited Edition'],
+      'DVDs & Blu-ray':      ['Movies', 'TV Series', 'Box Sets', 'Criterion', 'Anime', 'Concert'],
+      'VHS':                 ['Horror', 'Sci-Fi', 'Disney', 'Rare', 'Sealed', 'Cult Classics'],
+      'Cassettes':           ['Music', 'Spoken Word', 'Blank', 'Rare', 'Sealed'],
+    }
+  },
 };
 
 // Flat SUBCATS for backwards-compat with populateSubcatSelect

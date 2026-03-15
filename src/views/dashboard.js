@@ -10,6 +10,7 @@ import { mountProfitHeatmap } from '../features/profit-heatmap.js';
 import { renderCSVExportPanel } from '../features/csv-templates.js';
 import { renderKPIGoals } from '../features/kpi-goals.js';
 import { renderSalesVelocity } from '../features/sales-velocity.js';
+import { computeInventoryHealth } from '../features/inventory-health.js';
 
 /**
  * Returns true if the popup identified by `key` has already been shown
@@ -333,27 +334,14 @@ export function renderAgingSummary() {
   const el = document.getElementById('agingSummarySection');
   if (!el) return;
 
-  const now = Date.now();
-  const msDay = 86400000;
-  const inStock = inv.filter(i => (i.qty || 0) > 0 && i.added);
+  const h = computeInventoryHealth();
+  const agingBuckets = h.aging.filter(b => b.count > 0 && b.max >= 30);
+  if (!agingBuckets.length) { el.style.display = 'none'; return; }
 
-  const buckets = {
-    '90+': inStock.filter(i => (now - new Date(i.added).getTime()) >= 90 * msDay),
-    '60-89': inStock.filter(i => {
-      const d = now - new Date(i.added).getTime();
-      return d >= 60 * msDay && d < 90 * msDay;
-    }),
-    '30-59': inStock.filter(i => {
-      const d = now - new Date(i.added).getTime();
-      return d >= 30 * msDay && d < 60 * msDay;
-    }),
-  };
-
-  const total = buckets['90+'].length + buckets['60-89'].length + buckets['30-59'].length;
-  if (!total) { el.style.display = 'none'; return; }
-
-  const costAtRisk = buckets['90+'].reduce((a, i) => a + (i.cost || 0) * (i.qty || 0), 0)
-    + buckets['60-89'].reduce((a, i) => a + (i.cost || 0) * (i.qty || 0), 0);
+  const total = agingBuckets.reduce((a, b) => a + b.count, 0);
+  const totalItems = h.aging.reduce((a, b) => a + b.count, 0) || 1;
+  const costAtRisk = agingBuckets.reduce((a, b) => a + b.value, 0);
+  const colors = { 30: 'var(--accent)', 60: 'var(--accent2)', 90: 'var(--danger)', Infinity: 'var(--danger)' };
 
   el.style.display = '';
   el.innerHTML = `<div class="aging-wrap">
@@ -362,21 +350,11 @@ export function renderAgingSummary() {
       <span style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">${total} items aging · ${fmt(costAtRisk)} at risk</span>
     </div>
     <div class="aging-bars">
-      ${buckets['90+'].length ? `<div class="aging-row">
-        <span class="aging-label" style="color:var(--danger)">90+ days</span>
-        <div class="aging-bar-track"><div class="aging-bar-fill" style="width:${Math.round(buckets['90+'].length / inStock.length * 100)}%;background:var(--danger)"></div></div>
-        <span class="aging-count">${buckets['90+'].length}</span>
-      </div>` : ''}
-      ${buckets['60-89'].length ? `<div class="aging-row">
-        <span class="aging-label" style="color:var(--accent2)">60-89 days</span>
-        <div class="aging-bar-track"><div class="aging-bar-fill" style="width:${Math.round(buckets['60-89'].length / inStock.length * 100)}%;background:var(--accent2)"></div></div>
-        <span class="aging-count">${buckets['60-89'].length}</span>
-      </div>` : ''}
-      ${buckets['30-59'].length ? `<div class="aging-row">
-        <span class="aging-label" style="color:var(--accent)">30-59 days</span>
-        <div class="aging-bar-track"><div class="aging-bar-fill" style="width:${Math.round(buckets['30-59'].length / inStock.length * 100)}%;background:var(--accent)"></div></div>
-        <span class="aging-count">${buckets['30-59'].length}</span>
-      </div>` : ''}
+      ${agingBuckets.reverse().map(b => `<div class="aging-row">
+        <span class="aging-label" style="color:${colors[b.max] || 'var(--accent)'}">${b.label}</span>
+        <div class="aging-bar-track"><div class="aging-bar-fill" style="width:${Math.round(b.count / totalItems * 100)}%;background:${colors[b.max] || 'var(--accent)'}"></div></div>
+        <span class="aging-count">${b.count}</span>
+      </div>`).join('')}
     </div>
   </div>`;
 }
