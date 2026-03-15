@@ -117,6 +117,7 @@ export async function pullEBayListings() {
     let offset = 0;
     const limit = 100;
     let hasMore = true;
+    const seenSkus = new Set(); // Track SKUs found on eBay for reconciliation
 
     while (hasMore) {
       const resp = await ebayAPI('GET',
@@ -128,6 +129,7 @@ export async function pullEBayListings() {
 
       for (const ebayItem of items) {
         const sku = ebayItem.sku;
+        seenSkus.add(sku);
         // Try to match by SKU first, then by stored eBay item ID
         let local = inv.find(i =>
           i.sku && i.sku === sku
@@ -181,6 +183,22 @@ export async function pullEBayListings() {
       }
 
       offset += limit;
+    }
+
+    // Reconcile: mark local items as ended if they were active but no longer on eBay
+    const activeEbayItems = inv.filter(i =>
+      i.ebayItemId && i.platformStatus?.eBay === 'active'
+    );
+    for (const item of activeEbayItems) {
+      if (!seenSkus.has(item.ebayItemId)) {
+        console.log(`[eBay] Listing ended externally: "${item.name}" (SKU: ${item.ebayItemId})`);
+        markPlatformStatus(item.id, 'eBay', 'ended');
+        markDirty('inv', item.id);
+        updated++;
+        const label = item.name || item.sku || 'Item';
+        toast(`eBay listing ended: ${label}`);
+        addNotification('info', 'eBay Listing Ended', `${label} is no longer active on eBay`, item.id);
+      }
     }
 
     // FlipTrack is the source of truth for prices — push outward only.
