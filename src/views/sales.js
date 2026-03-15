@@ -188,13 +188,25 @@ export function closeSold() {
   if (trackEl) trackEl.value = '';
   // Clear address fields
   ['s_address', 's_city', 's_state', 's_zip'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-  // Reset bundle mode
+  // Reset bundle mode and all bundle UI state
   _bundleMode = false;
   _bundleItems.clear();
   const bs = document.getElementById('bundleSection');
   if (bs) bs.style.display = 'none';
   const bt = document.getElementById('bundleToggle');
   if (bt) { bt.textContent = '+ Bundle'; bt.style.borderColor = 'var(--border)'; bt.style.color = ''; }
+  // Clear bundle price hint
+  const bph = document.getElementById('bundlePriceHint');
+  if (bph) bph.textContent = '';
+  // Restore single-item UI that bundle mode hides
+  const soldInfo = document.getElementById('soldInfo');
+  if (soldInfo) soldInfo.style.display = '';
+  const qtyRow = document.getElementById('s_qty')?.closest('.fgrp');
+  if (qtyRow) qtyRow.style.display = '';
+  const priceTypeRow = document.getElementById('s_price_type_label')?.closest('.fgrp');
+  if (priceTypeRow) priceTypeRow.style.display = '';
+  const priceLabel = document.querySelector('label[for="s_price"]');
+  if (priceLabel) priceLabel.textContent = 'Sold Price ($) *';
   // Reset the save button so it's not stuck on "Saving…" when modal reopens
   const btn = document.getElementById('recSaleBtn');
   if (btn) { btn.disabled = false; btn.textContent = 'Record Sale'; }
