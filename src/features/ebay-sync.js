@@ -160,11 +160,10 @@ export async function pullEBayListings() {
       offset += limit;
     }
 
-    // Sync prices from eBay offers → local inventory
-    const priceUpdates = await _syncEBayPrices();
-    updated += priceUpdates;
+    // FlipTrack is the source of truth for prices — push outward only.
+    // Price pull from eBay removed; local edits & repricing rules push to eBay.
 
-    // Also check recent orders for sold items
+    // Check recent orders for sold items
     await _syncEBayOrders();
 
     _lastSyncTime = new Date().toISOString();

@@ -11,6 +11,8 @@ import { getMeta, setMeta } from '../data/idb.js';
 import { logPriceChange } from './price-history.js';
 import { getItemShowsWithoutSale } from './whatnot-show.js';
 import { pushEtsyPrice } from './etsy-sync.js';
+import { pushEBayPrice } from './ebay-sync.js';
+import { isEBayConnected } from './ebay-auth.js';
 import { suggestPrice } from './comps.js';
 
 // ── DEFAULT RULES ────────────────────────────────────────────────────────────
@@ -270,9 +272,12 @@ export function applyRepricing(suggestions) {
     logPriceChange(item.id, suggestion.suggestedPrice, 'repricing');
     item.price = suggestion.suggestedPrice;
     markDirty('inv', item.id);
-    // Auto-push price to Etsy if item has an Etsy listing
+    // Auto-push price to connected platforms
     if (item.etsyListingId) {
       pushEtsyPrice(item.id).catch(e => console.warn('Etsy price sync:', e.message));
+    }
+    if (item.ebayItemId && isEBayConnected()) {
+      pushEBayPrice(item.id).catch(e => console.warn('eBay price sync:', e.message));
     }
   });
 
