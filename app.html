@@ -1411,7 +1411,7 @@
 </div>
 
 <!-- SOLD MODAL -->
-<div class="overlay" id="soldOv" role="dialog" aria-modal="true" aria-label="Record Sale" onclick="if(event.target===this)closeSold()">
+<div class="overlay" id="soldOv" role="dialog" aria-modal="true" aria-label="Record Sale" onmousedown="this._mdt=event.target" onclick="if(event.target===this&&this._mdt===this)closeSold()">
   <div class="modal">
     <div class="modal-hd">
       <div class="modal-ttl">Record Sale</div>
