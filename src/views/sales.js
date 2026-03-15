@@ -249,11 +249,11 @@ function _renderBundleList() {
 
   listEl.innerHTML = filtered.map(i => {
     const checked = _bundleItems.has(i.id) ? 'checked' : '';
-    return `<label class="bundle-row">
-      <input type="checkbox" ${checked} onchange="toggleBundleItem('${escAttr(i.id)}')">
+    return `<div class="bundle-row" onclick="this.querySelector('input').click()">
+      <input type="checkbox" ${checked} onchange="event.stopPropagation();toggleBundleItem('${escAttr(i.id)}')">
       <span class="bundle-name">${escHtml(i.name || 'Untitled')}</span>
       <span class="bundle-price">${fmt(i.price || 0)}</span>
-    </label>`;
+    </div>`;
   }).join('');
 
   // Show selected items summary
