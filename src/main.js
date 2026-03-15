@@ -851,6 +851,7 @@ function switchView(name, el) {
 
   // Remember current view so page refresh restores it
   try { localStorage.setItem('ft_view', name); } catch (_) {}
+  try { history.replaceState(null, '', '#' + name); } catch (_) {}
 
   // On mobile, hide stats-grid for non-dashboard views to free screen space
   const sg = document.querySelector('.stats-grid');
@@ -904,9 +905,14 @@ function switchView(name, el) {
 window.switchView = switchView;
 
 // Re-render whichever view is currently active (called after sync to refresh stale views)
+// Bypasses gating since this is a re-render, not a new navigation
 window.renderCurrentView = function() {
-  const current = localStorage.getItem('ft_view') || 'dashboard';
-  switchView(current, null);
+  const hash = location.hash.replace('#', '');
+  const current = (hash && document.getElementById('view-' + hash)) ? hash
+    : localStorage.getItem('ft_view') || 'dashboard';
+  const origGate = window.isViewGated;
+  window.isViewGated = undefined;
+  try { switchView(current, null); } finally { window.isViewGated = origGate; }
 };
 
 // ── Grouped nav dropdown logic ──────────────────────────────────────────────
@@ -1182,7 +1188,9 @@ setTimeout(_killSplash, 3000);
   // Build initial state — restore last viewed page on refresh
   try {
     rebuildInvIndex(); refresh();
-    const savedView = localStorage.getItem('ft_view');
+    const hash = location.hash.replace('#', '');
+    const savedView = (hash && document.getElementById('view-' + hash)) ? hash
+      : localStorage.getItem('ft_view');
     if (savedView && savedView !== 'dashboard' && document.getElementById('view-' + savedView)) {
       // Temporarily bypass subscription gating during boot — tier hasn't loaded yet.
       // After auth init the correct tier is applied and nav locks enforced.
