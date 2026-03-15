@@ -347,12 +347,12 @@ export function renderInsights() {
     // Items added in that window
     const addedInWindow = inv.filter(i => new Date(i.added || now) >= cutoff);
     const unitsAddedW = addedInWindow.reduce((a, i) => {
-      const iSales = sales.filter(s => s.itemId === i.id);
+      const iSales = getSalesForItem(i.id);
       const sold = iSales.reduce((t, s) => t + (s.qty || 0), 0);
       return a + (i.qty || 0) + sold;
     }, 0);
     const soldInWindow = sales.filter(s => {
-      const it = inv.find(i => i.id === s.itemId);
+      const it = getInvItem(s.itemId);
       return it && new Date(it.added || now) >= cutoff;
     }).reduce((a, s) => a + (s.qty || 0), 0);
     const rate = unitsAddedW > 0 ? soldInWindow / unitsAddedW : 0;

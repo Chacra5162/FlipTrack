@@ -162,6 +162,9 @@
   #view-sales .inv-table tbody td:nth-child(6),
   #view-sales .inv-table thead th:nth-child(7),
   #view-sales .inv-table tbody td:nth-child(7) { display: none; }
+
+  /* Toast above bottom nav */
+  .toast { bottom: calc(60px + env(safe-area-inset-bottom) + 16px); right: 16px; left: 16px; text-align: center; }
 }
 /* Phone */
 @media (max-width: 480px) {

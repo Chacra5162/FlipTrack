@@ -261,7 +261,7 @@ export function renderPriceAlerts() {
 }
 
 export function quickReprice(itemId, newPrice) {
-  const item = inv.find(i => i.id === itemId);
+  const item = getInvItem(itemId);
   if (!item) return;
   const oldPrice = item.price;
   item.price = newPrice;

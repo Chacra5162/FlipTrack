@@ -5,7 +5,7 @@
  */
 
 import { inv, sales, expenses, supplies, save, refresh, markDirty } from '../data/store.js';
-import { toast } from '../utils/dom.js';
+import { toast, appConfirm } from '../utils/dom.js';
 import { localDate } from '../utils/format.js';
 import { autoSync } from '../data/sync.js';
 
@@ -56,7 +56,7 @@ export function restoreBackup(file) {
   }
 
   const reader = new FileReader();
-  reader.onload = (e) => {
+  reader.onload = async (e) => {
     try {
       const backup = JSON.parse(e.target.result);
 
@@ -64,6 +64,17 @@ export function restoreBackup(file) {
       if (!backup.data || !backup.app || backup.app !== 'FlipTrack') {
         toast('Invalid backup file — not a FlipTrack backup', true);
         return;
+      }
+
+      // Validate record schemas to prevent corrupted/malicious data
+      const isValidRecord = (r) => r && typeof r.id === 'string' && r.id.length > 0 && r.id.length < 200;
+      const arrays = ['inventory', 'sales', 'expenses', 'supplies'];
+      for (const key of arrays) {
+        const arr = backup.data[key];
+        if (arr && (!Array.isArray(arr) || !arr.every(isValidRecord))) {
+          toast(`Backup contains invalid ${key} data`, true);
+          return;
+        }
       }
 
       const counts = {
@@ -80,7 +91,7 @@ export function restoreBackup(file) {
         `${counts.supplies} supplies\n\n` +
         `This will REPLACE all your current data.`;
 
-      if (!confirm(msg)) return;
+      if (!await appConfirm({ title: 'Restore Backup', message: msg, danger: true })) return;
 
       // Replace data
       if (backup.data.inventory) {

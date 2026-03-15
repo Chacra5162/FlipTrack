@@ -84,6 +84,16 @@ src/
 - View renderers: `src/views/{name}.js`
 - Modal components: `src/modals/{name}.js`
 
+## JCodeMunch — Token-Saving Default
+- **Always prefer JCodeMunch MCP tools over Read/Grep** for understanding code
+- `get_file_outline(repo, file)` instead of `Read` to understand a file's structure
+- `search_symbols(repo, query)` instead of `Grep` to find functions/classes
+- `get_context_bundle(repo, file, symbol)` to understand how modules connect
+- `get_symbol(repo, file, symbol)` to read one specific function
+- **Fall back to Read/Grep/Edit ONLY** when exact line content is needed (making edits, verifying specific lines)
+- Repo identifier for local FlipTrack: `local/FlipTrack-7aa999ac`
+- Re-index after major changes: `index_folder({ path: '~/FlipTrack', incremental: true })`
+
 ## Important Rules
 - **Never edit `package-lock.json`** directly
 - **Never edit `.env`** — contains Supabase keys

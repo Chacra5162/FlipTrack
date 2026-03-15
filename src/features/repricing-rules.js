@@ -4,9 +4,9 @@
  * Supports automatic repricing based on time-listed, sales velocity, and market conditions
  */
 
-import { inv, sales, save, refresh, markDirty, pushUndo, getSalesForItem } from '../data/store.js';
+import { inv, sales, save, refresh, markDirty, pushUndo, getSalesForItem, getInvItem } from '../data/store.js';
 import { fmt, pct, uid, escHtml, escAttr } from '../utils/format.js';
-import { toast } from '../utils/dom.js';
+import { toast, appConfirm } from '../utils/dom.js';
 import { getMeta, setMeta } from '../data/idb.js';
 import { logPriceChange } from './price-history.js';
 import { getItemShowsWithoutSale } from './whatnot-show.js';
@@ -372,8 +372,8 @@ export function rpAddRule(ruleData) {
   refresh();
 }
 
-export function rpDeleteRule(ruleId) {
-  if (!confirm('Delete this repricing rule?')) return;
+export async function rpDeleteRule(ruleId) {
+  if (!await appConfirm({ title: 'Delete Rule', message: 'Delete this repricing rule?', danger: true })) return;
   deleteRepricingRule(ruleId);
   toast('Rule deleted');
   refresh();
@@ -388,18 +388,18 @@ export function rpToggleRule(ruleId) {
   }
 }
 
-export function rpApplyAll() {
+export async function rpApplyAll() {
   const suggestions = evaluateRules();
   if (!suggestions.length) {
     toast('No suggestions to apply', true);
     return;
   }
-  if (!confirm(`Apply ${suggestions.length} price adjustment${suggestions.length > 1 ? 's' : ''}?`)) return;
+  if (!await appConfirm({ title: 'Apply Repricing', message: `Apply ${suggestions.length} price adjustment${suggestions.length > 1 ? 's' : ''}?` })) return;
   applyRepricing(suggestions);
 }
 
 export function rpApplySingle(itemId, suggestedPrice) {
-  const item = inv.find(i => i.id === itemId);
+  const item = getInvItem(itemId);
   if (!item) return;
 
   pushUndo('price_change', { itemId, oldPrice: item.price });

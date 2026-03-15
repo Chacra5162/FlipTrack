@@ -41,7 +41,7 @@ export function daysListed(item) {
 import { fmt, pct, escHtml, escAttr, debounce, uid, localDate, daysSince} from '../utils/format.js';
 import { PLATFORMS, PLATFORM_GROUPS, platCls } from '../config/platforms.js';
 import { SUBCATS, SUBSUBCATS } from '../config/categories.js';
-import { toast } from '../utils/dom.js';
+import { toast, appConfirm } from '../utils/dom.js';
 import { pushDeleteToCloud, autoSync } from '../data/sync.js';
 import { getPlatforms, renderPlatTags, sanitizePlatforms } from '../features/platforms.js';
 import { getDaysUntilExpiry } from '../features/crosslist.js';
@@ -346,7 +346,7 @@ export function renderInv() {
   // Inventory soft-cap banner for free tier
   const capBanner = document.getElementById('invLimitBanner');
   if (capBanner) {
-    const tier = window.__gateUtils?.getUserTier?.() || 'free';
+    const tier = window.getUserTier?.() || 'free';
     if (tier === 'free' && inv.length >= 50) {
       capBanner.style.display = 'flex';
     } else {
@@ -446,7 +446,7 @@ export function renderInv() {
 // ── INLINE PRICE EDIT ─────────────────────────────────────────────────────────
 
 export function startPriceEdit(span, id) {
-  const item=inv.find(i=>i.id===id);
+  const item=getInvItem(id);
   if(!item) return;
   const inp=document.createElement('input');
   inp.className='price-inp'; inp.type='number'; inp.step='0.01'; inp.value=item.price||0;
@@ -495,7 +495,7 @@ function _patchStockRow(id) {
 }
 
 export function adjStock(id, d) {
-  const item=inv.find(i=>i.id===id); if(!item) return;
+  const item=getInvItem(id); if(!item) return;
   item.qty=Math.max(0,(item.qty||0)+d);
   markDirty('inv',item.id);
   _debouncedStockSave(); _patchStockRow(id);
@@ -523,9 +523,9 @@ export function syncBulk(){const b=document.getElementById('bulkBar');if(b)b.cla
 
 // ── BULK OPERATIONS ───────────────────────────────────────────────────────────
 
-export async function bulkDel(){if(!sel.size)return;if(!confirm(`Delete ${sel.size} item(s)?`))return;const ids=[...sel];ids.forEach(id=>softDeleteItem(id));sel.clear();save();refresh();toast(ids.length+' item(s) deleted — check 🗑️ to restore');await pushDeleteToCloud('ft_inventory',ids);autoSync();}
+export async function bulkDel(){if(!sel.size)return;if(!await appConfirm({ title: 'Delete Items', message: `Delete ${sel.size} item(s)?`, danger: true }))return;const ids=[...sel];ids.forEach(id=>softDeleteItem(id));sel.clear();save();refresh();toast(ids.length+' item(s) deleted — check 🗑️ to restore');await pushDeleteToCloud('ft_inventory',ids);autoSync();}
 
-export function bulkSold(){if(!sel.size)return;const ok=[...sel].filter(id=>{const it=getInvItem(id);return it&&it.qty>0;});if(!ok.length){toast('No sellable items selected',true);return;}if(!confirm(`Record sale for ${ok.length} item(s) at list price?`))return;const today=localDate();for(const id of ok){const it=getInvItem(id);const saleId=uid();sales.push({id:saleId,itemId:id,price:it.price,listPrice:it.price||0,qty:1,fees:it.fees||0,ship:it.ship||0,date:today});markDirty('sales',saleId);it.qty=Math.max(0,(it.qty||0)-1);markDirty('inv',id);}sel.clear();save();refresh();toast(`${ok.length} sale(s) recorded ✓`);}
+export async function bulkSold(){if(!sel.size)return;const ok=[...sel].filter(id=>{const it=getInvItem(id);return it&&it.qty>0;});if(!ok.length){toast('No sellable items selected',true);return;}if(!await appConfirm({ title: 'Record Sales', message: `Record sale for ${ok.length} item(s) at list price?` }))return;const today=localDate();for(const id of ok){const it=getInvItem(id);const saleId=uid();sales.push({id:saleId,itemId:id,price:it.price,listPrice:it.price||0,qty:1,fees:it.fees||0,ship:it.ship||0,date:today});markDirty('sales',saleId);it.qty=Math.max(0,(it.qty||0)-1);markDirty('inv',id);}sel.clear();save();refresh();toast(`${ok.length} sale(s) recorded ✓`);}
 
 // ── ADVANCED BULK OPERATIONS ─────────────────────────────────────────────────
 

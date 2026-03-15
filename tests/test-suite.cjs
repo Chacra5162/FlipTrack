@@ -85,11 +85,12 @@ test('main.js exists and imports all views', () => {
 test('No circular import between store.js and sync.js', () => {
   const store = fs.readFileSync(path.join(SRC, 'data', 'store.js'), 'utf8');
   const sync = fs.readFileSync(path.join(SRC, 'data', 'sync.js'), 'utf8');
-  // store imports autoSync from sync — OK
-  assert(store.includes("from './sync.js'"), 'store.js should import from sync.js');
-  // sync imports from store — OK
+  // store.js uses callback registry — no longer imports from sync.js (circular dep broken)
+  assert(store.includes('registerAutoSync'), 'store.js should export registerAutoSync callback');
+  assert(!store.includes("from './sync.js'"), 'store.js should NOT import from sync.js (circular dep fix)');
+  // sync.js imports registerAutoSync from store.js and registers autoSync
   assert(sync.includes("from './store.js'"), 'sync.js should import from store.js');
-  // Vite handles this as long as they don't create side-effect loops at module level
+  assert(sync.includes('registerAutoSync(autoSync)'), 'sync.js should register autoSync via callback');
 });
 
 test('All import paths resolve to existing files', () => {
@@ -335,7 +336,7 @@ test('Reports view has profit by platform', () => {
 console.log('\n♿ 8. ACCESSIBILITY\n');
 
 test('Modals have ARIA dialog attributes', () => {
-  const html = fs.readFileSync(path.join(SRC, '..', 'index.html'), 'utf8');
+  const html = fs.readFileSync(path.join(SRC, '..', 'app.html'), 'utf8');
   // Check for at least a few key modals
   const modalIds = ['drawer', 'addOv', 'soldOv'];
   for (const id of modalIds) {

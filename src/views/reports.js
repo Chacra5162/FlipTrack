@@ -1,7 +1,7 @@
 import { inv, sales, expenses, getInvItem, save, refresh, markDirty, softDeleteItem, sel } from '../data/store.js';
 import { renderInv } from './inventory.js';
 import { fmt, ds, escHtml, escAttr } from '../utils/format.js';
-import { toast } from '../utils/dom.js';
+import { toast, appConfirm } from '../utils/dom.js';
 import { pushDeleteToCloud, autoSync, pushToCloud } from '../data/sync.js';
 import { setDefaultExpDate } from './expenses.js';
 
@@ -573,7 +573,7 @@ let _deletedSale = null;
 let _deletedSaleTimer = null;
 
 export async function delSale(id){
-  if(!confirm('Remove this sale? Stock will be restored.'))return;
+  if(!await appConfirm({ title: 'Remove Sale', message: 'Remove this sale? Stock will be restored.', danger: true }))return;
   const s=sales.find(x=>x.id===id);
   if(!s)return;
 
@@ -637,4 +637,4 @@ async function _commitSaleDeletion() {
 }
 
 // DELETE ITEM
-export async function delItem(id){const item=inv.find(i=>i.id===id);if(!confirm(`Delete "${item?.name}"?`))return;softDeleteItem(id);sel.delete(id);save();refresh();renderInv();toast('Item deleted — check 🗑️ to restore');await pushDeleteToCloud('ft_inventory',[id]);autoSync();}
+export async function delItem(id){const item=getInvItem(id);if(!await appConfirm({ title: 'Delete Item', message: `Delete "${item?.name}"?`, danger: true }))return;softDeleteItem(id);sel.delete(id);save();refresh();renderInv();toast('Item deleted — check 🗑️ to restore');await pushDeleteToCloud('ft_inventory',[id]);autoSync();}

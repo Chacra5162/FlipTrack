@@ -3,9 +3,9 @@
  * Shows listing status matrix, expiring/expired listings, and bulk crosslist tools.
  */
 
-import { inv, save, refresh, markDirty } from '../data/store.js';
+import { inv, save, refresh, markDirty, getInvItem } from '../data/store.js';
 import { fmt, escHtml, escAttr, ds, uid, localDate} from '../utils/format.js';
-import { toast } from '../utils/dom.js';
+import { toast, appConfirm } from '../utils/dom.js';
 import { getPlatforms } from '../features/platforms.js';
 import { PLATFORMS } from '../config/platforms.js';
 import { renderPagination } from '../utils/pagination.js';
@@ -491,7 +491,7 @@ export function clDelistItem(itemId, platform) {
 }
 
 export function clCycleStatus(itemId, platform) {
-  const item = inv.find(i => i.id === itemId);
+  const item = getInvItem(itemId);
   if (!item) return;
   const ps = item.platformStatus || {};
   const current = ps[platform] || 'active';
@@ -506,23 +506,23 @@ export function clCycleStatus(itemId, platform) {
 }
 
 export function clOpenLink(platform, itemId) {
-  const item = inv.find(i => i.id === itemId);
+  const item = getInvItem(itemId);
   if (!item) return;
   const url = generateListingLink(platform, item);
   window.open(url, '_blank');
 }
 
 export function clCopyListing(itemId) {
-  const item = inv.find(i => i.id === itemId);
+  const item = getInvItem(itemId);
   if (!item) return;
   copyListingText(item);
 }
 
-export function clBulkRelistExpired() {
+export async function clBulkRelistExpired() {
   const inStock = inv.filter(i => (i.qty || 0) > 0);
   const expired = getExpiredListings(inStock);
   if (!expired.length) { toast('No expired listings to relist'); return; }
-  if (!confirm(`Relist ${expired.length} expired listing(s)?`)) return;
+  if (!await appConfirm({ title: 'Relist Expired', message: `Relist ${expired.length} expired listing(s)?` })) return;
   for (const { item, platform } of expired) {
     relistItem(item.id, platform);
   }
@@ -575,8 +575,8 @@ export async function clSaveTemplate(modalId) {
   renderCrosslistDashboard();
 }
 
-export function clDeleteTemplate(id) {
-  if (!confirm('Delete this template?')) return;
+export async function clDeleteTemplate(id) {
+  if (!await appConfirm({ title: 'Delete Template', message: 'Delete this template?', danger: true })) return;
   deleteTemplate(id);
   toast('Template deleted');
   renderCrosslistDashboard();
@@ -763,7 +763,7 @@ function _renderEtsyTags() {
     </select>`;
 
   if (_etsyTagEditItem) {
-    const item = inv.find(i => i.id === _etsyTagEditItem);
+    const item = getInvItem(_etsyTagEditItem);
     if (item) {
       const currentTags = item.tags || [];
       const suggestions = suggestEtsyTags(item.id);
@@ -799,8 +799,8 @@ export function clEtsyConnect() {
   connectEtsy();
 }
 
-export function clEtsyDisconnect() {
-  if (!confirm('Disconnect your Etsy shop? You can reconnect anytime.')) return;
+export async function clEtsyDisconnect() {
+  if (!await appConfirm({ title: 'Disconnect Etsy', message: 'Disconnect your Etsy shop? You can reconnect anytime.', danger: true })) return;
   disconnectEtsy();
 }
 
@@ -824,7 +824,7 @@ export async function clPushToEtsy(itemId) {
 }
 
 export async function clDeactivateEtsyListing(itemId) {
-  if (!confirm('Deactivate this Etsy listing?')) return;
+  if (!await appConfirm({ title: 'Deactivate Listing', message: 'Deactivate this Etsy listing?', danger: true })) return;
   const result = await deactivateEtsyListing(itemId);
   if (result.success) {
     refresh();
@@ -833,7 +833,7 @@ export async function clDeactivateEtsyListing(itemId) {
 }
 
 export async function clRenewEtsyListing(itemId) {
-  if (!confirm('Renew this Etsy listing? ($0.20 fee applies)')) return;
+  if (!await appConfirm({ title: 'Renew Listing', message: 'Renew this Etsy listing? ($0.20 fee applies)' })) return;
   const result = await renewEtsyListing(itemId);
   if (result.success) {
     refresh();
@@ -921,7 +921,7 @@ export function clEtsyTagSelect(itemId) {
 }
 
 export function clEtsyRemoveTag(itemId, tagIndex) {
-  const item = inv.find(i => i.id === itemId);
+  const item = getInvItem(itemId);
   if (!item || !item.tags) return;
   item.tags.splice(tagIndex, 1);
   markDirty('inv', itemId);
@@ -930,7 +930,7 @@ export function clEtsyRemoveTag(itemId, tagIndex) {
 }
 
 export function clEtsyAddTag(itemId, tag) {
-  const item = inv.find(i => i.id === itemId);
+  const item = getInvItem(itemId);
   if (!item) return;
   if (!item.tags) item.tags = [];
   if (item.tags.length >= 13) { toast('Max 13 tags', true); return; }
@@ -950,7 +950,7 @@ export async function clEtsySuggestTags(itemId) {
 export async function clEtsySaveTags(itemId) {
   toast('Saving tags to Etsy…');
   try {
-    const item = inv.find(i => i.id === itemId);
+    const item = getInvItem(itemId);
     if (!item) return;
     await pushEtsyTags(itemId, item.tags || []);
   } catch (e) { toast(`Tag save error: ${e.message}`, true); }
@@ -978,7 +978,7 @@ export function clRunAutoRelist() {
   renderCrosslistDashboard();
 }
 
-export function clBulkPrice() {
+export async function clBulkPrice() {
   const category = document.getElementById('clBulkCat')?.value || '';
   const platform = document.getElementById('clBulkPlat')?.value || '';
   const adjustType = document.getElementById('clBulkType')?.value || 'percent';
@@ -987,7 +987,7 @@ export function clBulkPrice() {
 
   if (!adjustValue) { toast('Enter a price adjustment value', true); return; }
   const desc = adjustType === 'percent' ? `${adjustValue > 0 ? '+' : ''}${adjustValue}%` : `${adjustValue > 0 ? '+' : ''}$${adjustValue}`;
-  if (!confirm(`Apply ${desc} to matching items?`)) return;
+  if (!await appConfirm({ title: 'Bulk Price Adjust', message: `Apply ${desc} to matching items?` })) return;
 
   bulkPriceAdjust({ category, platform, adjustType, adjustValue, minDaysListed });
   renderCrosslistDashboard();
@@ -1076,7 +1076,7 @@ function _renderWnShowsTab() {
           html += `<div class="wn-show-empty">No items yet — add items to start your show prep</div>`;
         }
         show.items.forEach((itemId, i) => {
-          const item = inv.find(x => x.id === itemId);
+          const item = getInvItem(itemId);
           if (!item) return;
           const imgUrl = (item.images && item.images[0]) || '';
           const note = getItemNote(show.id, itemId);
@@ -1471,7 +1471,7 @@ export async function wnNewShow() {
 export async function wnDeleteShow(showId) {
   const show = getShow(showId);
   if (!show) return;
-  if (!confirm(`Delete show "${show.name}"?`)) return;
+  if (!await appConfirm({ title: 'Delete Show', message: `Delete show "${show.name}"?`, danger: true })) return;
   await deleteShow(showId);
   if (_wnExpandedShow === showId) _wnExpandedShow = null;
   renderCrosslistDashboard();
@@ -1480,20 +1480,20 @@ export async function wnDeleteShow(showId) {
 export async function wnStartShow(showId) {
   const show = getShow(showId);
   if (!show) return;
-  if (!confirm(`Go live with "${show.name}" (${show.items.length} items)?`)) return;
+  if (!await appConfirm({ title: 'Go Live', message: `Go live with "${show.name}" (${show.items.length} items)?` })) return;
   await startShow(showId);
   _wnExpandedShow = showId;
   renderCrosslistDashboard();
 }
 
 export async function wnEndShow(showId) {
-  if (!confirm('End this live show?')) return;
+  if (!await appConfirm({ title: 'End Show', message: 'End this live show?', danger: true })) return;
   await endShow(showId);
   renderCrosslistDashboard();
 }
 
 export async function wnMarkSold(showId, itemId) {
-  const item = inv.find(x => x.id === itemId);
+  const item = getInvItem(itemId);
   const price = item?.price || 0;
   await markShowItemSold(showId, itemId, price);
   refresh();
@@ -1682,8 +1682,8 @@ export function clEBayConnect() {
   connectEBay(false); // production mode
 }
 
-export function clEBayDisconnect() {
-  if (!confirm('Disconnect your eBay account? You can reconnect anytime.')) return;
+export async function clEBayDisconnect() {
+  if (!await appConfirm({ title: 'Disconnect eBay', message: 'Disconnect your eBay account? You can reconnect anytime.', danger: true })) return;
   disconnectEBay();
 }
 
@@ -1737,7 +1737,7 @@ export async function clPublishOnEBay(itemId) {
 }
 
 export async function clEndEBayListing(itemId) {
-  if (!confirm('End this eBay listing?')) return;
+  if (!await appConfirm({ title: 'End Listing', message: 'End this eBay listing?', danger: true })) return;
   try {
     const result = await endEBayListing(itemId);
     if (result.success) {

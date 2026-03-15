@@ -1,5 +1,5 @@
 // ── BARCODES ────────────────────────────────────────────────────────────────
-import { inv, sel, platFilt, catFilt } from '../data/store.js';
+import { inv, sel, platFilt, catFilt, getInvItem } from '../data/store.js';
 import { subcatFilt, subsubcatFilt } from '../views/inventory.js';
 import { getPlatforms } from '../features/platforms.js';
 import { getItemImages } from '../features/images.js';
@@ -53,9 +53,9 @@ export function renderDrawerBarcode(item) {
 export function printStickers(selectedOnly, ids) {
   let items;
   if (ids) {
-    items = ids.map(id => inv.find(i => i.id === id)).filter(Boolean);
+    items = ids.map(id => getInvItem(id)).filter(Boolean);
   } else if (selectedOnly && sel.size) {
-    items = [...sel].map(id => inv.find(i => i.id === id)).filter(Boolean);
+    items = [...sel].map(id => getInvItem(id)).filter(Boolean);
   } else {
     // All filtered items currently visible
     const q = (document.getElementById('invSearch').value||'').toLowerCase();

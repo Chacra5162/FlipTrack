@@ -239,5 +239,4 @@ export function applyNavLocks() {
 }
 
 // ── Expose to window for inline handlers & sync access from switchView ───────
-Object.assign(window, { closeUpgradePrompt, applyNavLocks, startCheckout, openBillingPortal, showUpgradePrompt });
-window.__gateUtils = { isViewGated, showUpgradePrompt, getUserTier };
+Object.assign(window, { closeUpgradePrompt, applyNavLocks, startCheckout, openBillingPortal, showUpgradePrompt, isViewGated, getUserTier });

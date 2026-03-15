@@ -6,7 +6,7 @@
 
 import { uid, ds, fmt, escHtml, escAttr } from '../utils/format.js';
 import { getMeta, setMeta } from '../data/idb.js';
-import { toast } from '../utils/dom.js';
+import { toast, appConfirm } from '../utils/dom.js';
 
 // ── IRS MILEAGE RATES ─────────────────────────────────────────────────────
 export const IRS_RATES = {
@@ -259,7 +259,7 @@ export async function mileAddEntry() {
  * Window-exposed function: Delete mileage entry
  */
 export async function mileDeleteEntry(id) {
-  if (!confirm('Delete this mileage entry?')) return;
+  if (!await appConfirm({ title: 'Delete Entry', message: 'Delete this mileage entry?', danger: true })) return;
 
   const success = await deleteMileageEntry(id);
   if (success) {

@@ -94,7 +94,7 @@
     <span id="syncTimestamp"></span><span id="syncPendingBadge"></span><span id="offlineIndicator">Offline</span>
     <button class="fs-btn" onclick="toggleFsPopover()" title="Adjust text size" id="fsSizeBtn" aria-label="Font size settings">Aᴬ</button>
     <button class="fs-btn" onclick="toggleTheme()" title="Toggle light/dark theme" id="themeBtn" aria-label="Toggle light or dark mode">☀</button>
-    <button class="fs-btn" id="notifBellBtn" onclick="toggleNotifCenter()" aria-label="Notifications">🔔<span id="notifBadge">0</span></button>
+    <button class="fs-btn" id="notifBellBtn" onclick="toggleNotifCenter()" aria-label="Notifications">🔔<span id="notifBadge" style="display:none"></span></button>
     <button class="fs-btn" id="globalSearchBtn" onclick="toggleGlobalSearch()" aria-label="Search everything" title="Search everything (Ctrl+K)">⌕</button>
     <div class="nav-group" data-group="tools">
       <button class="nav-group-btn" onclick="toggleNavGroup('tools')" aria-label="Tools menu" style="font-size:11px;padding:6px 12px">
@@ -254,7 +254,7 @@
 
 <!-- VIEW: INVENTORY -->
 <div id="view-inventory" class="view">
-  <div id="stockFilterBanner" style="display:none;background:rgba(255,184,0,0.1);border-bottom:1px solid rgba(255,184,0,0.3);padding:10px 20px;display:none;align-items:center;gap:12px;">
+  <div id="stockFilterBanner" style="display:none;background:rgba(255,184,0,0.1);border-bottom:1px solid rgba(255,184,0,0.3);padding:10px 20px;align-items:center;gap:12px;">
     <span style="font-size:13px">⚠</span>
     <span id="stockFilterLabel" style="font-size:12px;color:var(--warn);font-family:'DM Mono',monospace;flex:1"></span>
     <button onclick="clearStockFilt()" style="background:none;border:1px solid rgba(255,184,0,0.5);color:var(--warn);font-size:11px;padding:4px 10px;cursor:pointer;font-family:'DM Mono',monospace;letter-spacing:0.5px">✕ Clear Filter</button>
@@ -268,7 +268,6 @@
     <div class="inv-toolbar">
       <div class="search-wrap">
         <span class="search-icon">⌕</span>
-        <label for="invSearch" class="sr-only">Search inventory</label>
         <label for="invSearch" class="sr-only">Search inventory</label><input type="text" id="invSearch" placeholder="Search name, SKU, category…" oninput="_debouncedRenderInv()">
       </div>
       <button class="filter-toggle-btn" id="filterToggleBtn" onclick="toggleFilterPanel()">
@@ -648,7 +647,7 @@
 </div>
 
 <!-- VERSION FOOTER -->
-<div class="ft-footer">FlipTrack v1.0 · Powered by <a href="https://supabase.com" target="_blank" rel="noopener">Supabase</a></div>
+<div class="ft-footer">FlipTrack v2.0 · Powered by <a href="https://supabase.com" target="_blank" rel="noopener">Supabase</a></div>
 
 </main>
 </div>
@@ -1125,7 +1124,7 @@
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
       <span id="acctPlanLabel">Free Plan — Upgrade</span>
     </button>
-    <button onclick="closeAccountMenu();window.open('./FlipTrack-User-Guide-v1.7.html','_blank')"
+    <button onclick="closeAccountMenu();window.open('./FlipTrack-User-Guide-v1.8.html','_blank')"
       style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 16px;background:none;border:none;border-bottom:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;text-align:left">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
       User Guide
@@ -1504,6 +1503,21 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="assertive" aria-atomic="true"></div>
+
+<!-- CONFIRM MODAL (replaces window.confirm for PWA compatibility) -->
+<div class="modal-ov" id="confirmOv" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:24px">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px 24px;max-width:380px;width:100%;text-align:center">
+    <h3 id="confirmTitle" style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:8px"></h3>
+    <p id="confirmMsg" style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:20px"></p>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button id="confirmCancel" class="btn btn-ghost" style="padding:10px 20px;font-size:13px">Cancel</button>
+      <button id="confirmOk" class="btn btn-primary" style="padding:10px 20px;font-size:13px">Confirm</button>
+    </div>
+  </div>
+</div>
+<style>
+  #confirmOv.on { display:flex !important; }
+</style>
 
 <!-- BATCH SCAN OVERLAY -->
 <div class="batch-overlay" id="batchOv" role="dialog" aria-modal="true" aria-label="Batch Scan">

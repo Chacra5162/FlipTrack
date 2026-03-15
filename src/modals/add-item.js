@@ -3,11 +3,11 @@
 // DOM elements, form helpers (buildPlatPicker, getSelectedPlats, clearDimForm, getDimsFromForm, refreshImgSlots)
 // Other modals: book-mode functions
 
-import { inv, activeDrawId, save, refresh, normCat, markDirty } from '../data/store.js';
+import { inv, activeDrawId, save, refresh, normCat, markDirty, getInvItem } from '../data/store.js';
 import { uid, fmt, pct, escHtml, localDate} from '../utils/format.js';
-import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
+import { toast, trapFocus, releaseFocus, appConfirm } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
-import { autoSync } from '../data/sync.js';
+
 import { parseNum, validateNumericInput } from '../utils/validate.js';
 import {
   toggleBookFields,
@@ -116,14 +116,14 @@ export function loadCoverSlider(pfx, val) {
 }
 
 export function dupCurrent() {
-  const item = inv.find(i => i.id === activeDrawId);
+  const item = getInvItem(activeDrawId);
   if (!item) return;
   dupItem(item.id);
   closeDrawer();
 }
 
 export function dupItem(id) {
-  const src = inv.find(i => i.id === id);
+  const src = getInvItem(id);
   if (!src) return;
   const newId = uid();
   const skuDate = localDate().replace(/-/g,'');
@@ -140,7 +140,6 @@ export function dupItem(id) {
   markDirty('inv', clone.id);
   save(); refresh(); _sfx.create();
   toast('Duplicated: ' + clone.name + ' \u2713');
-  autoSync();
 }
 
 export function addFormTab(tab, btn) {
@@ -258,7 +257,7 @@ export function prefillFromLast() {
   toast('Prefilled from: ' + last.name);
 }
 
-export function addItem(){
+export async function addItem(){
   const name=document.getElementById('f_name').value.trim();
   if(!name){toast('Name required',true);return;}
 
@@ -310,7 +309,7 @@ export function addItem(){
   if (upc) {
     const existing = inv.find(i => i.upc === upc);
     if (existing) {
-      const proceed = confirm(`An item with UPC "${upc}" already exists:\n\n"${existing.name}" (Qty: ${existing.qty})\n\nAdd as a new item anyway, or cancel to update the existing one?`);
+      const proceed = await appConfirm({ title: 'Duplicate UPC', message: `An item with UPC "${upc}" already exists:\n\n"${existing.name}" (Qty: ${existing.qty})\n\nAdd as a new item anyway, or cancel to update the existing one?` });
       if (!proceed) {
         closeAdd();
         if (typeof window.openDrawer === 'function') window.openDrawer(existing.id);
@@ -345,13 +344,13 @@ export function addItem(){
   markDirty('inv', newId);
   save(); closeAdd(); refresh(); _sfx.create(); toast('Item added ✓');
   // Persist source & brand for future autocomplete
-  const addedItem = inv.find(i => i.id === newId);
+  const addedItem = getInvItem(newId);
   if (addedItem) saveAutocompleteEntry(addedItem.source, addedItem.brand).catch(() => {});
 
   const wantsEbay = selPlats.includes('eBay') && isEBayConnected();
 
   if (imagesToUpload.length && getSupabaseClient() && getCurrentUser()) {
-    const newItem = inv.find(i => i.id === newId);
+    const newItem = getInvItem(newId);
     if (newItem) {
       Promise.all(imagesToUpload.map((b64, idx) =>
         uploadImageToStorage(b64, newId, idx).catch(e => {

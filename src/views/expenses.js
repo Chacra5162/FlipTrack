@@ -1,6 +1,6 @@
 import { expenses, save, markDirty } from '../data/store.js';
 import { fmt, ds, escHtml, escAttr, uid, localDate} from '../utils/format.js';
-import { toast } from '../utils/dom.js';
+import { toast, appConfirm } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
 import { parseNum, validateNumericInput } from '../utils/validate.js';
 import { pushDeleteToCloud, autoSync } from '../data/sync.js';
@@ -57,7 +57,7 @@ export function addExpense() {
 }
 
 export async function delExpense(id) {
-  if (!confirm('Delete this expense?')) return;
+  if (!await appConfirm({ title: 'Delete Expense', message: 'Delete this expense?', danger: true })) return;
   const idx = expenses.findIndex(e => e.id === id);
   if (idx >= 0) expenses.splice(idx, 1);
   save();

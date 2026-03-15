@@ -6,7 +6,7 @@
 
 import { getSupabaseClient, getCurrentUser } from '../data/auth.js';
 import { escHtml, escAttr } from '../utils/format.js';
-import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
+import { toast, trapFocus, releaseFocus, appConfirm } from '../utils/dom.js';
 
 // ── TEAM STATE ───────────────────────────────────────────────────────────────
 let _team     = null;   // { id, name, owner_id, created_at }
@@ -246,7 +246,7 @@ export async function deleteTeam() {
   const user = getCurrentUser();
   if (!sb || !user || !_team || _myRole !== 'owner') return;
 
-  if (!confirm('Delete this team? All members will be removed.')) return;
+  if (!await appConfirm({ title: 'Delete Team', message: 'Delete this team? All members will be removed.', danger: true })) return;
 
   try {
     const { error } = await sb

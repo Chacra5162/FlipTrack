@@ -25,7 +25,7 @@ export function calculateProfit(params) {
   // Calculate per-platform fee estimates
   const platformBreakdowns = platforms.map(platform => {
     const feeInfo = PLATFORM_FEES[platform] || { pct: 0 };
-    const fee = (price * (feeInfo.pct || 0)) + (feeInfo.fixed || 0);
+    const fee = (price * (feeInfo.pct || 0)) + (feeInfo.flat || 0);
     const netRevenue = price - fee;
     const profit = netRevenue - totalCost - shipping;
     const margin = price > 0 ? profit / price : 0;
@@ -53,7 +53,7 @@ export function calculateProfit(params) {
     const feeInfo = PLATFORM_FEES[platform] || { pct: 0 };
     // price - (price * feePct + fixed) - cost - ship = 0
     // price * (1 - feePct) = cost + ship + fixed
-    const breakEven = (totalCost + shipping + (feeInfo.fixed || 0)) / (1 - (feeInfo.pct || 0));
+    const breakEven = (totalCost + shipping + (feeInfo.flat || 0)) / (1 - (feeInfo.pct || 0));
     return { platform, breakEven: Math.round(breakEven * 100) / 100 };
   });
 
@@ -133,7 +133,7 @@ export function quickProfitEstimate(cost, price, platform) {
   if (!cost || !price) return '';
 
   const feeInfo = PLATFORM_FEES[platform] || { pct: 0 };
-  const fee = (price * (feeInfo.pct || 0)) + (feeInfo.fixed || 0);
+  const fee = (price * (feeInfo.pct || 0)) + (feeInfo.flat || 0);
   const profit = price - cost - fee;
   const roi = cost > 0 ? profit / cost : 0;
 

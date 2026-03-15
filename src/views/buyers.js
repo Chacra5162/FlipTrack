@@ -6,7 +6,7 @@
 
 import { sales, save, getInvItem } from '../data/store.js';
 import { fmt, ds, uid, escHtml, escAttr } from '../utils/format.js';
-import { toast } from '../utils/dom.js';
+import { toast, appConfirm } from '../utils/dom.js';
 import { getMeta, setMeta } from '../data/idb.js';
 import { renderPagination } from '../utils/pagination.js';
 
@@ -99,10 +99,10 @@ export function buyerAdd() {
 
 // ── DELETE BUYER ──────────────────────────────────────────────────────────────
 
-export function buyerDelete(id) {
+export async function buyerDelete(id) {
   const buyer = _getBuyer(id);
   if (!buyer) return;
-  if (!confirm(`Delete ${escHtml(buyer.name)}?`)) return;
+  if (!await appConfirm({ title: 'Delete Buyer', message: `Delete ${escHtml(buyer.name)}?`, danger: true })) return;
 
   const idx = _buyers.indexOf(buyer);
   _buyers.splice(idx, 1);

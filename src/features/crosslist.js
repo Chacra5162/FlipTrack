@@ -5,7 +5,7 @@
  */
 
 import { localDate } from '../utils/format.js';
-import { inv, save, refresh, markDirty } from '../data/store.js';
+import { inv, save, refresh, markDirty, getInvItem } from '../data/store.js';
 import { toast } from '../utils/dom.js';
 import { getPlatforms } from './platforms.js';
 
@@ -101,7 +101,7 @@ export function getDaysUntilExpiry(platform, listedDate) {
  * Single source of truth for changing a platform listing status.
  */
 export function markPlatformStatus(itemId, platform, status) {
-  const item = inv.find(i => i.id === itemId);
+  const item = getInvItem(itemId);
   if (!item) return false;
   if (!item.platformStatus) item.platformStatus = {};
   item.platformStatus[platform] = status;
@@ -118,7 +118,7 @@ export function markPlatformStatus(itemId, platform, status) {
  * Set listing date for a platform. Auto-calculates expiry.
  */
 export function setListingDate(itemId, platform, dateStr) {
-  const item = inv.find(i => i.id === itemId);
+  const item = getInvItem(itemId);
   if (!item) return;
   if (!item.platformListingDates) item.platformListingDates = {};
   if (!item.platformListingExpiry) item.platformListingExpiry = {};
@@ -133,7 +133,7 @@ export function setListingDate(itemId, platform, dateStr) {
  * Mark a listing as relisted — resets listing date, recalculates expiry, sets active.
  */
 export function relistItem(itemId, platform) {
-  const item = inv.find(i => i.id === itemId);
+  const item = getInvItem(itemId);
   if (!item) return;
   const today = localDate();
   if (!item.lastRelisted) item.lastRelisted = {};
@@ -150,7 +150,7 @@ export function relistItem(itemId, platform) {
  * @returns {string[]} Array of platform names that were marked sold-elsewhere
  */
 export function autoDlistOnSale(itemId, soldPlatform) {
-  const item = inv.find(i => i.id === itemId);
+  const item = getInvItem(itemId);
   if (!item) return [];
   const plats = getPlatforms(item);
   if (!item.platformStatus) item.platformStatus = {};

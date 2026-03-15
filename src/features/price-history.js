@@ -4,7 +4,7 @@
  * Provides analytics on price trends and category-level pricing.
  */
 
-import { inv, sales, save, markDirty } from '../data/store.js';
+import { inv, sales, save, markDirty, getInvItem, getSalesForItem } from '../data/store.js';
 import { fmt, ds, escHtml } from '../utils/format.js';
 
 // ── ITEM CHANGE HISTORY ─────────────────────────────────────────────────────
@@ -41,7 +41,7 @@ export function snapshotItem(item) {
  * @param {Object} snapshot - The before-edit snapshot
  */
 export function logItemChanges(itemId, snapshot) {
-  const item = inv.find(i => i.id === itemId);
+  const item = getInvItem(itemId);
   if (!item || !snapshot) return;
 
   if (!item.itemHistory) item.itemHistory = [];
@@ -88,7 +88,7 @@ export function logItemChanges(itemId, snapshot) {
  * @param {string} description - Human-readable description
  */
 export function logItemEvent(itemId, eventType, description) {
-  const item = inv.find(i => i.id === itemId);
+  const item = getInvItem(itemId);
   if (!item) return;
   if (!item.itemHistory) item.itemHistory = [];
   item.itemHistory.push({ date: Date.now(), type: eventType, description });
@@ -104,7 +104,7 @@ export function logItemEvent(itemId, eventType, description) {
  * @returns {Array}
  */
 export function getItemTimeline(itemId) {
-  const item = inv.find(i => i.id === itemId);
+  const item = getInvItem(itemId);
   if (!item) return [];
 
   const timeline = [];
@@ -120,7 +120,7 @@ export function getItemTimeline(itemId) {
   }
 
   // Sales
-  const itemSales = sales.filter(s => s.itemId === itemId);
+  const itemSales = getSalesForItem(itemId);
   for (const s of itemSales) {
     timeline.push({
       date: typeof s.date === 'number' ? s.date : new Date(s.date).getTime(),
@@ -210,7 +210,7 @@ export function renderItemTimeline(itemId) {
  * @param {string} source - 'manual' or 'repricing'
  */
 export function logPriceChange(itemId, newPrice, source = 'manual') {
-  const item = inv.find(i => i.id === itemId);
+  const item = getInvItem(itemId);
   if (!item) return;
 
   if (!item.priceHistory) item.priceHistory = [];
@@ -237,7 +237,7 @@ export function logPriceChange(itemId, newPrice, source = 'manual') {
  * @param {string} platform - Platform it sold on
  */
 export function logSalePrice(itemId, salePrice, platform) {
-  const item = inv.find(i => i.id === itemId);
+  const item = getInvItem(itemId);
   if (!item) return;
 
   if (!item.priceHistory) item.priceHistory = [];
@@ -263,7 +263,7 @@ export function logSalePrice(itemId, salePrice, platform) {
  * @returns {Array} Price history entries
  */
 export function getPriceHistory(itemId) {
-  const item = inv.find(i => i.id === itemId);
+  const item = getInvItem(itemId);
   return item?.priceHistory || [];
 }
 

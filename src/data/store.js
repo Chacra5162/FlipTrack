@@ -7,7 +7,9 @@ import { toast } from '../utils/dom.js';
  */
 
 import { initDB, getAll, putAll, putOne, deleteOne, getMeta, setMeta } from './idb.js';
-import { autoSync } from './sync.js';
+// ── AUTO-SYNC CALLBACK (registered by sync.js via registerAutoSync to break circular dep) ──
+let _autoSyncCallback = () => {};
+export function registerAutoSync(fn) { _autoSyncCallback = fn; }
 
 // ── DATA ARRAYS (in-memory, loaded from IDB on boot) ─────────────────────
 export let inv = [];
@@ -182,7 +184,7 @@ export async function initStore() {
     supplies.length = 0; supplies.push(...idbSup);
     _trash.length = 0; _trash.push(...idbTrash);
 
-    console.log(`FlipTrack: Loaded from IndexedDB — ${inv.length} items, ${sales.length} sales`);
+    // Item counts available via dev tools if needed
   } catch (e) {
     console.warn('FlipTrack: IndexedDB unavailable, using localStorage fallback:', e.message);
     _idbReady = false;
@@ -221,7 +223,7 @@ async function _migrateFromLocalStorage() {
       lsSup.length ? putAll('supplies', lsSup) : Promise.resolve(),
       lsTrash.length ? putAll('trash', lsTrash) : Promise.resolve(),
     ]);
-    console.log(`FlipTrack: Migrated ${lsInv.length} items from localStorage to IndexedDB`);
+    // Migration complete
   }
 }
 
@@ -260,7 +262,7 @@ export const save = () => {
   _scheduleLSSave();
 
   // Only trigger auto-sync if save succeeded AND no sync already in progress
-  if (_lastSaveOk && !_syncInProgress) autoSync();
+  if (_lastSaveOk && !_syncInProgress) _autoSyncCallback();
 };
 
 /** Debounced persist to IndexedDB (batches rapid saves) */
@@ -476,6 +478,13 @@ export function performUndo() {
     if (idx !== -1) {
       markDeleted('ft_sales', entry.data.saleId);
       sales.splice(idx, 1);
+    }
+    save();
+    refresh();
+  } else if (entry.action === 'repricing') {
+    for (const { itemId, oldPrice } of entry.data) {
+      const item = inv.find(i => i.id === itemId);
+      if (item) { item.price = oldPrice; markDirty('inv', item.id); }
     }
     save();
     refresh();

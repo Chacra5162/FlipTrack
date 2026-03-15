@@ -1,6 +1,6 @@
 // ── CSV IMPORT/EXPORT ───────────────────────────────────────────────────────────
 
-import { inv, sales, expenses, save, refresh } from '../data/store.js';
+import { inv, sales, expenses, save, refresh, getInvItem } from '../data/store.js';
 import { fmt, pct, uid, escHtml, escAttr, localDate} from '../utils/format.js';
 import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
@@ -21,7 +21,7 @@ export function exportCSV(){
 export function exportSalesCSV() {
   const rows=[['Date','Item Name','SKU','Platform','Qty','Sale Price','List Price','Fees','Shipping','Profit']];
   for (const s of sales) {
-    const it = inv.find(i => i.id === s.itemId);
+    const it = getInvItem(s.itemId);
     const pr = (s.price||0)*(s.qty||0) - (it?(it.cost||0)*(s.qty||0):0) - (s.fees||0) - (s.ship||0);
     rows.push([s.date, it?it.name:'Deleted Item', it?it.sku:'', s.platform||'', s.qty, s.price, s.listPrice||'', s.fees||0, s.ship||0, pr.toFixed(2)]);
   }

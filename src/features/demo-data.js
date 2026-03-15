@@ -6,7 +6,7 @@
 
 import { inv, sales, expenses, save, refresh, rebuildInvIndex } from '../data/store.js';
 import { uid, localDate } from '../utils/format.js';
-import { toast } from '../utils/dom.js';
+import { toast, appConfirm } from '../utils/dom.js';
 
 const DEMO_ITEMS = [
   { name: 'Nike Air Max 90 OG', category: 'Footwear', subcategory: 'Sneakers', platforms: ['eBay','StockX','Mercari'], cost: 45, price: 120, qty: 1, condition: 'Pre-Owned', sku: 'FT-NKE-001' },
@@ -94,9 +94,9 @@ function buildDemoExpenses() {
   ];
 }
 
-export function loadDemoData() {
+export async function loadDemoData() {
   if (inv.length > 0 || sales.length > 0) {
-    const ok = confirm('This will ADD demo data alongside your existing data. Continue?');
+    const ok = await appConfirm({ title: 'Load Demo Data', message: 'This will ADD demo data alongside your existing data. Continue?' });
     if (!ok) return false;
   }
 
@@ -147,14 +147,14 @@ export function initDemoTrigger() {
   let tapCount = 0;
   let tapTimer = null;
 
-  logo.addEventListener('click', () => {
+  logo.addEventListener('click', async () => {
     tapCount++;
     clearTimeout(tapTimer);
 
     if (tapCount >= 3) {
       tapCount = 0;
       const action = inv.some(i => (i.sku || '').startsWith('FT-'))
-        ? confirm('Remove demo data?') ? 'clear' : null
+        ? await appConfirm({ title: 'Remove Demo Data', message: 'Remove demo data?', danger: true }) ? 'clear' : null
         : 'load';
 
       if (action === 'load') loadDemoData();

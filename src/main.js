@@ -428,7 +428,7 @@ Object.assign(window, {
     const invite = await generateInvite(role);
     if (invite) {
       const el = document.getElementById('teamInviteResult');
-      if (el) el.innerHTML = `<div style="padding:8px;background:var(--surface);border:1px solid var(--accent);font-family:'DM Mono',monospace;font-size:14px;text-align:center;letter-spacing:3px;font-weight:700;color:var(--accent)">${invite.code}</div><div style="font-size:10px;color:var(--muted);text-align:center;margin-top:4px">Share this code · Expires in 7 days</div>`;
+      if (el) el.innerHTML = `<div style="padding:8px;background:var(--surface);border:1px solid var(--accent);font-family:'DM Mono',monospace;font-size:14px;text-align:center;letter-spacing:3px;font-weight:700;color:var(--accent)">${escHtml(invite.code)}</div><div style="font-size:10px;color:var(--muted);text-align:center;margin-top:4px">Share this code · Expires in 7 days</div>`;
     }
   },
   teamUpdateRole: updateMemberRole,
@@ -663,7 +663,7 @@ Object.assign(window, {
     const platform = document.getElementById('aiPlatform')?.value || '';
     const tone = document.getElementById('aiTone')?.value || 'professional';
     generateAndApply(itemId, { platform, tone }).then(() => {
-      const item = inv.find(i => i.id === itemId);
+      const item = getInvItem(itemId);
       if (item) {
         const panel = document.querySelector('.ai-panel');
         if (panel) panel.outerHTML = renderAIListingPanel(item);
@@ -703,7 +703,7 @@ Object.assign(window, {
   recordLabelCost, getShippingCostSummary, saveShipLabelSettings,
   // Photo tool action handlers
   ptRemoveBg: async (itemId) => {
-    const item = inv.find(i => i.id === itemId);
+    const item = getInvItem(itemId);
     if (!item?.image) return;
     toast('Removing background…');
     try {
@@ -716,7 +716,7 @@ Object.assign(window, {
     } catch (e) { toast('BG removal failed: ' + e.message, true); }
   },
   ptAutoCrop: async (itemId) => {
-    const item = inv.find(i => i.id === itemId);
+    const item = getInvItem(itemId);
     if (!item?.image) return;
     try {
       const result = await autoCrop(item.image);
@@ -728,7 +728,7 @@ Object.assign(window, {
     } catch (e) { toast('Crop failed: ' + e.message, true); }
   },
   ptWatermark: async (itemId) => {
-    const item = inv.find(i => i.id === itemId);
+    const item = getInvItem(itemId);
     if (!item?.image) return;
     try {
       const result = await addWatermark(item.image);
@@ -740,7 +740,7 @@ Object.assign(window, {
     } catch (e) { toast('Watermark failed: ' + e.message, true); }
   },
   ptSquare: async (itemId) => {
-    const item = inv.find(i => i.id === itemId);
+    const item = getInvItem(itemId);
     if (!item?.image) return;
     try {
       const result = await squarePad(item.image);
@@ -752,7 +752,7 @@ Object.assign(window, {
     } catch (e) { toast('Square pad failed: ' + e.message, true); }
   },
   ptAdjustPreview: async (itemId) => {
-    const item = inv.find(i => i.id === itemId);
+    const item = getInvItem(itemId);
     if (!item?.image) return;
     const brightness = parseInt(document.getElementById('ptBrightness')?.value || '0');
     const contrast = parseInt(document.getElementById('ptContrast')?.value || '0');
@@ -780,7 +780,7 @@ function clRelistFromDrawer(itemId, platform) {
   save(); refresh();
   toast(`Relisted on ${platform} ✓`);
   // Re-render the drawer's listing status if still open
-  const item = inv.find(i => i.id === itemId);
+  const item = getInvItem(itemId);
   if (item) renderListingStatus(item);
 }
 
@@ -791,9 +791,8 @@ function clRelistFromDrawer(itemId, platform) {
 
 function switchView(name, el) {
   // Subscription gating — block access to locked views
-  const { isViewGated, showUpgradePrompt } = window.__gateUtils || {};
-  if (isViewGated && isViewGated(name)) {
-    showUpgradePrompt(name);
+  if (window.isViewGated && window.isViewGated(name)) {
+    window.showUpgradePrompt(name);
     return;
   }
 
@@ -1137,9 +1136,9 @@ setTimeout(_killSplash, 3000);
     if (savedView && savedView !== 'dashboard' && document.getElementById('view-' + savedView)) {
       // Temporarily bypass subscription gating during boot — tier hasn't loaded yet.
       // After auth init the correct tier is applied and nav locks enforced.
-      const gate = window.__gateUtils;
-      window.__gateUtils = undefined;
-      try { switchView(savedView); } finally { window.__gateUtils = gate; }
+      const origGate = window.isViewGated;
+      window.isViewGated = undefined;
+      try { switchView(savedView); } finally { window.isViewGated = origGate; }
     } else {
       renderDash();
     }
@@ -1213,7 +1212,7 @@ setTimeout(_killSplash, 3000);
   try { initListingDates(); checkExpiredListings(); } catch (e) { console.warn('FlipTrack: listing dates error:', e.message); }
 
   // Initialize feature modules (Pro/Unlimited features deferred for Free tier)
-  const _tier = window.__gateUtils?.getUserTier?.() || 'free';
+  const _tier = window.getUserTier?.() || 'free';
   try {
     // Core features — always init
     const coreInits = [initEBaySync(), initEtsySync()];

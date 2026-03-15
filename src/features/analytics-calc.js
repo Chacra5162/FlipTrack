@@ -24,10 +24,7 @@ export function calcSellThroughRate(inv, sales, days = 30) {
     return saleDate >= cutoffDate ? sum + (sale.qty || 1) : sum;
   }, 0);
 
-  const unitsListed = inv.reduce((sum, item) => {
-    const listedDate = new Date(item.added);
-    return listedDate >= cutoffDate ? sum + (item.qty || 0) : sum;
-  }, 0);
+  const unitsListed = inv.reduce((sum, item) => sum + (item.qty || 0), 0) + unitsSold;
 
   const rate = unitsListed > 0 ? (unitsSold / unitsListed) * 100 : 0;
 
@@ -80,7 +77,8 @@ export function calcCashFlowProjection(inv, sales, expenses) {
   const currentRevenue = sales.reduce((sum, sale) => sum + ((sale.price || 0) * (sale.qty || 1)), 0);
   const currentProfit = currentRevenue - (expenses.total || 0);
 
-  const dailyNet = sales.length > 0 ? currentProfit / Math.max(1, Math.floor((new Date() - new Date(sales[0].date)) / (1000 * 60 * 60 * 24))) : 0;
+  const firstSaleDate = sales.reduce((min, s) => { const d = new Date(s.date); return d < min ? d : min; }, new Date());
+  const dailyNet = sales.length > 0 ? currentProfit / Math.max(1, Math.floor((new Date() - firstSaleDate) / (1000 * 60 * 60 * 24))) : 0;
 
   const daysToBreakeven = dailyNet > 0 ? Math.ceil((currentInvested - currentProfit) / dailyNet) : null;
 
@@ -98,7 +96,8 @@ export function calcCashFlowProjection(inv, sales, expenses) {
  * @param {number} months - Number of months to analyze (default 12)
  * @returns {Array} Array of { month, revenue, profit, units, yoy_change }
  */
-export function calcSeasonalTrends(sales, months = 12) {
+export function calcSeasonalTrends(sales, inv, months = 12) {
+  const im = _invMap(inv || []);
   const monthData = {};
 
   sales.forEach(sale => {
@@ -115,7 +114,8 @@ export function calcSeasonalTrends(sales, months = 12) {
     }
 
     monthData[monthKey].revenue += (sale.price || 0) * (sale.qty || 1);
-    monthData[monthKey].cost += sale.cost || 0;
+    const item = im.get(sale.itemId);
+    monthData[monthKey].cost += (item ? item.cost || 0 : 0) * (sale.qty || 1);
     monthData[monthKey].units += sale.qty || 1;
     monthData[monthKey].count += 1;
   });
@@ -214,7 +214,8 @@ export function calcVelocityByCategory(inv, sales) {
     categoryData[item.category].items_listed += item.qty || 0;
   });
 
-  const monthsActive = Math.max(1, Math.ceil((new Date() - new Date(sales[0]?.date || Date.now())) / (1000 * 60 * 60 * 24 * 30)));
+  const oldestSaleDate = sales.length ? sales.reduce((min, s) => { const d = new Date(s.date); return d < min ? d : min; }, new Date()) : new Date();
+  const monthsActive = Math.max(1, Math.ceil((new Date() - oldestSaleDate) / (1000 * 60 * 60 * 24 * 30)));
 
   return Object.entries(categoryData).map(([category, data]) => ({
     category,

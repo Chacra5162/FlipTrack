@@ -10,7 +10,8 @@ import {
   inv, sales, expenses, supplies,
   save, refresh, saveLocalSupplies,
   getDirtyItems, clearDirtyTracking, markDirty, waitForPersist,
-  isSyncInProgress, setSyncInProgress, clearStoreTimers
+  isSyncInProgress, setSyncInProgress, clearStoreTimers,
+  registerAutoSync
 } from './store.js';
 import { getCurrentUser, getSupabaseClient, getAccountId } from './auth.js';
 import { getActiveAccountId } from '../features/teams.js';
@@ -417,6 +418,9 @@ export function autoSync() {
     }
   }, 2000);
 }
+
+// Register autoSync callback with store.js (breaks circular dependency)
+registerAutoSync(autoSync);
 
 /** Clear all sync timers and debounces. Called during logout cleanup. */
 export function clearSyncTimers() {

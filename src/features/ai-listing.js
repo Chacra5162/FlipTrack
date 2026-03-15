@@ -104,8 +104,6 @@ export async function generateListing(item, opts = {}) {
 
     const prompt = _buildPrompt(item, platform, tone, opts.includeKeywords !== false);
 
-    console.log('[AI] Invoking anthropic-proxy…', { platform, tone });
-
     const { data, error } = await _sb.functions.invoke('anthropic-proxy', {
       body: {
         model: 'claude-haiku-4-5-20251001',
@@ -159,7 +157,6 @@ export async function generateListing(item, opts = {}) {
       throw new Error('Empty AI response — please try again');
     }
 
-    console.log('[AI] Generation complete, parsing response…');
     return _parseResponse(text);
   } finally {
     _generating = false;

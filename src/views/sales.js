@@ -69,7 +69,7 @@ export function openSoldModal(id) {
   }
 
   activeSoldId = id;
-  const item = inv.find(i => i.id === id);
+  const item = getInvItem(id);
   if (!item) { toast('Item not found', true); return; }
   _populateSoldModal(item);
   document.getElementById('soldOv').classList.add('on');
@@ -80,7 +80,7 @@ export function openSoldModal(id) {
 export function onSoldItemPick(id) {
   if (!id) return;
   activeSoldId = id;
-  const item = inv.find(i => i.id === id);
+  const item = getInvItem(id);
   if (!item) return;
   _populateSoldModal(item);
 }
@@ -199,7 +199,7 @@ export function recSale() {
   if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
   const reenableBtn = () => { if (btn) { btn.disabled = false; btn.textContent = 'Record Sale'; } };
 
-  const item = inv.find(i => i.id === activeSoldId);
+  const item = getInvItem(activeSoldId);
   if (!item) { toast('Item not found — it may have been deleted', true); reenableBtn(); closeSold(); return; }
 
   // Validate numeric fields

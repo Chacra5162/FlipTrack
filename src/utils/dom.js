@@ -46,5 +46,52 @@ export function toast(msg, err, dur) {
   t.textContent = msg;
   t.className = 'toast' + (err ? ' err' : '');
   t.classList.add('on');
-  setTimeout(() => t.classList.remove('on'), dur || 2300);
+  setTimeout(() => t.classList.remove('on'), dur || 4000);
+}
+
+// ── IN-APP CONFIRM MODAL (replaces window.confirm for PWA compatibility) ──
+
+/**
+ * Show an in-app confirmation dialog. Returns a Promise<boolean>.
+ * Works in iOS PWA standalone mode where window.confirm() is broken.
+ * @param {Object} opts
+ * @param {string} opts.title - Dialog title
+ * @param {string} opts.message - Dialog body text
+ * @param {boolean} [opts.danger] - Use danger styling for confirm button
+ * @param {string} [opts.confirmText] - Confirm button label (default 'Confirm')
+ * @param {string} [opts.cancelText] - Cancel button label (default 'Cancel')
+ * @returns {Promise<boolean>}
+ */
+export function appConfirm({ title = 'Confirm', message, danger = false, confirmText = 'Confirm', cancelText = 'Cancel' } = {}) {
+  return new Promise(resolve => {
+    const ov = document.getElementById('confirmOv');
+    const titleEl = document.getElementById('confirmTitle');
+    const msgEl = document.getElementById('confirmMsg');
+    const okBtn = document.getElementById('confirmOk');
+    const cancelBtn = document.getElementById('confirmCancel');
+    if (!ov || !okBtn || !cancelBtn) { resolve(true); return; } // fallback if DOM missing
+
+    titleEl.textContent = title;
+    msgEl.textContent = message;
+    okBtn.textContent = confirmText;
+    okBtn.className = danger ? 'btn btn-danger' : 'btn btn-primary';
+    cancelBtn.textContent = cancelText;
+
+    const cleanup = (result) => {
+      ov.classList.remove('on');
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      document.removeEventListener('keydown', onKey);
+      resolve(result);
+    };
+    const onOk = () => cleanup(true);
+    const onCancel = () => cleanup(false);
+    const onKey = (e) => { if (e.key === 'Escape') cleanup(false); };
+
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    document.addEventListener('keydown', onKey);
+    ov.classList.add('on');
+    okBtn.focus();
+  });
 }

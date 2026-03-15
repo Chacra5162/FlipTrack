@@ -7,7 +7,7 @@
 
 import { inv, getInvItem } from '../data/store.js';
 import { fmt, ds, uid, escHtml, escAttr } from '../utils/format.js';
-import { toast } from '../utils/dom.js';
+import { toast, appConfirm } from '../utils/dom.js';
 import { getMeta, setMeta } from '../data/idb.js';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
@@ -264,8 +264,8 @@ export function offerCounter(id) {
   toast(`Counter offer sent: ${fmt(counterAmount)}`);
 }
 
-export function offerDelete(id) {
-  if (!confirm('Delete offer?')) return;
+export async function offerDelete(id) {
+  if (!await appConfirm({ title: 'Delete Offer', message: 'Delete this offer?', danger: true })) return;
   deleteOffer(id);
   toast('Offer deleted');
 }

@@ -4,7 +4,7 @@
  * and predictions based on sell-through rate.
  */
 
-import { inv, sales, getInvItem } from '../data/store.js';
+import { inv, sales, getInvItem, getSalesForItem } from '../data/store.js';
 import { fmt, pct, ds, escHtml, escAttr } from '../utils/format.js';
 import { getPlatforms } from './platforms.js';
 import { PLATFORM_FEES } from '../config/platforms.js';
@@ -96,7 +96,10 @@ export function getInventoryValueData() {
       const added = item.added ? new Date(item.added).getTime() : now;
       return (now - added) > 30 * msDay;
     })
-    .filter(item => !recentSales.some(s => s.itemId === item.id))
+    .filter(item => {
+      const itemSales = getSalesForItem(item.id);
+      return !itemSales.some(s => new Date(s.date).getTime() > thirtyDaysAgo);
+    })
     .sort((a, b) => (b.price || 0) * (b.qty || 1) - (a.price || 0) * (a.qty || 1))
     .slice(0, 10);
 

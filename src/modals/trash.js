@@ -3,7 +3,7 @@
 // This module only handles the trash modal UI.
 
 import { _trash, saveTrash, save, refresh, restoreItem as storeRestoreItem } from '../data/store.js';
-import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
+import { toast, trapFocus, releaseFocus, appConfirm } from '../utils/dom.js';
 import { escHtml } from '../utils/format.js';
 
 export function openTrashModal() {
@@ -36,8 +36,8 @@ export function closeTrashModal() {
   releaseFocus();
 }
 
-export function emptyTrash() {
-  if (!confirm('Permanently delete all ' + _trash.length + ' items?')) return;
+export async function emptyTrash() {
+  if (!await appConfirm({ title: 'Empty Trash', message: 'Permanently delete all ' + _trash.length + ' items?', danger: true })) return;
   _trash.length = 0; // clear in-place (can't reassign imported binding)
   saveTrash();
   closeTrashModal();

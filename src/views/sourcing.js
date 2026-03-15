@@ -3,12 +3,12 @@
  * Log hauls, track inventory sourcing, link items to hauls, and analyze sourcing performance.
  */
 
-import { inv, sales, save, refresh, markDirty } from '../data/store.js';
+import { inv, sales, save, refresh, markDirty, getSalesForItem } from '../data/store.js';
 import { getMeta, setMeta } from '../data/idb.js';
 import { getCurrentUser, getSupabaseClient } from '../data/auth.js';
 import { getActiveAccountId } from '../features/teams.js';
 import { fmt, ds, uid, escHtml, escAttr, pct, localDate} from '../utils/format.js';
-import { toast } from '../utils/dom.js';
+import { toast, appConfirm } from '../utils/dom.js';
 import { renderPagination } from '../utils/pagination.js';
 import { getHaulROI, getHaulItems, splitCost, getSourceStats, getBestSources, getHaulSummary } from '../features/haul.js';
 
@@ -277,7 +277,7 @@ export function renderSourcingView() {
                         <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
                           ${haulItems.map(item => {
                             const itemCost = splitCost(haul, inv)[item.id] || 0;
-                            const itemSales = sales.filter(s => s.itemId === item.id);
+                            const itemSales = getSalesForItem(item.id);
                             const itemRevenue = itemSales.reduce((sum, s) => sum + ((s.price || 0) * (s.qty || 1)), 0);
                             return `<div style="padding:6px;background:var(--surface);border-radius:4px;font-size:11px;display:flex;justify-content:space-between">
                               <span>${escHtml(item.name || 'Untitled')}</span>
@@ -315,7 +315,7 @@ export function renderSourcingView() {
           sourceROI[loc].spent += haul.totalSpent || 0;
           sourceROI[loc].trips++;
           for (const itemId of (haul.itemIds || [])) {
-            const itemSales = sales.filter(s => s.itemId === itemId);
+            const itemSales = getSalesForItem(itemId);
             sourceROI[loc].revenue += itemSales.reduce((t, s) => t + (s.price || 0), 0);
           }
         }
@@ -456,7 +456,7 @@ export async function addHaul() {
  * Delete a haul by ID
  */
 export async function deleteHaul(id) {
-  if (!confirm('Delete this haul?')) return;
+  if (!await appConfirm({ title: 'Delete Haul', message: 'Delete this haul?', danger: true })) return;
   const idx = _hauls.findIndex(h => h.id === id);
   if (idx >= 0) {
     _hauls.splice(idx, 1);

@@ -5,11 +5,11 @@
 
 import { SUBCATS, SUBSUBCATS } from '../config/categories.js';
 import { fmt, pct, ds, escHtml, escAttr, uid } from '../utils/format.js';
-import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
+import { toast, trapFocus, releaseFocus, appConfirm } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
 import { parseNum, validateNumericInput } from '../utils/validate.js';
 import {
-  inv, sales, activeDrawId, setActiveDrawId, save, refresh, calc, sc, mkc, markDirty, normCat
+  inv, sales, activeDrawId, setActiveDrawId, save, refresh, calc, sc, mkc, markDirty, normCat, getInvItem, getSalesForItem
 } from '../data/store.js';
 import {
   toggleBookFields,
@@ -142,19 +142,20 @@ export function syncAddSubtype() {
 
 export function openDrawer(id) {
   setActiveDrawId(id);
-  const item=inv.find(i=>i.id===id); if(!item) return;
+  const item=getInvItem(id); if(!item) return;
   _drawerSnapshot = snapshotItem(item);
   // Refresh autocomplete suggestions for Source & Brand
   refreshAutocompleteLists().catch(() => {});
   document.getElementById('dName').textContent=item.name;
   document.getElementById('dSku').textContent=item.sku?`SKU: ${item.sku}`:'No SKU';
   const {pu,m,roi}=calc(item);
-  const iSales=sales.filter(s=>s.itemId===id);
+  const iSales=getSalesForItem(id);
   const totSold=iSales.reduce((a,s)=>a+(s.qty||0),0);
   const totRev =iSales.reduce((a,s)=>a+(s.price||0)*(s.qty||0),0);
   const c=sc(item.qty,item.lowAlert,item.bulk);
+  const stockColor = c === 'ok' ? 'var(--good)' : c === 'warn' ? 'var(--warn)' : 'var(--danger)';
   document.getElementById('dMets').innerHTML=`
-    <div class="d-met"><div class="dm-lbl">In Stock</div><div class="dm-val" style="color:${mkc(c)}">${item.qty||0}</div></div>
+    <div class="d-met"><div class="dm-lbl">In Stock</div><div class="dm-val" style="color:${stockColor}">${item.qty||0}</div></div>
     <div class="d-met"><div class="dm-lbl">Profit/Unit</div><div class="dm-val" style="color:var(--good)">${fmt(pu)}</div></div>
     <div class="d-met"><div class="dm-lbl">Margin</div><div class="dm-val" style="color:var(--accent)">${pct(m)}</div></div>
     <div class="d-met"><div class="dm-lbl">ROI</div><div class="dm-val" style="color:var(--accent3)">${pct(roi)}</div></div>
@@ -337,7 +338,7 @@ export function getListingStatusFromDrawer() {
 }
 
 export async function saveDrawer(){
-  const item=inv.find(i=>i.id===activeDrawId); if(!item) return;
+  const item=getInvItem(activeDrawId); if(!item) return;
 
   // Validate numeric fields
   const costEl = document.getElementById('d_cost');
@@ -443,8 +444,8 @@ export async function saveDrawer(){
 }
 
 export async function delCurrent(){
-  const item=inv.find(i=>i.id===activeDrawId);
-  if(!confirm(`Delete "${item?.name}"?`))return;
+  const item=getInvItem(activeDrawId);
+  if(!await appConfirm({ title: 'Delete Item', message: `Delete "${item?.name}"?`, danger: true }))return;
   const id=activeDrawId;
   softDeleteItem(id);
   save();

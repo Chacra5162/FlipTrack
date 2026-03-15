@@ -96,6 +96,8 @@ export async function replayQueue(sb, accountId) {
   for (const entry of items) {
     try {
       if (entry.action === 'upsert') {
+        const allowedTables = ['ft_inventory', 'ft_sales', 'ft_expenses', 'ft_supplies'];
+        if (!allowedTables.includes(entry.table)) throw new Error(`Invalid table: ${entry.table}`);
         const rows = Array.isArray(entry.payload) ? entry.payload : [entry.payload];
         const upsertRows = rows.map(r => ({
           ...r,

@@ -1,6 +1,6 @@
 // ── IMAGE HANDLING ──────────────────────────────────────────────────────────
 // Slots are static HTML — we only update src/classes, never rebuild DOM nodes.
-import { inv, activeDrawId, save } from '../data/store.js';
+import { inv, activeDrawId, save, getInvItem } from '../data/store.js';
 import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
 import { isStorageUrl, deleteImageFromStorage, uploadImageToStorage } from '../data/storage.js';
 import { getSupabaseClient } from '../data/auth.js';
@@ -36,7 +36,7 @@ export function imgSlotRemove(event, pfx, idx) {
     pendingAddImages.splice(idx, 1);
     refreshImgSlots('f', pendingAddImages);
   } else {
-    const item = inv.find(i => i.id === activeDrawId);
+    const item = getInvItem(activeDrawId);
     if (!item) return;
     const imgs = getItemImages(item);
     const removed = imgs[idx];
@@ -97,7 +97,7 @@ export function renderAddFormImages() {
 }
 
 export function renderDrawerImg(itemId) {
-  const item = inv.find(i => i.id === itemId);
+  const item = getInvItem(itemId);
   refreshImgSlots('d', item ? getItemImages(item) : []);
 }
 
@@ -152,7 +152,7 @@ function _attachLbListeners() {
 }
 
 export function openLightbox(itemId) {
-  const item = inv.find(i => i.id === itemId);
+  const item = getInvItem(itemId);
   _lbImages = item ? getItemImages(item) : [];
   _lbIndex = 0;
   if (_lbImages.length) {
@@ -170,7 +170,7 @@ export function openLightboxUrl(url) {
   // If called from a drawer slot, try to find the item and load all images
   const itemId = activeDrawId;
   if (itemId) {
-    const item = inv.find(i => i.id === itemId);
+    const item = getInvItem(itemId);
     if (item) {
       _lbImages = getItemImages(item);
       _lbIndex = Math.max(0, _lbImages.indexOf(url));
@@ -806,7 +806,7 @@ export function cropConfirm() {
     } else {
       // Drawer (existing item) — show base64 immediately, upload in background
       const itemId = ctxId || savedDrawId;
-      const item = inv.find(i => i.id === itemId);
+      const item = getInvItem(itemId);
       if (item) {
         const imgs = getItemImages(item);
         if (slotIdx >= imgs.length) imgs.push(compressed);
