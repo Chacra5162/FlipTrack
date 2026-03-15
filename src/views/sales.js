@@ -311,11 +311,7 @@ function _renderBundleList() {
 
   listEl.innerHTML = filtered.map(i => {
     const checked = _bundleItems.has(i.id) ? 'checked' : '';
-    return `<div class="bundle-row" onclick="event.stopPropagation();var cb=this.querySelector('input');cb.checked=!cb.checked;toggleBundleItem('${escAttr(i.id)}')">
-      <input type="checkbox" ${checked} onclick="event.stopPropagation()" onchange="event.stopPropagation();toggleBundleItem('${escAttr(i.id)}')" style="margin-right:8px;cursor:pointer;vertical-align:middle">
-      <strong style="vertical-align:middle">${escHtml(i.name || 'Untitled')}</strong>
-      <span style="float:right;color:var(--good);font-family:'DM Mono',monospace;font-size:11px">${fmt(i.price || 0)}</span>
-    </div>`;
+    return `<div style="display:block;padding:7px 10px;border-bottom:1px solid var(--border);cursor:pointer;font-size:12px;color:var(--text);overflow:hidden" onclick="event.stopPropagation();var cb=this.querySelector('input');cb.checked=!cb.checked;toggleBundleItem('${escAttr(i.id)}')"><input type="checkbox" ${checked} onclick="event.stopPropagation()" onchange="event.stopPropagation();toggleBundleItem('${escAttr(i.id)}')" style="margin-right:8px;cursor:pointer"><span style="float:right;color:var(--good);font-family:'DM Mono',monospace;font-size:11px;line-height:1.6">${fmt(i.price || 0)}</span><strong>${escHtml(i.name || 'Untitled')}</strong></div>`;
   }).join('');
 
   // Show selected items summary
