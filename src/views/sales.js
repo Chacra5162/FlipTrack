@@ -249,10 +249,15 @@ function _renderBundleList() {
 
   listEl.innerHTML = filtered.map(i => {
     const checked = _bundleItems.has(i.id) ? 'checked' : '';
-    return `<label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--border);cursor:pointer;font-size:11px">
-      <input type="checkbox" ${checked} onchange="toggleBundleItem('${escAttr(i.id)}')" style="cursor:pointer">
-      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(i.name || i.sku || 'Untitled')}</span>
-      <span style="color:var(--muted);font-family:'DM Mono',monospace">${fmt(i.price || 0)}</span>
+    const thumb = i.image ? `<img src="${escAttr(i.image)}" style="width:32px;height:32px;object-fit:cover;border-radius:4px;flex-shrink:0" alt="">` : `<div style="width:32px;height:32px;background:var(--surface);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px">📦</div>`;
+    return `<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--border);cursor:pointer;font-size:11px">
+      <input type="checkbox" ${checked} onchange="toggleBundleItem('${escAttr(i.id)}')" style="cursor:pointer;flex-shrink:0">
+      ${thumb}
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(i.name || 'Untitled')}</div>
+        <div style="font-size:10px;color:var(--muted)">${escHtml(i.sku || '')}${i.category ? ' · ' + escHtml(i.category) : ''}</div>
+      </div>
+      <span style="color:var(--good);font-family:'DM Mono',monospace;font-weight:600;flex-shrink:0">${fmt(i.price || 0)}</span>
     </label>`;
   }).join('');
 
