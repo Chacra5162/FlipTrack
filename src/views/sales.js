@@ -258,7 +258,9 @@ export function filterBundleItems() {
 export function toggleBundleItem(itemId) {
   if (_bundleItems.has(itemId)) _bundleItems.delete(itemId);
   else _bundleItems.add(itemId);
-  _renderBundleList();
+  // Update summary and price WITHOUT rebuilding the list DOM
+  // (rebuilding destroys the clicked element mid-event, causing bubble to overlay)
+  _updateBundleSummary();
   _updateBundlePrice();
 }
 
@@ -301,8 +303,6 @@ export function _updateBundlePriceHint() {
 
 function _renderBundleList() {
   const listEl = document.getElementById('bundleItemList');
-  const selEl = document.getElementById('bundleSelected');
-  const countEl = document.getElementById('bundleCount');
   if (!listEl) return;
 
   const q = (document.getElementById('bundleSearch')?.value || '').toLowerCase();
@@ -311,10 +311,15 @@ function _renderBundleList() {
 
   listEl.innerHTML = filtered.map(i => {
     const checked = _bundleItems.has(i.id) ? 'checked' : '';
-    return `<div style="display:block;padding:7px 10px;border-bottom:1px solid var(--border);cursor:pointer;font-size:12px;color:var(--text);overflow:hidden" onclick="event.stopPropagation();var cb=this.querySelector('input');cb.checked=!cb.checked;toggleBundleItem('${escAttr(i.id)}')"><input type="checkbox" ${checked} onclick="event.stopPropagation()" onchange="event.stopPropagation();toggleBundleItem('${escAttr(i.id)}')" style="margin-right:8px;cursor:pointer"><span style="float:right;color:var(--good);font-family:'DM Mono',monospace;font-size:11px;line-height:1.6">${fmt(i.price || 0)}</span><strong>${escHtml(i.name || 'Untitled')}</strong></div>`;
+    return `<div style="display:block;padding:7px 10px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text);overflow:hidden"><input type="checkbox" ${checked} onchange="event.stopPropagation();toggleBundleItem('${escAttr(i.id)}')" style="margin-right:8px;cursor:pointer"><span style="float:right;color:var(--good);font-family:'DM Mono',monospace;font-size:11px;line-height:1.6">${fmt(i.price || 0)}</span><strong>${escHtml(i.name || 'Untitled')}</strong></div>`;
   }).join('');
 
-  // Show selected items summary
+  _updateBundleSummary();
+}
+
+function _updateBundleSummary() {
+  const selEl = document.getElementById('bundleSelected');
+  const countEl = document.getElementById('bundleCount');
   const selected = [..._bundleItems].map(id => getInvItem(id)).filter(Boolean);
   const totalList = selected.reduce((a, i) => a + (i.price || 0), 0);
   if (countEl) countEl.textContent = `(${_bundleItems.size} items · ${fmt(totalList)} list value)`;
