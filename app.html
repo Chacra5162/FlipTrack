@@ -179,6 +179,7 @@
 
 <!-- VIEW: DASHBOARD -->
 <div id="view-dashboard" class="view active">
+  <div id="dashOnboarding"></div>
   <div class="alerts-banner" id="alertBanner">
     <div class="alert-title">⚠ Restock Alert</div>
     <div class="alert-items" id="alertItems"></div>
@@ -1090,7 +1091,7 @@
       </div>
 
       <button class="btn-primary" onclick="authSubmit()" id="authSubmitBtn"
-        disabled style="width:100%;font-size:14px;padding:12px">Loading…</button>
+        disabled style="width:100%;font-size:14px;padding:12px">Connecting…</button>
 
       <div id="authForgotWrap" style="margin-top:12px;text-align:center">
         <button onclick="authForgotPassword()"
@@ -1615,6 +1616,11 @@
     <svg viewBox="0 0 24 24"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
     Batch Scan
   </button>
+  <button class="bnav-more-item" id="bn-more-profit"
+    onclick="switchView('profit',null);bnav('bn-more-profit');closeBnavMore()">
+    <svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+    Profit Dashboard
+  </button>
   <button class="bnav-more-item" id="bn-more-expenses" onclick="switchView('expenses',document.querySelectorAll('.nav-tab')[4]);bnav('bn-more-expenses');closeBnavMore()">
     <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
     Expenses
@@ -1724,8 +1730,9 @@
       </div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:20px">Works offline · Dark &amp; light themes · Dyslexia-friendly fonts · Barcode scanner</div>
     </div>
-    <div class="modal-ft" style="justify-content:center;padding-bottom:24px">
-      <button class="btn-primary" onclick="dismissWelcome()" style="min-width:180px;font-size:14px;padding:12px 24px">Get Started</button>
+    <div class="modal-ft" style="justify-content:center;padding-bottom:24px;flex-direction:column;align-items:center;gap:10px">
+      <button class="btn-primary" onclick="dismissWelcome();openAddModal()" style="min-width:220px;font-size:14px;padding:12px 24px">+ Add Your First Item</button>
+      <button class="btn-ghost" onclick="dismissWelcome()" style="font-size:12px;padding:8px 16px">Just explore for now</button>
     </div>
   </div>
 </div>

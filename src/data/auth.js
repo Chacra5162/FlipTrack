@@ -134,12 +134,17 @@ export async function authSubmit() {
     } else {
       const { error } = await _sb.auth.signUp({ email, password: pass });
       if (error) throw error;
-      setAuthMsg('Account created! Check your email to confirm, then sign in.', 'ok');
+      setAuthMsg(`Account created! We sent a confirmation to ${email}. Click the link in that email, then come back to sign in.`, 'ok');
       switchAuthTab('login');
       return;
     }
   } catch(e) {
-    setAuthMsg(e.message || 'Sign in failed — please try again.', 'err');
+    const msg = e.message || '';
+    const friendly = msg.includes('Invalid login credentials') ? 'Incorrect email or password. Try again or reset your password.'
+      : msg.includes('Email not confirmed') ? 'Please confirm your email first. Check your inbox for the confirmation link.'
+      : msg.includes('already registered') ? 'An account with this email already exists. Try signing in instead.'
+      : msg || 'Sign in failed — please try again.';
+    setAuthMsg(friendly, 'err');
   } finally {
     // Always re-enable button (hideAuthModal will cover it on success)
     if (btnEl) {
@@ -293,6 +298,7 @@ async function _startSession(user) {
       if (e.message === 'Sync timed out') {
         // Reset sync guard so auto-sync isn't permanently blocked
         setSyncInProgress(false);
+        setSyncStatus('error', 'Sync timed out — will retry');
         console.warn('FlipTrack: initial sync timed out, will retry via auto-sync');
       } else throw e;
     }

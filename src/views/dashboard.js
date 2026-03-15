@@ -272,6 +272,21 @@ export function quickReprice(itemId, newPrice) {
 }
 
 export function renderDash() {
+  // New user onboarding banner
+  const onboardEl = document.getElementById('dashOnboarding');
+  if (onboardEl) {
+    if (inv.length === 0 && sales.length === 0) {
+      onboardEl.innerHTML = `<div class="panel" style="text-align:center;padding:32px 24px;margin-bottom:16px;border:1px dashed var(--accent);border-radius:12px;background:var(--surface)">
+        <div style="font-size:28px;margin-bottom:8px">📦</div>
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:6px">Welcome to FlipTrack!</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.5">Start by adding your first inventory item.<br>Track costs, set prices, and watch your profits grow.</div>
+        <button class="btn-primary" onclick="openAddModal()" style="font-size:14px;padding:10px 24px">+ Add Your First Item</button>
+      </div>`;
+    } else {
+      onboardEl.innerHTML = '';
+    }
+  }
+
   // Stats must render FIRST so animated counters have values to animate
   updateStats();
   updatePlatBreakdown();
