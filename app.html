@@ -1431,7 +1431,8 @@
       <div class="form-grid">
         <div class="fgrp">
           <label for="s_price">Sold Price ($) *</label>
-          <input type="number" id="s_price" placeholder="0.00" step="0.01" oninput="updateFeeEstimate()">
+          <input type="number" id="s_price" placeholder="0.00" step="0.01" oninput="updateFeeEstimate();if(window._updateBundlePriceHint)_updateBundlePriceHint()">
+          <div id="bundlePriceHint" style="font-size:10px;margin-top:3px;font-family:'DM Mono',monospace;font-weight:600"></div>
         </div>
         <div class="fgrp">
           <label id="s_price_type_label">Price Is</label>

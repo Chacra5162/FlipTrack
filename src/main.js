@@ -73,7 +73,7 @@ import {
   openSoldModal, closeSold, sPriceType, onSoldItemPick,
   updateSalePriceHint, updateFeeEstimate,
   recSale, renderSalesView,
-  toggleBundleMode, filterBundleItems, toggleBundleItem,
+  toggleBundleMode, filterBundleItems, toggleBundleItem, _updateBundlePriceHint,
   setSalesSearch, setSalesDateFrom, setSalesDateTo, clearSalesFilters
 } from './views/sales.js';
 import { renderInsights } from './views/insights.js';
@@ -485,7 +485,7 @@ Object.assign(window, {
   openSoldModal, closeSold, sPriceType, onSoldItemPick,
   updateSalePriceHint, updateFeeEstimate,
   recSale, renderSalesView, delSale, undoSaleDeletion,
-  toggleBundleMode, filterBundleItems, toggleBundleItem,
+  toggleBundleMode, filterBundleItems, toggleBundleItem, _updateBundlePriceHint,
   setSalesSearch, setSalesDateFrom, setSalesDateTo, clearSalesFilters
 });
 

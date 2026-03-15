@@ -247,9 +247,44 @@ export function toggleBundleItem(itemId) {
   if (_bundleItems.has(itemId)) _bundleItems.delete(itemId);
   else _bundleItems.add(itemId);
   _renderBundleList();
-  // Update count
-  const countEl = document.getElementById('bundleCount');
-  if (countEl) countEl.textContent = `(${_bundleItems.size} items)`;
+  _updateBundlePrice();
+}
+
+function _updateBundlePrice() {
+  if (!_bundleMode) return;
+  const selected = [..._bundleItems].map(id => getInvItem(id)).filter(Boolean);
+  const totalList = selected.reduce((a, i) => a + (i.price || 0), 0);
+  const priceEl = document.getElementById('s_price');
+  // Auto-populate price with total of selected items
+  if (priceEl) priceEl.value = totalList > 0 ? totalList.toFixed(2) : '';
+  _updateBundlePriceHint();
+}
+
+export function _updateBundlePriceHint() {
+  if (!_bundleMode) return;
+  const hintEl = document.getElementById('bundlePriceHint');
+  if (!hintEl) return;
+  const selected = [..._bundleItems].map(id => getInvItem(id)).filter(Boolean);
+  const totalList = selected.reduce((a, i) => a + (i.price || 0), 0);
+  const priceEl = document.getElementById('s_price');
+  const entered = parseFloat(priceEl?.value) || 0;
+
+  if (!selected.length || !entered) {
+    hintEl.textContent = '';
+    return;
+  }
+
+  const diff = entered - totalList;
+  if (Math.abs(diff) < 0.01) {
+    hintEl.textContent = 'Matches original total';
+    hintEl.style.color = 'var(--muted)';
+  } else if (diff < 0) {
+    hintEl.textContent = `${fmt(Math.abs(diff))} below original total (${fmt(totalList)})`;
+    hintEl.style.color = 'var(--danger)';
+  } else {
+    hintEl.textContent = `${fmt(diff)} above original total (${fmt(totalList)})`;
+    hintEl.style.color = 'var(--good)';
+  }
 }
 
 function _renderBundleList() {
