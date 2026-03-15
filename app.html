@@ -107,6 +107,7 @@
         <button class="nav-menu-item" onclick="closeAllNavGroups();quickList()"><span class="nmi-icon" aria-hidden="true">⚡</span> Quick List</button>
         <button class="nav-menu-item" id="headerIdBtn" onclick="closeAllNavGroups();openIdentify()"><span class="nmi-icon" aria-hidden="true">📸</span> Identify Item</button>
         <button class="nav-menu-item" id="headerBatchBtn" onclick="closeAllNavGroups();openBatchScan()"><span class="nmi-icon" aria-hidden="true">📷</span> Batch Scan</button>
+        <button class="nav-menu-item unlimited-gate" onclick="closeAllNavGroups();openVoiceAdd()"><span class="nmi-icon" aria-hidden="true">🎤</span> Voice Add</button>
       </div>
     </div>
     <input type="file" id="csvImportInput" accept=".csv,.tsv" style="display:none" onchange="importCSV(this.files[0])">
@@ -321,6 +322,7 @@
         <option value="days-asc">Newest Listed</option>
         <option value="qty-asc">Low Stock First</option>
         <option value="price-desc">Price High–Low</option>
+        <option value="flip-desc" data-gate="pro">Flip Score</option>
       </select>
       <div class="toolbar-spacer"></div>
       <button class="btn-secondary" onclick="printStickers(false)" style="font-size:11px;padding:5px 10px;white-space:nowrap">🏷 Print All</button>
@@ -338,6 +340,7 @@
           <button onclick="openBulkCategory()">📁 Set Category</button>
           <button onclick="openBulkPlatform()">🏪 Add/Remove Platform</button>
           <button onclick="bulkExportCSV()">📤 Export CSV</button>
+          <button onclick="createGalleryFromSelection()" class="pro-gate">📸 Create Gallery</button>
         </div>
       </div>
       <button class="btn-danger"    onclick="bulkDel()">Delete</button>
@@ -356,6 +359,7 @@
           <th onclick="setSort('price-desc')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setSort('price-desc')}" tabindex="0" role="columnheader button" aria-label="Sort by price" style="cursor:pointer">Price <span class="sort-arrow">↕</span></th>
           <th onclick="setSort('margin-desc')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setSort('margin-desc')}" tabindex="0" role="columnheader button" aria-label="Sort by margin" style="cursor:pointer">Margin <span class="sort-arrow">↕</span></th>
           <th onclick="setSort('days-desc')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setSort('days-desc')}" tabindex="0" role="columnheader button" aria-label="Sort by days listed" class="days-col" style="cursor:pointer">Days <span class="sort-arrow">↕</span></th>
+          <th class="flip-score-col pro-gate" onclick="setSort('flip-desc')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setSort('flip-desc')}" tabindex="0" role="columnheader button" aria-label="Sort by flip score" style="cursor:pointer">Flip <span class="sort-arrow">↕</span></th>
           <th class="photos-col">📷</th>
           <th>Actions</th>
         </tr></thead>
@@ -1860,6 +1864,47 @@
   </div>
   <div id="globalSearchResults" class="gs-results"></div>
 </div>
+<!-- Voice Add Overlay -->
+<div class="id-overlay" id="voiceOv" role="dialog" aria-modal="true" aria-label="Voice Add">
+  <div class="id-topbar">
+    <div class="id-title">🎤 Voice <span>Add</span></div>
+    <button class="id-close" onclick="closeVoiceAdd()">✕</button>
+  </div>
+  <div class="id-body" style="padding:16px">
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="width:64px;height:64px;border-radius:50%;background:rgba(239,83,80,0.15);border:2px solid var(--danger);display:inline-flex;align-items:center;justify-content:center;font-size:28px;animation:pulse 1.5s infinite">🎤</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:8px">Listening… Say item name + price</div>
+      <div id="voiceInterim" style="font-size:13px;color:var(--accent);min-height:20px;margin-top:4px;font-family:'DM Mono',monospace"></div>
+    </div>
+    <div id="voiceItemList" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;margin-bottom:12px"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-primary" onclick="voiceAddAll()" style="flex:1">Add to Inventory</button>
+      <button class="btn-secondary" onclick="closeVoiceAdd()" style="flex:1">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Gallery Builder Modal -->
+<div class="id-overlay" id="galleryOv" role="dialog" aria-modal="true" aria-label="Social Gallery">
+  <div class="id-topbar">
+    <div class="id-title">📸 Social <span>Gallery</span></div>
+    <button class="id-close" onclick="closeGalleryBuilder()">✕</button>
+  </div>
+  <div class="id-body" style="padding:16px">
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <button class="btn-secondary" onclick="setGalleryLayout('2x2')" style="font-size:11px;padding:5px 10px">2x2 Grid</button>
+      <button class="btn-secondary" onclick="setGalleryLayout('3x3')" style="font-size:11px;padding:5px 10px">3x3 Grid</button>
+      <button class="btn-secondary" onclick="setGalleryLayout('hero')" style="font-size:11px;padding:5px 10px">Hero</button>
+      <button class="btn-secondary" onclick="setGalleryLayout('stories')" style="font-size:11px;padding:5px 10px">Stories</button>
+    </div>
+    <div id="galleryPreview" style="margin-bottom:12px"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-primary" onclick="downloadCollage()" style="flex:1">Download PNG</button>
+      <button class="btn-secondary" onclick="copyCollage()" style="flex:1">Copy to Clipboard</button>
+    </div>
+  </div>
+</div>
+
 <script type="module" src="./src/main.js"></script>
 </body>
 </html>

@@ -263,6 +263,7 @@ export function renderDeathPileView() {
           </div>
           ${dp.showAppearances >= 2 ? `<div class="dp-row-shows" style="font-size:10px;color:var(--warn)">Shown ${dp.showAppearances}× on Whatnot</div>` : ''}
           <div class="dp-row-action">${escHtml(dp.suggestedAction)}</div>
+          ${dp.urgency.level === 'critical' || dp.urgency.level === 'extreme' ? `<button class="btn-secondary" style="font-size:10px;padding:3px 8px;margin-top:4px" onclick="event.stopPropagation();openDonateModal('${escAttr(dp.item.id)}')">🎁 Donate</button>` : ''}
         </div>
       `;
     }

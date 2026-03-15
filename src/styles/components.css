@@ -2645,6 +2645,9 @@ textarea { resize:vertical; min-height:70px; }
   }
 
 /* ── DAYS LISTED BADGE ─────────────────────────────────────────────────── */
+.flip-score-col { text-align: center; white-space: nowrap; }
+.flip-badge { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 700; }
+.flip-badge sup { font-size: 9px; font-weight: 600; margin-left: 1px; }
 .days-col { text-align: center; white-space: nowrap; }
 .days-badge {
   display: inline-block; padding: 2px 7px; font-size: 10px;
@@ -2731,7 +2734,7 @@ textarea { resize:vertical; min-height:70px; }
 
 /* ── HIDE DAYS & PHOTOS COLS ON NARROW SCREENS ─────────────────────────── */
 @media (max-width: 820px) {
-  .days-col, .photos-col { display: none; }
+  .days-col, .photos-col, .flip-score-col { display: none; }
   .fee-row { flex-wrap: wrap; gap: 4px; }
   .fee-plat { min-width: 60px; }
 }

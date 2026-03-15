@@ -6,6 +6,7 @@
 import { inv, sales, getInvItem, getSalesForItem } from '../data/store.js';
 import { fmt, escHtml, escAttr } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
+import { sendNotification } from '../features/push-notifications.js';
 
 const MAX_NOTIFICATIONS = 50;
 const STORAGE_KEY = 'ft_notifications';
@@ -224,6 +225,50 @@ export function getSalesVelocity() {
   })).sort((a, b) => (a.avgDaysToSell || 999) - (b.avgDaysToSell || 999));
 }
 
+/** Daily Digest — "What Sold Yesterday" summary notification */
+export function checkDailyDigest() {
+  const today = new Date();
+  const key = `ft_digest_${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  if (localStorage.getItem(key)) return; // already sent today
+
+  // Gather yesterday's sales
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yStr = yesterday.toISOString().slice(0, 10);
+
+  const ySales = sales.filter(s => (s.date || '').slice(0, 10) === yStr);
+  if (!ySales.length) {
+    localStorage.setItem(key, '1');
+    return; // nothing to report
+  }
+
+  const count = ySales.length;
+  const revenue = ySales.reduce((sum, s) => sum + ((s.price || 0) * (s.qty || 1)), 0);
+  const fees = ySales.reduce((sum, s) => sum + (s.fees || 0) + (s.ship || 0), 0);
+  const cogs = ySales.reduce((sum, s) => {
+    const item = getInvItem(s.itemId);
+    return sum + ((item?.cost || 0) * (s.qty || 1));
+  }, 0);
+  const profit = revenue - fees - cogs;
+
+  // Calculate streak — consecutive days with at least 1 sale
+  let streak = 1;
+  for (let d = 2; d <= 365; d++) {
+    const check = new Date(today);
+    check.setDate(check.getDate() - d);
+    const dStr = check.toISOString().slice(0, 10);
+    if (sales.some(s => (s.date || '').slice(0, 10) === dStr)) streak++;
+    else break;
+  }
+
+  const title = `Yesterday: ${count} sale${count > 1 ? 's' : ''} · ${fmt(revenue)} revenue`;
+  const message = `Profit: ${fmt(profit)} · ${streak > 1 ? streak + '-day streak 🔥' : 'Keep it up!'}`;
+
+  addNotification('sale', title, message);
+  sendNotification('📊 ' + title, message, 'ft-daily-digest');
+  localStorage.setItem(key, '1');
+}
+
 let _notifInitialized = false;
 export function initNotificationCenter() {
   if (_notifInitialized) return;
@@ -231,6 +276,7 @@ export function initNotificationCenter() {
   load();
   updateBadge();
   generateStockAlerts();
+  checkDailyDigest();
 
   // Close on outside click
   document.addEventListener('click', (e) => {

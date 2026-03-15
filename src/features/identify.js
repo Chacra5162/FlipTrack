@@ -6,6 +6,8 @@ import { getAccountId, getSupabaseClient, getCurrentUser } from '../data/auth.js
 import { refreshImgSlots } from '../features/images.js';
 import { buildPlatPicker } from '../features/platforms.js';
 import { setPendingAddImages } from '../modals/add-item.js';
+import { suggestPrice } from '../features/comps.js';
+import { computeSourceScore } from '../features/source-score.js';
 
 let _idImageData = null;   // base64 image (no prefix)
 let _idMediaType = 'image/jpeg';
@@ -131,14 +133,28 @@ export async function idAnalyze() {
 
     _idResult = data;
 
+    // Fetch comp-verified price in background (non-blocking for quick list)
+    const compPromise = (data.name)
+      ? suggestPrice(data.searchTerms || data.name, data.condition).catch(() => null)
+      : Promise.resolve(null);
+
     // Quick List mode: skip results screen, go straight to Add Item
     if (_quickListMode) {
+      // Wait for comp price before adding (fast — cached 30 min)
+      _idResult._compPrice = await compPromise;
       toast('AI identified — opening Add Item…');
       idAddToInventory();
       return;
     }
 
+    // Show results immediately, then update with comp data
     idRenderResults(data);
+    compPromise.then(comp => {
+      if (comp && _idResult) {
+        _idResult._compPrice = comp;
+        _renderCompBadge(comp);
+      }
+    });
   } catch (e) {
     console.error('FlipTrack: identify error:', e);
     results.innerHTML = `
@@ -195,6 +211,12 @@ export function idRenderResults(r) {
           <span class="id-result-tag ${confCls}">${(r.confidence || 'unknown').toUpperCase()} CONFIDENCE</span>
         </div>
 
+        <div class="id-cost-input-wrap">
+          <label for="idCostInput">What did you pay?</label>
+          <input type="number" id="idCostInput" class="id-cost-input" placeholder="$0.00" step="0.01" min="0" oninput="idUpdateSourceScore()">
+        </div>
+        <div id="idSourceScore"></div>
+
         <div class="id-value-bar">
           <div class="id-value-cell low">
             <div class="id-value-lbl">Low</div>
@@ -209,6 +231,8 @@ export function idRenderResults(r) {
             <div class="id-value-amt">${r.estimatedHigh ? fmt(r.estimatedHigh) : '—'}</div>
           </div>
         </div>
+
+        <div id="idCompBadge" class="id-comp-badge-slot"></div>
 
         <div class="id-actions">
           <button class="id-action-btn primary" onclick="idAddToInventory()">+ Add to Inventory</button>
@@ -244,6 +268,47 @@ export function idRenderResults(r) {
     </div>`;
 }
 
+export function idUpdateSourceScore() {
+  const el = document.getElementById('idSourceScore');
+  const costInput = document.getElementById('idCostInput');
+  if (!el || !costInput || !_idResult) return;
+
+  const userCost = parseFloat(costInput.value);
+  if (!userCost || userCost <= 0) { el.innerHTML = ''; return; }
+
+  const result = computeSourceScore({
+    compData: _idResult._compPrice || null,
+    aiResult: _idResult,
+    userCost,
+  });
+
+  const cls = result.verdict === 'BUY' ? 'verdict-buy' : result.verdict === 'MAYBE' ? 'verdict-maybe' : 'verdict-pass';
+  el.innerHTML = `
+    <div class="id-source-score ${cls}">
+      <div class="id-source-verdict">${result.verdict}</div>
+      <div class="id-source-details">
+        <span>Est. profit: ${fmt(result.estimatedProfit)}</span>
+        ${result.daysToSell ? `<span>~${result.daysToSell}d to sell</span>` : ''}
+      </div>
+      ${result.reasons.length ? `<div class="id-source-reasons">${result.reasons.map(r => `<span>· ${escHtml(r)}</span>`).join('')}</div>` : ''}
+    </div>`;
+}
+
+function _renderCompBadge(comp) {
+  const el = document.getElementById('idCompBadge');
+  if (!el || !comp || !comp.suggested) return;
+  const confCls = comp.confidence === 'high' ? 'confidence-high' : comp.confidence === 'medium' ? 'confidence-medium' : 'confidence-low';
+  el.innerHTML = `
+    <div class="id-comp-verified">
+      <div class="id-comp-hdr">
+        <span>📊 Comp-Verified Price</span>
+        <span class="id-result-tag ${confCls}">${(comp.confidence || 'low').toUpperCase()}</span>
+      </div>
+      <div class="id-comp-price">${fmt(comp.suggested)}</div>
+      <div class="id-comp-range">${comp.range} · ${comp.count} comp${comp.count !== 1 ? 's' : ''}</div>
+    </div>`;
+}
+
 export function idAddToInventory() {
   if (!_idResult) return;
 
@@ -264,9 +329,10 @@ export function idAddToInventory() {
     try {
       const _set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
 
-      // Core fields
+      // Core fields — prefer comp-verified price over AI estimate
       _set('f_name', r.name);
-      _set('f_price', r.estimatedMid);
+      const compPrice = r._compPrice?.suggested;
+      _set('f_price', compPrice || r.estimatedMid);
       _set('f_brand', r.brand);
 
       // Category + subcategory

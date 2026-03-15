@@ -50,6 +50,7 @@ import { renderPagination } from '../utils/pagination.js';
 import { logPriceChange } from '../features/price-history.js';
 import { pushEBayPrice } from '../features/ebay-sync.js';
 import { isEBayConnected } from '../features/ebay-auth.js';
+import { computeFlipScore } from '../features/flip-score.js';
 
 // Helper functions that need to be wired from other modules
 export function updateFiltersBadge() {
@@ -302,6 +303,7 @@ export function sortItems(items){
     if(v==='days-asc')   return daysListed(a)-daysListed(b);
     if(v==='profit-desc')return calc(b).pu-calc(a).pu;
     if(v==='profit-asc') return calc(a).pu-calc(b).pu;
+    if(v==='flip-desc') return computeFlipScore(b).score-computeFlipScore(a).score;
     return 0;
   });
 }
@@ -420,6 +422,7 @@ export function renderInv() {
           +(_lastSaleDays!==null?`<span style="font-size:9px;color:${_lastSaleDays>30?'var(--warn)':'var(--muted)'};display:block;margin-top:2px" title="Last sale ${_lastSaleDays} days ago">${_lastSaleDays}d ago</span>`:'')
           +(_expMin!==null&&_expMin<=7?`<span style="font-size:9px;color:var(--warn);display:block;margin-top:2px" title="Listing expires in ${_expMin} days">⏳${_expMin}d</span>`:'');
       })()}</td>
+      <td class="flip-score-col pro-gate">${(()=>{const fs=computeFlipScore(item);const _fc=fs.score>=80?'var(--good)':fs.score>=60?'var(--accent)':fs.score>=40?'var(--warn)':'var(--danger)';return `<span class="flip-badge" style="color:${_fc}" title="Margin:${fs.breakdown.margin} Fresh:${fs.breakdown.freshness} List:${fs.breakdown.listing} Demand:${fs.breakdown.demand}">${fs.score}<sup>${fs.grade}</sup></span>`;})()}</td>
       <td class="photos-col">${_imgs.length?`<span class="photo-count-badge" title="${_imgs.length} photo${_imgs.length>1?'s':''}">${_imgs.length} 📷</span>`:`<span class="photo-count-badge empty" title="No photos">0</span>`}</td>
       <td><div class="td-acts">
         ${item.qty>0?`<button class="act-btn" onclick="openSoldModal('${eid}')">Sold ›</button>`:`<span class="out-badge">Out</span>`}

@@ -1,6 +1,8 @@
 import { inv, sales, expenses, getInvItem, getSalesForItem } from '../data/store.js';
 import { fmt, pct, ds, escHtml, escAttr } from '../utils/format.js';
 import { getPlatforms } from '../features/platforms.js';
+import { scanArbitrageOpportunities } from '../features/arbitrage-alerts.js';
+import { renderSeasonalCalendar } from '../features/seasonal-calendar.js';
 
 // Cache: always recompute on render to avoid stale data
 let _insightsCache = null;
@@ -785,9 +787,16 @@ export function renderInsights() {
           ${expSection}
         </div>
       </div>
+      <div style="background:var(--surface2);border:1px solid var(--border);padding:16px 18px;margin-top:12px" id="seasonalSection">
+        ${renderSeasonalCalendar()}
+      </div>
+      <div id="arbitrageSlot" style="margin-top:12px"></div>
       ${!sellers.length && !stale.length && !inStockCount ? '<div style="text-align:center;color:var(--muted);font-size:13px;padding:40px 0;font-family:\'DM Mono\',monospace">Add some inventory items to start seeing insights ↗</div>' : ''}
     </div>`;
   _insightsCache = el.innerHTML;
+
+  // Load arbitrage alerts async (non-blocking)
+  if (inv.length > 0) _loadArbitrageSection();
 }
 
 // ── Best Day to List Insight ─────────────────────────────────────────────────
@@ -926,4 +935,41 @@ function _buildWeeklyTrend(salesData, getItem) {
       <span style="color:var(--muted)">Total: ${weeks.reduce((a, w) => a + w.units, 0)} units · $${weeks.reduce((a, w) => a + w.revenue, 0).toFixed(0)} rev</span>
     </div>
   </div>`;
+}
+
+// ── Arbitrage Alerts (async) ─────────────────────────────────────────────────
+async function _loadArbitrageSection() {
+  const slot = document.getElementById('arbitrageSlot');
+  if (!slot) return;
+  slot.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:11px">Scanning for arbitrage opportunities…</div>';
+  try {
+    const opps = await scanArbitrageOpportunities();
+    if (!opps.length) { slot.innerHTML = ''; return; }
+    const rows = opps.slice(0, 10).map(o => {
+      const color = o.type === 'underpriced' ? 'var(--good)' : 'var(--warn)';
+      const icon = o.type === 'underpriced' ? '📈' : '📉';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+        <span>${icon}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer" onclick="openDrawer('${escAttr(o.item.id)}')">${escHtml(o.item.name)}</div>
+          <div style="font-size:10px;color:var(--muted)">${escHtml(o.suggestedAction)}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:12px;font-family:'DM Mono',monospace;color:${color}">${fmt(o.currentPrice)} → ${fmt(o.compMedian)}</div>
+          <div style="font-size:9px;color:var(--muted)">${o.compCount} comps</div>
+        </div>
+      </div>`;
+    }).join('');
+    slot.innerHTML = `
+      <div style="background:var(--surface2);border:1px solid var(--border);padding:16px 18px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:8px">
+          <span style="font-size:16px">💰</span>
+          <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--accent)">Arbitrage Opportunities</span>
+          <span style="font-size:10px;color:var(--muted);margin-left:auto">${opps.length} found</span>
+        </div>
+        ${rows}
+      </div>`;
+  } catch (e) {
+    slot.innerHTML = '';
+  }
 }

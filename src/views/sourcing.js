@@ -18,6 +18,9 @@ let _srcSearch = '';
 let _srcSort = 'date-desc';
 let _expandedHaulId = null;
 let _srcPage = 0;
+
+/** Get a haul by ID (used by haul-receipt) */
+export function getHaulById(id) { return _hauls.find(h => h.id === id) || null; }
 let _srcPageSize = 25;
 
 // ── INITIALIZATION ─────────────────────────────────────────────────────────────
@@ -287,6 +290,7 @@ export function renderSourcingView() {
                         </div>
                       ` : '<div style="color:var(--muted);font-size:11px;padding:8px">No items linked yet</div>'}
                       <button class="btn-secondary" onclick="linkItemsToHaul('${heid}')" style="padding:6px 10px;margin-right:6px;font-size:11px;font-family:'Syne',sans-serif">Link Items</button>
+                      <button class="btn-secondary" onclick="shareHaulReceipt('${heid}')" style="padding:6px 10px;margin-right:6px;font-size:11px;font-family:'Syne',sans-serif">📸 Share Receipt</button>
                       <button class="btn-danger" onclick="deleteHaul('${heid}')" style="padding:6px 10px;font-size:11px;font-family:'Syne',sans-serif">Delete</button>
                     </div>
                   ` : ''}

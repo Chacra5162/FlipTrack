@@ -36,7 +36,7 @@ export async function requestNotifPermission() {
 /**
  * Send a browser notification
  */
-function sendNotification(title, body, tag) {
+export function sendNotification(title, body, tag) {
   if (_notifPermission !== 'granted') return;
   try {
     const notif = new Notification(title, {

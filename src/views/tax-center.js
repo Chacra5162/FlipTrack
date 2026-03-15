@@ -8,6 +8,7 @@ import { fmt, ds, pct, escHtml } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { getMeta, setMeta } from '../data/idb.js';
 import { getMileageSummary, getMileageLog, initMileageLog, renderMileageSection } from '../features/mileage.js';
+import { getDonationTotal, renderDonationLog } from '../features/donations.js';
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 let _taxYear = new Date().getFullYear();
@@ -221,6 +222,7 @@ function renderScheduleC(metrics) {
     { line: 10, label: 'Commissions & fees (platforms)', value: fmt(metrics.platformFees) },
     { line: 22, label: 'Supplies', value: fmt(metrics.expensesByCategory['Supplies'] || 0) },
     { line: 27, label: 'Other expenses', value: fmt((metrics.expensesByCategory['Shipping Supplies'] || 0) + (metrics.expensesByCategory['Software'] || 0)) },
+    { line: 'C', label: 'Charitable Donations (Schedule A)', value: fmt(getDonationTotal(_taxYear)), note: true },
   ];
 
   const rows = scheduleLines.map(item => `

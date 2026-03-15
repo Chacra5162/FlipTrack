@@ -11,6 +11,7 @@ import { getMeta, setMeta } from '../data/idb.js';
 import { logPriceChange } from './price-history.js';
 import { getItemShowsWithoutSale } from './whatnot-show.js';
 import { pushEtsyPrice } from './etsy-sync.js';
+import { suggestPrice } from './comps.js';
 
 // ── DEFAULT RULES ────────────────────────────────────────────────────────────
 const DEFAULT_RULES = [
@@ -138,25 +139,28 @@ function _persistRules() {
  * Returns suggestions for repricing
  * @returns {Array} Suggestions array: { item, rule, currentPrice, suggestedPrice, reason }
  */
-export function evaluateRules() {
+export async function evaluateRules() {
   const suggestions = [];
   const now = Date.now();
 
-  inv.forEach(item => {
-    if (!item.price || item.qty === 0) return;
+  // Collect comp-median items separately (async)
+  const compPromises = [];
 
-    _rules.forEach(rule => {
-      if (!rule.active) return;
+  for (const item of inv) {
+    if (!item.price || item.qty === 0) continue;
+
+    for (const rule of _rules) {
+      if (!rule.active) continue;
 
       // Check platform filter
       if (rule.platforms.length > 0) {
         const itemPlats = item.platforms || [];
-        if (!rule.platforms.some(p => itemPlats.includes(p))) return;
+        if (!rule.platforms.some(p => itemPlats.includes(p))) continue;
       }
 
       // Check category filter
       if (rule.categories.length > 0) {
-        if (!rule.categories.some(c => c.toLowerCase() === (item.category||'').toLowerCase())) return;
+        if (!rule.categories.some(c => c.toLowerCase() === (item.category||'').toLowerCase())) continue;
       }
 
       const { daysListed, noSalesDays, priceAbove, priceBelow, showsWithoutSale } = rule.condition;
@@ -165,16 +169,16 @@ export function evaluateRules() {
       // Check Whatnot show performance condition
       if (showsWithoutSale > 0) {
         const unsold = getItemShowsWithoutSale(item.id);
-        if (unsold < showsWithoutSale) return;
+        if (unsold < showsWithoutSale) continue;
       }
 
       // Check days listed condition
       const createdAt = item.added ? new Date(item.added).getTime() : 0;
       const daysOld = (now - createdAt) / (24 * 3600000);
-      if (daysListed > 0 && daysOld < daysListed) return;
+      if (daysListed > 0 && daysOld < daysListed) continue;
 
       // Check price range
-      if (item.price < priceAbove || item.price > priceBelow) return;
+      if (item.price < priceAbove || item.price > priceBelow) continue;
 
       // Check no sales days (if specified)
       if (noSalesDays > 0) {
@@ -184,34 +188,51 @@ export function evaluateRules() {
             new Date(s.date || 0) > new Date(best.date || 0) ? s : best
           );
           const daysSinceLastSale = (now - new Date(lastSale.date || 0).getTime()) / (24 * 3600000);
-          if (daysSinceLastSale < noSalesDays) return;
+          if (daysSinceLastSale < noSalesDays) continue;
         }
-        // Items with zero sales fall through — they most need repricing
       }
 
       // Calculate suggested price
-      let suggestedPrice = item.price;
-      if (type === 'percent_drop') {
-        suggestedPrice = item.price * (1 - value / 100);
-      } else if (type === 'fixed_drop') {
-        suggestedPrice = item.price - value;
-      } else if (type === 'percent_raise') {
-        suggestedPrice = item.price * (1 + value / 100);
-      }
+      if (type === 'set_to_comp_median') {
+        // Async: fetch comp price
+        compPromises.push(
+          suggestPrice(item.name, item.condition).then(comp => {
+            if (comp && comp.suggested && comp.suggested !== item.price) {
+              suggestions.push({
+                item, rule,
+                currentPrice: item.price,
+                suggestedPrice: comp.suggested,
+                reason: `Set to comp median (${comp.count} comps, ${comp.confidence} confidence)`
+              });
+            }
+          }).catch(() => {})
+        );
+      } else {
+        let suggestedPrice = item.price;
+        if (type === 'percent_drop') {
+          suggestedPrice = item.price * (1 - value / 100);
+        } else if (type === 'fixed_drop') {
+          suggestedPrice = item.price - value;
+        } else if (type === 'percent_raise') {
+          suggestedPrice = item.price * (1 + value / 100);
+        }
 
-      suggestedPrice = Math.round(suggestedPrice * 100) / 100;
+        suggestedPrice = Math.round(suggestedPrice * 100) / 100;
 
-      if (suggestedPrice !== item.price) {
-        suggestions.push({
-          item,
-          rule,
-          currentPrice: item.price,
-          suggestedPrice,
-          reason: _getRuleReason(rule, daysOld)
-        });
+        if (suggestedPrice !== item.price) {
+          suggestions.push({
+            item, rule,
+            currentPrice: item.price,
+            suggestedPrice,
+            reason: _getRuleReason(rule, daysOld)
+          });
+        }
       }
-    });
-  });
+    }
+  }
+
+  // Wait for all comp lookups
+  if (compPromises.length) await Promise.all(compPromises);
 
   return suggestions;
 }
@@ -264,16 +285,21 @@ export function applyRepricing(suggestions) {
  * Render repricing suggestions as HTML
  * @returns {string} HTML string
  */
-export function renderRepricingSuggestions() {
-  const suggestions = evaluateRules();
+export async function renderRepricingSuggestions() {
+  const el = document.getElementById('repricingContent');
+  if (el) el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">Evaluating rules…</div>';
+
+  const suggestions = await evaluateRules();
 
   if (!suggestions.length) {
-    return `
+    const html = `
       <div class="panel" style="text-align:center;padding:30px">
         <div style="font-size:14px;color:var(--muted);margin-bottom:10px">No repricing suggestions</div>
         <div style="font-size:12px;color:var(--muted)">All items are optimally priced</div>
       </div>
     `;
+    if (el) el.innerHTML = html;
+    return html;
   }
 
   const rows = suggestions.map((s, idx) => `
@@ -293,7 +319,7 @@ export function renderRepricingSuggestions() {
     </div>
   `).join('');
 
-  return `
+  const html = `
     <div class="panel">
       <div style="padding:10px;background:var(--surface2);border-bottom:2px solid var(--border);display:flex;justify-content:space-between;align-items:center">
         <div>
@@ -307,6 +333,8 @@ export function renderRepricingSuggestions() {
       </div>
     </div>
   `;
+  if (el) el.innerHTML = html;
+  return html;
 }
 
 /**
@@ -322,7 +350,7 @@ export function renderRepricingRulesManager() {
         <div style="font-weight:500;color:var(--text)">${escHtml(rule.name)}</div>
         <div style="font-size:11px;color:var(--muted)">
           ${rule.condition.showsWithoutSale > 0 ? `After ${rule.condition.showsWithoutSale} shows unsold` : rule.condition.daysListed > 0 ? `After ${rule.condition.daysListed} days` : 'Always'} •
-          ${rule.action.type === 'percent_drop' ? `${rule.action.value}% drop` : rule.action.type === 'percent_raise' ? `${rule.action.value}% raise` : `$${rule.action.value} drop`}
+          ${rule.action.type === 'set_to_comp_median' ? 'Set to comp median' : rule.action.type === 'percent_drop' ? `${rule.action.value}% drop` : rule.action.type === 'percent_raise' ? `${rule.action.value}% raise` : `$${rule.action.value} drop`}
         </div>
       </div>
       <div style="text-align:center">
@@ -355,6 +383,7 @@ export function renderRepricingRulesManager() {
             <option value="percent_drop">% Drop</option>
             <option value="fixed_drop">$ Drop</option>
             <option value="percent_raise">% Raise</option>
+            <option value="set_to_comp_median">Set to Comp Median</option>
           </select>
           <input id="rp_rule_value" type="number" placeholder="Value" step="1" class="fgrp" value="10">
           <button onclick="rpAddRuleFromForm()" class="btn-primary" style="grid-column:1/-1;height:32px;font-size:11px">+ Add Rule</button>
@@ -389,7 +418,7 @@ export function rpToggleRule(ruleId) {
 }
 
 export async function rpApplyAll() {
-  const suggestions = evaluateRules();
+  const suggestions = await evaluateRules();
   if (!suggestions.length) {
     toast('No suggestions to apply', true);
     return;

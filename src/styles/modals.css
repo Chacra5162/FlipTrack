@@ -645,6 +645,33 @@
 .id-error { text-align: center; padding: 24px; color: var(--danger); font-size: 13px; }
 .id-error button { margin-top: 12px; }
 
+/* Comp-verified price badge in Identify results */
+.id-comp-badge-slot { min-height: 0; }
+.id-comp-verified {
+  margin: 10px 0 6px; padding: 10px 14px;
+  background: rgba(87,200,255,0.06); border: 1px solid rgba(87,200,255,0.2);
+  border-radius: 10px;
+}
+.id-comp-hdr { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.id-comp-price { font-family: 'DM Mono', monospace; font-size: 22px; font-weight: 700; color: var(--accent); margin: 4px 0 2px; }
+.id-comp-range { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+/* Source Score badge in Identify results */
+.id-source-score { margin: 10px 0 6px; padding: 12px 14px; border-radius: 10px; }
+.id-source-score.verdict-buy { background: rgba(0,200,136,0.08); border: 1px solid rgba(0,200,136,0.25); }
+.id-source-score.verdict-maybe { background: rgba(255,193,7,0.08); border: 1px solid rgba(255,193,7,0.25); }
+.id-source-score.verdict-pass { background: rgba(255,107,53,0.08); border: 1px solid rgba(255,107,53,0.25); }
+.id-source-verdict { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; letter-spacing: 1px; }
+.id-source-score.verdict-buy .id-source-verdict { color: var(--good); }
+.id-source-score.verdict-maybe .id-source-verdict { color: var(--warn); }
+.id-source-score.verdict-pass .id-source-verdict { color: var(--accent2); }
+.id-source-details { display: flex; gap: 16px; margin-top: 6px; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; }
+.id-source-reasons { margin-top: 6px; font-size: 11px; color: var(--muted); }
+.id-source-reasons span { display: block; margin-top: 2px; }
+.id-cost-input-wrap { margin: 8px 0; display: flex; align-items: center; gap: 8px; }
+.id-cost-input-wrap label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.id-cost-input { width: 100px; padding: 6px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 14px; }
+
 @media (max-width: 480px) {
   .id-body { padding: 14px; }
   .id-value-bar { grid-template-columns: repeat(3, 1fr); gap: 6px; }

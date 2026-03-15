@@ -195,9 +195,10 @@ import { estimateShippingRate, suggestPackage, getCarrierOptions } from './featu
 import {
   renderSourcingView, initHauls, addHaul, deleteHaul, expandHaul,
   linkItemsToHaul, confirmLinkItems, closeItemLinkModal, unlinkItem,
-  srcSetSearch, srcSetSort
+  srcSetSearch, srcSetSort, getHaulById
 } from './views/sourcing.js';
 import { getHaulROI, getHaulItems, splitCost, getSourceStats, getBestSources } from './features/haul.js';
+import { generateHaulReceipt, downloadHaulReceipt, copyHaulReceipt } from './features/haul-receipt.js';
 
 // ── Phase 4: Tax & Bookkeeping ───────────────────────────────────────────────
 import {
@@ -260,10 +261,10 @@ import { initDemoTrigger, loadDemoData, clearDemoData } from './features/demo-da
 import { animateStatCounters } from './features/animated-counters.js';
 import { mountProfitHeatmap } from './features/profit-heatmap.js';
 import { exportPlatformCSV, exportSalesCSV, exportTaxCSV, exportShowPrepCSV, exportShowResultsCSV, exportAllShowsCSV, renderCSVExportPanel } from './features/csv-templates.js';
-import { toggleNotifications, startStockAlertChecks, getNotifStatus } from './features/push-notifications.js';
+import { toggleNotifications, startStockAlertChecks, getNotifStatus, sendNotification } from './features/push-notifications.js';
 import { startTour, endTour, maybeStartTour } from './features/onboarding-tour.js';
 import { renderKPIGoals, openKPIGoalEditor, closeKPIGoalEditor, saveKPIGoals } from './features/kpi-goals.js';
-import { toggleNotifCenter, closeNotifCenter, markAllRead, clearNotifications, addNotification, initNotificationCenter, getSalesVelocity, checkWhatnotShowReminders, notifyShowEnded } from './features/notification-center.js';
+import { toggleNotifCenter, closeNotifCenter, markAllRead, clearNotifications, addNotification, initNotificationCenter, getSalesVelocity, checkWhatnotShowReminders, notifyShowEnded, checkDailyDigest } from './features/notification-center.js';
 import { recordSync, startSyncIndicator } from './features/sync-indicator.js';
 import {
   initTeam, getActiveAccountId, getMyRole, getTeam,
@@ -280,6 +281,14 @@ import { renderPlatformROI } from './features/platform-roi.js';
 import { renderPeriodCompare } from './features/period-compare.js';
 import { renderReturns, openReturnModal, closeReturnModal, submitReturn } from './features/returns.js';
 import { renderListingScores, scoreItem } from './features/listing-score.js';
+import { computeFlipScore } from './features/flip-score.js';
+import { computeSourceScore } from './features/source-score.js';
+import { scanArbitrageOpportunities } from './features/arbitrage-alerts.js';
+import { openGalleryBuilder, closeGalleryBuilder, setGalleryLayout, downloadCollage, copyCollage, generateCollage } from './features/social-gallery.js';
+import { computeSeasonalData, renderSeasonalCalendar } from './features/seasonal-calendar.js';
+import { donateItem, getDonations, getDonationTotal, renderDonationLog } from './features/donations.js';
+import { openVoiceAdd, closeVoiceAdd, voiceRemoveItem, voiceAddAll } from './features/voice-add.js';
+import { toggleCommunityOptIn, contributeSales, queryCommunityPricing, isCommunityOptedIn } from './features/community-pricing.js';
 import { renderMarginAlerts, updateMarginThreshold, initMarginAlerts } from './features/margin-alerts.js';
 import {
   initShipLabels, estimateRates, getCheapestRate, renderRateComparison,
@@ -352,6 +361,7 @@ const idAnalyze = _lw(lazyIdentify, 'idAnalyze');
 const idAddToInventory = _lw(lazyIdentify, 'idAddToInventory');
 const idSearchPrices = _lw(lazyIdentify, 'idSearchPrices');
 const quickList = _lw(lazyIdentify, 'quickList');
+const idUpdateSourceScore = _lw(lazyIdentify, 'idUpdateSourceScore');
 
 // Batch Scan
 const openBatchScan = _lw(lazyBatchScan, 'openBatchScan');
@@ -499,7 +509,7 @@ Object.assign(window, {
   openPriceScanner, lookupPrices, lookupByKeyword,
   openIdentify, closeIdentify, idHandleCapture, idRetake, idAnalyze,
   idAddToInventory, idSearchPrices,
-  quickList
+  quickList, idUpdateSourceScore
 });
 
 // Features: Images & Crop
@@ -591,7 +601,17 @@ Object.assign(window, {
 Object.assign(window, {
   renderSourcingView, addHaul, deleteHaul, expandHaul,
   linkItemsToHaul, confirmLinkItems, closeItemLinkModal, unlinkItem,
-  srcSetSearch, srcSetSort
+  srcSetSearch, srcSetSort,
+  shareHaulReceipt: (id) => {
+    const haul = getHaulById(id);
+    if (!haul) { toast('Haul not found', true); return; }
+    downloadHaulReceipt(haul);
+  },
+  copyHaulReceiptById: (id) => {
+    const haul = getHaulById(id);
+    if (!haul) { toast('Haul not found', true); return; }
+    copyHaulReceipt(haul);
+  },
 });
 
 // Phase 4: Tax
@@ -634,6 +654,36 @@ Object.assign(window, {
   toggleNotifCenter, closeNotifCenter, markAllRead, clearNotifications, addNotification,
   getSalesVelocity,
   exportPLReport, exportTaxReport,
+});
+
+// Donations
+Object.assign(window, {
+  openDonateModal: (itemId) => {
+    const item = getInvItem(itemId);
+    if (!item) return;
+    const fmv = prompt(`Fair Market Value for "${item.name}":\n(Defaults to list price ${fmt(item.price || 0)})`, item.price || 0);
+    if (fmv === null) return;
+    const org = prompt('Organization name:', 'Charitable Organization');
+    if (org === null) return;
+    donateItem(itemId, parseFloat(fmv) || item.price || 0, org || 'Charitable Organization');
+  },
+  getDonationTotal, renderDonationLog,
+});
+
+// Voice Add
+Object.assign(window, { openVoiceAdd, closeVoiceAdd, voiceRemoveItem, voiceAddAll });
+
+// Community Pricing
+Object.assign(window, { toggleCommunityOptIn, isCommunityOptedIn });
+
+// Social Gallery & Seasonal Calendar
+Object.assign(window, {
+  openGalleryBuilder, closeGalleryBuilder, setGalleryLayout, downloadCollage, copyCollage,
+  createGalleryFromSelection: () => {
+    const ids = [...sel];
+    if (!ids.length) { toast('Select items first', true); return; }
+    openGalleryBuilder(ids);
+  },
 });
 
 // Phase 8: Pro Reseller Features

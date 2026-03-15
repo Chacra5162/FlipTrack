@@ -18,9 +18,10 @@ export default defineConfig({
           if (id.includes('@supabase/supabase-js')) return 'vendor-supabase';
           // Pro-tier views + features → single chunk (avoids circular dependency)
           if (/views\/(insights|profit-dashboard|breakdown|reports|crosslist-dashboard|shipping|sourcing|buyers)\.js/.test(id)) return 'pro-tier';
-          if (/features\/(whatnot-show|packing-slip|shipping-rates|haul|mileage|price-history|repricing|comps|photo-tools|batch-list|ai-listing|inventory-value|ship-labels|listing-templates)\.js/.test(id)) return 'pro-tier';
+          if (/features\/(whatnot-show|packing-slip|shipping-rates|haul|mileage|price-history|repricing|comps|photo-tools|batch-list|ai-listing|inventory-value|ship-labels|listing-templates|flip-score|source-score|haul-receipt|arbitrage-alerts|social-gallery|seasonal-calendar)\.js/.test(id)) return 'pro-tier';
           // Unlimited-tier views → own chunk
           if (/views\/tax-center\.js/.test(id)) return 'unlimited-tier';
+          if (/features\/(donations|voice-add)\.js/.test(id)) return 'unlimited-tier';
         },
       },
     },
