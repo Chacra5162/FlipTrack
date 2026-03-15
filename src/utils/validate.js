@@ -82,7 +82,7 @@ export function validateAllNumeric(fields) {
   for (const { el, opts } of fields) {
     if (!el) continue;
     const val = validateNumericInput(el, opts);
-    if (val === null && el.value.trim() !== '') allValid = false;
+    if (val === null && (el.value.trim() !== '' || (opts && opts.required))) allValid = false;
   }
   return allValid;
 }

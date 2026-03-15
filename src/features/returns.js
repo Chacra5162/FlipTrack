@@ -37,11 +37,12 @@ export function logReturn(saleId, reason, refundAmount, notes, restocked) {
     restocked: !!restocked,
   };
 
-  // If restocked, mark item as unsold
+  // If restocked, mark item as unsold and restore quantity
   if (restocked && sale.itemId) {
     const item = getInvItem(sale.itemId);
     if (item) {
       item.sold = false;
+      item.qty = (item.qty || 0) + (sale.qty || 1);
       markDirty('inv', item.id);
     }
   }

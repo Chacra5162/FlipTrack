@@ -5,9 +5,9 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { SB_URL, SB_KEY } from '../config/constants.js';
-import { inv, sales, expenses, save, refresh, clearStoreTimers, setSyncInProgress } from './store.js';
+import { inv, sales, expenses, supplies, save, refresh, clearStoreTimers, setSyncInProgress } from './store.js';
 import { syncNow, autoSync, pullSupplies, startRealtime, stopRealtime, setSyncStatus, stopPoll, clearSyncTimers } from './sync.js';
-import { deleteMeta } from './idb.js';
+import { deleteMeta, clearStore } from './idb.js';
 import { setOfflineUser } from '../features/offline.js';
 import { stopEBaySyncInterval } from '../features/ebay-sync.js';
 import { stopEtsySyncInterval } from '../features/etsy-sync.js';
@@ -155,6 +155,11 @@ export async function authForgotPassword() {
     return;
   }
 
+  if (!_sb || !_authReady) {
+    setAuthMsg('App is still loading — please wait.', 'err');
+    return;
+  }
+
   const { error } = await _sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin });
   if (error) setAuthMsg(error.message, 'err');
   else setAuthMsg('Password reset email sent — check your inbox.', 'ok');
@@ -185,6 +190,7 @@ export async function authSignOut() {
   inv.length = 0;
   sales.length = 0;
   expenses.length = 0;
+  supplies.length = 0;
 
   // ── CLEAR ALL CACHE AND SESSION DATA FROM STORAGE ─────────────────────
   localStorage.removeItem('ft3_inv');
@@ -201,6 +207,7 @@ export async function authSignOut() {
   // ── CLEAR SYNC METADATA FROM INDEXEDDB ────────────────────────────────
   await deleteMeta('lastSyncPush').catch(e => console.warn('FlipTrack: delete lastSyncPush failed:', e.message));
   await deleteMeta('lastSyncPull').catch(e => console.warn('FlipTrack: delete lastSyncPull failed:', e.message));
+  await clearStore('supplies').catch(() => {});
 
   // ── CLEAR MARKETPLACE AUTH STATE FROM INDEXEDDB ────────────────────────
   await deleteMeta('ebay_csrf_state').catch(() => {});
