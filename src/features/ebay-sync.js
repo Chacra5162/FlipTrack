@@ -126,9 +126,12 @@ export async function pullEBayListings() {
           const avail = ebayItem.availability?.shipToLocationAvailability;
           if (avail) {
             const ebayQty = avail.quantity || 0;
-            // If eBay shows 0 quantity and we have it as active, update
             if (ebayQty === 0 && local.platformStatus?.eBay === 'active') {
               markPlatformStatus(local.id, 'eBay', 'sold');
+              changed = true;
+            } else if (ebayQty > 0 && local.platformStatus?.eBay !== 'active') {
+              // Mark as active when eBay has stock (handles items listed outside FlipTrack)
+              markPlatformStatus(local.id, 'eBay', 'active');
               changed = true;
             }
           }
