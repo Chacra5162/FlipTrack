@@ -207,11 +207,21 @@ export function toggleBundleMode() {
   _bundleMode = !_bundleMode;
   const section = document.getElementById('bundleSection');
   const btn = document.getElementById('bundleToggle');
+  const soldInfo = document.getElementById('soldInfo');
+  const qtyRow = document.getElementById('s_qty')?.closest('.fgrp');
+  const priceLabel = document.querySelector('label[for="s_price"]');
+  const priceTypeRow = document.getElementById('s_price_type_label')?.closest('.fgrp');
+
   if (_bundleMode) {
     section.style.display = '';
     btn.textContent = 'Cancel Bundle';
     btn.style.borderColor = 'var(--accent)';
     btn.style.color = 'var(--accent)';
+    // Hide single-item info and qty (bundle handles items + qty internally)
+    if (soldInfo) soldInfo.style.display = 'none';
+    if (qtyRow) qtyRow.style.display = 'none';
+    if (priceTypeRow) priceTypeRow.style.display = 'none';
+    if (priceLabel) priceLabel.textContent = 'Total Bundle Price ($) *';
     // Add the current item to bundle if one is selected
     if (activeSoldId) _bundleItems.add(activeSoldId);
     _renderBundleList();
@@ -221,6 +231,11 @@ export function toggleBundleMode() {
     btn.style.borderColor = 'var(--border)';
     btn.style.color = '';
     _bundleItems.clear();
+    // Restore single-item UI
+    if (soldInfo) soldInfo.style.display = '';
+    if (qtyRow) qtyRow.style.display = '';
+    if (priceTypeRow) priceTypeRow.style.display = '';
+    if (priceLabel) priceLabel.textContent = 'Sold Price ($) *';
   }
 }
 
