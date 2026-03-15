@@ -1,188 +1,134 @@
-# FlipTrack — The All-in-One Reseller Business Dashboard
+# FlipTrack
 
-> Know your real reselling profit. Track inventory, sales, expenses, and taxes across 30+ platforms — all from one place.
+## What it is
 
----
+FlipTrack is a web app that tracks your reselling business — inventory, sales, expenses, and taxes — across 30+ platforms. It runs in your browser on any device. No app store download needed.
 
-## What is FlipTrack?
+If you sell on eBay, Poshmark, Mercari, Whatnot, or really anywhere else, FlipTrack keeps everything in one place and does the math for you. It knows what each platform charges in fees, so when you log a sale, you see your actual profit — not just what hit your account before you remember to subtract everything.
 
-FlipTrack is a Progressive Web App (PWA) built specifically for resellers who sell across multiple online marketplaces. It replaces spreadsheets, calculators, and fragmented tools with a single unified dashboard that tracks everything from sourcing costs to tax-ready profit reports.
-
-Whether you sell on eBay, Poshmark, Mercari, Depop, StockX, Whatnot, or any combination of 30+ supported platforms, FlipTrack automatically calculates your real profit after platform fees, shipping, and expenses — so you always know exactly where your business stands.
+Most resellers either use spreadsheets that get out of hand, or pay for 2-3 different tools that each do one thing. FlipTrack handles it all.
 
 ---
 
-## Core Capabilities
+## What you get
 
-### Inventory Management
-- Full item tracking with photos, categories, conditions, and barcodes
-- 10+ main categories with 100+ subcategories covering clothing, electronics, collectibles, books, home goods, and more
-- Inventory health metrics: aging analysis, dead stock alerts, and value projections
-- Listing quality scoring that grades completeness and suggests improvements
+### The basics (free, no catch)
 
-### Profit Analytics
-- Real-time profit calculator with platform-specific fee structures built in
-- Per-item profit/loss with margin percentage and ROI
-- Platform comparison: see which marketplaces earn you the most
-- Dashboard overview: total inventory value, revenue, net profit, COGS, and ROI at a glance
+**Inventory tracking** — Add items with photos, cost, category, condition, barcode. You can see what you have, what it's worth, and how long it's been sitting. If something's been listed for 90 days with no bites, you'll know.
 
-### Sales & Returns
-- Transaction logging with automatic profit calculation
-- Offer and negotiation tracking
-- Return/refund management with reason codes and restocking workflows
-- Sales velocity analytics: sell-through rate, seasonal trends, best listing days
+**Sales tracking** — Log a sale, pick the platform, and FlipTrack calculates your profit automatically. It already knows Poshmark takes 20%, Mercari takes 10%, eBay has its whole insertion + final value fee thing. You don't have to look any of that up.
 
-### Crosslisting & Multi-Platform Management
-- Track listing status across all platforms (active, sold, expired, delisted, draft)
-- Platform-specific expiry rules and renewal reminders
-- Listing templates for rapid multi-platform publishing
-- Deep API integrations with eBay, Etsy, and Whatnot for real-time sync
+**Expense tracking** — Shipping supplies, sourcing costs, mileage, whatever. It all gets tracked and subtracted so your profit numbers are honest.
 
-### AI-Powered Tools
-- **Snap & Identify:** Photograph an item and AI detects the brand, model, category, and estimated resale value
-- **AI Listing Generation:** Platform-optimized titles and descriptions with multiple copywriting styles
-- **Price Research:** UPC/barcode lookup with market price comparisons and sold history
+**Item identification** — Take a photo of something and it'll tell you what it is, the brand, and roughly what it's worth. Handy when you're at a thrift store staring at something you're not sure about.
 
-### Expense Tracking & Tax Preparation
-- Categorized expense tracking aligned with IRS deduction categories
-- Mileage deduction logging at current IRS standard rates ($0.70/mile for 2025-2026)
-- **Tax Center:** Quarterly P&L, Schedule C calculator, estimated quarterly tax computation (self-employment + income tax)
-- Year-over-year comparison and CSV export for your accountant
+**Works offline** — If you're sourcing somewhere with bad signal, it saves everything locally and syncs when you're back online.
 
-### Sourcing & Haul Tracking
-- Log sourcing trips with location, spend, and items acquired
-- ROI per haul: total cost vs. revenue from items sold
-- Best sourcing locations ranked by profitability
+### Pro ($12/mo)
 
-### Shipping
-- Built-in USPS rate tables (First Class, Priority, Media Mail, Flat Rate)
-- Shipping cost estimation by weight and zone
-- Label printing and packing slip generation
+This is where it gets useful if you're doing more than casual flipping.
 
-### Buyers & CRM
-- Buyer history and repeat customer identification
-- Notes, preferences, and lifetime value per buyer
+**Analytics** — Which platforms actually make you money? Which categories have the best margins? What's your sell-through rate? Instead of guessing, you can look at the numbers.
 
-### Whatnot Show Planning
-- Create and organize shows with item order and talking points
-- Live show analytics: viewer count, sold items, revenue per show
-- Recurring show templates for weekly sellers
+**Crosslisting tools** — See where each item is listed, what's expired, what needs relisting. Templates for listing across platforms faster. If you sell something on eBay, mark it sold everywhere else.
 
-### Batch Operations
-- Batch barcode scanning for rapid sourcing
-- Batch listing to multiple platforms simultaneously
-- Bulk price edits and status updates
+**Sourcing & hauls** — Track your sourcing trips. How much you spent at that estate sale, what you found, and whether it was worth the drive. It calculates ROI per haul so you can figure out which sourcing spots are actually good.
 
-### Photo Enhancement
-- Background removal, auto-crop, watermark overlay
-- Brightness/contrast adjustment
-- Batch processing — all done client-side, no uploads required
+**Repricing** — Set rules like "drop 10% after 30 days" or "drop 20% after 60 days." It flags items that match your rules so you're not manually checking ages on everything.
+
+**Shipping** — Built-in USPS rate tables. Plug in a weight, get an estimate. Print labels.
+
+**Buyer tracking** — Keep notes on who bought what. Spot repeat customers.
+
+**Price research** — Scan a barcode or search a keyword and see what things are actually selling for.
+
+**Listing writer** — Give it your item details and it writes a listing description. Not perfect every time, but it gets you 80% there and you can edit the rest.
+
+### Unlimited ($25/mo)
+
+Everything above, plus the stuff that matters when reselling is your actual job.
+
+**Tax center** — Quarterly profit & loss, Schedule C numbers, estimated quarterly tax payments (self-employment + income tax), mileage deductions at the current IRS rate. Come tax season, you export a CSV and hand it to your accountant instead of spending a weekend in spreadsheet hell.
+
+**eBay & Etsy sync** — Connect your accounts and pull in your active listings, push new ones, sync sold status automatically. Less manual entry.
+
+**Whatnot show planning** — Organize items into shows, add talking points per item, track how each show performs (viewers, sales, revenue). If you do weekly Whatnot shows, this is built for you.
+
+**Batch operations** — Scan a pile of barcodes to add items fast. List a batch of items to multiple platforms at once. Bulk price updates.
+
+**Photo tools** — Remove backgrounds, auto-crop, add watermarks, adjust brightness. All happens on your device, nothing gets uploaded to some random server.
+
+**PDF reports** — Generate actual P&L statements and tax summaries you can save or print.
 
 ---
 
-## Supported Platforms (30+)
+## Platforms it supports
 
-| Category | Platforms |
-|---|---|
-| **General** | eBay, Amazon, Etsy, Facebook Marketplace |
-| **Fashion** | Poshmark, Mercari, Depop, Grailed, StockX, GOAT, Vinted, Tradesy, The RealReal, Vestiaire Collective |
-| **Music & Vinyl** | Reverb, Discogs |
-| **Local** | Craigslist, OfferUp, Nextdoor |
-| **Live Selling** | Whatnot, TikTok Shop, Instagram |
-| **Retail** | Shopify, Walmart Marketplace, Newegg, Bonanza, Ruby Lane, Chairish, 1stDibs |
-| **Tech** | Swappa, Decluttr |
+eBay, Amazon, Etsy, Facebook Marketplace, Poshmark, Mercari, Depop, Grailed, StockX, GOAT, Vinted, Tradesy, The RealReal, Vestiaire Collective, Reverb, Discogs, Craigslist, OfferUp, Nextdoor, Whatnot, TikTok Shop, Instagram, Shopify, Walmart Marketplace, Newegg, Bonanza, Ruby Lane, Chairish, 1stDibs, Swappa, Decluttr — and you can add custom ones for anything not on this list.
 
-Plus custom/manual tracking for any marketplace not listed.
+Each platform has its fee structure built in. You don't configure anything.
 
 ---
 
-## Pricing
+## Pricing breakdown
 
-| | Free | Pro | Unlimited |
+| | Free | Pro — $12/mo | Unlimited — $25/mo |
 |---|---|---|---|
-| **Price** | $0 forever | $12/mo | $25/mo |
-| **Items** | Up to 50 | Unlimited | Unlimited |
-| **Dashboard & Inventory** | Yes | Yes | Yes |
-| **Sales & Expense Tracking** | Yes | Yes | Yes |
-| **AI Item Identification** | Yes | Yes | Yes |
-| **Platform Fee Calculator** | Yes | Yes | Yes |
-| **Offline Support** | Yes | Yes | Yes |
-| **CSV Export** | Yes | Yes | Yes |
-| **Insights & Analytics** | — | Yes | Yes |
-| **Reports** | — | Yes | Yes |
-| **Crosslisting Tools** | — | Yes | Yes |
-| **Shipping & Labels** | — | Yes | Yes |
-| **Buyers & CRM** | — | Yes | Yes |
-| **Sourcing & Haul Tracking** | — | Yes | Yes |
-| **AI Listing Generation** | — | Yes | Yes |
-| **Price Research** | — | Yes | Yes |
-| **Repricing Engine** | — | Yes | Yes |
-| **Tax Center & Schedule C** | — | — | Yes |
-| **eBay & Etsy API Sync** | — | — | Yes |
-| **Batch Scan & List** | — | — | Yes |
-| **Whatnot Show Planning** | — | — | Yes |
-| **Photo Enhancement Suite** | — | — | Yes |
-| **PDF Reports** | — | — | Yes |
+| Items | 50 | Unlimited | Unlimited |
+| Inventory + sales + expenses | Yes | Yes | Yes |
+| Item identification | Yes | Yes | Yes |
+| Fee calculator (all platforms) | Yes | Yes | Yes |
+| Offline mode | Yes | Yes | Yes |
+| Data export | Yes | Yes | Yes |
+| Analytics & insights | — | Yes | Yes |
+| Crosslisting & templates | — | Yes | Yes |
+| Sourcing & haul tracking | — | Yes | Yes |
+| Repricing rules | — | Yes | Yes |
+| Shipping & labels | — | Yes | Yes |
+| Buyer tracking | — | Yes | Yes |
+| Listing writer | — | Yes | Yes |
+| Price research | — | Yes | Yes |
+| Tax center & Schedule C | — | — | Yes |
+| eBay & Etsy API sync | — | — | Yes |
+| Whatnot show planning | — | — | Yes |
+| Batch scan & list | — | — | Yes |
+| Photo tools | — | — | Yes |
+| PDF reports | — | — | Yes |
 
-No credit card required. No trial expiration. Free tier never goes away.
+No credit card to start. The free tier doesn't expire or nag you to upgrade.
 
 ---
 
-## Why FlipTrack Over the Competition
+## How it compares to other options
 
-### vs. Vendoo ($9-$24/mo) — Crosslisting Only
-Vendoo helps you list items across platforms, but that's where it stops. It doesn't calculate your actual profit, track expenses, estimate taxes, or tell you which platforms and categories are making you money. FlipTrack does all of that — and the free tier alone gives you more business intelligence than Vendoo's paid plans.
+**Vendoo ($9-$24/mo)** does crosslisting and that's it. It gets your items listed on multiple platforms, which is genuinely useful. But it doesn't tell you if you're making money. No profit tracking, no expense tracking, no tax help. You'd still need a spreadsheet for the actual business side. FlipTrack does the crosslisting part AND the business tracking part.
 
-### vs. List Perfectly ($12-$49/mo) — Crosslisting Only
-List Perfectly is another crosslisting tool without profit analytics, tax preparation, sourcing ROI tracking, or AI item identification. You'd still need spreadsheets to understand your actual business performance. FlipTrack replaces the spreadsheet entirely.
+**List Perfectly ($12-$49/mo)** is the same story — crosslisting without the business tools. Good at what it does, but you're paying for one piece of the puzzle and filling in the rest yourself.
 
-### vs. Nifty AI ($40/mo) — AI-Only, Limited Platforms
-Nifty focuses on AI listing generation but supports roughly 5 platforms and lacks a full business dashboard. FlipTrack includes AI listing generation *plus* 30+ platform support, profit analytics, tax tools, and sourcing tracking — starting at $12/mo for Pro or free for basics.
+**Nifty AI ($40/mo)** writes listings with AI. That's its thing. It supports about 5 platforms. FlipTrack has a listing writer too, supports 30+ platforms, and costs less — and that's before you factor in everything else it does.
 
-### vs. Spreadsheets — Manual and Error-Prone
-Spreadsheets don't auto-calculate platform fees, don't track listing status across marketplaces, don't estimate quarterly taxes, and break down as inventory grows. FlipTrack automates what spreadsheets can't.
+**Spreadsheets** work until they don't. They're fine for 20 items. At 200 items across 5 platforms, you're spending more time maintaining the spreadsheet than actually selling. And spreadsheets don't know platform fee structures, don't track listing status, and definitely don't estimate your quarterly taxes.
 
-### What Makes FlipTrack Different
-
-1. **Complete business picture, not just one feature.** Most tools do crosslisting OR analytics OR AI. FlipTrack does inventory, sales, expenses, taxes, crosslisting, analytics, AI, sourcing, shipping, and CRM — in one app.
-
-2. **Real profit, not gross revenue.** Every sale automatically factors in platform-specific fees, shipping costs, and sourcing expenses to show your true margin.
-
-3. **30+ platforms with built-in fee structures.** No manual fee entry. FlipTrack knows that Poshmark takes 20%, eBay charges insertion + final value fees, and Mercari takes 10% — and calculates accordingly.
-
-4. **Tax-ready from day one.** Quarterly P&L, Schedule C estimation, mileage deductions, and categorized expenses mean no scrambling at tax time.
-
-5. **AI that saves time at every step.** Snap a photo to identify items, generate optimized listings, and research competitive pricing — all built in.
-
-6. **Free tier that's actually useful.** 50 items with full dashboard, sales tracking, expense tracking, AI identification, and offline support. No credit card. No expiration.
-
-7. **Works offline.** FlipTrack queues changes when you're offline and syncs automatically when you reconnect — critical for sourcing at thrift stores with spotty signal.
-
-8. **No app store required.** As a PWA, FlipTrack works on any device with a browser — phone, tablet, or desktop — and installs like a native app.
-
-9. **Whatnot-native.** The only reseller tool with dedicated show planning, live auction tracking, and per-show analytics for Whatnot sellers.
-
-10. **Your data stays yours.** Full CSV export, data backup, and no platform lock-in. You can always take your data and leave.
+The short version: most reseller tools do one thing and charge you for it. FlipTrack does the whole job. The free tier alone covers more ground than most paid tools.
 
 ---
 
-## Who Is FlipTrack For?
+## Who actually uses this
 
-- **Side hustlers** flipping items on 2-3 platforms who want to know if they're actually making money
-- **Growing resellers** scaling to 5-15 platforms who need analytics to make smarter sourcing and pricing decisions
-- **Full-time resellers** running a business who need tax preparation, team features, and deep platform integrations
-- **Niche specialists** in fashion, sneakers, vinyl, or collectibles who sell across marketplace-specific platforms
-- **Whatnot sellers** who need show planning and live selling analytics alongside traditional reselling tools
-
----
-
-## Technical Highlights
-
-- **Fast:** Vanilla JS with no framework overhead — loads instantly
-- **Secure:** Row-level security, parameterized queries, escaped user data, CSRF-protected OAuth
-- **Reliable:** IndexedDB primary storage with cloud sync, offline queue, and automatic conflict resolution
-- **Private:** Your data is yours — Supabase backend with per-user isolation
+- People flipping stuff on the side who want to know if they're actually profiting or just staying busy
+- Resellers on multiple platforms who are tired of tracking everything in three different places
+- Full-time sellers who need real numbers for taxes and business decisions
+- Whatnot sellers who want show planning alongside regular inventory management
+- Anyone who's outgrown spreadsheets but doesn't want to pay $50/mo for four different subscriptions
 
 ---
 
-*FlipTrack v2.0 — Built by resellers, for resellers.*
+## The nerdy details (if you care)
+
+It's fast — plain JavaScript, no bloated framework, loads quick. It works offline and syncs when you're back online. Your data is stored securely with per-user isolation (nobody else can see your stuff). You can export everything as CSV anytime — your data isn't trapped.
+
+Runs in any browser. Installs to your home screen like a regular app if you want. Phone, tablet, laptop, whatever.
+
+---
+
+*FlipTrack v2.0*
