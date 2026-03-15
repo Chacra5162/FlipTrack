@@ -95,3 +95,50 @@ export function appConfirm({ title = 'Confirm', message, danger = false, confirm
     okBtn.focus();
   });
 }
+
+/**
+ * Show an in-app prompt dialog. Returns a Promise<string|null>.
+ * Works in iOS PWA standalone mode where window.prompt() is broken.
+ * @param {Object} opts
+ * @param {string} opts.title - Dialog title
+ * @param {string} [opts.message] - Optional hint text
+ * @param {string} [opts.defaultValue] - Pre-filled input value
+ * @param {string} [opts.placeholder] - Input placeholder
+ * @param {string} [opts.confirmText] - Confirm button label (default 'OK')
+ * @returns {Promise<string|null>} User input or null if cancelled
+ */
+export function appPrompt({ title = 'Input', message = '', defaultValue = '', placeholder = '', confirmText = 'OK' } = {}) {
+  return new Promise(resolve => {
+    const ov = document.getElementById('promptOv');
+    const titleEl = document.getElementById('promptTitle');
+    const msgEl = document.getElementById('promptMsg');
+    const inp = document.getElementById('promptInput');
+    const okBtn = document.getElementById('promptOk');
+    const cancelBtn = document.getElementById('promptCancel');
+    if (!ov || !inp || !okBtn || !cancelBtn) { resolve(window.prompt(message || title, defaultValue)); return; }
+
+    titleEl.textContent = title;
+    msgEl.textContent = message;
+    msgEl.style.display = message ? '' : 'none';
+    inp.value = defaultValue;
+    inp.placeholder = placeholder;
+    okBtn.textContent = confirmText;
+
+    const cleanup = (result) => {
+      ov.classList.remove('on');
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      inp.removeEventListener('keydown', onKey);
+      resolve(result);
+    };
+    const onOk = () => cleanup(inp.value);
+    const onCancel = () => cleanup(null);
+    const onKey = (e) => { if (e.key === 'Enter') { e.preventDefault(); onOk(); } if (e.key === 'Escape') onCancel(); };
+
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    inp.addEventListener('keydown', onKey);
+    ov.classList.add('on');
+    setTimeout(() => { inp.focus(); inp.select(); }, 50);
+  });
+}

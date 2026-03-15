@@ -39,6 +39,9 @@ export async function safeRefreshSession() {
           _currentUser = null;
           try { await _sb.auth.signOut(); } catch (_) {}
           setSyncStatus('disconnected');
+          // Brief visible feedback before showing auth modal
+          const t = document.getElementById('toast');
+          if (t) { t.textContent = 'Session expired — please sign in again'; t.classList.add('on', 'err'); setTimeout(() => t.classList.remove('on', 'err'), 4000); }
           showAuthModal();
         }
         throw error;
@@ -222,12 +225,7 @@ export async function authSignOut() {
 
 // ── MODAL MANAGEMENT ───────────────────────────────────────────────────────
 export function showAuthModal() {
-  // If no hash anchor (not arriving from landing page), redirect to landing page
   const hash = window.location.hash;
-  if (!hash || (hash !== '#signup' && hash !== '#signin')) {
-    window.location.href = './';
-    return;
-  }
   const ov = document.getElementById('authOv');
   if (ov) {
     ov.style.display = 'flex';

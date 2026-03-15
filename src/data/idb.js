@@ -71,11 +71,9 @@ function withDB(fn) {
   return new Promise((resolve, reject) => {
     if (db !== null) {
       fn().then(resolve).catch(reject);
-    } else if (isInitializing) {
-      operationQueue.push({ resolve, reject, fn });
     } else {
-      // DB not available
-      reject(new Error('IndexedDB not initialized'));
+      // Queue the operation — it will run once initDB() completes
+      operationQueue.push({ resolve, reject, fn });
     }
   });
 }

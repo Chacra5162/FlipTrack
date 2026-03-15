@@ -14,7 +14,7 @@ import { CLOTHING_TYPES, CAT_TREE, SUBCATS, SUBSUBCATS } from './config/categori
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 import { fmt, pct, uid, ds, escHtml, escAttr, debounce } from './utils/format.js';
-import { toast, trapFocus, releaseFocus } from './utils/dom.js';
+import { toast, trapFocus, releaseFocus, appPrompt } from './utils/dom.js';
 import { _sfx } from './utils/sfx.js';
 import { initKeyboardShortcuts } from './utils/keyboard.js';
 
@@ -658,12 +658,12 @@ Object.assign(window, {
 
 // Donations
 Object.assign(window, {
-  openDonateModal: (itemId) => {
+  openDonateModal: async (itemId) => {
     const item = getInvItem(itemId);
     if (!item) return;
-    const fmv = prompt(`Fair Market Value for "${item.name}":\n(Defaults to list price ${fmt(item.price || 0)})`, item.price || 0);
+    const fmv = await appPrompt({ title: 'Fair Market Value', message: `Defaults to list price ${fmt(item.price || 0)}`, defaultValue: String(item.price || 0) });
     if (fmv === null) return;
-    const org = prompt('Organization name:', 'Charitable Organization');
+    const org = await appPrompt({ title: 'Organization Name', defaultValue: 'Charitable Organization' });
     if (org === null) return;
     donateItem(itemId, parseFloat(fmv) || item.price || 0, org || 'Charitable Organization');
   },

@@ -1520,8 +1520,20 @@
     </div>
   </div>
 </div>
+<!-- PROMPT MODAL (replaces window.prompt for PWA compatibility) -->
+<div class="modal-ov" id="promptOv" role="dialog" aria-modal="true" aria-labelledby="promptTitle" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:24px">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px 24px;max-width:380px;width:100%;text-align:center">
+    <h3 id="promptTitle" style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:8px"></h3>
+    <p id="promptMsg" style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:12px"></p>
+    <input id="promptInput" type="text" style="width:100%;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;margin-bottom:16px;box-sizing:border-box" />
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button id="promptCancel" class="btn btn-ghost" style="padding:10px 20px;font-size:13px">Cancel</button>
+      <button id="promptOk" class="btn btn-primary" style="padding:10px 20px;font-size:13px">OK</button>
+    </div>
+  </div>
+</div>
 <style>
-  #confirmOv.on { display:flex !important; }
+  #confirmOv.on, #promptOv.on { display:flex !important; }
 </style>
 
 <!-- BATCH SCAN OVERLAY -->

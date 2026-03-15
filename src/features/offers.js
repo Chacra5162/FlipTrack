@@ -7,7 +7,7 @@
 
 import { inv, getInvItem } from '../data/store.js';
 import { fmt, ds, uid, escHtml, escAttr } from '../utils/format.js';
-import { toast, appConfirm } from '../utils/dom.js';
+import { toast, appConfirm, appPrompt } from '../utils/dom.js';
 import { getMeta, setMeta } from '../data/idb.js';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
@@ -250,11 +250,11 @@ export function offerReject(id) {
   toast(`Offer rejected`);
 }
 
-export function offerCounter(id) {
+export async function offerCounter(id) {
   const offer = _offers.find(o => o.id === id);
   if (!offer) { toast('Offer not found', true); return; }
 
-  const counterStr = prompt(`Counter offer for ${escHtml(offer.buyerHandle)} (current: ${fmt(offer.amount)}):`, fmt(offer.amount));
+  const counterStr = await appPrompt({ title: 'Counter Offer', message: `Counter for ${offer.buyerHandle} (current: ${fmt(offer.amount)})`, defaultValue: String(offer.amount) });
   if (!counterStr) return;
 
   const counterAmount = parseFloat(counterStr);

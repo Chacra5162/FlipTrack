@@ -5,7 +5,7 @@
 
 import { inv, save, refresh, markDirty, getInvItem } from '../data/store.js';
 import { fmt, escHtml, escAttr, ds, uid, localDate} from '../utils/format.js';
-import { toast, appConfirm } from '../utils/dom.js';
+import { toast, appConfirm, appPrompt } from '../utils/dom.js';
 import { getPlatforms } from '../features/platforms.js';
 import { PLATFORMS } from '../config/platforms.js';
 import { renderPagination } from '../utils/pagination.js';
@@ -1457,11 +1457,11 @@ export function wnToggleShow(showId) {
 }
 
 export async function wnNewShow() {
-  const name = prompt('Show name:');
+  const name = await appPrompt({ title: 'New Show', message: 'Show name:', placeholder: 'My Whatnot Show' });
   if (!name) return;
-  const date = prompt('Date (YYYY-MM-DD):', localDate());
+  const date = await appPrompt({ title: 'Show Date', message: 'Date (YYYY-MM-DD):', defaultValue: localDate() });
   if (!date) return;
-  const time = prompt('Time (HH:MM, optional):', '19:00') || '';
+  const time = await appPrompt({ title: 'Show Time', message: 'Time (HH:MM, optional):', defaultValue: '19:00' }) || '';
   const show = await createShow(name, date, time);
   _wnTab = 'shows';
   _wnExpandedShow = show.id;
@@ -1532,14 +1532,14 @@ export async function wnCopyPrep(showId) {
 
 export async function wnEditItemNote(showId, itemId) {
   const existing = getItemNote(showId, itemId);
-  const note = prompt('Talking points for this item:', existing);
+  const note = await appPrompt({ title: 'Item Notes', message: 'Talking points for this item:', defaultValue: existing || '' });
   if (note === null) return; // cancelled
   await setItemNote(showId, itemId, note);
   renderCrosslistDashboard();
 }
 
 export async function wnCloneShow(showId) {
-  const date = prompt('Date for cloned show (YYYY-MM-DD):', localDate());
+  const date = await appPrompt({ title: 'Clone Show', message: 'Date for cloned show (YYYY-MM-DD):', defaultValue: localDate() });
   if (!date) return;
   const newShow = await cloneShow(showId, date);
   if (newShow) {
@@ -1603,11 +1603,11 @@ export function wnBuilderClearSelection() {
 
 export async function wnBuilderCreateShow() {
   if (_wnBuilderSelected.size === 0) { toast('No items selected', true); return; }
-  const name = prompt('Show name:', `Smart Show - ${new Date().toLocaleDateString()}`);
+  const name = await appPrompt({ title: 'Smart Show', message: 'Show name:', defaultValue: `Smart Show - ${new Date().toLocaleDateString()}` });
   if (!name) return;
-  const date = prompt('Date (YYYY-MM-DD):', localDate());
+  const date = await appPrompt({ title: 'Show Date', message: 'Date (YYYY-MM-DD):', defaultValue: localDate() });
   if (!date) return;
-  const time = prompt('Time (HH:MM):', '19:00') || '';
+  const time = await appPrompt({ title: 'Show Time', message: 'Time (HH:MM):', defaultValue: '19:00' }) || '';
   const show = await createShow(name, date, time, '', { items: [..._wnBuilderSelected] });
   _wnBuilderSelected.clear();
   _wnTab = 'shows';
