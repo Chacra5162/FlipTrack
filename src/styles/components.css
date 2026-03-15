@@ -1985,6 +1985,12 @@ textarea { resize:vertical; min-height:70px; }
 .comps-accept-btn:hover { opacity: 0.85; }
 .comps-drop-row { display: flex; gap: 6px; }
 .comps-drop-btn { flex: 1; padding: 6px 4px; background: var(--surface3, #2a2a2e); color: var(--text); border: 1px solid var(--border); border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; font-family: 'DM Mono', monospace; transition: all 0.15s; }
+
+/* Bundle item picker rows */
+.bundle-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--border); cursor: pointer; font-size: 11px; }
+.bundle-row input[type="checkbox"] { flex-shrink: 0; cursor: pointer; }
+.bundle-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.bundle-price { flex-shrink: 0; color: var(--good); font-family: 'DM Mono', monospace; font-weight: 600; font-size: 11px; }
 .comps-drop-btn:hover { background: var(--accent2); color: var(--bg); border-color: var(--accent2); }
 
 /* Confidence badges */
