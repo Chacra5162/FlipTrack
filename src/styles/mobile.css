@@ -33,6 +33,9 @@
   .btn-secondary { display: none; }
   #headerBatchBtn { display: none; }
   .sync-dot-lbl { display: none; }
+  /* Show label during save/sync so user gets feedback on mobile */
+  .sync-dot.saving ~ .sync-dot-lbl,
+  .sync-dot.syncing ~ .sync-dot-lbl { display: inline; }
   #syncTimestamp { display: none; }
 
   /* Main */
@@ -480,6 +483,8 @@
   }
   .sync-dot-btn { padding: 4px 8px; }
   .sync-dot-lbl { display: none; }
+  .sync-dot.saving ~ .sync-dot-lbl,
+  .sync-dot.syncing ~ .sync-dot-lbl { display: inline; }
   #syncTimestamp { display: none; }
   /* Hide Identify + Batch on tablet landscape — accessible from Crosslist view */
   #headerIdBtn { display: none; }

@@ -120,7 +120,7 @@ body::before {
 
 /* Sync progress bar — thin animated stripe at the very top of the page */
 .sync-progress-bar {
-  position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 9999;
+  position: fixed; top: 0; left: 0; right: 0; height: 4px; z-index: 9999;
   background: transparent; pointer-events: none;
   transition: opacity 0.3s;
   opacity: 0;
