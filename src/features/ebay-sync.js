@@ -14,7 +14,7 @@ import { logSalePrice, logPriceChange } from './price-history.js';
 import { logReturn } from './returns.js';
 import { toast } from '../utils/dom.js';
 import { getMeta, setMeta } from '../data/idb.js';
-import { escHtml, localDate} from '../utils/format.js';
+import { escHtml, localDate, uid} from '../utils/format.js';
 import { generateListing } from './ai-listing.js';
 import { addNotification } from './notification-center.js';
 import { sendNotification } from './push-notifications.js';
@@ -246,43 +246,58 @@ async function _syncEBayOrders() {
     );
 
     const orders = resp.orders || [];
-    // Build O(1) lookup maps
-    const orderBySku = new Map();
-    const orderByEbayId = new Map();
+    // Build O(1) lookup maps for matching eBay orders to local items
+    const bySku = new Map();
+    const byEbayItemId = new Map();
+    const byListingId = new Map();
     for (const item of inv) {
-      if (item.sku) orderBySku.set(item.sku, item);
-      if (item.ebayItemId) orderByEbayId.set(item.ebayItemId, item);
+      if (item.sku) bySku.set(item.sku, item);
+      if (item.ebayItemId) byEbayItemId.set(item.ebayItemId, item);
+      if (item.ebayListingId) byListingId.set(item.ebayListingId, item);
     }
     for (const order of orders) {
       for (const lineItem of (order.lineItems || [])) {
         const sku = lineItem.sku;
-        if (!sku) continue;
+        const legacyId = lineItem.legacyItemId;
 
-        const local = orderByEbayId.get(sku) || orderBySku.get(sku);
-        if (local && local.platformStatus?.eBay !== 'sold') {
-          // Decrement quantity by sold amount
-          const soldQty = parseInt(lineItem.quantity, 10) || 1;
-          local.qty = Math.max(0, (local.qty || 1) - soldQty);
+        // Match by ebayItemId, sku, or eBay listing ID
+        const local = (sku && (byEbayItemId.get(sku) || bySku.get(sku)))
+          || (legacyId && byListingId.get(legacyId));
+        if (!local || local.platformStatus?.eBay === 'sold') continue;
 
-          markPlatformStatus(local.id, 'eBay', 'sold');
-          // Auto-delist on other platforms if fully sold out
-          if (local.qty <= 0) {
-            autoDlistOnSale(local.id, 'eBay');
-          }
-          // Log sale price
-          const price = parseFloat(lineItem.total?.value || '0');
-          if (price > 0) {
-            logSalePrice(local.id, price, 'eBay');
-          }
-          markDirty('inv', local.id);
+        // Decrement quantity by sold amount
+        const soldQty = parseInt(lineItem.quantity, 10) || 1;
+        local.qty = Math.max(0, (local.qty || 1) - soldQty);
 
-          // 🎉 Notify user of the sale
-          const label = local.name || local.sku || 'Item';
-          const priceStr = price > 0 ? ` for $${price.toFixed(2)}` : '';
-          toast(`🎉 eBay Sale! ${label}${priceStr}`);
-          addNotification('sale', 'eBay Sale', `${label} sold${priceStr}`, local.id);
-          try { sfx.sale(); } catch (_) {}
+        markPlatformStatus(local.id, 'eBay', 'sold');
+        // Auto-delist on other platforms if fully sold out
+        if (local.qty <= 0) {
+          autoDlistOnSale(local.id, 'eBay');
         }
+        // Sale price and fees from order
+        const price = parseFloat(lineItem.total?.value || '0');
+        if (price > 0) {
+          logSalePrice(local.id, price, 'eBay');
+        }
+
+        // Create actual sale record (matching recSale() structure)
+        const sale = {
+          id: uid(), itemId: local.id, price: soldQty > 1 ? price / soldQty : price,
+          listPrice: local.price || 0, qty: soldQty, platform: 'eBay',
+          fees: 0, ship: 0,
+          date: order.creationDate || new Date().toISOString(),
+          tracking: null, ebayOrderId: order.orderId || null,
+        };
+        sales.push(sale);
+        markDirty('sales', sale.id);
+        markDirty('inv', local.id);
+
+        // 🎉 Notify user of the sale
+        const label = local.name || local.sku || 'Item';
+        const priceStr = price > 0 ? ` for $${price.toFixed(2)}` : '';
+        toast(`🎉 eBay Sale! ${label}${priceStr}`);
+        addNotification('sale', 'eBay Sale', `${label} sold${priceStr}`, local.id);
+        try { sfx.sale(); } catch (_) {}
       }
     }
     // Reset error throttle on success
