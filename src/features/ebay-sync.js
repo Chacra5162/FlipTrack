@@ -224,15 +224,17 @@ export async function pullEBayListings() {
 
 /**
  * Check recent eBay orders and mark items as sold locally.
+ * @param {number} [lookbackMs] - Optional lookback window in ms (default: since last sync or 24h)
  */
-async function _syncEBayOrders() {
+async function _syncEBayOrders(lookbackMs) {
   try {
-    // Get orders from last 24 hours (or since last sync)
     // eBay Fulfillment API expects ISO 8601 with explicit 'T' and 'Z' — strip milliseconds
     // to avoid timezone parsing issues on eBay's end
-    const sinceRaw = _lastSyncTime
-      ? new Date(_lastSyncTime)
-      : new Date(Date.now() - 86400000);
+    const sinceRaw = lookbackMs
+      ? new Date(Date.now() - lookbackMs)
+      : _lastSyncTime
+        ? new Date(_lastSyncTime)
+        : new Date(Date.now() - 86400000);
     const nowRaw = new Date();
 
     // Format as yyyy-MM-ddTHH:mm:ssZ (no milliseconds — eBay chokes on .000Z)
@@ -246,6 +248,8 @@ async function _syncEBayOrders() {
     );
 
     const orders = resp.orders || [];
+    // Build set of already-recorded eBay order IDs to prevent duplicates
+    const knownOrderIds = new Set(sales.filter(s => s.ebayOrderId).map(s => s.ebayOrderId));
     // Build O(1) lookup maps for matching eBay orders to local items
     const bySku = new Map();
     const byEbayItemId = new Map();
@@ -256,6 +260,8 @@ async function _syncEBayOrders() {
       if (item.ebayListingId) byListingId.set(item.ebayListingId, item);
     }
     for (const order of orders) {
+      // Skip orders we've already recorded
+      if (order.orderId && knownOrderIds.has(order.orderId)) continue;
       for (const lineItem of (order.lineItems || [])) {
         const sku = lineItem.sku;
         const legacyId = lineItem.legacyItemId;
@@ -309,6 +315,28 @@ async function _syncEBayOrders() {
       _orderSyncErrorLogged = true;
     }
   }
+}
+
+/**
+ * Retroactively resync eBay orders from the past N days.
+ * Skips orders already recorded (by ebayOrderId). Useful for catching
+ * sales missed due to earlier matching bugs or sync gaps.
+ * @param {number} [days=7] - Number of days to look back
+ * @returns {{ found: number }} Number of new sales found
+ */
+export async function resyncEBayOrders(days = 7) {
+  if (!isEBayConnected()) { toast('eBay not connected', true); return { found: 0 }; }
+  const before = sales.length;
+  toast(`Checking eBay orders from last ${days} days…`);
+  await _syncEBayOrders(days * 86400000);
+  const found = sales.length - before;
+  if (found > 0) {
+    save(); refresh();
+    toast(`Found ${found} missed eBay sale${found > 1 ? 's' : ''}!`);
+  } else {
+    toast('No missed eBay sales found');
+  }
+  return { found };
 }
 
 /**

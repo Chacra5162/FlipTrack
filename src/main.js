@@ -150,7 +150,7 @@ import {
   clRelistItem, clDelistItem, clCycleStatus, clOpenLink, clCopyListing,
   clBulkRelistExpired, clAddTemplate, clDeleteTemplate, clSaveTemplate,
   clToggleAutoRelist, clRunAutoRelist, clBulkPrice,
-  clEBayConnect, clEBayDisconnect, clEBaySync, clPushToEBay, clPublishOnEBay, clEndEBayListing,
+  clEBayConnect, clEBayDisconnect, clEBaySync, clEBayResyncOrders, clPushToEBay, clPublishOnEBay, clEndEBayListing,
   clEtsyConnect, clEtsyDisconnect, clEtsySync, clPushToEtsy, clDeactivateEtsyListing, clRenewEtsyListing,
   clEtsySubTab, clEtsyLoadStats, clEtsyLoadReviews, clEtsyLoadShipments,
   clEtsyPushTracking, clEtsySyncQty, clEtsyPushPhotos, clEtsyPushQty,
@@ -165,7 +165,7 @@ import {
   wnCalcUpdate
 } from './views/crosslist-dashboard.js';
 import { initEBayAuth, handleEBayCallback, isEBayConnected } from './features/ebay-auth.js';
-import { initEBaySync, startEBaySyncInterval } from './features/ebay-sync.js';
+import { initEBaySync, startEBaySyncInterval, resyncEBayOrders } from './features/ebay-sync.js';
 import { initEtsyAuth, handleEtsyCallback, isEtsyConnected } from './features/etsy-auth.js';
 import { initEtsySync, startEtsySyncInterval, syncEtsyExpenses } from './features/etsy-sync.js';
 import { initWhatnotShows, getTodayShows } from './features/whatnot-show.js';
@@ -423,7 +423,7 @@ Object.assign(window, {
 // Auth
 Object.assign(window, {
   switchAuthTab, authSubmit, authForgotPassword, authSignOut,
-  openAccountMenu, closeAccountMenu, syncNow, mobileSyncNow
+  openAccountMenu, closeAccountMenu, syncNow, mobileSyncNow, resyncEBayOrders
 });
 
 // Teams
@@ -556,7 +556,7 @@ Object.assign(window, {
 
 // eBay Integration
 Object.assign(window, {
-  clEBayConnect, clEBayDisconnect, clEBaySync,
+  clEBayConnect, clEBayDisconnect, clEBaySync, clEBayResyncOrders,
   clPushToEBay, clPublishOnEBay, clEndEBayListing,
   handleEBayCallback,
 });

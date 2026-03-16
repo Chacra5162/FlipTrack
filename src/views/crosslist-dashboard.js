@@ -19,7 +19,7 @@ import {
 import { generateListingLink, copyListingText, generateListingText } from '../features/deep-links.js';
 import { getTemplatesForCategory, addTemplate, deleteTemplate } from '../features/listing-templates.js';
 import { isEBayConnected, isEBayStatusVerified, getEBayUsername, connectEBay, disconnectEBay, checkEBayStatus } from '../features/ebay-auth.js';
-import { pullEBayListings, pushItemToEBay, publishEBayListing, endEBayListing, isEBaySyncing, getLastEBaySyncTime } from '../features/ebay-sync.js';
+import { pullEBayListings, pushItemToEBay, publishEBayListing, endEBayListing, isEBaySyncing, getLastEBaySyncTime, resyncEBayOrders } from '../features/ebay-sync.js';
 import { isEtsyConnected, getEtsyShopName, connectEtsy, disconnectEtsy } from '../features/etsy-auth.js';
 import {
   pullEtsyListings, pushItemToEtsy, deactivateEtsyListing, renewEtsyListing, isEtsySyncing, getLastEtsySyncTime,
@@ -1717,6 +1717,7 @@ function _renderEBayPanel() {
         <button class="btn-sm btn-accent" onclick="clEBaySync()" ${syncing ? 'disabled' : ''}>
           ${syncing ? '⟳ Syncing…' : '⟳ Sync Now'}
         </button>
+        <button class="btn-sm btn-muted" onclick="clEBayResyncOrders()" title="Re-check eBay orders from the last 7 days for missed sales">Resync Orders</button>
         <button class="btn-sm btn-muted" onclick="clEBayDisconnect()">Disconnect</button>
       </div>
     </div>`;
@@ -1757,6 +1758,11 @@ export async function clEBaySync() {
   } catch (e) {
     toast(`eBay sync error: ${e.message}`, true);
   }
+  renderCrosslistDashboard();
+}
+
+export async function clEBayResyncOrders() {
+  await resyncEBayOrders(7);
   renderCrosslistDashboard();
 }
 
