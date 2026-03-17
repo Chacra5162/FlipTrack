@@ -412,27 +412,9 @@ export async function saveDrawer(){
   }
   item.smoke = getSmokeValue('d');
   // Log price change if price was manually adjusted
-  if (item.price !== oldPrice && item.price > 0) {
+  const priceChanged = item.price !== oldPrice && item.price > 0;
+  if (priceChanged) {
     logPriceChange(item.id, item.price, 'manual');
-    // Auto-push price to Etsy if item has an Etsy listing
-    if (item.etsyListingId) {
-      try {
-        await pushEtsyPrice(item.id);
-      } catch (e) {
-        console.warn('Etsy price sync:', e.message);
-        toast('Etsy price sync failed — will retry next sync', true);
-      }
-    }
-  }
-  // Auto-push updates to live eBay listing (inventory item + re-publish offer)
-  if (item.ebayItemId && isEBayConnected()) {
-    try {
-      await updateEBayListing(item.id);
-      toast('eBay listing updated ✓');
-    } catch (e) {
-      console.warn('[eBay] Auto-update failed:', e.message);
-      toast('eBay sync failed — will retry next sync', true);
-    }
   }
   // Log field modifications to item history (compares against snapshot taken on drawer open)
   logItemChanges(item.id, _drawerSnapshot);
@@ -441,6 +423,24 @@ export async function saveDrawer(){
   saveAutocompleteEntry(item.source, item.brand).catch(() => {});
   markDirty('inv', item.id);
   save(); closeDrawer(); refresh(); _sfx.edit(); toast('Changes saved ✓');
+
+  // Fire marketplace syncs in background (non-blocking)
+  if (priceChanged && item.etsyListingId) {
+    pushEtsyPrice(item.id).then(() => {
+      toast('Etsy price updated ✓');
+    }).catch(e => {
+      console.warn('Etsy price sync:', e.message);
+      toast('Etsy price sync failed — will retry next sync', true);
+    });
+  }
+  if (item.ebayItemId && isEBayConnected()) {
+    updateEBayListing(item.id).then(() => {
+      toast('eBay listing updated ✓');
+    }).catch(e => {
+      console.warn('[eBay] Auto-update failed:', e.message);
+      toast('eBay sync failed — will retry next sync', true);
+    });
+  }
 }
 
 export async function delCurrent(){
