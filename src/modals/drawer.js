@@ -51,7 +51,7 @@ export function populateSubcatSelect(selectId, category, currentValue) {
   const grpId = selectId === 'd_subcat' ? 'd_subcat_grp' : 'f_subcat_grp';
   const grp = document.getElementById(grpId);
   if (subs.length) {
-    sel.innerHTML = '<option value="">— None —</option>' + subs.map(s=>`<option value="${s}" ${s===currentValue?'selected':''}>${s}</option>`).join('');
+    sel.innerHTML = '<option value="">— None —</option>' + subs.map(s=>`<option value="${escAttr(s)}" ${s===currentValue?'selected':''}>${escHtml(s)}</option>`).join('');
     if (grp) grp.style.display = '';
   } else {
     sel.innerHTML = '<option value="">— None —</option>';
@@ -103,7 +103,7 @@ export function populateSubtypeSelect(prefix, subcategory, currentValue) {
   if (lblEl) lblEl.textContent = label;
   // Populate datalist with merged types
   const types = getMergedTypes(subcategory);
-  if (dlEl) dlEl.innerHTML = types.map(t => `<option value="${t}">`).join('');
+  if (dlEl) dlEl.innerHTML = types.map(t => `<option value="${escAttr(t)}">`).join('');
   // Set current value
   txtEl.value = currentValue || '';
 }
@@ -113,7 +113,7 @@ export function syncDrawerSubcat() {
   // Populate datalist with known subcats for this category
   const subs = getSubcats(cat);
   const dl = document.getElementById('d_subcat_dl');
-  if (dl) dl.innerHTML = subs.map(s => `<option value="${s}">`).join('');
+  if (dl) dl.innerHTML = subs.map(s => `<option value="${escAttr(s)}">`).join('');
   // Keep the hidden select in sync for legacy data reads
   populateSubcatSelect('d_subcat', cat, document.getElementById('d_subcat_txt').value);
   populateSubtypeSelect('d', (document.getElementById('d_subcat_txt').value||'').trim(), '');
@@ -129,7 +129,7 @@ export function syncAddSubcat() {
   const cat = document.getElementById('f_cat').value.trim();
   const subs = getSubcats(cat);
   const dl = document.getElementById('f_subcat_dl');
-  if (dl) dl.innerHTML = subs.map(s => `<option value="${s}">`).join('');
+  if (dl) dl.innerHTML = subs.map(s => `<option value="${escAttr(s)}">`).join('');
   populateSubcatSelect('f_subcat', cat, document.getElementById('f_subcat_txt').value);
   populateSubtypeSelect('f', (document.getElementById('f_subcat_txt').value||'').trim(), '');
   toggleBookFields('f');
@@ -175,7 +175,7 @@ export function openDrawer(id) {
   if (subcatTxt) subcatTxt.value = item.subcategory || '';
   const subs = getSubcats(item.category||'');
   const dl = document.getElementById('d_subcat_dl');
-  if (dl) dl.innerHTML = subs.map(s => `<option value="${s}">`).join('');
+  if (dl) dl.innerHTML = subs.map(s => `<option value="${escAttr(s)}">`).join('');
   // Bulk toggle
   const dBulk = document.getElementById('d_bulk');
   if (dBulk) { dBulk.checked = !!item.bulk; toggleBulkFields('d'); }
@@ -326,8 +326,8 @@ export function renderListingStatus(item) {
           ${needsEbayPublish ? `<button class="btn-xs btn-accent" onclick="clPublishOnEBay('${escAttr(item.id)}')">Publish</button>` : ''}
           ${showAICopy ? `<button class="btn-xs btn-accent" onclick="clAICopy('${escAttr(item.id)}','${escAttr(p)}')">${hasCached ? '📋 Copy' : '✨ AI Copy'}</button>` : ''}
           ${isExpiredOrDelisted ? `<button class="btn-xs btn-accent" onclick="clRelistFromDrawer('${escAttr(item.id)}','${escAttr(p)}')">Relist</button>` : ''}
-          <button class="btn-xs" onclick="clOpenLink('${escAttr(p)}','${escAttr(item.id)}')" title="Open on ${escHtml(p)}">↗</button>
-          <button class="btn-xs" onclick="clCopyListing('${escAttr(item.id)}')" title="Copy listing text">📋</button>
+          <button class="btn-xs" onclick="clOpenLink('${escAttr(p)}','${escAttr(item.id)}')" title="Open on ${escHtml(p)}" aria-label="Open on ${escHtml(p)}">↗</button>
+          <button class="btn-xs" onclick="clCopyListing('${escAttr(item.id)}')" title="Copy listing text" aria-label="Copy listing text">📋</button>
         </div>
       </div>
     </div>`;

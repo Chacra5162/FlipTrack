@@ -4,10 +4,11 @@
  */
 
 // ── SUPABASE CONFIGURATION ─────────────────────────────────────────────────
-// Read from Vite env vars (.env locally, GitHub Actions secrets in CI)
-// Fallback to hardcoded values for backwards compatibility during migration
+// Read from Vite env vars. Fallbacks are the PUBLIC anon key (safe to expose,
+// all data access is governed by Row Level Security policies on the server).
+// CI uses GitHub Actions secrets; local dev uses these fallbacks.
 export const SB_URL = import.meta.env.VITE_SB_URL || 'https://gqructzvlkafclooybnc.supabase.co';
-export const SB_KEY = import.meta.env.VITE_SB_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxcnVjdHp2bGthZmNsb295Ym5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzODIyNTAsImV4cCI6MjA4Njk1ODI1MH0.-H5p1Oq-ImveB636xgWI-Rrc23wzj7-_Vps6xeHrHtA';
+export const SB_KEY = import.meta.env.VITE_SB_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxcnVjdHp2bGthZmNsb295Ym5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY4NzgyODMsImV4cCI6MjA1MjQ1NDI4M30.GXpB1FdoA3jct0cf9CXnm7VqJOAx7METpnLAa_TLqgo';
 
 // ── SUPABASE TABLES ────────────────────────────────────────────────────────
 export const TABLES = {

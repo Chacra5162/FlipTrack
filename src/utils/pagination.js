@@ -45,7 +45,7 @@ export function renderPagination(container, opts) {
   const mkBtn = (label, targetPage, disabled) => {
     const btn = document.createElement('button');
     btn.className = 'btn-secondary pg-btn';
-    btn.style.cssText = 'padding:5px 12px;font-size:11px;font-family:"DM Mono",monospace';
+    btn.style.cssText = 'padding:10px 16px;font-size:11px;font-family:"DM Mono",monospace;min-height:44px;min-width:44px';
     btn.textContent = label;
     btn.disabled = disabled;
     if (disabled) btn.style.opacity = '0.3';

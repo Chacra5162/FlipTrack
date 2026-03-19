@@ -820,7 +820,7 @@
                 </select>
               </div>
             </div>
-            <div class="edit-grp full" style="margin-top:8px"><div class="edit-lbl">eBay Description <button type="button" class="btn-sm" style="margin-left:8px;font-size:11px;padding:2px 8px" onclick="window.aiGenerateDesc?.('drawer')">✨ AI Generate</button></div><textarea class="edit-ta" id="d_ebay_desc" placeholder="Leave blank to auto-generate with AI when listing on eBay"></textarea></div>
+            <div class="edit-grp full" style="margin-top:8px"><div class="edit-lbl">eBay Description <button type="button" class="btn-sm" style="margin-left:8px;font-size:11px;padding:2px 8px" onclick="window.aiGenerateDesc?.('drawer')" aria-label="Generate eBay description using AI">✨ AI Generate</button></div><textarea class="edit-ta" id="d_ebay_desc" placeholder="Leave blank to auto-generate with AI when listing on eBay"></textarea></div>
             <div class="edit-grp full" style="margin-top:6px"><div class="edit-lbl">Condition Notes <span style="font-size:10px;color:var(--muted)">(visible to buyers)</span></div><textarea class="edit-ta" id="d_cond_desc" rows="2" maxlength="1000" placeholder="e.g. Light scratches on back, missing original box"></textarea></div>
           </div>
           <!-- More Tab — additional eBay fields -->
@@ -931,19 +931,19 @@
           <div class="img-slot" id="dSlot0">
             <img id="dSlotImg0" src="" alt="Item photo 1" style="display:none" onclick="openLightboxUrl(this.src)" onkeydown="if(event.key==='Enter')openLightboxUrl(this.src)" tabindex="0" role="button">
             <span class="img-slot-badge" id="dSlotBadge0" style="display:none">MAIN</span>
-            <button type="button" class="img-slot-rm" id="dSlotRm0" style="display:none" onclick="imgSlotRemove(event,'d',0)">×</button>
+            <button type="button" class="img-slot-rm" id="dSlotRm0" style="display:none" onclick="imgSlotRemove(event,'d',0)" aria-label="Remove photo 1">×</button>
             <div class="img-slot-add" id="dSlotAdd0"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
             <input type="file" id="dSlotInput0" accept="image/*" class="img-slot-input" onchange="imgSlotChange(event,'d',0)">
           </div>
           <div class="img-slot img-slot-locked" id="dSlot1">
             <img id="dSlotImg1" src="" alt="Item photo 2" style="display:none" onclick="openLightboxUrl(this.src)" onkeydown="if(event.key==='Enter')openLightboxUrl(this.src)" tabindex="0" role="button">
-            <button type="button" class="img-slot-rm" id="dSlotRm1" style="display:none" onclick="imgSlotRemove(event,'d',1)">×</button>
+            <button type="button" class="img-slot-rm" id="dSlotRm1" style="display:none" onclick="imgSlotRemove(event,'d',1)" aria-label="Remove photo 2">×</button>
             <div class="img-slot-add" id="dSlotAdd1" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
             <input type="file" id="dSlotInput1" accept="image/*" class="img-slot-input" style="pointer-events:none;opacity:0" onchange="imgSlotChange(event,'d',1)">
           </div>
           <div class="img-slot img-slot-locked" id="dSlot2">
             <img id="dSlotImg2" src="" alt="Item photo 3" style="display:none" onclick="openLightboxUrl(this.src)" onkeydown="if(event.key==='Enter')openLightboxUrl(this.src)" tabindex="0" role="button">
-            <button type="button" class="img-slot-rm" id="dSlotRm2" style="display:none" onclick="imgSlotRemove(event,'d',2)">×</button>
+            <button type="button" class="img-slot-rm" id="dSlotRm2" style="display:none" onclick="imgSlotRemove(event,'d',2)" aria-label="Remove photo 3">×</button>
             <div class="img-slot-add" id="dSlotAdd2" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
             <input type="file" id="dSlotInput2" accept="image/*" class="img-slot-input" style="pointer-events:none;opacity:0" onchange="imgSlotChange(event,'d',2)">
           </div>
@@ -1938,7 +1938,7 @@
   <div style="background:var(--surface);border-radius:12px;padding:20px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <h3 style="margin:0;font-size:15px">Log a Return</h3>
-      <button onclick="closeReturnModal()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted)">✕</button>
+      <button onclick="closeReturnModal()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted)" aria-label="Close return dialog">✕</button>
     </div>
     <div id="returnBody"></div>
   </div>
@@ -2026,7 +2026,7 @@
 <div class="id-overlay" id="voiceOv" role="dialog" aria-modal="true" aria-label="Voice Add">
   <div class="id-topbar">
     <div class="id-title">🎤 Voice <span>Add</span></div>
-    <button class="id-close" onclick="closeVoiceAdd()">✕</button>
+    <button class="id-close" onclick="closeVoiceAdd()" aria-label="Close voice add">✕</button>
   </div>
   <div class="id-body" style="padding:16px">
     <div style="text-align:center;margin-bottom:16px">
@@ -2046,7 +2046,7 @@
 <div class="id-overlay" id="galleryOv" role="dialog" aria-modal="true" aria-label="Social Gallery">
   <div class="id-topbar">
     <div class="id-title">📸 Social <span>Gallery</span></div>
-    <button class="id-close" onclick="closeGalleryBuilder()">✕</button>
+    <button class="id-close" onclick="closeGalleryBuilder()" aria-label="Close gallery builder">✕</button>
   </div>
   <div class="id-body" style="padding:16px">
     <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">

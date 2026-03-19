@@ -111,6 +111,7 @@ export function exportAll() {
 export function importCSV(file) {
   if (!file) return;
   if (file.size > 5 * 1024 * 1024) { toast('CSV too large (max 5MB)', true); return; }
+  toast('Importing CSV…');
   const reader = new FileReader();
   reader.onload = function(e) {
     try {

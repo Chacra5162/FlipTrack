@@ -98,6 +98,14 @@ export async function pullEtsyListings() {
     const limit = 100;
     let hasMore = true;
 
+    // Build O(1) lookup maps for matching
+    const bySku = new Map();
+    const byEtsyId = new Map();
+    for (const item of inv) {
+      if (item.sku) bySku.set(item.sku, item);
+      if (item.etsyListingId) byEtsyId.set(String(item.etsyListingId), item);
+    }
+
     while (hasMore) {
       const resp = await etsyAPI('GET',
         `/application/shops/${shopId}/listings?state=${ETSY_STATE_ACTIVE}&limit=${limit}&offset=${offset}&includes=Images`
@@ -113,10 +121,10 @@ export async function pullEtsyListings() {
         // Try to match by SKU first, then by stored Etsy listing ID
         let local = null;
         if (sku) {
-          local = inv.find(i => i.sku && i.sku === sku);
+          local = bySku.get(sku) || null;
         }
         if (!local) {
-          local = inv.find(i => i.etsyListingId && i.etsyListingId === listingId);
+          local = byEtsyId.get(listingId) || null;
         }
 
         if (local) {
@@ -199,6 +207,14 @@ async function _syncEtsyReceipts(shopId) {
       ? Math.floor(new Date(_lastSyncTime).getTime() / 1000)
       : Math.floor((Date.now() - 86400000) / 1000);
 
+    // Build O(1) lookup maps for matching
+    const bySku = new Map();
+    const byEtsyId = new Map();
+    for (const item of inv) {
+      if (item.sku) bySku.set(item.sku, item);
+      if (item.etsyListingId) byEtsyId.set(String(item.etsyListingId), item);
+    }
+
     const resp = await etsyAPI('GET',
       `/application/shops/${shopId}/receipts?min_created=${since}&limit=50`
     );
@@ -210,9 +226,7 @@ async function _syncEtsyReceipts(shopId) {
         const listingId = String(txn.listing_id);
         const sku = (txn.sku || '');
 
-        const local = inv.find(i =>
-          i.etsyListingId === listingId || (sku && i.sku === sku)
-        );
+        const local = byEtsyId.get(listingId) || (sku ? bySku.get(sku) : undefined) || null;
 
         if (local && local.platformStatus?.Etsy !== 'sold') {
           // Decrement quantity by sold amount
@@ -527,6 +541,13 @@ export async function pullEtsyQuantities() {
   if (!isEtsyConnected()) throw new Error('Etsy not connected');
   const shopId = getEtsyShopId();
   if (!shopId) throw new Error('No shop ID');
+  // Build O(1) lookup maps for matching
+  const _bySku = new Map();
+  const _byEtsyId = new Map();
+  for (const item of inv) {
+    if (item.sku) _bySku.set(item.sku, item);
+    if (item.etsyListingId) _byEtsyId.set(String(item.etsyListingId), item);
+  }
   let pulled = 0;
   let offset = 0;
   const limit = 100;
@@ -540,8 +561,8 @@ export async function pullEtsyQuantities() {
     for (const el of results) {
       const lid = String(el.listing_id);
       const sku = (el.skus && el.skus[0]) || null;
-      let local = sku ? inv.find(i => i.sku && i.sku === sku) : null;
-      if (!local) local = inv.find(i => i.etsyListingId && i.etsyListingId === lid);
+      let local = sku ? _bySku.get(sku) || null : null;
+      if (!local) local = _byEtsyId.get(lid) || null;
       if (local && el.quantity !== undefined) {
         const etsyQty = el.quantity || 0;
         if (etsyQty !== (local.qty || 0)) {
@@ -995,6 +1016,12 @@ export async function syncEtsyExpenses() {
     : Math.floor((Date.now() - 7 * 86400000) / 1000); // Last 7 days default
 
   try {
+    // Build O(1) lookup map for matching
+    const byEtsyId = new Map();
+    for (const item of inv) {
+      if (item.etsyListingId) byEtsyId.set(String(item.etsyListingId), item);
+    }
+
     const resp = await etsyAPI('GET',
       `/application/shops/${shopId}/receipts?min_created=${since}&limit=50`
     );
@@ -1010,7 +1037,7 @@ export async function syncEtsyExpenses() {
           const fees = calcEtsyFees(price, shipping);
           // Store fee data on the local item if matched
           const listingId = String(txn.listing_id);
-          const local = inv.find(i => i.etsyListingId === listingId);
+          const local = byEtsyId.get(listingId) || null;
           if (local) {
             if (!local.etsyFees) local.etsyFees = {};
             local.etsyFees[receipt.receipt_id] = {

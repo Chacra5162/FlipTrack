@@ -3,7 +3,7 @@
 // DOM elements, form helpers (toggleBookFields requires drawer.js)
 
 import { SUBCATS } from '../config/categories.js';
-import { fmt } from '../utils/format.js';
+import { fmt, escAttr } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 
 export const BOOK_CONDITIONS = ['Like New', 'Very Good', 'Good', 'Acceptable', 'Poor'];
@@ -233,7 +233,7 @@ function syncAddSubcat() {
   const cat = document.getElementById('f_cat').value.trim();
   const subs = _getSubcats(cat);
   const dl = document.getElementById('f_subcat_dl');
-  if (dl) dl.innerHTML = subs.map(s => `<option value="${s}">`).join('');
+  if (dl) dl.innerHTML = subs.map(s => `<option value="${escAttr(s)}">`).join('');
   // populateSubcatSelect('f_subcat', cat, document.getElementById('f_subcat_txt').value);
   // populateSubtypeSelect('f_subtype', document.getElementById('f_subcat').value, '');
   // toggleBookFields('f');
@@ -243,7 +243,7 @@ function syncDrawerSubcat() {
   const cat = document.getElementById('d_cat').value.trim();
   const subs = _getSubcats(cat);
   const dl = document.getElementById('d_subcat_dl');
-  if (dl) dl.innerHTML = subs.map(s => `<option value="${s}">`).join('');
+  if (dl) dl.innerHTML = subs.map(s => `<option value="${escAttr(s)}">`).join('');
   // populateSubcatSelect('d_subcat', cat, document.getElementById('d_subcat_txt').value);
   // populateSubtypeSelect('d_subtype', document.getElementById('d_subcat').value, '');
   // toggleBookFields('d');

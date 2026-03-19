@@ -12,6 +12,7 @@
  */
 
 import { getAll, putOne, deleteOne, clearStore, getCount } from './idb.js';
+import { toast } from '../utils/dom.js';
 
 const STORE_NAME = 'syncQueue';
 
@@ -29,6 +30,7 @@ export async function enqueue(action, table, payload) {
     const size = await queueSize();
     if (size >= 1000) {
       console.warn('FlipTrack: offline queue is full (1000 items), skipping enqueue');
+      toast('Offline queue full — connect to sync your changes', true);
       return;
     }
 

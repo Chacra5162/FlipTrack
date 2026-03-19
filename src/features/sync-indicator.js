@@ -64,11 +64,17 @@ function updateOfflineIndicator() {
   el.style.display = navigator.onLine ? 'none' : 'inline';
 }
 
+let _indicatorInterval = null;
+
 /** Update the indicator every 30 seconds */
 export function startSyncIndicator() {
   updateSyncIndicator();
   updateOfflineIndicator();
-  setInterval(updateSyncIndicator, 30000);
+  _indicatorInterval = setInterval(updateSyncIndicator, 30000);
   window.addEventListener('online', () => { updateOfflineIndicator(); updateSyncIndicator(); });
   window.addEventListener('offline', updateOfflineIndicator);
+}
+
+export function stopSyncIndicator() {
+  if (_indicatorInterval) { clearInterval(_indicatorInterval); _indicatorInterval = null; }
 }

@@ -45,7 +45,6 @@ export function imgSlotRemove(event, pfx, idx) {
     item.image  = imgs[0] || null;
     save();
     refreshImgSlots('d', imgs);
-    if (window.renderInv) window.renderInv();
     // Delete from Storage if it was a URL (not a pending base64)
     if (isStorageUrl(removed)) deleteImageFromStorage(removed);
   }
@@ -814,7 +813,6 @@ export function cropConfirm() {
         item.images = imgs.slice();
         item.image  = imgs[0] || null;
         refreshImgSlots('d', item.images);
-        if (window.renderInv) window.renderInv();
         toast('Photo added — uploading…');
 
         // Upload to Storage, replace base64 with URL
@@ -828,7 +826,6 @@ export function cropConfirm() {
             item.image  = current[0] || null;
             save();
             refreshImgSlots('d', item.images);
-            if (window.renderInv) window.renderInv();
             toast('Photo saved ✓');
           })
           .catch(e => {

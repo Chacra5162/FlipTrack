@@ -110,11 +110,12 @@ src/
 - Import from feature layer into data layer (wrong direction) — use callback registry pattern
 
 ## Known Tech Debt
-7 open refactoring items tracked in `/refactor` skill (identified 2026-03-13):
-1. Dashboard price alerts duplicating repricing engine logic
-2. Dashboard aging summary should use `computeInventoryHealth()`
-3. `analytics-calc.js` duplicates insights aggregations
-4. `store.js` separation of concerns (DOM code, calc helpers, UI state)
-5. `auth.js` cleanup callback registry to fix import direction
-6. `switchView()` if/else chain → view registry map
-7. 200+ functions on `window` → delegated event listener migration
+8 open refactoring items tracked in `/refactor` skill (identified 2026-03-13):
+1. Consolidate 4 copies of `_daysSince()` into `src/utils/format.js`
+2. Dashboard price alerts duplicating repricing engine logic
+3. Dashboard aging summary should use `computeInventoryHealth()`
+4. `analytics-calc.js` duplicates insights aggregations
+5. `store.js` separation of concerns (DOM code, calc helpers, UI state)
+6. `auth.js` cleanup callback registry to fix import direction
+7. `switchView()` if/else chain → view registry map
+8. 200+ functions on `window` → delegated event listener migration

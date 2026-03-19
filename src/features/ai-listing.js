@@ -332,8 +332,8 @@ export function renderAIListingPanel(item) {
         <div class="ai-meta">Generated ${ai.generatedAt ? new Date(ai.generatedAt).toLocaleDateString() : ''} ${ai.platform ? `for ${ai.platform}` : ''}</div>
       </div>
       <div class="ai-actions">
-        <button class="btn-sm" onclick="aiCopyListing('${escAttr(item.id)}')">📋 Copy</button>
-        <button class="btn-sm" onclick="aiRegenerate('${escAttr(item.id)}')">🔄 Regenerate</button>
+        <button class="btn-sm" aria-label="Copy AI listing" onclick="aiCopyListing('${escAttr(item.id)}')">📋 Copy</button>
+        <button class="btn-sm" aria-label="Regenerate AI listing" onclick="aiRegenerate('${escAttr(item.id)}')">🔄 Regenerate</button>
       </div>
     `;
   }
