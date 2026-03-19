@@ -4,10 +4,11 @@
  * expired/expiring listing detection, and listing health scoring.
  */
 
-import { localDate, daysListed } from '../utils/format.js';
+import { localDate, daysListed, escHtml } from '../utils/format.js';
 import { inv, save, refresh, markDirty, getInvItem } from '../data/store.js';
 import { toast } from '../utils/dom.js';
 import { getPlatforms } from './platforms.js';
+import { addNotification } from './notification-center.js';
 
 // ── PLATFORM EXPIRY RULES ──────────────────────────────────────────────────
 // Days until a listing naturally expires on each platform (0 = never/GTC)
@@ -144,9 +145,28 @@ export function relistItem(itemId, platform) {
 
 // ── AUTO-DELIST ON SALE ────────────────────────────────────────────────────
 
+// Lazy imports for API platform delist functions (avoids circular deps)
+let _endEBayListing, _deactivateEtsyListing, _isEBayConnected, _isEtsyConnected;
+async function _loadDelistFns() {
+  if (!_endEBayListing) {
+    const ebay = await import('./ebay-sync.js');
+    _endEBayListing = ebay.endEBayListing;
+    const ebayAuth = await import('./ebay-auth.js');
+    _isEBayConnected = ebayAuth.isEBayConnected;
+  }
+  if (!_deactivateEtsyListing) {
+    const etsy = await import('./etsy-sync.js');
+    _deactivateEtsyListing = etsy.deactivateEtsyListing;
+    const etsyAuth = await import('./etsy-auth.js');
+    _isEtsyConnected = etsyAuth.isEtsyConnected;
+  }
+}
+
 /**
  * When an item sells on one platform, mark other active platforms as 'sold-elsewhere'.
- * Called from recSale() in sales.js.
+ * For API platforms (eBay, Etsy), auto-delist the listing.
+ * For non-API platforms, notify the user to manually delist.
+ * Called from recSale() in sales.js and eBay sync.
  * @returns {string[]} Array of platform names that were marked sold-elsewhere
  */
 export function autoDlistOnSale(itemId, soldPlatform) {
@@ -159,17 +179,53 @@ export function autoDlistOnSale(itemId, soldPlatform) {
   // Only auto-delist others if qty is now 0 (fully sold out)
   const marked = [];
   if ((item.qty || 0) <= 0) {
+    const manualDelist = [];
     for (const p of plats) {
       if (p === soldPlatform) continue;
       const st = item.platformStatus[p];
       if (st === 'active' || !st) {
         item.platformStatus[p] = 'sold-elsewhere';
         marked.push(p);
+        // Auto-delist on API platforms in background
+        _autoDelistPlatform(itemId, item, p);
+        // Track non-API platforms for notification
+        if (!_isApiPlatform(p, item)) {
+          manualDelist.push(p);
+        }
       }
+    }
+    // Notify user about platforms that need manual delisting
+    if (manualDelist.length) {
+      addNotification('info', 'Delist on ' + manualDelist.join(', '),
+        `"${item.name}" sold on ${soldPlatform}. Remove listing from: ${manualDelist.join(', ')}`,
+        itemId);
+      toast(`⚠ Delist "${item.name}" on ${manualDelist.join(', ')}`, true, 6000);
     }
   }
   markDirty('inv', itemId);
   return marked;
+}
+
+function _isApiPlatform(platform, item) {
+  if (platform === 'eBay' && item.ebayItemId) return true;
+  if (platform === 'Etsy' && item.etsyListingId) return true;
+  return false;
+}
+
+async function _autoDelistPlatform(itemId, item, platform) {
+  try {
+    await _loadDelistFns();
+    if (platform === 'eBay' && item.ebayItemId && _isEBayConnected()) {
+      await _endEBayListing(itemId);
+      toast(`eBay listing ended ✓`);
+    } else if (platform === 'Etsy' && item.etsyListingId && _isEtsyConnected()) {
+      await _deactivateEtsyListing(itemId);
+      toast(`Etsy listing deactivated ✓`);
+    }
+  } catch (e) {
+    console.warn(`[AutoDelist] Failed to delist on ${platform}:`, e.message);
+    toast(`Could not auto-delist on ${platform} — please remove manually`, true);
+  }
 }
 
 // ── EXPIRED / EXPIRING LISTING DETECTION ───────────────────────────────────
