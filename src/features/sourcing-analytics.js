@@ -97,7 +97,7 @@ export function renderSourcingAnalytics() {
           </tr></thead>
           <tbody>
             ${d.sourceList.map(s => `<tr>
-              <td class="ih-td-name">${escHtml(s.name)}</td>
+              <td class="ih-td-name"><a href="#" class="sa-source-link" onclick="event.preventDefault();showSourceItems('${escAttr(s.name)}')">${escHtml(s.name)}</a></td>
               <td>${s.items}</td>
               <td>${s.sold}</td>
               <td><span class="ih-pct ${s.sellThrough >= 0.5 ? 'ih-good' : s.sellThrough >= 0.25 ? 'ih-ok' : 'ih-bad'}">${Math.round(s.sellThrough * 100)}%</span></td>
@@ -132,4 +132,53 @@ export function renderSourcingAnalytics() {
     </div>`;
 
   el.innerHTML = summaryHtml + tableHtml + barsHtml;
+}
+
+// ── SOURCE DRILLDOWN ──────────────────────────────────────────────────────
+
+export function showSourceItems(sourceName) {
+  const el = document.getElementById('sourcingAnalyticsContent');
+  if (!el) return;
+
+  const items = inv.filter(i => !i.deleted && ((i.source || '').trim() || 'Unknown') === sourceName);
+
+  let html = `
+    <div class="ih-section">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <button class="btn-sm" onclick="renderSourcingAnalytics()" style="flex-shrink:0">← Back</button>
+        <div class="ih-section-hdr" style="margin:0">Items from ${escHtml(sourceName)} (${items.length})</div>
+      </div>
+      <div class="ih-table-wrap">
+        <table class="ih-table">
+          <thead><tr>
+            <th>Item</th><th>Category</th><th>Cost</th><th>Price</th><th>Qty</th><th>Status</th><th>Profit</th>
+          </tr></thead>
+          <tbody>`;
+
+  for (const item of items) {
+    const itemSales = getSalesForItem(item.id);
+    const soldQty = itemSales.reduce((sum, s) => sum + (s.qty || 1), 0);
+    const revenue = itemSales.reduce((sum, s) => sum + (s.price || 0) * (s.qty || 1), 0);
+    const fees = itemSales.reduce((sum, s) => sum + (s.fees || 0), 0);
+    const ship = itemSales.reduce((sum, s) => sum + (s.ship || 0), 0);
+    const profit = soldQty > 0 ? revenue - (item.cost || 0) * soldQty - fees - ship : 0;
+    const status = soldQty > 0
+      ? `<span class="ih-good">Sold (${soldQty})</span>`
+      : (item.qty || 0) > 0
+        ? `<span style="color:var(--accent)">Listed</span>`
+        : `<span style="color:var(--muted)">Out</span>`;
+
+    html += `<tr style="cursor:pointer" onclick="openDrawer('${escAttr(item.id)}')">
+      <td class="ih-td-name">${escHtml(item.name)}</td>
+      <td>${escHtml(item.category || '—')}</td>
+      <td>${fmt(item.cost || 0)}</td>
+      <td>${fmt(item.price || 0)}</td>
+      <td>${item.qty || 0}</td>
+      <td>${status}</td>
+      <td class="${profit >= 0 ? 'ih-good' : 'ih-bad'}">${soldQty > 0 ? fmt(profit) : '—'}</td>
+    </tr>`;
+  }
+
+  html += `</tbody></table></div></div>`;
+  el.innerHTML = html;
 }

@@ -3222,6 +3222,8 @@ textarea { resize:vertical; min-height:70px; }
 .sa-bar.ih-bad { background:var(--danger); color:transparent; }
 .sa-bar.ih-ok { background:var(--warn); color:transparent; }
 .sa-bar-val { flex-shrink:0; width:60px; text-align:right; font-weight:600; color:var(--muted); font-size:10px; }
+.sa-source-link { color:var(--accent); text-decoration:none; font-weight:600; cursor:pointer; }
+.sa-source-link:hover { text-decoration:underline; }
 
 .sa-empty { padding:24px; text-align:center; color:var(--muted); font-size:13px; }
 
