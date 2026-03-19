@@ -276,8 +276,22 @@ export function renderListingStatus(item) {
   wrap.style.display = '';
   const ps = item.platformStatus || {};
   const dates = item.platformListingDates || {};
+  // If qty is 0 and item has sales, ensure all platforms reflect sold status
+  const itemSales = getSalesForItem(item.id);
+  const isSoldOut = (item.qty || 0) <= 0 && itemSales.length > 0;
   el.innerHTML = plats.map(p => {
-    const st = ps[p] || 'active';
+    let st = ps[p] || 'active';
+    // Override to sold if item is sold out and platform still shows active
+    if (isSoldOut && (st === 'active' || !ps[p])) {
+      const soldOnThis = itemSales.some(s => s.platform === p);
+      st = soldOnThis ? 'sold' : 'sold-elsewhere';
+      // Persist the fix
+      if (!item.platformStatus) item.platformStatus = {};
+      if (item.platformStatus[p] !== st) {
+        item.platformStatus[p] = st;
+        markDirty('inv', item.id);
+      }
+    }
     const label = STATUS_LABELS[st] || st;
     const color = STATUS_COLORS[st] || 'var(--muted)';
     const listedDate = dates[p];

@@ -3,7 +3,7 @@
  * Shows listing status matrix, expiring/expired listings, and bulk crosslist tools.
  */
 
-import { inv, save, refresh, markDirty, getInvItem } from '../data/store.js';
+import { inv, sales, save, refresh, markDirty, getInvItem, getSalesForItem } from '../data/store.js';
 import { fmt, escHtml, escAttr, ds, uid, localDate} from '../utils/format.js';
 import { toast, appConfirm, appPrompt } from '../utils/dom.js';
 import { getPlatforms } from '../features/platforms.js';
@@ -72,10 +72,14 @@ let _clShowAllSingle = false;
 
 // ── RENDER ────────────────────────────────────────────────────────────────
 
-/** Active inventory: in stock AND not fully sold on all platforms */
+/** Active inventory: in stock AND not fully sold */
 function _activeInv() {
   return inv.filter(i => {
+    // Sold out with sales recorded — not active
+    if ((i.qty || 0) <= 0 && getSalesForItem(i.id).length > 0) return false;
+    // Zero qty with no sales — keep (could be out of stock, not sold)
     if ((i.qty || 0) <= 0) return false;
+    // All platforms marked sold — not active
     const plats = getPlatforms(i);
     if (plats.length > 0) {
       const ps = i.platformStatus || {};
