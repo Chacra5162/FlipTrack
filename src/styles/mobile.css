@@ -445,6 +445,8 @@
   #headerAddBtn { display: none; }
   #headerIdBtn { display: none; }
   #headerBatchBtn { display: none; }
+  /* Tools dropdown is in bottom nav "More" menu on mobile */
+  .nav-group[data-group="tools"] { display: none; }
 }
 
 /* Tablet (600px–820px): hide header center tabs */
