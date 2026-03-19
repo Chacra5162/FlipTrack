@@ -109,7 +109,7 @@ export function updateStats() {
 
 export function updatePlatBreakdown() {
   const m={};
-  for(const s of sales){const it=getInvItem(s.itemId);const plats=it?getPlatforms(it):['Other'];const rev=(s.price||0)*(s.qty||0);plats.forEach(p=>{m[p]=(m[p]||0)+rev/plats.length;});}
+  for(const s of sales){const plat=s.platform||'Other';const rev=(s.price||0)*(s.qty||0);m[plat]=(m[plat]||0)+rev;}
   const total=Object.values(m).reduce((a,v)=>a+v,0);
   const entries=Object.entries(m).sort((a,b)=>b[1]-a[1]);
   const colors={
