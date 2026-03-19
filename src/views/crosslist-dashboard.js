@@ -72,6 +72,19 @@ let _clShowAllSingle = false;
 
 // ── RENDER ────────────────────────────────────────────────────────────────
 
+/** Active inventory: in stock AND not fully sold on all platforms */
+function _activeInv() {
+  return inv.filter(i => {
+    if ((i.qty || 0) <= 0) return false;
+    const plats = getPlatforms(i);
+    if (plats.length > 0) {
+      const ps = i.platformStatus || {};
+      if (plats.every(p => ps[p] === 'sold' || ps[p] === 'sold-elsewhere')) return false;
+    }
+    return true;
+  });
+}
+
 export function renderCrosslistDashboard() {
   const container = document.getElementById('crosslistContent');
   if (!container) return;
@@ -79,7 +92,7 @@ export function renderCrosslistDashboard() {
   // Check for newly expired listings
   checkExpiredListings();
 
-  const inStock = inv.filter(i => (i.qty || 0) > 0);
+  const inStock = _activeInv();
   const stats = getCrosslistStats(inStock);
   const expiring = getExpiringListings(inStock, 7);
   const expired = getExpiredListings(inStock);
@@ -520,7 +533,7 @@ export function clCopyListing(itemId) {
 }
 
 export async function clBulkRelistExpired() {
-  const inStock = inv.filter(i => (i.qty || 0) > 0);
+  const inStock = _activeInv();
   const expired = getExpiredListings(inStock);
   if (!expired.length) { toast('No expired listings to relist'); return; }
   if (!await appConfirm({ title: 'Relist Expired', message: `Relist ${expired.length} expired listing(s)?` })) return;
