@@ -366,6 +366,16 @@
   border-bottom: 1px solid var(--border);
 }
 
+/* Reports profit tables — fixed column widths so category & platform tables align */
+.report-profit-table { table-layout: fixed; width: 100%; }
+.report-profit-table th:first-child,
+.report-profit-table td:first-child { width: 28%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.report-profit-table th:nth-child(2),
+.report-profit-table td:nth-child(2) { width: 10%; text-align: center; }
+.report-profit-table th:nth-child(n+3),
+.report-profit-table td:nth-child(n+3) { width: 12.4%; text-align: right; }
+.report-profit-table td:first-child { max-width: 0; }
+
 /* ── VALUE BREAKDOWN ─────────────────────────────────────── */
 .breakdown-header {
   display: flex;

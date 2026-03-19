@@ -106,18 +106,18 @@ export function renderReports() {
     return `<tr>
       <td style="font-weight:600">${escHtml(cat)}</td>
       <td style="text-align:center">${d.count}</td>
-      <td style="font-family:'DM Mono',monospace;color:var(--accent)">${fmt(d.revenue)}</td>
-      <td style="font-family:'DM Mono',monospace;color:var(--muted)">${fmt(d.cogs)}</td>
-      <td style="font-family:'DM Mono',monospace;color:var(--danger)">${fmt(d.fees)}</td>
-      <td style="font-family:'DM Mono',monospace;font-weight:700;color:${profitColor}">${fmt(d.profit)}</td>
-      <td style="font-family:'DM Mono',monospace;font-weight:600;color:${marginColor}">${margin.toFixed(1)}%</td>
+      <td style="text-align:right;font-family:'DM Mono',monospace;color:var(--accent)">${fmt(d.revenue)}</td>
+      <td style="text-align:right;font-family:'DM Mono',monospace;color:var(--muted)">${fmt(d.cogs)}</td>
+      <td style="text-align:right;font-family:'DM Mono',monospace;color:var(--danger)">${fmt(d.fees)}</td>
+      <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:${profitColor}">${fmt(d.profit)}</td>
+      <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:${marginColor}">${margin.toFixed(1)}%</td>
     </tr>`;
   }).join('');
 
   const catProfitHtml = Object.entries(catProfit).length ? `
     <div class="period-section-ttl">Profit by Category</div>
     <div style="overflow-x:auto;margin-bottom:16px">
-      <table class="inv-table">
+      <table class="inv-table report-profit-table">
         <thead><tr>
           <th>Category</th><th>Sales</th><th>Revenue</th><th>COGS</th><th>Fees</th><th>Profit</th><th>Margin</th>
         </tr></thead>
@@ -148,18 +148,18 @@ export function renderReports() {
     return `<tr>
       <td style="font-weight:600">${escHtml(plat)}</td>
       <td style="text-align:center">${d.count}</td>
-      <td style="font-family:'DM Mono',monospace;color:var(--accent)">${fmt(d.revenue)}</td>
-      <td style="font-family:'DM Mono',monospace;color:var(--muted)">${fmt(d.cogs)}</td>
-      <td style="font-family:'DM Mono',monospace;color:var(--danger)">${fmt(d.fees)}</td>
-      <td style="font-family:'DM Mono',monospace;font-weight:700;color:${profitColor}">${fmt(d.profit)}</td>
-      <td style="font-family:'DM Mono',monospace;font-weight:600;color:${marginColor}">${margin.toFixed(1)}%</td>
+      <td style="text-align:right;font-family:'DM Mono',monospace;color:var(--accent)">${fmt(d.revenue)}</td>
+      <td style="text-align:right;font-family:'DM Mono',monospace;color:var(--muted)">${fmt(d.cogs)}</td>
+      <td style="text-align:right;font-family:'DM Mono',monospace;color:var(--danger)">${fmt(d.fees)}</td>
+      <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:${profitColor}">${fmt(d.profit)}</td>
+      <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:${marginColor}">${margin.toFixed(1)}%</td>
     </tr>`;
   }).join('');
 
   const platProfitHtml = Object.entries(platProfit).length ? `
     <div class="period-section-ttl">Profit by Platform</div>
     <div style="overflow-x:auto;margin-bottom:16px">
-      <table class="inv-table">
+      <table class="inv-table report-profit-table">
         <thead><tr>
           <th>Platform</th><th>Sales</th><th>Revenue</th><th>COGS</th><th>Fees</th><th>Profit</th><th>Margin</th>
         </tr></thead>
