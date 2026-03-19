@@ -797,35 +797,123 @@
             </div>
           </div>
         </div>
-        <!-- eBay Listing Details -->
+        <!-- eBay Listing Details — Tabbed -->
         <div class="edit-grp full" id="d_ebay_fields" style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
-          <div class="edit-lbl" style="color:var(--accent);margin-bottom:8px">eBay Listing Details</div>
-          <div class="form-grid" style="margin-top:0">
-            <div class="edit-grp"><div class="edit-lbl">Brand</div><input class="edit-inp" type="text" id="d_brand" placeholder="e.g. Nike, Unbranded" list="brandList"></div>
-            <div class="edit-grp"><div class="edit-lbl">Color</div><input class="edit-inp" type="text" id="d_color" placeholder="e.g. Black, Red/Blue" list="colorList"></div>
-            <div class="edit-grp"><div class="edit-lbl">Size</div><input class="edit-inp" type="text" id="d_size" placeholder="e.g. Large, 10, 32x30"></div>
-            <div class="edit-grp"><div class="edit-lbl">Size Type</div>
-              <select class="edit-inp" id="d_sizeType">
-                <option value="">—</option><option value="Regular">Regular</option><option value="Plus">Plus</option>
-                <option value="Petite">Petite</option><option value="Big">Big</option><option value="Tall">Tall</option>
-                <option value="Big & Tall">Big & Tall</option><option value="Junior">Junior</option><option value="Husky">Husky</option>
-              </select>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span class="edit-lbl" style="color:var(--accent);margin:0">eBay Listing</span>
+            <div class="ebay-tabs" style="display:flex;gap:4px;margin-left:auto">
+              <button type="button" class="ebay-tab active" onclick="switchEbayTab('quick',this)">Quick</button>
+              <button type="button" class="ebay-tab" onclick="switchEbayTab('more',this)">More</button>
             </div>
-            <div class="edit-grp"><div class="edit-lbl">Department</div>
-              <select class="edit-inp" id="d_department">
-                <option value="">—</option><option value="Men's">Men's</option><option value="Women's">Women's</option>
-                <option value="Boys'">Boys'</option><option value="Girls'">Girls'</option><option value="Unisex Kids">Unisex Kids</option>
-                <option value="Unisex Adults">Unisex Adults</option>
-              </select>
+          </div>
+          <!-- Quick Listing Tab — minimum fields to post -->
+          <div class="ebay-tab-panel" id="ebayTabQuick">
+            <div class="form-grid" style="margin-top:0">
+              <div class="edit-grp"><div class="edit-lbl">Brand</div><input class="edit-inp" type="text" id="d_brand" placeholder="e.g. Nike, Unbranded" list="brandList"></div>
+              <div class="edit-grp"><div class="edit-lbl">Color</div><input class="edit-inp" type="text" id="d_color" placeholder="e.g. Black, Red/Blue" list="colorList"></div>
+              <div class="edit-grp"><div class="edit-lbl">Size</div><input class="edit-inp" type="text" id="d_size" placeholder="e.g. Large, 10, 32x30"></div>
+              <div class="edit-grp"><div class="edit-lbl">Department</div>
+                <select class="edit-inp" id="d_department">
+                  <option value="">—</option><option value="Men's">Men's</option><option value="Women's">Women's</option>
+                  <option value="Boys'">Boys'</option><option value="Girls'">Girls'</option><option value="Unisex Kids">Unisex Kids</option>
+                  <option value="Unisex Adults">Unisex Adults</option>
+                </select>
+              </div>
             </div>
-            <div class="edit-grp"><div class="edit-lbl">Material</div><input class="edit-inp" type="text" id="d_material" placeholder="e.g. Cotton, Leather" list="materialList"></div>
-            <div class="edit-grp"><div class="edit-lbl">MPN</div><input class="edit-inp" type="text" id="d_mpn" placeholder="Mfr Part Number"></div>
-            <div class="edit-grp"><div class="edit-lbl">Model</div><input class="edit-inp" type="text" id="d_model" placeholder="e.g. Air Max 90"></div>
-            <div class="edit-grp"><div class="edit-lbl">Style</div><input class="edit-inp" type="text" id="d_style" placeholder="e.g. Casual, Athletic"></div>
-            <div class="edit-grp"><div class="edit-lbl">Type / Pattern</div><input class="edit-inp" type="text" id="d_pattern" placeholder="e.g. Solid, Striped"></div>
+            <div class="edit-grp full" style="margin-top:8px"><div class="edit-lbl">eBay Description <button type="button" class="btn-sm" style="margin-left:8px;font-size:11px;padding:2px 8px" onclick="window.aiGenerateDesc?.('drawer')">✨ AI Generate</button></div><textarea class="edit-ta" id="d_ebay_desc" placeholder="Leave blank to auto-generate with AI when listing on eBay"></textarea></div>
+            <div class="edit-grp full" style="margin-top:6px"><div class="edit-lbl">Condition Notes <span style="font-size:10px;color:var(--muted)">(visible to buyers)</span></div><textarea class="edit-ta" id="d_cond_desc" rows="2" maxlength="1000" placeholder="e.g. Light scratches on back, missing original box"></textarea></div>
+          </div>
+          <!-- More Tab — additional eBay fields -->
+          <div class="ebay-tab-panel" id="ebayTabMore" style="display:none">
+            <div class="form-grid" style="margin-top:0">
+              <div class="edit-grp"><div class="edit-lbl">Material</div><input class="edit-inp" type="text" id="d_material" placeholder="e.g. Cotton, Leather" list="materialList"></div>
+              <div class="edit-grp"><div class="edit-lbl">MPN</div><input class="edit-inp" type="text" id="d_mpn" placeholder="Mfr Part Number"></div>
+              <div class="edit-grp"><div class="edit-lbl">Model</div><input class="edit-inp" type="text" id="d_model" placeholder="e.g. Air Max 90"></div>
+              <div class="edit-grp"><div class="edit-lbl">Style</div><input class="edit-inp" type="text" id="d_style" placeholder="e.g. Casual, Athletic"></div>
+              <div class="edit-grp"><div class="edit-lbl">Type / Pattern</div><input class="edit-inp" type="text" id="d_pattern" placeholder="e.g. Solid, Striped"></div>
+              <div class="edit-grp"><div class="edit-lbl">Size Type</div>
+                <select class="edit-inp" id="d_sizeType">
+                  <option value="">—</option><option value="Regular">Regular</option><option value="Plus">Plus</option>
+                  <option value="Petite">Petite</option><option value="Big">Big</option><option value="Tall">Tall</option>
+                  <option value="Big & Tall">Big & Tall</option><option value="Junior">Junior</option><option value="Husky">Husky</option>
+                </select>
+              </div>
+            </div>
+            <div class="edit-lbl" style="color:var(--muted);margin:12px 0 6px;font-size:10px;text-transform:uppercase;letter-spacing:0.5px">Apparel Details</div>
+            <div class="form-grid" style="margin-top:0">
+              <div class="edit-grp"><div class="edit-lbl">Fit</div>
+                <select class="edit-inp" id="d_fit">
+                  <option value="">—</option><option value="Regular">Regular</option><option value="Slim">Slim</option>
+                  <option value="Relaxed">Relaxed</option><option value="Loose">Loose</option><option value="Athletic">Athletic</option>
+                  <option value="Oversize">Oversize</option><option value="Custom">Custom</option>
+                </select>
+              </div>
+              <div class="edit-grp"><div class="edit-lbl">Closure</div>
+                <select class="edit-inp" id="d_closure">
+                  <option value="">—</option><option value="Zip">Zip</option><option value="Button">Button</option>
+                  <option value="Pull On">Pull On</option><option value="Snap">Snap</option><option value="Hook & Eye">Hook & Eye</option>
+                  <option value="Buckle">Buckle</option><option value="Velcro">Velcro</option><option value="Drawstring">Drawstring</option>
+                  <option value="Lace Up">Lace Up</option>
+                </select>
+              </div>
+              <div class="edit-grp"><div class="edit-lbl">Neckline</div>
+                <select class="edit-inp" id="d_neckline">
+                  <option value="">—</option><option value="Crew Neck">Crew Neck</option><option value="V-Neck">V-Neck</option>
+                  <option value="Round Neck">Round Neck</option><option value="Scoop Neck">Scoop Neck</option>
+                  <option value="Collared">Collared</option><option value="Hooded">Hooded</option><option value="Mock Neck">Mock Neck</option>
+                  <option value="Turtleneck">Turtleneck</option><option value="Henley">Henley</option><option value="Square Neck">Square Neck</option>
+                </select>
+              </div>
+              <div class="edit-grp"><div class="edit-lbl">Sleeve Length</div>
+                <select class="edit-inp" id="d_sleeveLength">
+                  <option value="">—</option><option value="Sleeveless">Sleeveless</option><option value="Short Sleeve">Short Sleeve</option>
+                  <option value="3/4 Sleeve">3/4 Sleeve</option><option value="Long Sleeve">Long Sleeve</option>
+                </select>
+              </div>
+              <div class="edit-grp"><div class="edit-lbl">Rise</div>
+                <select class="edit-inp" id="d_rise">
+                  <option value="">—</option><option value="Low Rise">Low Rise</option><option value="Mid Rise">Mid Rise</option>
+                  <option value="High Rise">High Rise</option>
+                </select>
+              </div>
+              <div class="edit-grp"><div class="edit-lbl">Inseam</div><input class="edit-inp" type="text" id="d_inseam" placeholder="e.g. 32"></div>
+              <div class="edit-grp"><div class="edit-lbl">Garment Care</div><input class="edit-inp" type="text" id="d_garmentCare" placeholder="e.g. Machine Wash"></div>
+              <div class="edit-grp"><div class="edit-lbl">Occasion</div>
+                <select class="edit-inp" id="d_occasion">
+                  <option value="">—</option><option value="Casual">Casual</option><option value="Formal">Formal</option>
+                  <option value="Athletic">Athletic</option><option value="Business">Business</option><option value="Party">Party</option>
+                  <option value="Outdoor">Outdoor</option><option value="Lounge">Lounge</option>
+                </select>
+              </div>
+            </div>
+            <div class="edit-lbl" style="color:var(--muted);margin:12px 0 6px;font-size:10px;text-transform:uppercase;letter-spacing:0.5px">Footwear</div>
+            <div class="form-grid" style="margin-top:0">
+              <div class="edit-grp"><div class="edit-lbl">US Shoe Size</div><input class="edit-inp" type="text" id="d_shoeSize" placeholder="e.g. 10, 8.5"></div>
+              <div class="edit-grp"><div class="edit-lbl">Shoe Width</div>
+                <select class="edit-inp" id="d_shoeWidth">
+                  <option value="">—</option><option value="Narrow">Narrow (AA)</option><option value="Standard">Standard (D)</option>
+                  <option value="Wide">Wide (EE)</option><option value="Extra Wide">Extra Wide (4E)</option>
+                </select>
+              </div>
+            </div>
+            <div class="edit-lbl" style="color:var(--muted);margin:12px 0 6px;font-size:10px;text-transform:uppercase;letter-spacing:0.5px">Other</div>
+            <div class="form-grid" style="margin-top:0">
+              <div class="edit-grp"><div class="edit-lbl">Season</div>
+                <select class="edit-inp" id="d_season">
+                  <option value="">—</option><option value="Spring">Spring</option><option value="Summer">Summer</option>
+                  <option value="Fall">Fall</option><option value="Winter">Winter</option><option value="All Seasons">All Seasons</option>
+                </select>
+              </div>
+              <div class="edit-grp"><div class="edit-lbl">Theme</div><input class="edit-inp" type="text" id="d_theme" placeholder="e.g. Classic, Retro, Y2K"></div>
+              <div class="edit-grp"><div class="edit-lbl">Vintage</div>
+                <select class="edit-inp" id="d_vintage">
+                  <option value="">—</option><option value="Yes">Yes</option><option value="No">No</option>
+                </select>
+              </div>
+              <div class="edit-grp"><div class="edit-lbl">Country of Manufacture</div><input class="edit-inp" type="text" id="d_countryMfg" placeholder="e.g. USA, China"></div>
+            </div>
           </div>
         </div>
-        <div class="edit-grp full"><div class="edit-lbl">eBay Description <button type="button" class="btn-sm" style="margin-left:8px;font-size:11px;padding:2px 8px" onclick="window.aiGenerateDesc?.('drawer')">✨ AI Generate</button></div><textarea class="edit-ta" id="d_ebay_desc" placeholder="Leave blank to auto-generate with AI when listing on eBay"></textarea></div>
         <div class="edit-grp full"><div class="edit-lbl">Notes</div><textarea class="edit-ta" id="d_notes"></textarea></div>
       </div>
       <!-- Fee Calculator -->

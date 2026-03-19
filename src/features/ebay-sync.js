@@ -751,10 +751,22 @@ function _buildAspects(item) {
   // Clothing extras
   if (item.inseam) aspects['Inseam'] = [item.inseam];
   if (item.garmentCare) aspects['Garment Care'] = [item.garmentCare];
+  if (item.fit) aspects['Fit'] = [item.fit];
+  if (item.closure) aspects['Closure'] = [item.closure];
+  if (item.neckline) aspects['Neckline'] = [item.neckline];
+  if (item.sleeveLength) aspects['Sleeve Length'] = [item.sleeveLength];
+  if (item.rise) aspects['Rise'] = [item.rise];
+  if (item.occasion) aspects['Occasion'] = [item.occasion];
 
   // Footwear-specific
   if (item.shoeSize) aspects['US Shoe Size'] = [item.shoeSize];
   if (item.shoeWidth) aspects['Shoe Width'] = [item.shoeWidth];
+
+  // Other
+  if (item.season) aspects['Season'] = [item.season];
+  if (item.theme) aspects['Theme'] = [item.theme];
+  if (item.vintage) aspects['Vintage'] = [item.vintage];
+  if (item.countryMfg) aspects['Country/Region of Manufacture'] = [item.countryMfg];
 
   // Book-specific aspects
   if (item.author) aspects['Author'] = [item.author];

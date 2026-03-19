@@ -146,6 +146,13 @@ export function openDrawer(id) {
   _drawerSnapshot = snapshotItem(item);
   // Refresh autocomplete suggestions for Source & Brand
   refreshAutocompleteLists().catch(() => {});
+  // Reset eBay tabs to Quick on open
+  const eqp = document.getElementById('ebayTabQuick');
+  const emp = document.getElementById('ebayTabMore');
+  if (eqp) eqp.style.display = '';
+  if (emp) emp.style.display = 'none';
+  const etabs = document.querySelectorAll('.ebay-tabs .ebay-tab');
+  etabs.forEach((t, i) => t.classList.toggle('active', i === 0));
   document.getElementById('dName').textContent=item.name;
   document.getElementById('dSku').textContent=item.sku?`SKU: ${item.sku}`:'No SKU';
   const {pu,m,roi}=calc(item);
@@ -161,7 +168,7 @@ export function openDrawer(id) {
     <div class="d-met"><div class="dm-lbl">ROI</div><div class="dm-val" style="color:var(--accent3)">${pct(roi)}</div></div>
     <div class="d-met"><div class="dm-lbl">Units Sold</div><div class="dm-val">${totSold}</div></div>
     <div class="d-met"><div class="dm-lbl">Total Revenue</div><div class="dm-val">${fmt(totRev)}</div></div>`;
-  const fields={d_name:'name',d_sku:'sku',d_upc:'upc',d_cat:'category',d_cost:'cost',d_price:'price',d_fees:'fees',d_ship:'ship',d_notes:'notes',d_url:'url',d_alert:'lowAlert',d_source:'source',d_brand:'brand',d_color:'color',d_size:'size',d_sizeType:'sizeType',d_department:'department',d_material:'material',d_mpn:'mpn',d_model:'model',d_style:'style',d_pattern:'pattern',d_ebay_desc:'ebayDesc'};
+  const fields={d_name:'name',d_sku:'sku',d_upc:'upc',d_cat:'category',d_cost:'cost',d_price:'price',d_fees:'fees',d_ship:'ship',d_notes:'notes',d_url:'url',d_alert:'lowAlert',d_source:'source',d_brand:'brand',d_color:'color',d_size:'size',d_sizeType:'sizeType',d_department:'department',d_material:'material',d_mpn:'mpn',d_model:'model',d_style:'style',d_pattern:'pattern',d_ebay_desc:'ebayDesc',d_cond_desc:'conditionDesc',d_fit:'fit',d_closure:'closure',d_neckline:'neckline',d_sleeveLength:'sleeveLength',d_rise:'rise',d_inseam:'inseam',d_garmentCare:'garmentCare',d_occasion:'occasion',d_shoeSize:'shoeSize',d_shoeWidth:'shoeWidth',d_season:'season',d_theme:'theme',d_vintage:'vintage',d_countryMfg:'countryMfg'};
   for(const[eid,key]of Object.entries(fields)){const el=document.getElementById(eid);if(el)el.value=item[key]||'';}
   // Populate subcategory text input and datalist suggestions
   const subcatTxt = document.getElementById('d_subcat_txt');
@@ -405,6 +412,24 @@ export async function saveDrawer(){
   item.sizeType=(document.getElementById('d_sizeType')?.value||'').trim();
   item.department=(document.getElementById('d_department')?.value||'').trim();
   item.ebayDesc=(document.getElementById('d_ebay_desc')?.value||'').trim();
+  item.conditionDesc=(document.getElementById('d_cond_desc')?.value||'').trim();
+  // More tab — apparel fields
+  item.fit      =(document.getElementById('d_fit')?.value||'').trim();
+  item.closure  =(document.getElementById('d_closure')?.value||'').trim();
+  item.neckline =(document.getElementById('d_neckline')?.value||'').trim();
+  item.sleeveLength=(document.getElementById('d_sleeveLength')?.value||'').trim();
+  item.rise     =(document.getElementById('d_rise')?.value||'').trim();
+  item.inseam   =(document.getElementById('d_inseam')?.value||'').trim();
+  item.garmentCare=(document.getElementById('d_garmentCare')?.value||'').trim();
+  item.occasion =(document.getElementById('d_occasion')?.value||'').trim();
+  // More tab — footwear
+  item.shoeSize =(document.getElementById('d_shoeSize')?.value||'').trim();
+  item.shoeWidth=(document.getElementById('d_shoeWidth')?.value||'').trim();
+  // More tab — other
+  item.season   =(document.getElementById('d_season')?.value||'').trim();
+  item.theme    =(document.getElementById('d_theme')?.value||'').trim();
+  item.vintage  =(document.getElementById('d_vintage')?.value||'').trim();
+  item.countryMfg=(document.getElementById('d_countryMfg')?.value||'').trim();
   Object.assign(item, getDimsFromForm('d'));
   if (isBookCat(item.category)) {
     Object.assign(item, getBookFields('d'));

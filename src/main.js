@@ -970,7 +970,13 @@ function navTo(viewName, btnEl) {
   closeAllNavGroups();
   switchView(viewName, null);
 }
-Object.assign(window, { toggleNavGroup, closeAllNavGroups, navTo });
+function switchEbayTab(tab, btnEl) {
+  document.getElementById('ebayTabQuick').style.display = tab === 'quick' ? '' : 'none';
+  document.getElementById('ebayTabMore').style.display = tab === 'more' ? '' : 'none';
+  btnEl.closest('.ebay-tabs').querySelectorAll('.ebay-tab').forEach(b => b.classList.remove('active'));
+  btnEl.classList.add('active');
+}
+Object.assign(window, { toggleNavGroup, closeAllNavGroups, navTo, switchEbayTab });
 
 function goToBreakdown() {
   switchView('breakdown', null);
