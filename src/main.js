@@ -928,11 +928,25 @@ function toggleNavGroup(groupName) {
     group.classList.add('open');
     const btn = group.querySelector('.nav-group-btn');
     if (btn) btn.setAttribute('aria-expanded', 'true');
+
+    // On mobile, .header-right has overflow:auto which clips the absolute menu.
+    // Reposition as fixed so it escapes the overflow container.
+    const menu = group.querySelector('.nav-group-menu');
+    if (menu && window.innerWidth <= 768) {
+      const rect = btn.getBoundingClientRect();
+      menu.style.position = 'fixed';
+      menu.style.top = (rect.bottom + 4) + 'px';
+      menu.style.right = (window.innerWidth - rect.right) + 'px';
+      menu.style.left = 'auto';
+    }
+
     // Close on outside tap/click — use pointerdown for reliable iOS PWA support
     const close = (e) => {
       if (!group.contains(e.target)) {
         group.classList.remove('open');
         if (btn) btn.setAttribute('aria-expanded', 'false');
+        // Reset fixed positioning
+        if (menu) { menu.style.position = ''; menu.style.top = ''; menu.style.right = ''; }
         document.removeEventListener('pointerdown', close);
       }
     };
@@ -947,6 +961,9 @@ function closeAllNavGroups() {
     g.classList.remove('open');
     const btn = g.querySelector('.nav-group-btn');
     if (btn) btn.setAttribute('aria-expanded', 'false');
+    // Reset any fixed positioning applied for mobile
+    const menu = g.querySelector('.nav-group-menu');
+    if (menu) { menu.style.position = ''; menu.style.top = ''; menu.style.right = ''; }
   });
 }
 function navTo(viewName, btnEl) {
