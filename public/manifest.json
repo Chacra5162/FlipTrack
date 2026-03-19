@@ -1,7 +1,7 @@
 {
   "name": "FlipTrack — Reseller Dashboard",
   "short_name": "FlipTrack",
-  "description": "Track inventory, sales, expenses, and shipping for your reselling business.",
+  "description": "Track inventory, sales, expenses, and profit across eBay, Poshmark, Mercari & 30+ platforms. AI listings, auto-delist, sourcing analytics.",
   "start_url": "./app.html",
   "display": "standalone",
   "background_color": "#0a0a0f",

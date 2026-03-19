@@ -2,7 +2,7 @@
                         FLIPTRACK USER GUIDE
               The all-in-one reseller dashboard for tracking
           inventory, sales, profits, and cross-platform listings.
-                      Version 1.9 -- March 2026
+                      Version 2.1 -- March 2026
 ================================================================================
 
 
@@ -55,7 +55,7 @@ TABLE OF CONTENTS
   44. Listing Scores
   45. Margin Alerts
   46. AI-Powered Features
-  47. What's New in Version 2.0
+  47. What's New in Version 2.1
 
 
 ================================================================================
@@ -377,6 +377,23 @@ Click any price in the inventory table to edit it inline -- no need to
 open the full editor. Use the +/- buttons next to the quantity field for
 quick stock adjustments.
 
+EBAY QUANTITY SYNC
+--------------------------------------------------------------------------------
+
+When you adjust stock using the +/- stepper buttons, the new quantity is
+automatically synced to your eBay listing. Rapid clicks are debounced
+(batched) so multiple adjustments result in a single API call. A toast
+confirmation appears when the sync completes.
+
+PLATFORM LISTING DATES
+--------------------------------------------------------------------------------
+
+The "Days listed" metric now uses the actual marketplace listing date
+(the date an item was listed on its first platform) rather than the date
+it was added to FlipTrack. If no platform listing dates exist, FlipTrack
+falls back to the item's added date. This calculation is consistent
+across the inventory page and the Crosslist Status Matrix.
+
 
 ================================================================================
 6. ADDING ITEMS
@@ -443,6 +460,24 @@ This is your full item management panel with everything in one place.
 
   - Price History
     View a chart of all price changes over time, including sale prices.
+
+TABBED EBAY LISTING FIELDS
+--------------------------------------------------------------------------------
+
+The item drawer organizes eBay listing details into two tabs so you can
+quickly fill in the essentials or expand to full specifics.
+
+  Quick Tab (most common fields):
+    Brand, Color, Size, Department, eBay Description (with AI Generate
+    button), and Condition Notes.
+
+  More Tab (extended attributes):
+    Material, MPN, Model, Style, Pattern, Size Type, plus category-
+    specific fields:
+      - Apparel: Fit, Closure, Neckline, Sleeve Length, Rise, Inseam,
+        Garment Care, Occasion
+      - Footwear: US Shoe Size, Shoe Width
+      - Other: Season, Theme, Vintage, Country of Manufacture
 
 TIP: Changes auto-save when you close the drawer. Use the "Duplicate"
 button to quickly create similar listings.
@@ -699,6 +734,15 @@ view.
 
   Sale detected (eBay/Etsy sync) -> Qty decremented -> Qty = 0?
     -> Auto-delist other platforms
+
+For API-connected platforms, delisting is automatic:
+  - eBay: The listing is ended via the eBay API.
+  - Etsy: The listing is deactivated via the Etsy API.
+
+For non-API platforms (Depop, Poshmark, Mercari, etc.), FlipTrack shows
+a notification and toast reminding you to manually delist the item on
+those platforms. This ensures nothing slips through the cracks even
+when direct API control is not available.
 
 ETSY INTEGRATION
 --------------------------------------------------------------------------------
@@ -1215,8 +1259,8 @@ details from natural speech.
     Works in Chrome, Edge, and Safari. Falls back gracefully with a
     "Voice not supported" message on unsupported browsers.
 
-ACCESS: Open from the Tools menu in the header (Voice Add). Unlimited
-tier only.
+ACCESS: Open from the Tools menu in the header (Voice Add), or from the
+More menu in the bottom navigation bar on mobile. Unlimited tier only.
 
 
 ================================================================================
@@ -1717,6 +1761,15 @@ thrift stores, estate sales, and online sources deliver the best ROI.
     Average cost per item by source and overall, helping you set smarter
     sourcing budgets.
 
+SOURCE DRILLDOWN
+--------------------------------------------------------------------------------
+
+Click any source name in the performance table to drill down into all
+items from that source. The drilldown view shows each item's name,
+category, cost, price, quantity, sold status, and profit. Click any
+item row to open its drawer for full editing. Use the Back button to
+return to the main Sourcing Analytics view.
+
 TIP: Pair Sourcing Analytics with Inventory Health to see not just where
 you source cheaply, but where sourced items actually sell fastest.
 
@@ -1922,7 +1975,10 @@ alert may not reflect the true margin.
 
   - AI Listing Generator
     Generate platform-optimized product descriptions using AI. Adapts
-    tone and formatting for eBay, Etsy, Amazon, and more.
+    tone and formatting for eBay, Etsy, Amazon, and more. The AI only
+    uses provided item details and will not fabricate specs or
+    measurements. Temperature has been lowered for more accurate, less
+    creative output while still producing varied, engaging listings.
 
   - AI Identification
     Snap a photo and let AI identify the product -- brand, category,
@@ -1938,8 +1994,55 @@ alert may not reflect the true margin.
 
 
 ================================================================================
-47. WHAT'S NEW IN VERSION 2.0
+47. WHAT'S NEW IN VERSION 2.1
 ================================================================================
+
+Version 2.1 adds deeper eBay integration, smarter inventory tracking,
+and quality-of-life improvements across the board.
+
+NEW FEATURES (V2.1)
+--------------------------------------------------------------------------------
+
+  - Tabbed eBay Listing Fields (Quick/More)
+    The item drawer now organizes eBay listing fields into two tabs.
+    Quick tab covers the essentials (Brand, Color, Size, Department,
+    eBay Description with AI Generate, Condition Notes). More tab adds
+    extended attributes like Material, MPN, Model, Style, Pattern, Size
+    Type, plus category-specific fields for apparel, footwear, and more.
+
+  - Auto-Delist on Sale (Non-API Platforms)
+    When qty hits 0 after a sale, eBay listings are auto-ended and Etsy
+    listings are deactivated via API. For non-API platforms (Depop,
+    Poshmark, Mercari, etc.), a notification and toast remind you to
+    manually delist, preventing overselling.
+
+  - eBay Quantity Sync
+    Stock stepper (+/-) changes automatically sync to eBay. Rapid clicks
+    are debounced into a single API call. Toast confirmation when sync
+    completes.
+
+  - Source Drilldown
+    Click any source name in Sourcing Analytics to see all items from
+    that source with name, category, cost, price, qty, sold status, and
+    profit. Click an item to open its drawer. Back button returns to
+    main analytics.
+
+  - Improved AI Descriptions
+    AI Listing Generator now only uses provided item details and will not
+    fabricate specs. Temperature lowered for more accurate output while
+    still producing varied, platform-optimized listings.
+
+  - Platform Listing Dates
+    "Days listed" now uses the actual marketplace listing date instead of
+    the item added date. Falls back to added date only if no listing
+    dates exist. Consistent across inventory page and crosslist matrix.
+
+  - Voice Add in Mobile Menu
+    Voice Add is now accessible from the bottom nav More menu on mobile,
+    in addition to the header Tools dropdown.
+
+PREVIOUS: VERSION 2.0
+--------------------------------------------------------------------------------
 
 Version 2.0 is a major release focused on automation, platform
 integrations, and mobile experience. Bundle sales, automatic eBay return
