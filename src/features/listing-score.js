@@ -4,7 +4,7 @@
  * completeness, keyword density, and pricing. Suggests improvements.
  */
 
-import { inv, getInvItem } from '../data/store.js';
+import { inv, getInvItem, getSalesForItem } from '../data/store.js';
 import { fmt, escHtml, escAttr } from '../utils/format.js';
 
 // ── SCORING CRITERIA ──────────────────────────────────────────────────────
@@ -119,7 +119,7 @@ function _countPhotos(item) {
 // ── COMPUTE AGGREGATE SCORES ──────────────────────────────────────────────
 
 export function computeListingScores() {
-  const unsold = inv.filter(i => !i.sold && !i.deleted);
+  const unsold = inv.filter(i => !i.deleted && (i.qty || 0) > 0);
   const scored = unsold.map(item => ({
     id: item.id,
     name: item.name || 'Unnamed',
