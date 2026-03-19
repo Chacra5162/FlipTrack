@@ -4,7 +4,7 @@
  * haul performance over time, and source comparison metrics.
  */
 
-import { inv, sales, getInvItem } from '../data/store.js';
+import { inv, sales, getInvItem, getSalesForItem } from '../data/store.js';
 import { fmt, pct, ds, escHtml, escAttr, daysSince } from '../utils/format.js';
 
 const _daysSince = daysSince;
@@ -13,9 +13,6 @@ const _daysSince = daysSince;
 
 export function computeSourcingAnalytics() {
   const sources = {};
-  const allSales = sales.filter(s => s.price > 0);
-  const saleMap = {};
-  for (const s of allSales) saleMap[s.itemId] = s;
 
   for (const item of inv) {
     if (item.deleted) continue;
@@ -27,17 +24,22 @@ export function computeSourcingAnalytics() {
     };
     const s = sources[src];
     s.items++;
-    s.totalCost += (item.cost || 0);
+    s.totalCost += (item.cost || 0) * (item.qty || 1);
     const cat = item.category || 'Other';
     s.categories[cat] = (s.categories[cat] || 0) + 1;
 
-    const sale = saleMap[item.id];
-    if (item.sold && sale) {
-      s.sold++;
-      s.totalRevenue += sale.price || 0;
-      s.totalProfit += (sale.price || 0) - (item.cost || 0) - (item.fees || 0) - (item.ship || 0);
+    // Use actual sales records instead of item.sold flag
+    const itemSales = getSalesForItem(item.id);
+    const soldQty = itemSales.reduce((sum, sl) => sum + (sl.qty || 1), 0);
+    if (soldQty > 0) {
+      s.sold += soldQty;
+      const revenue = itemSales.reduce((sum, sl) => sum + (sl.price || 0) * (sl.qty || 1), 0);
+      const fees = itemSales.reduce((sum, sl) => sum + (sl.fees || 0), 0);
+      const shipping = itemSales.reduce((sum, sl) => sum + (sl.ship || 0), 0);
+      s.totalRevenue += revenue;
+      s.totalProfit += revenue - (item.cost || 0) * soldQty - fees - shipping;
       s.totalDaysToSell += _daysSince(item.added);
-    } else if (!item.sold) {
+    } else {
       s.unsold++;
     }
   }
