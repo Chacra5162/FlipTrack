@@ -35,6 +35,15 @@ let _filterCache = { key: null, items: null };
 
 /** Calculate days since item was listed */
 export function daysListed(item) {
+  // Use earliest platform listing date if available, otherwise fall back to added date
+  const dates = Object.values(item.platformListingDates || {});
+  if (dates.length) {
+    const earliest = dates.reduce((min, d) => {
+      const t = new Date(d).getTime();
+      return t < min ? t : min;
+    }, Infinity);
+    if (isFinite(earliest)) return Math.floor((Date.now() - earliest) / 86400000);
+  }
   return daysSince(item.added);
 }
 
