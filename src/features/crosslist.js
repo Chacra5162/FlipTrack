@@ -4,7 +4,7 @@
  * expired/expiring listing detection, and listing health scoring.
  */
 
-import { localDate } from '../utils/format.js';
+import { localDate, daysListed } from '../utils/format.js';
 import { inv, save, refresh, markDirty, getInvItem } from '../data/store.js';
 import { toast } from '../utils/dom.js';
 import { getPlatforms } from './platforms.js';
@@ -410,8 +410,7 @@ export function bulkPriceAdjust(opts) {
       if (!plats.includes(platform)) continue;
     }
     if (minDaysListed) {
-      const days = Math.floor((now - new Date(item.added || now).getTime()) / 86400000);
-      if (days < minDaysListed) continue;
+      if (daysListed(item) < minDaysListed) continue;
     }
 
     let newPrice = item.price || 0;

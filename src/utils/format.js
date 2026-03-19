@@ -28,6 +28,19 @@ export const escAttr = s => String(s || '').replace(/&/g,'&amp;').replace(/'/g,'
 // Days since a date string (or 0 if falsy) — shared utility for aging/stale calculations
 export const daysSince = d => d ? Math.floor((Date.now() - new Date(d).getTime()) / 86400000) : 0;
 
+// Days listed on a marketplace — uses earliest platformListingDates, falls back to item.added
+export function daysListed(item) {
+  const dates = Object.values(item.platformListingDates || {});
+  if (dates.length) {
+    const earliest = dates.reduce((min, d) => {
+      const t = new Date(d).getTime();
+      return t < min ? t : min;
+    }, Infinity);
+    if (isFinite(earliest)) return Math.floor((Date.now() - earliest) / 86400000);
+  }
+  return daysSince(item.added);
+}
+
 // Debounce utility
 export const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 

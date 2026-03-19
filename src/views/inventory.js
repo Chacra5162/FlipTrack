@@ -34,20 +34,9 @@ let _chipsBuiltForData = null;
 let _filterCache = { key: null, items: null };
 
 /** Calculate days since item was listed */
-export function daysListed(item) {
-  // Use earliest platform listing date if available, otherwise fall back to added date
-  const dates = Object.values(item.platformListingDates || {});
-  if (dates.length) {
-    const earliest = dates.reduce((min, d) => {
-      const t = new Date(d).getTime();
-      return t < min ? t : min;
-    }, Infinity);
-    if (isFinite(earliest)) return Math.floor((Date.now() - earliest) / 86400000);
-  }
-  return daysSince(item.added);
-}
+export { daysListed };
 
-import { fmt, pct, escHtml, escAttr, debounce, uid, localDate, daysSince} from '../utils/format.js';
+import { fmt, pct, escHtml, escAttr, debounce, uid, localDate, daysSince, daysListed} from '../utils/format.js';
 import { PLATFORMS, PLATFORM_GROUPS, platCls } from '../config/platforms.js';
 import { SUBCATS, SUBSUBCATS } from '../config/categories.js';
 import { toast, appConfirm } from '../utils/dom.js';
