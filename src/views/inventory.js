@@ -505,6 +505,15 @@ function _patchStockRow(id) {
   }
 }
 
+const _debouncedEbayQtySync = debounce((itemId) => {
+  const it = getInvItem(itemId);
+  if (it?.ebayItemId && isEBayConnected()) {
+    pushEBayPrice(itemId).then(r => {
+      if (r.success) toast('eBay qty synced ✓');
+    }).catch(e => console.warn('[eBay] Qty sync:', e.message));
+  }
+}, 1500);
+
 export function adjStock(id, d) {
   const item=getInvItem(id); if(!item) return;
   item.qty=Math.max(0,(item.qty||0)+d);
@@ -512,6 +521,8 @@ export function adjStock(id, d) {
   _debouncedStockSave(); _patchStockRow(id);
   if(item.bulk&&item.qty===0) toast('⚠ Out of stock!',true);
   else if(item.bulk&&item.qty<=(item.lowAlert||2)) toast(`⚠ Low: ${item.qty} left`,true);
+  // Sync quantity to eBay (debounced so rapid clicks don't spam API)
+  _debouncedEbayQtySync(id);
 }
 
 // ── DRAG & DROP ───────────────────────────────────────────────────────────────
