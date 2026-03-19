@@ -46,6 +46,8 @@ header {
   gap: 6px;
   user-select: none;
   white-space: nowrap;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 .nav-group-btn:hover { color: var(--text); border-color: var(--border); background: rgba(255,255,255,0.03); }
 .nav-group.has-active > .nav-group-btn { color: var(--accent); border-color: rgba(87,200,255,0.3); background: rgba(87,200,255,0.06); }

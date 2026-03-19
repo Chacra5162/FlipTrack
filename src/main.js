@@ -928,14 +928,18 @@ function toggleNavGroup(groupName) {
     group.classList.add('open');
     const btn = group.querySelector('.nav-group-btn');
     if (btn) btn.setAttribute('aria-expanded', 'true');
-    // Close on outside click
+    // Close on outside tap/click — use pointerdown for reliable iOS PWA support
     const close = (e) => {
       if (!group.contains(e.target)) {
         group.classList.remove('open');
-        document.removeEventListener('click', close);
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+        document.removeEventListener('pointerdown', close);
       }
     };
-    setTimeout(() => document.addEventListener('click', close), 0);
+    // Use rAF to skip the current event cycle (setTimeout(0) races on iOS PWA)
+    requestAnimationFrame(() => {
+      document.addEventListener('pointerdown', close);
+    });
   }
 }
 function closeAllNavGroups() {

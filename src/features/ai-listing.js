@@ -108,7 +108,7 @@ export async function generateListing(item, opts = {}) {
       body: {
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
-        temperature: 0.95,
+        temperature: 0.7,
         messages: [{ role: 'user', content: prompt }],
       },
     });
@@ -236,6 +236,8 @@ OPENING APPROACH: ${hookDir}
 CLOSING APPROACH: ${ctaDir}
 
 IMPORTANT: Write a UNIQUE, creative description. Avoid generic phrases like "This [item] is perfect for…" or "Look no further!" — find a fresh angle every time.
+
+CRITICAL: ONLY describe what is explicitly stated in the ITEM DETAILS below. Do NOT invent, assume, or embellish any details about the item — no made-up materials, features, history, measurements, or brand facts. If information is missing, simply omit it rather than guessing.
 
 ITEM DETAILS:
 ${details.join('\n')}
