@@ -58,9 +58,13 @@ const PLATFORM_LINKS = {
  * @param {Object} item - Inventory item object
  * @returns {string} URL to open
  */
+function _isSafeUrl(url) {
+  try { const u = new URL(url); return u.protocol === 'https:' || u.protocol === 'http:'; } catch { return false; }
+}
+
 export function generateListingLink(platform, item) {
-  // If item already has a URL for this platform, prefer that
-  if (item.url && getPlatforms(item).length === 1) return item.url;
+  // If item already has a URL for this platform, prefer that (validate scheme)
+  if (item.url && getPlatforms(item).length === 1 && _isSafeUrl(item.url)) return item.url;
   const builder = PLATFORM_LINKS[platform];
   if (builder) return builder(item);
   // Fallback: search for the item name on the platform

@@ -335,8 +335,8 @@ export function recSale() {
   if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
   const reenableBtn = () => { if (btn) { btn.disabled = false; btn.textContent = 'Record Sale'; } };
 
-  // Bundle mode: process multiple items
-  if (_bundleMode && _bundleItems.size > 1) {
+  // Bundle mode: process items
+  if (_bundleMode && _bundleItems.size >= 1) {
     return _recBundleSale(reenableBtn);
   }
 
@@ -532,8 +532,8 @@ export function renderSalesView() {
   let rev = 0, profit = 0;
   for (const s of filtered) {
     const it = getInvItem(s.itemId);
-    rev += (s.price || 0) * (s.qty || 0);
-    profit += (s.price || 0) * (s.qty || 0) - (it ? (it.cost || 0) * (s.qty || 0) : 0) - (s.fees || 0) - (s.ship || 0);
+    rev += (s.price || 0) * (s.qty || 1);
+    profit += (s.price || 0) * (s.qty || 1) - (it ? (it.cost || 0) * (s.qty || 1) : 0) - (s.fees || 0) - (s.ship || 0);
   }
   document.getElementById('salesTotalLbl').textContent =
     `${filtered.length} sales · ${fmt(rev)} revenue · ${fmt(profit)} profit`;

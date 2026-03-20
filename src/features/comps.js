@@ -209,8 +209,12 @@ function _renderCompItem(c) {
       + '<div class="comps-thumb comps-thumb-empty" style="display:none">📦</div>'
     : '<div class="comps-thumb comps-thumb-empty">📦</div>';
 
-  const link = c.itemUrl
-    ? ` onclick="window.open('${escAttr(c.itemUrl)}','_blank');" style="cursor:pointer"`
+  const safeUrl = (() => {
+    if (!c.itemUrl) return '';
+    try { const u = new URL(c.itemUrl); return (u.protocol === 'https:' || u.protocol === 'http:') ? c.itemUrl : ''; } catch { return ''; }
+  })();
+  const link = safeUrl
+    ? ` onclick="window.open('${escAttr(safeUrl)}','_blank');" style="cursor:pointer"`
     : '';
 
   const shipping = c.shippingCost > 0 ? ` +${fmt(c.shippingCost)} ship` : '';

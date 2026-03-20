@@ -32,8 +32,10 @@ export async function uploadImageToStorage(dataUrl, itemId, slotIdx) {
   if (!_sb || !_currentUser) throw new Error('Not authenticated');
 
   const blob = dataUrlToBlob(dataUrl);
-  const userId = _currentUser.id;
+  const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
   const mime = blob.type || 'image/jpeg';
+  if (!ALLOWED_MIME.includes(mime)) throw new Error('Unsupported image type: ' + mime);
+  const userId = _currentUser.id;
   const ext = mime.split('/')[1] || 'jpg';
   const filename = `${itemId}_${slotIdx}_${Date.now()}.${ext}`;
   const path = `${userId}/${filename}`;

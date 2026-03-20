@@ -15,6 +15,14 @@ let _taxYear = new Date().getFullYear();
 let _selectedQuarter = null; // null = all, 1-4 = specific quarter
 let _showScheduleC = false;
 let _showYearComparison = false;
+let _filingStatus = 'single'; // 'single' or 'married'
+
+const STANDARD_DEDUCTION = { single: 15000, married: 30000 };
+
+export function setFilingStatus(status) {
+  _filingStatus = status;
+  if (typeof window.renderTaxCenter === 'function') window.renderTaxCenter();
+}
 
 // ── TAX CALCULATIONS ───────────────────────────────────────────────────────
 
@@ -38,7 +46,7 @@ function calcSETax(netIncome) {
 function calcIncomeTax(netIncome) {
   if (netIncome <= 0) return 0;
   const seTax = calcSETax(netIncome);
-  const taxableIncome = Math.max(0, netIncome - seTax / 2 - 15000);
+  const taxableIncome = Math.max(0, netIncome - seTax / 2 - (STANDARD_DEDUCTION[_filingStatus] || 15000));
   let tax = 0;
   for (const bracket of INCOME_TAX_BRACKETS_2025) {
     if (taxableIncome <= bracket.min) break;
@@ -367,6 +375,10 @@ export async function renderTaxCenter() {
         <option value="2024" ${_taxYear === 2024 ? 'selected' : ''}>Tax Year 2024</option>
         <option value="2025" ${_taxYear === 2025 ? 'selected' : ''}>Tax Year 2025</option>
         <option value="2026" ${_taxYear === 2026 ? 'selected' : ''}>Tax Year 2026</option>
+      </select>
+      <select onchange="setFilingStatus(this.value)" style="padding:6px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:3px;font-family:'DM Mono',monospace;font-size:12px">
+        <option value="single" ${_filingStatus === 'single' ? 'selected' : ''}>Single</option>
+        <option value="married" ${_filingStatus === 'married' ? 'selected' : ''}>Married Filing Jointly</option>
       </select>
       <button onclick="taxToggleScheduleC()" class="btn-secondary" style="padding:6px 12px;background:${_showScheduleC ? 'var(--accent2)' : 'var(--surface2)'};border:1px solid var(--border);color:white;border-radius:3px;cursor:pointer;font-weight:600;font-family:Syne,sans-serif;font-size:12px">${_showScheduleC ? 'Hide' : 'Show'} Schedule C</button>
       <button onclick="taxToggleYearComparison()" class="btn-secondary" style="padding:6px 12px;background:${_showYearComparison ? 'var(--accent2)' : 'var(--surface2)'};border:1px solid var(--border);color:white;border-radius:3px;cursor:pointer;font-weight:600;font-family:Syne,sans-serif;font-size:12px">${_showYearComparison ? 'Hide' : 'Show'} Year Comparison</button>

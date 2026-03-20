@@ -204,7 +204,7 @@ import { generateHaulReceipt, downloadHaulReceipt, copyHaulReceipt } from './fea
 // ── Phase 4: Tax & Bookkeeping ───────────────────────────────────────────────
 import {
   renderTaxCenter, taxSetYear, taxSetQuarter, taxToggleScheduleC, taxExportCSV,
-  taxToggleYearComparison
+  taxToggleYearComparison, setFilingStatus
 } from './views/tax-center.js';
 import {
   initMileageLog, mileAddEntry, mileDeleteEntry,
@@ -619,7 +619,7 @@ Object.assign(window, {
 // Phase 4: Tax
 Object.assign(window, {
   renderTaxCenter, taxSetYear, taxSetQuarter, taxToggleScheduleC, taxExportCSV,
-  taxToggleYearComparison,
+  taxToggleYearComparison, setFilingStatus,
   mileAddEntry, mileDeleteEntry
 });
 

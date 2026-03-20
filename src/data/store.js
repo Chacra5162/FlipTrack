@@ -40,6 +40,7 @@ export function getDirtyItems() {
     inv: [..._dirtyInv].map(id => _invIndex[id]).filter(Boolean),
     sales: [..._dirtySales].map(id => _salesIndex[id]).filter(Boolean),
     expenses: [..._dirtyExp].map(id => _expIndex[id]).filter(Boolean),
+    supplies: [..._dirtySupplies].map(id => supplies.find(s => s.id === id)).filter(Boolean),
     deleted: {
       ft_inventory: [..._deletedIds.ft_inventory],
       ft_sales: [..._deletedIds.ft_sales],

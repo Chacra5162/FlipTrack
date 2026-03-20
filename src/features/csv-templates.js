@@ -136,8 +136,11 @@ function conditionToEBay(cond) {
   return map[cond] || 3000;
 }
 
+/** Neutralize spreadsheet formula injection — prefix cells starting with =, +, -, @ */
+const _sanitizeCell = v => { const s = String(v); return /^[=+\-@]/.test(s) ? "'" + s : s; };
+
 function escCSV(val) {
-  const str = String(val ?? '');
+  const str = _sanitizeCell(String(val ?? ''));
   if (str.includes(',') || str.includes('"') || str.includes('\n')) {
     return '"' + str.replace(/"/g, '""') + '"';
   }

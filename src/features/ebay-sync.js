@@ -96,6 +96,7 @@ export function startEBaySyncInterval() {
 
 export function stopEBaySyncInterval() {
   if (_syncInterval) { clearInterval(_syncInterval); _syncInterval = null; }
+  if (_returnCheckInterval) { clearInterval(_returnCheckInterval); _returnCheckInterval = null; }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -195,7 +196,7 @@ export async function pullEBayListings() {
     );
     for (const item of activeEbayItems) {
       if (!seenSkus.has(item.ebayItemId)) {
-        console.log(`[eBay] Listing ended externally: "${item.name}" (SKU: ${item.ebayItemId})`);
+        console.warn(`[eBay] Listing ended externally: "${item.name}" (SKU: ${item.ebayItemId})`);
         markPlatformStatus(item.id, 'eBay', 'ended');
         markDirty('inv', item.id);
         updated++;
@@ -504,7 +505,7 @@ async function _syncEBayPrices() {
         const localPrice = item.price || 0;
         // Only update if there's a meaningful difference (>1 cent)
         if (Math.abs(ebayPrice - localPrice) >= 0.01) {
-          console.log(`[eBay] Price sync: "${item.name}" $${localPrice.toFixed(2)} → $${ebayPrice.toFixed(2)} (from eBay)`);
+          console.warn(`[eBay] Price sync: "${item.name}" $${localPrice.toFixed(2)} → $${ebayPrice.toFixed(2)} (from eBay)`);
           item.price = ebayPrice;
           logPriceChange(item.id, ebayPrice, 'ebay-sync');
           markDirty('inv', item.id);
@@ -514,7 +515,7 @@ async function _syncEBayPrices() {
     }
 
     if (updated > 0) {
-      console.log(`[eBay] Synced ${updated} price(s) from eBay`);
+      console.warn(`[eBay] Synced ${updated} price(s) from eBay`);
     }
   } catch (e) {
     console.warn('[eBay] Price sync error:', e.message);

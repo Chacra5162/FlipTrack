@@ -51,7 +51,7 @@ export function calcInventoryTurnRate(inv, sales, expenses) {
   }, 0);
 
   const avgInventoryValue = inv.length > 0
-    ? inv.reduce((sum, item) => sum + ((item.cost || 0) * (item.qty || 0)), 0) / inv.length
+    ? inv.reduce((sum, item) => sum + ((item.cost || 0) * (item.qty || 0)), 0)
     : 0;
 
   const turnoverRate = avgInventoryValue > 0 ? cogs / avgInventoryValue : 0;
@@ -75,7 +75,8 @@ export function calcInventoryTurnRate(inv, sales, expenses) {
 export function calcCashFlowProjection(inv, sales, expenses) {
   const currentInvested = inv.reduce((sum, item) => sum + ((item.cost || 0) * (item.qty || 0)), 0);
   const currentRevenue = sales.reduce((sum, sale) => sum + ((sale.price || 0) * (sale.qty || 1)), 0);
-  const currentProfit = currentRevenue - (expenses.total || 0);
+  const totalExpenses = Array.isArray(expenses) ? expenses.reduce((a, e) => a + (e.amount || 0), 0) : 0;
+  const currentProfit = currentRevenue - totalExpenses;
 
   const firstSaleDate = sales.reduce((min, s) => { const d = new Date(s.date); return d < min ? d : min; }, new Date());
   const dailyNet = sales.length > 0 ? currentProfit / Math.max(1, Math.floor((new Date() - firstSaleDate) / (1000 * 60 * 60 * 24))) : 0;
@@ -339,7 +340,7 @@ export function calcRevenueForecasts(sales, daysAhead = 30) {
 export function calcBreakEvenAnalysis(inv, sales, expenses) {
   const im = _invMap(inv);
   const totalInvested = inv.reduce((sum, item) => sum + ((item.cost || 0) * (item.qty || 0)), 0);
-  const totalExpenses = expenses.total || 0;
+  const totalExpenses = Array.isArray(expenses) ? expenses.reduce((a, e) => a + (e.amount || 0), 0) : 0;
   const totalRequired = totalInvested + totalExpenses;
 
   const unitsSold = sales.reduce((sum, sale) => sum + (sale.qty || 1), 0);

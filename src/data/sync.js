@@ -73,8 +73,8 @@ export async function pushToCloud() {
   // If offline, queue mutations for later replay
   // Clear dirty tracking here since items are safely queued for offline replay
   if (!navigator.onLine) {
-    await _queueDirtyItems();
-    clearDirtyTracking();
+    const queued = await _queueDirtyItems();
+    if (queued) clearDirtyTracking();
     return;
   }
 
@@ -124,6 +124,19 @@ export async function pushToCloud() {
       }
     }
 
+    // ── Push changed supply rows ──
+    if (dirty.supplies && dirty.supplies.length) {
+      const rows = dirty.supplies.map(s => ({
+        id: s.id, account_id: accountId, data: s, updated_at: new Date().toISOString()
+      }));
+      try {
+        const { error } = await _sb.from('ft_supplies').upsert(rows, { onConflict: 'id' });
+        if (error) console.warn('FlipTrack: supplies push error:', error.message);
+      } catch (e) {
+        console.warn('FlipTrack: ft_supplies not available:', e.message);
+      }
+    }
+
     // ── Push deletes ──
     let deletesFailed = false;
     for (const [table, ids] of Object.entries(dirty.deleted)) {
@@ -157,21 +170,31 @@ export async function pushToCloud() {
 /** Queue current dirty items to the offline mutation queue */
 async function _queueDirtyItems() {
   const dirty = getDirtyItems();
+  let hadItems = false;
   if (dirty.inv.length) {
+    hadItems = true;
     const rows = dirty.inv.map(i => ({ id: i.id, data: { ...i } }));
     await enqueue('upsert', 'ft_inventory', rows);
   }
   if (dirty.sales.length) {
+    hadItems = true;
     const rows = dirty.sales.map(s => ({ id: s.id, data: s }));
     await enqueue('upsert', 'ft_sales', rows);
   }
   if (dirty.expenses.length) {
+    hadItems = true;
     const rows = dirty.expenses.map(e => ({ id: e.id, data: e }));
     await enqueue('upsert', 'ft_expenses', rows);
   }
-  for (const [table, ids] of Object.entries(dirty.deleted)) {
-    if (ids.length) await enqueue('delete', table, ids);
+  if (dirty.supplies && dirty.supplies.length) {
+    hadItems = true;
+    const rows = dirty.supplies.map(s => ({ id: s.id, data: s }));
+    await enqueue('upsert', 'ft_supplies', rows);
   }
+  for (const [table, ids] of Object.entries(dirty.deleted)) {
+    if (ids.length) { hadItems = true; await enqueue('delete', table, ids); }
+  }
+  return hadItems || true; // return true to signal queue attempt was made
 }
 
 
