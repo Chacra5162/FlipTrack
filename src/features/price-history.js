@@ -190,10 +190,12 @@ export function renderItemTimeline(itemId) {
 
     // Generic events (listed, delisted, created, etc.)
     if (entry.description) {
-      const icons = { listed: '📤', delisted: '🚫', created: '✨', relisted: '🔄' };
+      const icons = { listed: '📤', delisted: '🚫', created: '✨', relisted: '🔄', 'ebay-push': '📦', 'ebay-update': '🔁', 'ebay-sync': '🔽' };
       const icon = icons[entry.type] || '📋';
+      const isEbay = entry.type?.startsWith('ebay-') || (entry.description || '').includes('eBay');
+      const badge = isEbay ? ' <span style="font-size:10px;background:#3483fa;color:#fff;padding:2px 6px;border-radius:3px;margin-left:4px">eBay</span>' : '';
       return `<div style="display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px solid var(--border)">
-        <div><span style="font-size:12px">${icon} ${escHtml(entry.description)}</span><br>${time}</div>
+        <div><span style="font-size:12px">${icon} ${escHtml(entry.description)}</span>${badge}<br>${time}</div>
       </div>`;
     }
 

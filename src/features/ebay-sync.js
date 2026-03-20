@@ -10,7 +10,7 @@ import { inv, sales, save, refresh, markDirty, getInvItem } from '../data/store.
 import { ebayAPI, isEBayConnected } from './ebay-auth.js';
 import { markPlatformStatus, setListingDate } from './crosslist.js';
 import { autoDlistOnSale } from './crosslist.js';
-import { logSalePrice, logPriceChange } from './price-history.js';
+import { logSalePrice, logPriceChange, logItemEvent } from './price-history.js';
 import { logReturn } from './returns.js';
 import { toast } from '../utils/dom.js';
 import { getMeta, setMeta } from '../data/idb.js';
@@ -158,10 +158,12 @@ export async function pullEBayListings() {
             const ebayQty = avail.quantity || 0;
             if (ebayQty === 0 && local.platformStatus?.eBay === 'active') {
               markPlatformStatus(local.id, 'eBay', 'sold');
+              logItemEvent(local.id, 'ebay-sync', 'eBay sync: quantity reached 0 — marked sold');
               changed = true;
             } else if (ebayQty > 0 && local.platformStatus?.eBay !== 'active') {
               // Mark as active when eBay has stock (handles items listed outside FlipTrack)
               markPlatformStatus(local.id, 'eBay', 'active');
+              logItemEvent(local.id, 'ebay-sync', 'eBay sync: listing detected as active');
               changed = true;
             }
           }
@@ -198,6 +200,7 @@ export async function pullEBayListings() {
       if (!seenSkus.has(item.ebayItemId)) {
         console.warn(`[eBay] Listing ended externally: "${item.name}" (SKU: ${item.ebayItemId})`);
         markPlatformStatus(item.id, 'eBay', 'ended');
+        logItemEvent(item.id, 'ebay-sync', 'eBay sync: listing ended externally');
         markDirty('inv', item.id);
         updated++;
         const label = item.name || item.sku || 'Item';
@@ -884,6 +887,7 @@ export async function pushItemToEBay(itemId) {
     markDirty('inv', itemId);
     save();
 
+    logItemEvent(itemId, 'ebay-push', `Pushed to eBay inventory (SKU: ${sku})`);
     toast(`Pushed "${escHtml(item.name)}" to eBay inventory (SKU: ${sku})`);
     return { success: true, sku };
   } catch (e) {
@@ -971,6 +975,7 @@ export async function updateEBayListing(itemId) {
     console.warn('[eBay] Re-publish note:', pubErr.message);
   }
 
+  logItemEvent(itemId, 'ebay-update', 'eBay listing updated with latest details');
   return { success: true };
 }
 
@@ -1500,6 +1505,7 @@ export async function publishEBayListing(itemId, options = {}) {
     markDirty('inv', itemId);
     save();
 
+    logItemEvent(itemId, 'listed', `Published on eBay — Listing #${listingId}`);
     toast(`Listed on eBay! Item #${listingId}`);
     return { success: true, listingId };
   } catch (e) {
@@ -1558,6 +1564,7 @@ export async function endEBayListing(itemId) {
     });
 
     markPlatformStatus(itemId, 'eBay', 'delisted');
+    logItemEvent(itemId, 'delisted', 'eBay listing ended');
     markDirty('inv', itemId);
     save();
 
@@ -1590,6 +1597,7 @@ export async function relistOnEBay(itemId) {
 
     markPlatformStatus(itemId, 'eBay', 'active');
     setListingDate(itemId, 'eBay', localDate());
+    logItemEvent(itemId, 'relisted', 'Relisted on eBay');
     markDirty('inv', itemId);
     save();
 
