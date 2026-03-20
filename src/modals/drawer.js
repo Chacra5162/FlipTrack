@@ -26,7 +26,7 @@ import { logPriceChange, snapshotItem, logItemChanges, renderItemTimeline } from
 // Stores the item snapshot taken when drawer opens, for diff on save
 let _drawerSnapshot = null;
 import { pushEtsyPrice } from '../features/etsy-sync.js';
-import { updateEBayListing } from '../features/ebay-sync.js';
+import { updateEBayListing, pushItemToEBay, publishEBayListing } from '../features/ebay-sync.js';
 import { isEBayConnected } from '../features/ebay-auth.js';
 import { getPlatforms, buildPlatPicker, getSelectedPlats } from '../features/platforms.js';
 import { PLATFORM_FEES, calcPlatformFee } from '../config/platforms.js';
@@ -360,6 +360,7 @@ export function getListingStatusFromDrawer() {
 
 export async function saveDrawer(){
   const item=getInvItem(activeDrawId); if(!item) return;
+  const oldPlatforms = new Set(item.platforms || []);
 
   // Validate numeric fields
   const costEl = document.getElementById('d_cost');
@@ -479,6 +480,22 @@ export async function saveDrawer(){
       console.warn('[eBay] Auto-update failed:', e.message);
       toast('eBay sync failed — will retry next sync', true);
     });
+  } else if (!item.ebayItemId && isEBayConnected() && item.platforms.includes('eBay') && !oldPlatforms.has('eBay')) {
+    // eBay was just added as a platform — auto-push + publish
+    (async () => {
+      try {
+        toast('Listing on eBay…');
+        const pushResult = await pushItemToEBay(item.id);
+        if (!pushResult.success) return;
+        const pubResult = await publishEBayListing(item.id);
+        if (pubResult.success) {
+          toast(`Listed on eBay! Item #${pubResult.listingId}`);
+        }
+      } catch (e) {
+        console.warn('[eBay] Auto-list from drawer failed:', e.message);
+        toast(`eBay auto-list: ${e.message}`, true);
+      }
+    })();
   }
 }
 
