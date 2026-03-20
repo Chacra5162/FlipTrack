@@ -541,6 +541,9 @@ textarea { resize:vertical; min-height:70px; }
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 }
+.img-slots:has(:nth-child(7)) {
+  grid-template-columns: repeat(4, 1fr);
+}
 .img-slot {
   position: relative;
   width: 100%;

@@ -1,12 +1,19 @@
 // ── IMAGE HANDLING ──────────────────────────────────────────────────────────
-// Slots are static HTML — we only update src/classes, never rebuild DOM nodes.
+// Slots are dynamically generated based on subscription tier limits.
 import { inv, activeDrawId, save, getInvItem } from '../data/store.js';
 import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
 import { isStorageUrl, deleteImageFromStorage, uploadImageToStorage } from '../data/storage.js';
 import { getSupabaseClient } from '../data/auth.js';
 import { getCurrentUser } from '../data/auth.js';
+import { getUserTier } from '../utils/gate.js';
+import { IMAGE_LIMITS } from '../config/tiers.js';
 
 let pendingAddImages = [];
+
+// ── IMAGE LIMIT PER TIER ─────────────────────────────────────────────────
+export function getImageLimit() {
+  return IMAGE_LIMITS[getUserTier()] || IMAGE_LIMITS.free;
+}
 
 // ── Single source of truth for add-form images ────────────────────────────
 export function getPendingAddImages() { return pendingAddImages; }
@@ -19,11 +26,52 @@ export function getItemImages(item) {
   return [];
 }
 
+// ── DYNAMIC SLOT GENERATION ──────────────────────────────────────────────
+let _builtSlots = { f: 0, d: 0 };
+
+/**
+ * Build image slot DOM elements inside a container.
+ * Called before refreshImgSlots whenever the limit may have changed.
+ */
+export function buildImgSlots(pfx) {
+  const max = getImageLimit();
+  if (_builtSlots[pfx] === max) return; // already correct
+  const wrap = document.getElementById(pfx + 'ImgWrap');
+  if (!wrap) return;
+
+  // Update label text
+  const label = pfx === 'd'
+    ? document.querySelector('#dImgSec .dsec-ttl span')
+    : document.querySelector('#fImgWrap')?.closest('.fgrp')?.querySelector('label span');
+  if (label) label.textContent = `(up to ${max})`;
+
+  let html = '';
+  for (let i = 0; i < max; i++) {
+    const n = i + 1;
+    html += `<div class="img-slot${i > 0 ? ' img-slot-locked' : ''}" id="${pfx}Slot${i}">
+      <img id="${pfx}SlotImg${i}" src="" alt="Item photo ${n}" style="display:none" onclick="openLightboxUrl(this.src)" onkeydown="if(event.key==='Enter')openLightboxUrl(this.src)" tabindex="0" role="button">
+      ${i === 0 ? `<span class="img-slot-badge" id="${pfx}SlotBadge0" style="display:none">MAIN</span>` : ''}
+      <button type="button" class="img-slot-rm" id="${pfx}SlotRm${i}" style="display:none" onclick="imgSlotRemove(event,'${pfx}',${i})" aria-label="Remove photo ${n}">\u00d7</button>
+      <div class="img-slot-add" id="${pfx}SlotAdd${i}"${i > 0 ? ' style="opacity:0.35"' : ''}><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
+      <input type="file" id="${pfx}SlotInput${i}" accept="image/*" class="img-slot-input"${i > 0 ? ' style="pointer-events:none;opacity:0"' : ''} onchange="imgSlotChange(event,'${pfx}',${i})">
+    </div>`;
+  }
+  wrap.innerHTML = html;
+  _builtSlots[pfx] = max;
+}
+
 // pfx: 'f' = add-form slots, 'd' = drawer slots
 export function imgSlotChange(event, pfx, idx) {
   const file = event.target.files[0];
   event.target.value = '';
   if (!file) return;
+  // Enforce tier limit
+  const max = getImageLimit();
+  const currentCount = pfx === 'f' ? pendingAddImages.length : (getItemImages(getInvItem(activeDrawId) || {}).length);
+  if (idx >= max || currentCount >= max) {
+    toast(`Upgrade to add more photos (${max} max on your plan)`, true);
+    return;
+  }
   // For drawer slots use the actual item ID, not 'd', so cropConfirm can find the item
   const ctx = (pfx === 'f') ? ('f:' + idx) : (activeDrawId + ':' + idx);
   readImgFile(file, ctx);
@@ -50,10 +98,11 @@ export function imgSlotRemove(event, pfx, idx) {
   }
 }
 
-// Update slot visuals in place — no DOM creation/destruction
-// Inputs are always in DOM; enabled/disabled via pointer-events not display:none
+// Update slot visuals in place
 export function refreshImgSlots(pfx, images) {
-  for (let i = 0; i < 3; i++) {
+  buildImgSlots(pfx); // ensure slots exist
+  const max = getImageLimit();
+  for (let i = 0; i < max; i++) {
     const slot  = document.getElementById(pfx + 'Slot' + i);
     const imgEl = document.getElementById(pfx + 'SlotImg' + i);
     const rm    = document.getElementById(pfx + 'SlotRm' + i);
@@ -92,10 +141,12 @@ export function refreshImgSlots(pfx, images) {
 }
 
 export function renderAddFormImages() {
+  buildImgSlots('f');
   refreshImgSlots('f', pendingAddImages);
 }
 
 export function renderDrawerImg(itemId) {
+  buildImgSlots('d');
   const item = getInvItem(itemId);
   refreshImgSlots('d', item ? getItemImages(item) : []);
 }
@@ -798,6 +849,10 @@ export function cropConfirm() {
 
     if (ctxId === 'f') {
       // Add form — store base64 for immediate preview; upload happens in addItem()
+      const fMax = getImageLimit();
+      if (pendingAddImages.length >= fMax && slotIdx >= fMax) {
+        toast(`Photo limit reached (${fMax} on your plan)`, true); return;
+      }
       if (slotIdx >= pendingAddImages.length) pendingAddImages.push(compressed);
       else pendingAddImages[slotIdx] = compressed;
       refreshImgSlots('f', pendingAddImages);
@@ -808,6 +863,10 @@ export function cropConfirm() {
       const item = getInvItem(itemId);
       if (item) {
         const imgs = getItemImages(item);
+        const dMax = getImageLimit();
+        if (imgs.length >= dMax && slotIdx >= dMax) {
+          toast(`Photo limit reached (${dMax} on your plan)`, true); return;
+        }
         if (slotIdx >= imgs.length) imgs.push(compressed);
         else imgs[slotIdx] = compressed;
         item.images = imgs.slice();

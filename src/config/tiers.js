@@ -21,6 +21,9 @@ export function tierLevel(tier) {
   return TIER_ORDER[tier] || 0;
 }
 
+// ── IMAGE LIMITS PER TIER ────────────────────────────────────────────────────
+export const IMAGE_LIMITS = { free: 3, pro: 6, unlimited: 12 };
+
 // ── VIEW → MINIMUM TIER ──────────────────────────────────────────────────────
 export const VIEW_TIER_MAP = {
   // Free
@@ -63,6 +66,7 @@ export const TIER_DISPLAY = {
     price: '$0/mo',
     features: [
       'Up to 50 inventory items',
+      '3 photos per item',
       'Sales logging',
       'Expense tracking',
       'Basic dashboard & stats',
@@ -75,6 +79,7 @@ export const TIER_DISPLAY = {
     badge: 'Most Popular',
     features: [
       'Unlimited inventory',
+      '6 photos per item',
       'Advanced analytics & reports',
       'Crosslisting tools & templates',
       'AI Identify & Price Research',
@@ -86,6 +91,7 @@ export const TIER_DISPLAY = {
     price: '$25/mo',
     features: [
       'Everything in Pro',
+      '12 photos per item',
       'eBay & Etsy API integrations',
       'Whatnot show planning',
       'Batch Scan & Batch List',
