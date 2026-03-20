@@ -66,7 +66,7 @@ import {
   openBulkPlatform, closeBulkPlatform, applyBulkPlatform,
   bulkExportCSV,
   toggleFilterPanel, openFilterPanel, updateFiltersBadge,
-  setStockFilt, clearStockFilter,
+  setStockFilt, clearStockFilter, toggleSoldFilt,
   setSmokeFilt, setConditionFilt, daysListed
 } from './views/inventory.js';
 import {
@@ -458,7 +458,7 @@ Object.assign(window, {
   openBulkCategory, closeBulkCategory, applyBulkCategory,
   openBulkPlatform, closeBulkPlatform, applyBulkPlatform,
   bulkExportCSV,
-  toggleFilterPanel,
+  toggleFilterPanel, toggleSoldFilt,
   _debouncedRenderInv,
   setSmokeFilt, setConditionFilt, daysListed
 });

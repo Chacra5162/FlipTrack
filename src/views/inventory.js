@@ -24,6 +24,7 @@ let dragSrc = null;
 export let subcatFilt = 'all';
 export let subsubcatFilt = 'all';
 let stockFilt = 'all';
+let soldFilt = 'hide';       // 'hide' (default) | 'show' — controls qty===0 items
 let smokeFilt = 'all';       // 'all' | 'smoke-free' | 'smoke-exposure' | 'unset'
 let conditionFilt = 'all';   // 'all' | 'NWT' | 'NWOT' | 'EUC' | etc.
 let _invPage = 0;
@@ -260,6 +261,13 @@ export function clearStockFilter() {
   renderInv();
 }
 
+export function toggleSoldFilt() {
+  _invPage = 0;
+  soldFilt = soldFilt === 'hide' ? 'show' : 'hide';
+  _filterCache = { key: null, items: null };
+  renderInv();
+}
+
 // ── SMOKE & CONDITION FILTER SETTERS ───────────────────────────────────────
 
 export function setSmokeFilt(val) {
@@ -321,7 +329,7 @@ export function renderInv() {
   const q=(document.getElementById('invSearch').value||'').toLowerCase();
   if (q && _invPage !== 0) _invPage = 0;
   // Memoize filter results — only re-filter when data or filter state actually changed
-  const filterKey = `${inv.length}:${q}:${[...platFilt].join(',')}:${[...catFilt].join(',')}:${subcatFilt}:${subsubcatFilt}:${stockFilt}:${smokeFilt}:${conditionFilt}:${inv[0]?.id||''}:${inv[inv.length-1]?.id||''}`;
+  const filterKey = `${inv.length}:${q}:${[...platFilt].join(',')}:${[...catFilt].join(',')}:${subcatFilt}:${subsubcatFilt}:${stockFilt}:${soldFilt}:${smokeFilt}:${conditionFilt}:${inv[0]?.id||''}:${inv[inv.length-1]?.id||''}`;
   let items;
   if (_filterCache.key === filterKey && _filterCache.items) {
     items = _filterCache.items;
@@ -333,9 +341,10 @@ export function renderInv() {
       const ms=subcatFilt==='all'||(i.subcategory||'')===subcatFilt;
       const mss=subsubcatFilt==='all'||(i.subtype||'')===subsubcatFilt;
       const mst=stockFilt==='all'||(stockFilt==='low'&&i.bulk&&(i.qty===0||i.qty<=(i.lowAlert||2)));
+      const msold=soldFilt==='show'||(i.qty||0)>0;
       const msk=smokeFilt==='all'||(smokeFilt==='unset'?!i.smoke:i.smoke===smokeFilt);
       const mco=conditionFilt==='all'||(i.condition||'')=== conditionFilt;
-      return mq&&mp&&mc&&ms&&mss&&mst&&msk&&mco;
+      return mq&&mp&&mc&&ms&&mss&&mst&&msold&&msk&&mco;
     });
     _filterCache = { key: filterKey, items };
   }
@@ -363,7 +372,15 @@ export function renderInv() {
   }
 
   items=sortItems(items);
-  document.getElementById('invCnt').textContent=`${items.length} of ${inv.length} items`;
+  const soldCnt = inv.filter(i => (i.qty || 0) <= 0).length;
+  const cntEl = document.getElementById('invCnt');
+  if (soldFilt === 'hide' && soldCnt > 0) {
+    cntEl.innerHTML = `${items.length} of ${inv.length} items <span onclick="toggleSoldFilt()" style="color:var(--accent);cursor:pointer;font-size:11px;margin-left:6px">(${soldCnt} sold hidden — show)</span>`;
+  } else if (soldFilt === 'show') {
+    cntEl.innerHTML = `${items.length} of ${inv.length} items <span onclick="toggleSoldFilt()" style="color:var(--muted);cursor:pointer;font-size:11px;margin-left:6px">(hide sold)</span>`;
+  } else {
+    cntEl.textContent = `${items.length} of ${inv.length} items`;
+  }
   const tbody=document.getElementById('invBody');
   const emptyNew=document.getElementById('invEmpty');
   const emptyFilt=document.getElementById('invFilterEmpty');
