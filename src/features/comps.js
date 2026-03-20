@@ -69,10 +69,20 @@ async function _fetchFromEdge(keyword, opts) {
   });
 
   if (error) throw new Error(error.message || 'Edge function error');
-  if (data?.error) throw new Error(data.error);
+
+  // Defensive: ensure data is a parsed object (SDK may return string/blob)
+  let parsed = data;
+  if (typeof data === 'string') {
+    try { parsed = JSON.parse(data); } catch { throw new Error('Invalid comps response'); }
+  } else if (data instanceof Blob) {
+    const text = await data.text();
+    try { parsed = JSON.parse(text); } catch { throw new Error('Invalid comps response'); }
+  }
+  if (!parsed || typeof parsed !== 'object') throw new Error('Empty comps response');
+  if (parsed.error) throw new Error(parsed.error);
 
   // Normalize edge function response
-  const comps = (data.comps || []).map(c => ({
+  const comps = (parsed.comps || []).map(c => ({
     title: c.title || '',
     price: c.price || 0,
     currency: c.currency || 'USD',
@@ -87,11 +97,11 @@ async function _fetchFromEdge(keyword, opts) {
   return {
     comps,
     source: 'eBay',
-    avgPrice: data.avgPrice || 0,
-    medianPrice: data.medianPrice || 0,
-    lowPrice: data.lowPrice || 0,
-    highPrice: data.highPrice || 0,
-    count: data.count || 0,
+    avgPrice: parsed.avgPrice || 0,
+    medianPrice: parsed.medianPrice || 0,
+    lowPrice: parsed.lowPrice || 0,
+    highPrice: parsed.highPrice || 0,
+    count: parsed.count || 0,
   };
 }
 
@@ -362,7 +372,22 @@ export function renderCompsPanel(result, opts = {}) {
  * Render compact comps inline (for add-item form).
  */
 export function renderCompsInline(result) {
-  if (!result || !result.count) return '';
+  if (!result || !result.count) {
+    const q = encodeURIComponent(result?.keyword || '');
+    if (!q) return '';
+    return `
+    <div class="comps-inline comps-inline-empty">
+      <div class="comps-inline-hdr">
+        <span>📊 No comps found</span>
+      </div>
+      <div class="comps-search-links" style="margin:4px 0 0;gap:6px;display:flex;flex-wrap:wrap">
+        <a class="comps-search-link" href="https://www.ebay.com/sch/i.html?_nkw=${q}&LH_Sold=1&LH_Complete=1" target="_blank" rel="noopener">eBay Sold</a>
+        <a class="comps-search-link" href="https://www.ebay.com/sch/i.html?_nkw=${q}" target="_blank" rel="noopener">eBay Active</a>
+        <a class="comps-search-link" href="https://www.mercari.com/search/?keyword=${q}" target="_blank" rel="noopener">Mercari</a>
+        <a class="comps-search-link" href="https://poshmark.com/search?query=${q}" target="_blank" rel="noopener">Poshmark</a>
+      </div>
+    </div>`;
+  }
 
   const suggested = Math.round(result.medianPrice * 0.95 * 100) / 100;
   const confidence = result.count >= 15 ? 'high' : result.count >= 7 ? 'medium' : 'low';
@@ -484,7 +509,18 @@ export function triggerAddComps() {
       result.keyword = name;
       compsEl.innerHTML = renderCompsInline(result);
     } catch (e) {
-      compsEl.innerHTML = '';
+      console.warn('FlipTrack: add-item comps error:', e.message);
+      const q = encodeURIComponent(name);
+      compsEl.innerHTML = `
+        <div class="comps-inline comps-inline-empty">
+          <div class="comps-inline-hdr"><span>📊 Comps unavailable</span></div>
+          <div class="comps-search-links" style="margin:4px 0 0;gap:6px;display:flex;flex-wrap:wrap">
+            <a class="comps-search-link" href="https://www.ebay.com/sch/i.html?_nkw=${q}&LH_Sold=1&LH_Complete=1" target="_blank" rel="noopener">eBay Sold</a>
+            <a class="comps-search-link" href="https://www.ebay.com/sch/i.html?_nkw=${q}" target="_blank" rel="noopener">eBay Active</a>
+            <a class="comps-search-link" href="https://www.mercari.com/search/?keyword=${q}" target="_blank" rel="noopener">Mercari</a>
+            <a class="comps-search-link" href="https://poshmark.com/search?query=${q}" target="_blank" rel="noopener">Poshmark</a>
+          </div>
+        </div>`;
     }
   }, 800);
 }
