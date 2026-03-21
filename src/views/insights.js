@@ -745,6 +745,182 @@ export function renderInsights() {
     'var(--accent2)'
   ) : '';
 
+  // ── Days-to-Sale Distribution ────────────────────────────────────────────
+  const dtsSection = (() => {
+    const sold = itemStats.filter(s => s.unitsSold > 0 && s.item.added);
+    if (sold.length < 3) return '';
+    // Calculate days from added to first sale for each item
+    const dtsData = sold.map(s => {
+      const firstSale = Math.min(...s.itemSales.map(sl => new Date(sl.date).getTime()));
+      const added = new Date(s.item.added).getTime();
+      return Math.max(0, Math.floor((firstSale - added) / msDay));
+    });
+    // Build histogram buckets
+    const buckets = [
+      { label: '0-7d', min: 0, max: 7, count: 0, color: 'var(--good)' },
+      { label: '8-14d', min: 8, max: 14, count: 0, color: 'var(--accent)' },
+      { label: '15-30d', min: 15, max: 30, count: 0, color: 'var(--accent3)' },
+      { label: '31-60d', min: 31, max: 60, count: 0, color: 'var(--warn)' },
+      { label: '61-90d', min: 61, max: 90, count: 0, color: 'var(--accent2)' },
+      { label: '90+d', min: 91, max: Infinity, count: 0, color: 'var(--danger)' },
+    ];
+    for (const d of dtsData) {
+      const b = buckets.find(b => d >= b.min && d <= b.max);
+      if (b) b.count++;
+    }
+    const maxCount = Math.max(...buckets.map(b => b.count), 1);
+    const avg = Math.round(dtsData.reduce((a, b) => a + b, 0) / dtsData.length);
+    const median = dtsData.sort((a, b) => a - b)[Math.floor(dtsData.length / 2)];
+    // Category breakdown: avg days-to-sale per category
+    const catDts = {};
+    for (const s of sold) {
+      const cat = s.item.category || 'Uncategorized';
+      const firstSale = Math.min(...s.itemSales.map(sl => new Date(sl.date).getTime()));
+      const days = Math.max(0, Math.floor((firstSale - new Date(s.item.added).getTime()) / msDay));
+      if (!catDts[cat]) catDts[cat] = { total: 0, count: 0 };
+      catDts[cat].total += days;
+      catDts[cat].count++;
+    }
+    const catRanking = Object.entries(catDts)
+      .map(([cat, d]) => ({ cat, avg: Math.round(d.total / d.count), count: d.count }))
+      .filter(c => c.count >= 2)
+      .sort((a, b) => a.avg - b.avg)
+      .slice(0, 5);
+    const maxCatAvg = Math.max(...catRanking.map(c => c.avg), 1);
+
+    return `<div style="background:var(--surface2);border:1px solid var(--border);padding:16px 18px;margin-top:12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:8px">
+        <span style="font-size:16px">&#x23F1;</span>
+        <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--accent)">Days to Sale</span>
+        <span style="margin-left:auto;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">${sold.length} items sold</span>
+      </div>
+      <div style="display:flex;gap:16px;margin-bottom:14px">
+        <div style="text-align:center;flex:1">
+          <div style="font-size:22px;font-weight:700;color:var(--accent);font-family:'Syne',sans-serif">${avg}</div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Avg Days</div>
+        </div>
+        <div style="text-align:center;flex:1">
+          <div style="font-size:22px;font-weight:700;color:var(--accent3);font-family:'Syne',sans-serif">${median}</div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Median</div>
+        </div>
+        <div style="text-align:center;flex:1">
+          <div style="font-size:22px;font-weight:700;color:${buckets[0].count >= sold.length * 0.3 ? 'var(--good)' : 'var(--warn)'};font-family:'Syne',sans-serif">${Math.round(buckets[0].count / sold.length * 100)}%</div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Within 7d</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:4px;height:100px;margin-bottom:4px">
+        ${buckets.map(b => {
+          const h = maxCount > 0 ? Math.max(4, Math.round((b.count / maxCount) * 100)) : 4;
+          return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+            <div style="font-size:9px;font-family:'DM Mono',monospace;color:var(--text);font-weight:600">${b.count}</div>
+            <div style="width:100%;height:${h}px;background:${b.color};border-radius:2px 2px 0 0;transition:height 0.3s"></div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="display:flex;gap:4px">
+        ${buckets.map(b => `<div style="flex:1;text-align:center;font-size:8px;color:var(--muted);font-family:'DM Mono',monospace">${b.label}</div>`).join('')}
+      </div>
+      ${catRanking.length ? `
+        <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:10px">
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Fastest Selling Categories</div>
+          ${catRanking.map(c => `<div style="padding:3px 0">
+            <div style="display:flex;justify-content:space-between;font-size:11px">
+              <span>${escHtml(c.cat)}</span>
+              <span style="font-family:'DM Mono',monospace;font-weight:600;color:${c.avg <= 14 ? 'var(--good)' : c.avg <= 30 ? 'var(--accent)' : 'var(--warn)'}">${c.avg}d avg</span>
+            </div>
+            ${bar(maxCatAvg - c.avg, maxCatAvg, c.avg <= 14 ? 'var(--good)' : c.avg <= 30 ? 'var(--accent)' : 'var(--warn)')}
+          </div>`).join('')}
+        </div>
+      ` : ''}
+    </div>`;
+  })();
+
+  // ── Fee Drag Analysis ──────────────────────────────────────────────────────
+  const feeDragSection = (() => {
+    if (sales.length < 3) return '';
+    // Aggregate fees + shipping cost by platform
+    const platFees = {};
+    for (const s of sales) {
+      const p = s.platform || 'Other';
+      if (!platFees[p]) platFees[p] = { revenue: 0, fees: 0, ship: 0, count: 0 };
+      const rev = (s.price || 0) * (s.qty || 1);
+      platFees[p].revenue += rev;
+      platFees[p].fees += (s.fees || 0);
+      platFees[p].ship += (s.ship || 0);
+      platFees[p].count++;
+    }
+    const platArr = Object.entries(platFees)
+      .map(([plat, d]) => ({
+        plat,
+        revenue: d.revenue,
+        fees: d.fees,
+        ship: d.ship,
+        total: d.fees + d.ship,
+        pct: d.revenue > 0 ? (d.fees + d.ship) / d.revenue : 0,
+        feePct: d.revenue > 0 ? d.fees / d.revenue : 0,
+        shipPct: d.revenue > 0 ? d.ship / d.revenue : 0,
+        count: d.count,
+      }))
+      .filter(d => d.count >= 1 && d.revenue > 0)
+      .sort((a, b) => b.pct - a.pct);
+    if (!platArr.length) return '';
+
+    const totalRev = platArr.reduce((a, d) => a + d.revenue, 0);
+    const totalFees = platArr.reduce((a, d) => a + d.fees, 0);
+    const totalShip = platArr.reduce((a, d) => a + d.ship, 0);
+    const totalDrag = totalFees + totalShip;
+    const overallPct = totalRev > 0 ? totalDrag / totalRev : 0;
+    const maxPct = Math.max(...platArr.map(d => d.pct), 0.01);
+
+    return `<div style="background:var(--surface2);border:1px solid var(--border);padding:16px 18px;margin-top:12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:8px">
+        <span style="font-size:16px">&#x1F4B8;</span>
+        <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--accent2)">Fee Drag Analysis</span>
+        <span style="margin-left:auto;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">${sales.length} sales</span>
+      </div>
+      <div style="display:flex;gap:16px;margin-bottom:14px">
+        <div style="text-align:center;flex:1">
+          <div style="font-size:22px;font-weight:700;color:${overallPct > 0.2 ? 'var(--danger)' : overallPct > 0.12 ? 'var(--warn)' : 'var(--good)'};font-family:'Syne',sans-serif">${pct(overallPct)}</div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Total Drag</div>
+        </div>
+        <div style="text-align:center;flex:1">
+          <div style="font-size:22px;font-weight:700;color:var(--danger);font-family:'Syne',sans-serif">${fmt(totalFees)}</div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Platform Fees</div>
+        </div>
+        <div style="text-align:center;flex:1">
+          <div style="font-size:22px;font-weight:700;color:var(--accent2);font-family:'Syne',sans-serif">${fmt(totalShip)}</div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Shipping</div>
+        </div>
+        <div style="text-align:center;flex:1">
+          <div style="font-size:22px;font-weight:700;color:var(--accent);font-family:'Syne',sans-serif">${fmt(totalRev - totalDrag)}</div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">You Keep</div>
+        </div>
+      </div>
+      ${platArr.map(d => {
+        const feeW = maxPct > 0 ? Math.round((d.feePct / maxPct) * 100) : 0;
+        const shipW = maxPct > 0 ? Math.round((d.shipPct / maxPct) * 100) : 0;
+        return `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span style="font-size:11px;font-weight:600">${escHtml(d.plat)}</span>
+            <div style="font-size:10px;font-family:'DM Mono',monospace">
+              <span style="color:${d.pct > 0.2 ? 'var(--danger)' : d.pct > 0.12 ? 'var(--warn)' : 'var(--good)'}; font-weight:700">${pct(d.pct)}</span>
+              <span style="color:var(--muted);margin-left:6px">${fmt(d.total)} of ${fmt(d.revenue)}</span>
+            </div>
+          </div>
+          <div style="display:flex;height:8px;background:var(--surface3);border-radius:4px;overflow:hidden;gap:1px">
+            <div style="width:${feeW}%;background:var(--danger);border-radius:4px 0 0 4px;transition:width 0.3s" title="Fees: ${pct(d.feePct)}"></div>
+            <div style="width:${shipW}%;background:var(--accent2);border-radius:0 4px 4px 0;transition:width 0.3s" title="Shipping: ${pct(d.shipPct)}"></div>
+          </div>
+          <div style="display:flex;gap:12px;margin-top:3px;font-size:9px;color:var(--muted);font-family:'DM Mono',monospace">
+            <span style="color:var(--danger)">Fees ${pct(d.feePct)}</span>
+            <span style="color:var(--accent2)">Ship ${pct(d.shipPct)}</span>
+            <span style="margin-left:auto">${d.count} sale${d.count !== 1 ? 's' : ''}</span>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  })();
+
   // ── Assemble ──────────────────────────────────────────────────────────────
   el.innerHTML = `
     <div style="padding:0 0 24px">
@@ -785,6 +961,8 @@ export function renderInsights() {
           ${expSection}
         </div>
       </div>
+      ${dtsSection}
+      ${feeDragSection}
       <div style="background:var(--surface2);border:1px solid var(--border);padding:16px 18px;margin-top:12px" id="seasonalSection">
         ${renderSeasonalCalendar()}
       </div>
