@@ -230,17 +230,33 @@ export async function pullEBayListings() {
 /**
  * Backfill tracking, buyer, and address data on existing sales
  * that were recorded before these fields were captured.
+ * Fetches shipping fulfillments from eBay API for tracking numbers.
  */
-function _backfillOrderData(order) {
+async function _backfillOrderData(order) {
   const existing = sales.filter(s => s.ebayOrderId === order.orderId);
   if (!existing.length) return;
 
-  const fulfillment = (order.fulfillmentStartInstructions || [])[0];
-  const shipment = fulfillment?.shippingStep;
-  const shipTo = shipment?.shipTo;
-  const trackCode = shipment?.trackingNumber || null;
-  const carrier = shipment?.shippingCarrierCode || null;
-  const buyerName = order.buyer?.username || shipTo?.fullName || null;
+  // Extract buyer info from order
+  const buyerName = order.buyer?.username || null;
+  const shipTo = (order.fulfillmentStartInstructions || [])[0]?.shippingStep?.shipTo;
+  const fullName = shipTo?.fullName || null;
+
+  // Fetch actual shipping fulfillments for tracking numbers
+  let trackCode = null;
+  let carrier = null;
+  if (order.fulfillmentHrefs?.length) {
+    try {
+      const fulfResp = await ebayAPI('GET',
+        `${FULFILLMENT_API}/order/${order.orderId}/shipping_fulfillment`
+      );
+      const fulfillments = fulfResp.fulfillments || [];
+      if (fulfillments.length) {
+        const shipLines = fulfillments[0].shipmentTrackingNumber;
+        trackCode = shipLines || fulfillments[0].trackingNumber || null;
+        carrier = fulfillments[0].shippingCarrierCode || null;
+      }
+    } catch (_) { /* non-critical — tracking fetch can fail */ }
+  }
 
   let updated = false;
   for (const sale of existing) {
@@ -251,8 +267,9 @@ function _backfillOrderData(order) {
       updated = true;
     }
     // Backfill buyer CRM link
-    if (!sale.buyerId && buyerName) {
-      const buyer = getOrCreateBuyer(buyerName, 'eBay');
+    const name = buyerName || fullName;
+    if (!sale.buyerId && name) {
+      const buyer = getOrCreateBuyer(name, 'eBay');
       if (buyer) { sale.buyerId = buyer.id; updated = true; }
     }
     // Backfill address
@@ -307,7 +324,7 @@ async function _syncEBayOrders(lookbackMs) {
     for (const order of orders) {
       // Backfill existing sales missing tracking/buyer data
       if (order.orderId && knownOrderIds.has(order.orderId)) {
-        _backfillOrderData(order);
+        await _backfillOrderData(order);
         continue;
       }
       for (const lineItem of (order.lineItems || [])) {
@@ -334,15 +351,9 @@ async function _syncEBayOrders(lookbackMs) {
           logSalePrice(local.id, price, 'eBay');
         }
 
-        // Extract tracking from fulfillment data
+        // Extract buyer address from shipping instructions
         const fulfillment = (order.fulfillmentStartInstructions || [])[0];
-        const shipment = fulfillment?.shippingStep;
-        const trackingInfo = shipment?.shippingCarrierCode
-          ? { carrier: shipment.shippingCarrierCode, code: shipment.trackingNumber || null }
-          : null;
-
-        // Extract buyer address from shipping destination
-        const shipTo = shipment?.shipTo;
+        const shipTo = fulfillment?.shippingStep?.shipTo;
         const buyerAddress = shipTo?.contactAddress?.addressLine1 || null;
         const buyerCity = shipTo?.contactAddress?.city || null;
         const buyerState = shipTo?.contactAddress?.stateOrProvince || null;
@@ -354,8 +365,8 @@ async function _syncEBayOrders(lookbackMs) {
           listPrice: local.price || 0, qty: soldQty, platform: 'eBay',
           fees: 0, ship: 0,
           date: order.creationDate || new Date().toISOString(),
-          tracking: trackingInfo?.code || null,
-          trackingCarrier: trackingInfo?.carrier || null,
+          tracking: null,
+          trackingCarrier: null,
           ebayOrderId: order.orderId || null,
           buyerAddress, buyerCity, buyerState, buyerZip,
         };

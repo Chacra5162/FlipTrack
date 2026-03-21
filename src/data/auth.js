@@ -280,13 +280,12 @@ async function _startSession(user) {
   setSyncStatus('syncing');
   try {
     // Load team membership before sync so queries use the correct account_id
-    await initTeam();
+    const { team: activeTeam } = await _sessionInitCallback();
 
     // Update team label in account menu
     const teamLbl = document.getElementById('acctTeamLabel');
     if (teamLbl) {
-      const team = getTeam();
-      teamLbl.textContent = team ? `Team: ${team.name}` : 'Team';
+      teamLbl.textContent = activeTeam ? `Team: ${activeTeam.name}` : 'Team';
     }
 
     // 10 second timeout on pull to prevent infinite hang

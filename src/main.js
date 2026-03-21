@@ -37,7 +37,7 @@ import {
   initAuth, authSubmit, authForgotPassword, authSignOut,
   switchAuthTab, showAuthModal, hideAuthModal,
   openAccountMenu, closeAccountMenu,
-  registerAuthCleanup, registerOfflineUserHandler
+  registerAuthCleanup, registerOfflineUserHandler, registerSessionInit
 } from './data/auth.js';
 import {
   pushToCloud, pushDeleteToCloud, pullFromCloud,
@@ -394,6 +394,10 @@ const printStickers = _lw(lazyBarcodes, 'printStickers');
 registerAccountIdProvider(getActiveAccountId);
 registerRecordSync(recordSync);
 registerOfflineUserHandler(setOfflineUser);
+registerSessionInit(async () => {
+  await initTeam();
+  return { team: getTeam(), role: getMyRole() };
+});
 registerAuthCleanup(stopEBaySyncInterval);
 registerAuthCleanup(stopEtsySyncInterval);
 registerAuthCleanup(clearReportTimers);
