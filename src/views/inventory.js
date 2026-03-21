@@ -17,6 +17,10 @@ import {
   mkc,
   margCls,
   getSalesForItem,
+  isVariant,
+  isParent,
+  getVariants,
+  getVariantAggQty,
 } from '../data/store.js';
 
 // Local state for drag and drop and filtering
@@ -369,7 +373,8 @@ export function renderInv() {
       const msold=soldFilt==='show'||(i.qty||0)>0;
       const msk=smokeFilt==='all'||(smokeFilt==='unset'?!i.smoke:i.smoke===smokeFilt);
       const mco=conditionFilt==='all'||(i.condition||'')=== conditionFilt;
-      return mq&&mp&&mc&&ms&&mss&&mst&&msold&&msk&&mco;
+      const mvar=!isVariant(i); // hide variant children from main list
+      return mq&&mp&&mc&&ms&&mss&&mst&&msold&&msk&&mco&&mvar;
     });
     _filterCache = { key: filterKey, items };
   }
@@ -514,10 +519,13 @@ function _renderCardView(pageItems) {
   if (!container) return;
   container.innerHTML = pageItems.map(item => {
     const { price, m } = calc(item);
-    const c = sc(item.qty, item.lowAlert, item.bulk);
+    const _isParent = isParent(item);
+    const displayQty = _isParent ? getVariantAggQty(item.id) : (item.qty || 0);
+    const c = sc(displayQty, item.lowAlert, item.bulk);
     const eid = escAttr(item.id);
     const _imgs = getItemImages(item);
     const _img0 = _imgs[0];
+    const variantBadge = _isParent ? `<span style="font-size:9px;color:var(--accent3);font-family:'DM Mono',monospace">${getVariants(item.id).length} variants</span>` : '';
     return `<div class="inv-card" data-id="${eid}">
       ${_img0
         ? `<img class="inv-card-img" loading="lazy" src="${escAttr(_img0)}" alt="${escHtml(item.name)}" onclick="openLightbox('${eid}')">`
@@ -525,9 +533,10 @@ function _renderCardView(pageItems) {
       }
       <div class="inv-card-body">
         <div class="inv-card-name" onclick="openDrawer('${eid}')">${escHtml(item.name)}</div>
+        ${variantBadge}
         <div class="inv-card-price-row">
           <span class="inv-card-price">${fmt(price)}</span>
-          <span class="inv-card-qty sv-${c}">${item.qty || 0}</span>
+          <span class="inv-card-qty sv-${c}">${displayQty}</span>
         </div>
         <div class="inv-card-price-row">
           <span class="inv-card-cost">${fmt(item.cost || 0)} cost</span>
@@ -535,7 +544,7 @@ function _renderCardView(pageItems) {
         </div>
         <div class="inv-card-plats">${renderPlatTags(item)}</div>
         <div class="inv-card-actions">
-          ${item.qty > 0
+          ${displayQty > 0
             ? `<button class="act-btn" onclick="openSoldModal('${eid}')">Sold</button>`
             : `<span class="out-badge" style="flex:1;text-align:center;font-size:10px">Out</span>`
           }

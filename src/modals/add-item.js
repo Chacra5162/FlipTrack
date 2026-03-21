@@ -3,7 +3,7 @@
 // DOM elements, form helpers (buildPlatPicker, getSelectedPlats, clearDimForm, getDimsFromForm, refreshImgSlots)
 // Other modals: book-mode functions
 
-import { inv, activeDrawId, save, refresh, normCat, markDirty, getInvItem } from '../data/store.js';
+import { inv, activeDrawId, save, refresh, normCat, markDirty, getInvItem, isParent } from '../data/store.js';
 import { uid, fmt, pct, escHtml, localDate} from '../utils/format.js';
 import { toast, trapFocus, releaseFocus, appConfirm } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
@@ -128,7 +128,7 @@ export function dupItem(id) {
   const newId = uid();
   const skuDate = localDate().replace(/-/g,'');
   const skuCat = ((src.category||'GEN').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4)).padEnd(3,'X');
-  const skuRand = Math.random().toString(36).slice(2,5).toUpperCase();
+  const skuRand = Array.from(crypto.getRandomValues(new Uint8Array(3)),b=>b.toString(36)).join('').slice(0,3).toUpperCase();
   const clone = {
     ...JSON.parse(JSON.stringify(src)),
     id: newId,
@@ -206,6 +206,10 @@ export function closeAdd(){
   clearBookFields('f');
   swapConditionTags('f', false);
   clearPendingAddImages();refreshImgSlots('f',[]);clearDimForm('f');buildPlatPicker('f_plat_picker',[]);prevProfit();loadSmokeSlider('f',null);loadCoverSlider('f',null);
+  // Reset variant builder
+  _hasVariants = false; _variantLabels = [];
+  const vs = document.getElementById('variantBuilderSection'); if (vs) vs.style.display = 'none';
+  const vb = document.getElementById('variantToggleBtn'); if (vb) { vb.textContent = '+ Variants'; vb.style.borderColor = ''; vb.style.color = ''; }
 }
 
 export function toggleBulkFields(pfx) {
@@ -257,6 +261,61 @@ export function prefillFromLast() {
   toast('Prefilled from: ' + last.name);
 }
 
+// ── VARIANT BUILDER ──────────────────────────────────────────────────────
+
+let _hasVariants = false;
+let _variantLabels = []; // ['S', 'M', 'L', 'XL']
+
+const DEFAULT_SIZES = ['S', 'M', 'L', 'XL'];
+
+export function toggleVariantMode() {
+  _hasVariants = !_hasVariants;
+  const section = document.getElementById('variantBuilderSection');
+  const btn = document.getElementById('variantToggleBtn');
+  if (_hasVariants) {
+    if (section) section.style.display = '';
+    if (btn) { btn.textContent = 'Cancel Variants'; btn.style.borderColor = 'var(--accent)'; btn.style.color = 'var(--accent)'; }
+    if (!_variantLabels.length) _variantLabels = [...DEFAULT_SIZES];
+    _renderVariantBuilder();
+  } else {
+    if (section) section.style.display = 'none';
+    if (btn) { btn.textContent = '+ Variants'; btn.style.borderColor = ''; btn.style.color = ''; }
+    _variantLabels = [];
+  }
+}
+
+export function addVariantLabel() {
+  const inp = document.getElementById('variantNewLabel');
+  const val = (inp?.value || '').trim();
+  if (!val) return;
+  if (!_variantLabels.includes(val)) _variantLabels.push(val);
+  if (inp) inp.value = '';
+  _renderVariantBuilder();
+}
+
+export function removeVariantLabel(idx) {
+  _variantLabels.splice(idx, 1);
+  _renderVariantBuilder();
+}
+
+export function presetVariantSizes() {
+  _variantLabels = [...DEFAULT_SIZES];
+  _renderVariantBuilder();
+}
+
+function _renderVariantBuilder() {
+  const el = document.getElementById('variantList');
+  if (!el) return;
+  el.innerHTML = _variantLabels.map((label, i) =>
+    `<div style="display:flex;align-items:center;gap:6px;padding:4px 0">
+      <span style="flex:1;font-size:12px;color:var(--text);font-family:'DM Mono',monospace">${escHtml(label)}</span>
+      <button type="button" class="act-btn red" onclick="removeVariantLabel(${i})" style="font-size:10px;padding:2px 6px">✕</button>
+    </div>`
+  ).join('');
+  const count = document.getElementById('variantCount');
+  if (count) count.textContent = `${_variantLabels.length} variant${_variantLabels.length !== 1 ? 's' : ''}`;
+}
+
 export async function addItem(){
   const name=document.getElementById('f_name').value.trim();
   if(!name){toast('Name required',true);return;}
@@ -302,7 +361,7 @@ export async function addItem(){
   const cat=normCat(document.getElementById('f_cat').value.trim());
   const skuDate = localDate().replace(/-/g,'');
   const skuCat = (cat||'GEN').trim().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4).padEnd(3,'X');
-  const skuRand = Math.random().toString(36).slice(2,5).toUpperCase();
+  const skuRand = Array.from(crypto.getRandomValues(new Uint8Array(3)),b=>b.toString(36)).join('').slice(0,3).toUpperCase();
   const autoSku = skuCat + '-' + skuDate + '-' + skuRand;
 
   const upc = (document.getElementById('f_upc').value || '').trim();
@@ -340,9 +399,38 @@ export async function addItem(){
   const department = (document.getElementById('f_department')?.value || '').trim();
   const ebayDesc = (document.getElementById('f_ebay_desc')?.value || '').trim();
 
-  inv.push({id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:subcatVal,subtype:subtypeVal,platform,platforms:selPlats,cost:isNaN(cost)?0:cost,price,qty,bulk:isBulk,fees:isNaN(fees)?0:fees,ship:isNaN(ship)?0:ship,lowAlert,notes:document.getElementById('f_notes').value.trim(),source:document.getElementById('f_source').value.trim(),condition:document.getElementById('f_condition').value.trim(),smoke:smokeVal,coverType:isBookCat(cat)?coverVal:null,brand,color,size,sizeType,department,material,mpn,model,style,pattern,ebayDesc,images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),...(isBookCat(cat) ? getBookFields('f') : {}),added:new Date().toISOString()});
-  markDirty('inv', newId);
-  save(); closeAdd(); refresh(); _sfx.create(); toast('Item added ✓');
+  const baseItem = {id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:subcatVal,subtype:subtypeVal,platform,platforms:selPlats,cost:isNaN(cost)?0:cost,price,qty,bulk:isBulk,fees:isNaN(fees)?0:fees,ship:isNaN(ship)?0:ship,lowAlert,notes:document.getElementById('f_notes').value.trim(),source:document.getElementById('f_source').value.trim(),condition:document.getElementById('f_condition').value.trim(),smoke:smokeVal,coverType:isBookCat(cat)?coverVal:null,brand,color,size,sizeType,department,material,mpn,model,style,pattern,ebayDesc,images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),...(isBookCat(cat) ? getBookFields('f') : {}),added:new Date().toISOString()};
+
+  if (_hasVariants && _variantLabels.length > 0) {
+    // Create parent (qty=0, holds shared data) + N children
+    baseItem.isParent = true;
+    baseItem.qty = 0;
+    inv.push(baseItem);
+    markDirty('inv', newId);
+    for (const label of _variantLabels) {
+      const childId = uid();
+      inv.push({
+        ...baseItem,
+        id: childId,
+        sku: baseItem.sku + '-' + label.replace(/\s+/g, '').toUpperCase().slice(0, 6),
+        name: `${name} — ${label}`,
+        parentId: newId,
+        variantLabel: label,
+        isParent: false,
+        qty: qty || 1,
+        images: [], image: null,
+      });
+      markDirty('inv', childId);
+    }
+    _hasVariants = false;
+    _variantLabels = [];
+    save(); closeAdd(); refresh(); _sfx.create();
+    toast(`Parent + ${_variantLabels.length || 'variants'} created`);
+  } else {
+    inv.push(baseItem);
+    markDirty('inv', newId);
+    save(); closeAdd(); refresh(); _sfx.create(); toast('Item added ✓');
+  }
   // Persist source & brand for future autocomplete
   const addedItem = getInvItem(newId);
   if (addedItem) saveAutocompleteEntry(addedItem.source, addedItem.brand).catch(() => {});

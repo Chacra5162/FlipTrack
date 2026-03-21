@@ -9,7 +9,8 @@ import { toast, trapFocus, releaseFocus, appConfirm } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
 import { parseNum, validateNumericInput } from '../utils/validate.js';
 import {
-  inv, sales, activeDrawId, setActiveDrawId, save, refresh, calc, sc, mkc, markDirty, normCat, getInvItem, getSalesForItem
+  inv, sales, activeDrawId, setActiveDrawId, save, refresh, calc, sc, mkc, markDirty, normCat, getInvItem, getSalesForItem,
+  isParent, isVariant, getVariants, getParentItem, getVariantAggQty
 } from '../data/store.js';
 import {
   toggleBookFields,
@@ -218,6 +219,7 @@ export function openDrawer(id) {
     }
     const sh=document.getElementById('dHistory');
     sh.innerHTML = renderItemTimeline(id);
+    updateDrawerVariantsTab(item);
     trapFocus('#drawer');
   });
 }
@@ -534,4 +536,46 @@ export function loadCondTag(prefix, value) {
   picker.querySelectorAll('.cond-tag').forEach(b => {
     b.classList.toggle('active', b.textContent.trim() === value);
   });
+}
+
+// ── VARIANTS TAB ────────────────────────────────────────────────────────────
+
+/** Show/hide the Variants tab based on whether the item is a parent */
+export function updateDrawerVariantsTab(item) {
+  const tab = document.getElementById('drawerVariantsTab');
+  if (!tab) return;
+  tab.style.display = isParent(item) ? '' : 'none';
+}
+
+/** Render variant children list in the drawer */
+export function renderDrawerVariants() {
+  const el = document.getElementById('dtab-variants-body');
+  if (!el) return;
+  const item = getInvItem(activeDrawId);
+  if (!item || !isParent(item)) { el.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:12px">No variants</div>'; return; }
+
+  const variants = getVariants(item.id);
+  const totalQty = variants.reduce((a, v) => a + (v.qty || 0), 0);
+
+  el.innerHTML = `
+    <div style="padding:12px 0 8px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;color:var(--muted)">${variants.length} variant${variants.length !== 1 ? 's' : ''} · ${totalQty} total qty</span>
+    </div>
+    ${variants.map(v => {
+      const { pu, m } = calc(v);
+      const eid = escAttr(v.id);
+      const c = sc(v.qty, v.lowAlert, v.bulk);
+      const qc = c === 'low' ? 'var(--warn)' : c === 'warn' ? 'var(--danger)' : 'var(--good)';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="flex:1;overflow:hidden">
+          <div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(v.variantLabel || v.name)}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${fmt(v.price)} · ${fmt(pu)} profit · ${pct(m)}</div>
+        </div>
+        <span style="font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:${qc}">${v.qty || 0}</span>
+        <div style="display:flex;gap:4px">
+          ${(v.qty || 0) > 0 ? `<button class="act-btn" onclick="openSoldModal('${eid}')" style="font-size:10px">Sold</button>` : ''}
+          <button class="act-btn" onclick="openDrawer('${eid}')" style="font-size:10px">Edit</button>
+        </div>
+      </div>`;
+    }).join('')}`;
 }

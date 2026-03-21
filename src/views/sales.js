@@ -8,6 +8,7 @@ import {
   inv, sales, getInvItem, getSaleById,
   save, refresh, pushUndo, showUndoToast,
   markDirty, markDeleted,
+  isParent, getVariants,
 } from '../data/store.js';
 
 import { fmt, pct, escHtml, escAttr, uid, ds, localDate} from '../utils/format.js';
@@ -74,7 +75,40 @@ export function openSoldModal(id) {
   activeSoldId = id;
   const item = getInvItem(id);
   if (!item) { toast('Item not found', true); return; }
-  _populateSoldModal(item);
+
+  // If parent item with variants, show variant picker instead
+  if (isParent(item)) {
+    const variants = getVariants(id).filter(v => (v.qty || 0) > 0);
+    if (!variants.length) { toast('All variants are out of stock', true); return; }
+    if (variants.length === 1) {
+      // Only one variant in stock — skip picker
+      activeSoldId = variants[0].id;
+      _populateSoldModal(variants[0]);
+    } else {
+      const infoEl = document.getElementById('soldInfo');
+      infoEl.innerHTML = `
+        <div class="fgrp full" style="margin-bottom:8px">
+          <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">Select Variant of ${escHtml(item.name)}</label>
+          <select id="s_variant_picker" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:9px 12px;font-family:'DM Mono',monospace;font-size:12px;width:100%" onchange="onSoldItemPick(this.value)">
+            <option value="">── Choose a variant ──</option>
+            ${variants.map(v => `<option value="${v.id}">${escHtml(v.variantLabel || v.name)} (${v.qty} in stock — ${fmt(v.price)})</option>`).join('')}
+          </select>
+        </div>`;
+      document.getElementById('s_price').value = '';
+      document.getElementById('s_qty').value = '1';
+      document.getElementById('s_fees').value = '';
+      document.getElementById('s_ship').value = '';
+      document.getElementById('s_date').value = localDate();
+      sPriceType('each');
+      updateFeeEstimate();
+      document.getElementById('soldOv').classList.add('on');
+      setTimeout(() => trapFocus('#soldOv'), 100);
+      return;
+    }
+  } else {
+    _populateSoldModal(item);
+  }
+
   document.getElementById('soldOv').classList.add('on');
   setTimeout(() => trapFocus('#soldOv'), 100);
 }

@@ -22,7 +22,7 @@ let _dirtyInv = new Set();
 let _dirtySales = new Set();
 let _dirtyExp = new Set();
 let _dirtySupplies = new Set();
-let _deletedIds = { ft_inventory: new Set(), ft_sales: new Set(), ft_expenses: new Set() };
+let _deletedIds = { ft_inventory: new Set(), ft_sales: new Set(), ft_expenses: new Set(), ft_supplies: new Set() };
 
 // ── SYNC RE-ENTRANCY GUARD ──────────────────────────────────────────────────
 // Prevents concurrent saves from triggering multiple overlapping sync operations
@@ -40,14 +40,20 @@ export function getDirtyItems() {
     inv: [..._dirtyInv].map(id => _invIndex[id]).filter(Boolean),
     sales: [..._dirtySales].map(id => _salesIndex[id]).filter(Boolean),
     expenses: [..._dirtyExp].map(id => _expIndex[id]).filter(Boolean),
-    supplies: [..._dirtySupplies].map(id => supplies.find(s => s.id === id)).filter(Boolean),
+    supplies: [..._dirtySupplies].map(id => _suppliesIndex[id]).filter(Boolean),
     deleted: {
       ft_inventory: [..._deletedIds.ft_inventory],
       ft_sales: [..._deletedIds.ft_sales],
       ft_expenses: [..._deletedIds.ft_expenses],
+      ft_supplies: [..._deletedIds.ft_supplies],
     }
   };
   return result;
+}
+
+/** Remove a specific ID from the deleted tracking set (used by undo) */
+export function clearDeletedId(table, id) {
+  if (_deletedIds[table]) _deletedIds[table].delete(id);
 }
 
 export function clearDirtyTracking() {
@@ -58,6 +64,7 @@ export function clearDirtyTracking() {
   _deletedIds.ft_inventory.clear();
   _deletedIds.ft_sales.clear();
   _deletedIds.ft_expenses.clear();
+  _deletedIds.ft_supplies.clear();
 }
 
 /** Mark an item as dirty (changed) for delta sync.
@@ -82,6 +89,8 @@ export function markDirty(table, id) {
   }
   else if (table === 'supplies') {
     _dirtySupplies.add(id);
+    const s = _suppliesIndex[id];
+    if (s) s._localUpdatedAt = now;
   }
 }
 
@@ -94,9 +103,13 @@ export function markDeleted(table, id) {
 let _invIndex = {};
 let _salesIndex = {};
 let _expIndex = {};
+let _suppliesIndex = {};
 
 // ── PERFORMANCE: Sales-by-item-ID index for O(1) lookups ──────────────────
 let _salesByItemId = new Map();
+
+// ── VARIANT INDEX: parentId → [childId, ...] ─────────────────────────────
+let _variantIndex = new Map();
 
 /** Rebuild all indexes. Called by save() and refresh(). */
 export function rebuildInvIndex() {
@@ -110,6 +123,15 @@ export function rebuildInvIndex() {
     _salesByItemId.get(s.itemId).push(s);
   }
   _expIndex = Object.fromEntries(expenses.map(e => [e.id, e]));
+  _suppliesIndex = Object.fromEntries(supplies.map(s => [s.id, s]));
+  // Rebuild variant index
+  _variantIndex = new Map();
+  for (const item of inv) {
+    if (item.parentId) {
+      if (!_variantIndex.has(item.parentId)) _variantIndex.set(item.parentId, []);
+      _variantIndex.get(item.parentId).push(item.id);
+    }
+  }
   rebuildCatIndex();
 }
 
@@ -117,9 +139,44 @@ export function getInvItem(id) {
   return _invIndex[id] || null;
 }
 
+/** Get a single sale by ID — O(1) lookup */
+export function getSaleById(id) {
+  return _salesIndex[id] || null;
+}
+
 /** Get all sales for an item by ID — O(1) lookup */
 export function getSalesForItem(id) {
   return _salesByItemId.get(id) || [];
+}
+
+// ── VARIANT HELPERS ──────────────────────────────────────────────────────
+
+/** Get child variant IDs for a parent item */
+export function getVariants(parentId) {
+  return (_variantIndex.get(parentId) || []).map(id => _invIndex[id]).filter(Boolean);
+}
+
+/** Get the parent item for a variant child */
+export function getParentItem(childId) {
+  const child = _invIndex[childId];
+  if (!child || !child.parentId) return null;
+  return _invIndex[child.parentId] || null;
+}
+
+/** Check if an item is a parent with variants */
+export function isParent(item) {
+  return item && item.isParent === true && _variantIndex.has(item.id);
+}
+
+/** Check if an item is a child variant */
+export function isVariant(item) {
+  return item && !!item.parentId;
+}
+
+/** Get aggregate qty across all children of a parent */
+export function getVariantAggQty(parentId) {
+  const children = getVariants(parentId);
+  return children.reduce((sum, c) => sum + (c.qty || 0), 0);
 }
 
 // ── PERFORMANCE: Computation cache (dirty flag pattern) ───────────────────
@@ -479,6 +536,7 @@ export function performUndo() {
   if (!entry) return;
   if (entry.action === 'delete') {
     inv.push(entry.data);
+    clearDeletedId('ft_inventory', entry.data.id);
     markDirty('inv', entry.data.id);
     save();
     refresh();
@@ -500,6 +558,11 @@ export function performUndo() {
       const item = inv.find(i => i.id === itemId);
       if (item) { item.price = oldPrice; markDirty('inv', item.id); }
     }
+    save();
+    refresh();
+  } else if (entry.action === 'price_change') {
+    const item = inv.find(i => i.id === entry.data.itemId);
+    if (item) { item.price = entry.data.oldPrice; markDirty('inv', item.id); }
     save();
     refresh();
   }

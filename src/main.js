@@ -109,13 +109,15 @@ import {
   syncDrawerSubcat, syncDrawerSubtype,
   syncAddSubcat, syncAddSubtype,
   renderListingStatus, toggleListingStatus, getListingStatusFromDrawer,
-  setCondTag, loadCondTag
+  setCondTag, loadCondTag,
+  renderDrawerVariants
 } from './modals/drawer.js';
 import {
   dupCurrent, dupItem, addFormTab,
   openAddModal, closeAdd,
   toggleBulkFields, prevProfit, prefillFromLast,
-  addItem, updateSmokeSlider, updateCoverSlider
+  addItem, updateSmokeSlider, updateCoverSlider,
+  toggleVariantMode, addVariantLabel, removeVariantLabel, presetVariantSizes
 } from './modals/add-item.js';
 import {
   isBookCat, toggleBookFields, swapConditionTags,
@@ -484,14 +486,16 @@ Object.assign(window, {
   openDrawer, closeDrawer, drawerTab, saveDrawer, delCurrent, delItem,
   syncDrawerSubcat, syncDrawerSubtype, syncAddSubcat, syncAddSubtype,
   setCondTag, toggleBulkFields, toggleListingStatus, togglePlatChip,
-  _saveCustomType: saveCustomType
+  _saveCustomType: saveCustomType,
+  renderDrawerVariants
 });
 
 // Add item
 Object.assign(window, {
   openAddModal, closeAdd, addItem,
   dupCurrent, dupItem, addFormTab,
-  prevProfit, prefillFromLast, updateSmokeSlider, updateCoverSlider
+  prevProfit, prefillFromLast, updateSmokeSlider, updateCoverSlider,
+  toggleVariantMode, addVariantLabel, removeVariantLabel, presetVariantSizes
 });
 
 // Sold / Sales

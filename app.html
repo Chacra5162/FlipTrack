@@ -694,6 +694,7 @@
     <button class="drawer-tab" onclick="drawerTab('shipping',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">Shipping</button>
     <button class="drawer-tab" onclick="drawerTab('history',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">History</button>
     <button class="drawer-tab" onclick="drawerTab('comps',this);loadDrawerComps()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">📊 Comps</button>
+    <button class="drawer-tab" id="drawerVariantsTab" onclick="drawerTab('variants',this);renderDrawerVariants()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" style="display:none">Variants</button>
   </div>
   <div class="drawer-bd">
 
@@ -1001,6 +1002,10 @@
       <div id="dtab-comps-body"></div>
     </div>
 
+    <div class="drawer-tab-panel" id="dtab-variants">
+      <div id="dtab-variants-body"></div>
+    </div>
+
   </div>
   <div class="drawer-ft">
     <div style="display:flex;gap:8px">
@@ -1294,6 +1299,20 @@
           </div>
         </div>
         <input type="hidden" id="f_qty_single" value="1">
+        <div class="fgrp full" style="margin-top:4px">
+          <button type="button" id="variantToggleBtn" onclick="toggleVariantMode()" class="btn-ghost" style="font-size:10px;padding:4px 10px;border:1px solid var(--border)">+ Variants</button>
+        </div>
+        <div id="variantBuilderSection" style="display:none;grid-column:1/-1;border:1px solid var(--accent3);border-radius:8px;padding:10px;margin-bottom:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:11px;font-weight:600;color:var(--accent3)">Variants <span id="variantCount" style="font-weight:400;color:var(--muted)"></span></span>
+            <button type="button" onclick="presetVariantSizes()" class="btn-ghost" style="font-size:9px;padding:2px 8px;border:1px solid var(--border)">S/M/L/XL</button>
+          </div>
+          <div id="variantList" style="max-height:150px;overflow-y:auto;margin-bottom:8px"></div>
+          <div style="display:flex;gap:6px">
+            <input type="text" id="variantNewLabel" placeholder="e.g. Size XS, Red, etc." style="flex:1;padding:6px 8px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:11px;border-radius:6px" onkeydown="if(event.key==='Enter'){event.preventDefault();addVariantLabel()}">
+            <button type="button" onclick="addVariantLabel()" class="btn-secondary" style="font-size:10px;padding:4px 10px">Add</button>
+          </div>
+        </div>
         <div class="fgrp"><label for="f_cost">Cost ($) *</label><input type="number" id="f_cost" placeholder="0.00" step="0.01" oninput="prevProfit()"></div>
         <div class="fgrp"><label for="f_price">List Price ($) *</label><input type="number" id="f_price" placeholder="0.00" step="0.01" oninput="prevProfit()"></div>
         <div class="fgrp"><label for="f_fees">Fees ($)</label><input type="number" id="f_fees" placeholder="0.00" step="0.01" oninput="prevProfit()"></div>
