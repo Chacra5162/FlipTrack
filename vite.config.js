@@ -16,9 +16,12 @@ export default defineConfig({
         // Code splitting: separate heavy dependencies and gated views
         manualChunks(id) {
           if (id.includes('@supabase/supabase-js')) return 'vendor-supabase';
-          // Pro-tier views + features → single chunk (avoids circular dependency)
-          if (/views\/(insights|profit-dashboard|breakdown|reports|crosslist-dashboard|shipping|sourcing|buyers)\.js/.test(id)) return 'pro-tier';
-          if (/features\/(whatnot-show|packing-slip|shipping-rates|haul|mileage|price-history|repricing|comps|photo-tools|batch-list|ai-listing|inventory-value|ship-labels|listing-templates|flip-score|source-score|haul-receipt|arbitrage-alerts|social-gallery|seasonal-calendar)\.js/.test(id)) return 'pro-tier';
+          // Pro analytics views → own chunk
+          if (/views\/(insights|profit-dashboard|breakdown|reports)\.js/.test(id)) return 'pro-analytics';
+          if (/features\/(analytics-calc|inventory-health|inventory-value|platform-roi|period-compare|sourcing-analytics|listing-score|margin-alerts|flip-score|source-score|arbitrage-alerts|seasonal-calendar|profit-heatmap|kpi-goals|sales-velocity)\.js/.test(id)) return 'pro-analytics';
+          // Pro crosslist + marketplace views → own chunk
+          if (/views\/(crosslist-dashboard|shipping|sourcing|buyers)\.js/.test(id)) return 'pro-ops';
+          if (/features\/(whatnot-show|packing-slip|shipping-rates|ship-labels|haul|haul-receipt|mileage|repricing|comps|photo-tools|batch-list|ai-listing|listing-templates|price-history|social-gallery|deep-links)\.js/.test(id)) return 'pro-ops';
           // Unlimited-tier views → own chunk
           if (/views\/tax-center\.js/.test(id)) return 'unlimited-tier';
           if (/features\/(donations|voice-add)\.js/.test(id)) return 'unlimited-tier';

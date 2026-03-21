@@ -87,7 +87,7 @@ export function renderExpenses() {
   const filterBar = document.getElementById('expFilterBar');
   if (filterBar) {
     filterBar.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 0">
-      <input type="text" placeholder="Search expenses..." value="${escHtml(_expSearch)}"
+      <input type="text" placeholder="Search expenses..." value="${escAttr(_expSearch)}"
              oninput="setExpSearch(this.value)"
              style="flex:1;min-width:150px;padding:6px 10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:12px;font-family:'DM Mono',monospace">
       <input type="date" value="${_expDateFrom}" onchange="setExpDateFrom(this.value)" title="From date"

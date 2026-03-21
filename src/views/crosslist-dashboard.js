@@ -796,7 +796,7 @@ function _renderEtsyTags() {
         html += `<div style="margin-bottom:8px">
           <strong style="font-size:12px">Suggestions</strong>
           <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
-            ${suggestions.slice(0, 13 - currentTags.length).map(t => `<span class="etsy-tag-suggest" onclick="clEtsyAddTag('${_etsyTagEditItem}','${escHtml(t)}')">${escHtml(t)} +</span>`).join('')}
+            ${suggestions.slice(0, 13 - currentTags.length).map(t => `<span class="etsy-tag-suggest" onclick="clEtsyAddTag('${escAttr(_etsyTagEditItem)}','${escAttr(t)}')">${escHtml(t)} +</span>`).join('')}
           </div>
         </div>`;
       }

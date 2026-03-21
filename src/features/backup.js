@@ -112,6 +112,7 @@ export function restoreBackup(file) {
       if (backup.data.supplies) {
         supplies.length = 0;
         supplies.push(...backup.data.supplies);
+        for (const s of supplies) markDirty('supplies', s.id);
       }
 
       save();

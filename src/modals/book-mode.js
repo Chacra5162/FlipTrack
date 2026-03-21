@@ -31,7 +31,7 @@ export function swapConditionTags(prefix, isBook) {
   const currentVal = document.getElementById(prefix + '_condition')?.value || '';
   const tags = isBook ? BOOK_CONDITIONS : STD_CONDITIONS;
   picker.innerHTML = tags.map(t =>
-    `<button type="button" class="cond-tag" onclick="setCondTag('${prefix}','${t}',this)">${t}</button>`
+    `<button type="button" class="cond-tag" onclick="setCondTag('${escAttr(prefix)}','${escAttr(t)}',this)">${escAttr(t)}</button>`
   ).join('');
   // Re-activate if value matches
   if (currentVal) loadCondTag(prefix, currentVal);

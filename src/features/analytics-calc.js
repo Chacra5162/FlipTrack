@@ -269,6 +269,7 @@ export function calcProfitByDayOfWeek(sales, inv) {
  * @returns {Object} { day_of_week, reason, confidence }
  */
 export function calcBestListingDay(sales) {
+  if (!sales.length) return { day_of_week: null, revenue_correlation: 0, confidence: 0 };
   const dayPerformance = {
     0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0
   };

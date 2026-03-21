@@ -207,7 +207,7 @@ export async function evaluateRules() {
                 reason: `Set to comp median (${comp.count} comps, ${comp.confidence} confidence)`
               });
             }
-          }).catch(() => {})
+          }).catch(e => console.warn('FlipTrack: comp lookup failed for repricing:', e.message))
         );
       } else {
         let suggestedPrice = item.price;

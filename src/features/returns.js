@@ -4,7 +4,7 @@
  * identify problem items/categories with high return rates.
  */
 
-import { inv, sales, getInvItem, save, markDirty } from '../data/store.js';
+import { inv, sales, getInvItem, getSaleById, save, markDirty } from '../data/store.js';
 import { fmt, uid, ds, escHtml, escAttr } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 
@@ -26,7 +26,7 @@ const RETURN_REASONS = [
 // ── LOG A RETURN ──────────────────────────────────────────────────────────
 
 export function logReturn(saleId, reason, refundAmount, notes, restocked) {
-  const sale = sales.find(s => s.id === saleId);
+  const sale = getSaleById( saleId);
   if (!sale) { toast('Sale not found', true); return; }
 
   sale.returnInfo = {
@@ -231,10 +231,10 @@ export function openReturnModal() {
   // Pre-fill refund amount
   const selEl = document.getElementById('ret_sale');
   selEl.addEventListener('change', () => {
-    const sale = sales.find(s => s.id === selEl.value);
+    const sale = getSaleById( selEl.value);
     if (sale) document.getElementById('ret_amount').value = sale.price;
   });
-  const first = sales.find(s => s.id === selEl.value);
+  const first = getSaleById( selEl.value);
   if (first) document.getElementById('ret_amount').value = first.price;
 
   ov.style.display = 'flex';

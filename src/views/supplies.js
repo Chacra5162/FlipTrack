@@ -1,43 +1,14 @@
 // ── SUPPLIES ──────────────────────────────────────────────────────────────────
-import { supplies } from '../data/store.js';
+// All supply mutations go through store.js pipeline (markDirty → save → autoSync)
+import { supplies, save, markDirty, markDeleted, saveSupplies as storeSaveSupplies, clearDeletedId } from '../data/store.js';
 import { uid, fmt, escAttr, escHtml } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
-import { getSupabaseClient, getCurrentUser } from '../data/auth.js';
-import { getActiveAccountId } from '../features/teams.js';
+import { autoSync } from '../data/sync.js';
 
-function saveSupplies() {
-  localStorage.setItem('ft_supplies', JSON.stringify(supplies));
-  syncSupplies();
-}
-
-async function syncSupplies() {
-  const _sb = getSupabaseClient();
-  const _currentUser = getCurrentUser();
-  if (!_sb || !_currentUser) return;
-  try {
-    const acctId = getActiveAccountId();
-    const rows = supplies.map(s => ({ id: s.id, account_id: acctId, data: s }));
-    await _sb.from('ft_supplies').upsert(rows, { onConflict: 'id' });
-  } catch {}
-}
-
-async function pullSupplies() {
-  const _sb = getSupabaseClient();
-  const _currentUser = getCurrentUser();
-  if (!_sb || !_currentUser) return;
-  try {
-    const acctId = getActiveAccountId();
-    const { data } = await _sb.from('ft_supplies').select('data').eq('account_id', acctId);
-    if (data && data.length) {
-      supplies.length = 0;
-      supplies.push(...data.map(r => r.data).filter(Boolean));
-    }
-    saveLocalSupplies();
-  } catch {}
-}
-
-function saveLocalSupplies() {
-  localStorage.setItem('ft_supplies', JSON.stringify(supplies));
+// ── MUTATION HELPERS ────────────────────────────────────────────────────────
+function _persistSupplies() {
+  storeSaveSupplies(); // IDB + localStorage
+  save();              // rebuild indexes, trigger autoSync
 }
 
 function addSupply() {
@@ -45,7 +16,7 @@ function addSupply() {
   if (!name) { toast('Supply name required', true); return; }
   const qty  = parseInt(document.getElementById('sup_qty').value) || 0;
   const alert= parseInt(document.getElementById('sup_alert').value) || 5;
-  supplies.push({
+  const item = {
     id:    uid(),
     name,
     category: document.getElementById('sup_cat').value,
@@ -54,12 +25,14 @@ function addSupply() {
     alert,
     notes: document.getElementById('sup_notes').value.trim(),
     added: new Date().toISOString()
-  });
+  };
+  supplies.push(item);
+  markDirty('supplies', item.id);
   ['sup_name','sup_qty','sup_cost','sup_alert','sup_notes'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
   document.getElementById('sup_cat').value = 'Boxes';
-  saveSupplies();
+  _persistSupplies();
   renderSupplies();
   toast('Supply added ✓');
 }
@@ -68,7 +41,8 @@ function updateSupplyQty(id, delta) {
   const s = supplies.find(s => s.id === id);
   if (!s) return;
   s.qty = Math.max(0, (s.qty || 0) + delta);
-  saveSupplies();
+  markDirty('supplies', id);
+  _persistSupplies();
   renderSupplies();
 }
 
@@ -76,14 +50,18 @@ function setSupplyQty(id, val) {
   const s = supplies.find(s => s.id === id);
   if (!s) return;
   s.qty = Math.max(0, parseInt(val) || 0);
-  saveSupplies();
+  markDirty('supplies', id);
+  _persistSupplies();
   checkSupplyAlerts();
 }
 
 function delSupply(id) {
   const idx = supplies.findIndex(s => s.id === id);
-  if (idx !== -1) supplies.splice(idx, 1);
-  saveSupplies();
+  if (idx !== -1) {
+    markDeleted('ft_supplies', id);
+    supplies.splice(idx, 1);
+  }
+  _persistSupplies();
   renderSupplies();
   toast('Removed ✓');
 }
@@ -123,8 +101,8 @@ function renderSupplies() {
 function checkSupplyAlerts() {
   const low = supplies.filter(s => s.qty <= (s.alert || 5) && s.qty >= 0);
   if (!low.length) return;
-  const names = low.map(s => `${s.name} (${s.qty} left)`).join(', ');
+  const names = low.map(s => `${escHtml(s.name)} (${s.qty} left)`).join(', ');
   toast(`⚠ Low stock: ${names}`, true, 5000);
 }
 
-export { saveSupplies, syncSupplies, pullSupplies, saveLocalSupplies, addSupply, updateSupplyQty, setSupplyQty, delSupply, renderSupplies, checkSupplyAlerts };
+export { addSupply, updateSupplyQty, setSupplyQty, delSupply, renderSupplies, checkSupplyAlerts };

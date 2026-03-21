@@ -158,6 +158,8 @@ let _replayInProgress = false;
  * @param {Function} onComplete - Called after replay with { ok, failed }
  */
 let _offlineReplayInitialized = false;
+/** Reset replay state on sign-out so new session gets fresh closure */
+export function resetOfflineReplay() { _offlineReplayInitialized = false; }
 export function setupOfflineReplay(getClient, onComplete) {
   if (_offlineReplayInitialized) return;
   _offlineReplayInitialized = true;

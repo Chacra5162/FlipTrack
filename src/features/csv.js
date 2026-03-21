@@ -1,6 +1,6 @@
 // ── CSV IMPORT/EXPORT ───────────────────────────────────────────────────────────
 
-import { inv, sales, expenses, save, refresh, getInvItem } from '../data/store.js';
+import { inv, sales, expenses, save, refresh, getInvItem, markDirty } from '../data/store.js';
 import { fmt, pct, uid, escHtml, escAttr, localDate} from '../utils/format.js';
 import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
@@ -85,6 +85,7 @@ export function importExpenseCSV(file) {
           description: descIdx >= 0 ? (cells[descIdx] || '') : '',
           amount: amt,
         });
+        markDirty('expenses', expenses[expenses.length - 1].id);
         imported++;
       }
 
@@ -219,7 +220,7 @@ function _executeImport(colMap, lines, parseRow) {
     const cat = colMap.category !== undefined ? (row[colMap.category] || '').trim() : '';
     const skuDate = localDate().replace(/-/g,'');
     const skuCat = (cat || 'GEN').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4).padEnd(3,'X');
-    const skuRand = Math.random().toString(36).slice(2,5).toUpperCase();
+    const skuRand = Array.from(crypto.getRandomValues(new Uint8Array(3)), b => b.toString(36)).join('').slice(0,3).toUpperCase();
 
     const platStr = colMap.platform !== undefined ? (row[colMap.platform] || '').trim() : '';
     const plats = platStr ? platStr.split(/[;,|]/).map(p => p.trim()).filter(Boolean) : [];
@@ -257,6 +258,7 @@ function _executeImport(colMap, lines, parseRow) {
     if (colMap.signed !== undefined) item.signed = ['yes','true','1','y'].includes((row[colMap.signed]||'').trim().toLowerCase());
     if (colMap.salesRank !== undefined) item.salesRank = parseInt(row[colMap.salesRank]) || null;
     inv.push(item);
+    markDirty('inv', item.id);
     imported++;
   }
 

@@ -26,7 +26,7 @@ export const escHtml = s => String(s == null ? '' : s).replace(/&/g, '&amp;').re
 export const escAttr = s => String(s || '').replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
 // Days since a date string (or 0 if falsy) — shared utility for aging/stale calculations
-export const daysSince = d => d ? Math.floor((Date.now() - new Date(d).getTime()) / 86400000) : 0;
+export const daysSince = (d, fallback = 0) => d ? Math.floor((Date.now() - new Date(d).getTime()) / 86400000) : fallback;
 
 // Days listed on a marketplace — uses earliest platformListingDates, falls back to item.added
 export function daysListed(item) {

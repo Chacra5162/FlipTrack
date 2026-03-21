@@ -15,8 +15,8 @@ const AGING_BUCKETS = [
   { label: '90+ days',   max: Infinity, cls: 'age-dead' },
 ];
 
-// _daysSince consolidated into daysSince() in utils/format.js
-const _daysSince = d => d ? daysSince(d) : 999;
+// Use daysSince with 999 fallback for items with no date (treated as very old)
+const _daysSince = d => daysSince(d, 999);
 
 // ── COMPUTE HEALTH METRICS ────────────────────────────────────────────────
 

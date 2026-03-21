@@ -175,7 +175,7 @@ export async function connectEtsy() {
     _csrfState = data.state;
 
     // Store state for callback verification
-    await setMeta('etsy_csrf_state', _csrfState);
+    await setMeta('etsy_csrf_state', { value: _csrfState, ts: Date.now() });
 
     // On mobile, use full-page redirect instead of popup (popups are blocked)
     if (_isMobile()) {
@@ -232,8 +232,13 @@ export async function handleEtsyCallback(code, state) {
   try {
     // Verify CSRF
     const storedState = await getMeta('etsy_csrf_state');
-    if (!state || !storedState || state !== storedState) {
+    const stateVal = storedState?.value || storedState;
+    const stateTs = storedState?.ts || 0;
+    if (!state || !stateVal || state !== stateVal) {
       throw new Error('State mismatch — possible CSRF attack. Please try again.');
+    }
+    if (stateTs && Date.now() - stateTs > 600000) {
+      throw new Error('OAuth state expired (>10 min). Please try again.');
     }
 
     // Exchange code for tokens via Edge Function

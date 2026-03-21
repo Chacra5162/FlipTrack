@@ -1,6 +1,6 @@
 // Materials modal - supplies/materials management for sales
-import { supplies } from '../data/store.js';
-import { saveSupplies, renderSupplies, checkSupplyAlerts } from '../views/supplies.js';
+import { supplies, saveSupplies, save, markDirty } from '../data/store.js';
+import { renderSupplies, checkSupplyAlerts } from '../views/supplies.js';
 import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
 
 let _pendingSaleCallback = null;
@@ -41,7 +41,9 @@ export function confirmMaterials() {
   document.getElementById('matsOv').classList.remove('on');
   releaseFocus();
   if (used.length) {
+    for (const u of used) markDirty('supplies', u.id);
     saveSupplies();
+    save();
     renderSupplies();
     checkSupplyAlerts();
     toast(`Materials deducted ✓`);

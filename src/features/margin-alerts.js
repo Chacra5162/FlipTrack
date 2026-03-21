@@ -27,19 +27,19 @@ export function setMarginThresholds(t) {
   if (t.minProfitDollar !== undefined) _thresholds.minProfitDollar = Number(t.minProfitDollar);
   if (t.maxDaysUnlisted !== undefined) _thresholds.maxDaysUnlisted = Number(t.maxDaysUnlisted);
   if (t.staleDays !== undefined) _thresholds.staleDays = Number(t.staleDays);
-  try { localStorage.setItem('ft_margin_thresholds', JSON.stringify(_thresholds)); } catch (e) {}
+  try { localStorage.setItem('ft_margin_thresholds', JSON.stringify(_thresholds)); } catch (e) { console.warn('FlipTrack: margin thresholds save error:', e.message); }
 }
 
 export function initMarginAlerts() {
   try {
     const saved = localStorage.getItem('ft_margin_thresholds');
     if (saved) _thresholds = { ...DEFAULT_THRESHOLDS, ...JSON.parse(saved) };
-  } catch (e) {}
+  } catch (e) { console.warn('FlipTrack: margin thresholds load error:', e.message); }
 }
 
 // ── SCAN FOR ALERTS ───────────────────────────────────────────────────────
 
-const _daysSince = d => d ? daysSince(d) : 999;
+const _daysSince = d => daysSince(d, 999);
 
 export function scanMarginAlerts() {
   const unsold = inv.filter(i => !i.sold && !i.deleted);

@@ -67,14 +67,19 @@ function updateOfflineIndicator() {
 let _indicatorInterval = null;
 
 /** Update the indicator every 30 seconds */
+const _onOnline = () => { updateOfflineIndicator(); updateSyncIndicator(); };
+const _onOffline = () => updateOfflineIndicator();
+
 export function startSyncIndicator() {
   updateSyncIndicator();
   updateOfflineIndicator();
   _indicatorInterval = setInterval(updateSyncIndicator, 30000);
-  window.addEventListener('online', () => { updateOfflineIndicator(); updateSyncIndicator(); });
-  window.addEventListener('offline', updateOfflineIndicator);
+  window.addEventListener('online', _onOnline);
+  window.addEventListener('offline', _onOffline);
 }
 
 export function stopSyncIndicator() {
   if (_indicatorInterval) { clearInterval(_indicatorInterval); _indicatorInterval = null; }
+  window.removeEventListener('online', _onOnline);
+  window.removeEventListener('offline', _onOffline);
 }

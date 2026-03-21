@@ -14,7 +14,7 @@ export function renderInsights() {
   const el = document.getElementById('insightsContent');
   if (!el) return;
   // Invalidate cache when data changes (lengths or in-place mutations via save)
-  const dataKey = `${inv.length}:${sales.length}:${Date.now() >> 12}`;
+  const dataKey = `${inv.length}:${sales.length}:${expenses.length}`;
   if (dataKey === _lastDataKey && _insightsCache) { el.innerHTML = _insightsCache; return; }
   _lastDataKey = dataKey;
 

@@ -6,15 +6,20 @@
 import { createClient } from '@supabase/supabase-js';
 import { SB_URL, SB_KEY } from '../config/constants.js';
 import { inv, sales, expenses, supplies, save, refresh, clearStoreTimers, setSyncInProgress } from './store.js';
-import { syncNow, autoSync, pullSupplies, startRealtime, stopRealtime, setSyncStatus, stopPoll, clearSyncTimers } from './sync.js';
+import { syncNow, autoSync, pullSupplies, startRealtime, stopRealtime, setSyncStatus, stopPoll, clearSyncTimers, resetSyncGuard } from './sync.js';
 import { deleteMeta, clearStore } from './idb.js';
-import { setOfflineUser } from '../features/offline.js';
-import { stopEBaySyncInterval } from '../features/ebay-sync.js';
-import { stopEtsySyncInterval } from '../features/etsy-sync.js';
-import { initTeam, getTeam, getMyRole } from '../features/teams.js';
-import { clearReportTimers } from '../views/reports.js';
-import { stopStockAlertChecks } from '../features/push-notifications.js';
-import { disableAutoRelist } from '../features/crosslist.js';
+import { resetOfflineReplay } from './offline-queue.js';
+
+// ── CALLBACK REGISTRIES (avoids data→feature import violations) ─────────
+// Features register their cleanup/init callbacks at module load time.
+const _cleanupCallbacks = [];
+export function registerAuthCleanup(fn) { _cleanupCallbacks.push(fn); }
+
+let _sessionInitCallback = async () => ({ team: null, role: null });
+export function registerSessionInit(fn) { _sessionInitCallback = fn; }
+
+let _setOfflineUser = () => {};
+export function registerOfflineUserHandler(fn) { _setOfflineUser = fn; }
 
 // ── SUPABASE CLIENT & AUTH STATE ───────────────────────────────────────────
 let _sb = null;
@@ -168,7 +173,7 @@ export async function authForgotPassword() {
     return;
   }
 
-  const { error } = await _sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin });
+  const { error } = await _sb.auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}/app.html#reset-password` });
   if (error) setAuthMsg(error.message, 'err');
   else setAuthMsg('Password reset email sent — check your inbox.', 'ok');
 }
@@ -182,14 +187,8 @@ export async function authSignOut() {
   clearStoreTimers();               // Clear save debounces
   clearTimeout(_syncDebounce);      // Extra safeguard for auth's local debounce
 
-  // ── STOP MARKETPLACE SYNC INTERVALS ────────────────────────────────────
-  stopEBaySyncInterval();
-  stopEtsySyncInterval();
-
-  // ── STOP LEAKED TIMERS/INTERVALS ────────────────────────────────────────
-  clearReportTimers();
-  stopStockAlertChecks();
-  disableAutoRelist();
+  // ── STOP ALL FEATURE TIMERS/INTERVALS (registered via registerAuthCleanup) ──
+  for (const fn of _cleanupCallbacks) { try { fn(); } catch (e) { console.warn('FlipTrack: cleanup error:', e.message); } }
 
   _currentUser = null;
   await _sb.auth.signOut();
@@ -216,6 +215,8 @@ export async function authSignOut() {
   await deleteMeta('lastSyncPush').catch(e => console.warn('FlipTrack: delete lastSyncPush failed:', e.message));
   await deleteMeta('lastSyncPull').catch(e => console.warn('FlipTrack: delete lastSyncPull failed:', e.message));
   await clearStore('supplies').catch(() => {});
+  await clearStore('syncQueue').catch(() => {}); // Clear offline queue to prevent cross-account data leak
+  resetOfflineReplay(); // Allow new session to register fresh replay closure
 
   // ── CLEAR MARKETPLACE AUTH STATE FROM INDEXEDDB ────────────────────────
   await deleteMeta('ebay_csrf_state').catch(() => {});
@@ -270,7 +271,7 @@ async function _startSession(user) {
   if (_sessionStarting) return; // prevent double-call from race
   _sessionStarting = true;
   _currentUser = user;
-  setOfflineUser(user);
+  _setOfflineUser(user);
   hideAuthModal();
 
   const lbl = document.getElementById('syncDotLbl');
@@ -296,8 +297,9 @@ async function _startSession(user) {
       ]);
     } catch (e) {
       if (e.message === 'Sync timed out') {
-        // Reset sync guard so auto-sync isn't permanently blocked
+        // Reset both sync guards so auto-sync isn't permanently blocked
         setSyncInProgress(false);
+        resetSyncGuard();
         setSyncStatus('error', 'Sync timed out — will retry');
         console.warn('FlipTrack: initial sync timed out, will retry via auto-sync');
       } else throw e;
@@ -338,7 +340,7 @@ export async function initAuth() {
   _sb.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_OUT') {
       _currentUser = null;
-      setOfflineUser(null);
+      _setOfflineUser(null);
       stopPoll();
       clearTimeout(_syncDebounce);
       setSyncStatus('disconnected');

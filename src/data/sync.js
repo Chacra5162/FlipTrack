@@ -14,12 +14,16 @@ import {
   registerAutoSync
 } from './store.js';
 import { getCurrentUser, getSupabaseClient, getAccountId } from './auth.js';
-import { getActiveAccountId } from '../features/teams.js';
+// accountId callback registered from feature layer to avoid data→feature import
+let _getActiveAccountId = () => getAccountId(); // default fallback to auth user id
+export function registerAccountIdProvider(fn) { _getActiveAccountId = fn; }
 import { isStorageUrl, migrateImagesToStorage } from './storage.js';
 import { setMeta, getMeta } from './idb.js';
 import { enqueue, setupOfflineReplay } from './offline-queue.js';
 import { toast } from '../utils/dom.js';
-import { recordSync } from '../features/sync-indicator.js';
+// recordSync registered from feature layer
+let _recordSync = () => {};
+export function registerRecordSync(fn) { _recordSync = fn; }
 
 // ── SYNC STATUS ────────────────────────────────────────────────────────────
 export function setSyncStatus(state, msg) {
@@ -78,7 +82,7 @@ export async function pushToCloud() {
     return;
   }
 
-  const accountId = getActiveAccountId();
+  const accountId = _getActiveAccountId();
 
   try {
     // ── Upload any pending base64 images to Storage before push ──
@@ -194,7 +198,7 @@ async function _queueDirtyItems() {
   for (const [table, ids] of Object.entries(dirty.deleted)) {
     if (ids.length) { hadItems = true; await enqueue('delete', table, ids); }
   }
-  return hadItems || true; // return true to signal queue attempt was made
+  return hadItems;
 }
 
 
@@ -204,7 +208,7 @@ export async function pushAllToCloud() {
   const _currentUser = getCurrentUser();
   if (!_sb || !_currentUser) return;
 
-  const accountId = getActiveAccountId();
+  const accountId = _getActiveAccountId();
 
   // Upload any pending base64 images before full push
   try { await migrateImagesToStorage(); } catch (e) {
@@ -247,7 +251,7 @@ export async function pushDeleteToCloud(table, ids) {
   const _sb = getSupabaseClient();
   const _currentUser = getCurrentUser();
   if (!_sb || !_currentUser || !ids.length) return;
-  const accountId = getActiveAccountId();
+  const accountId = _getActiveAccountId();
   try {
     await _sb.from(table).delete().eq('account_id', accountId).in('id', ids);
   } catch (e) {
@@ -265,7 +269,7 @@ export async function pullFromCloud() {
   const _currentUser = getCurrentUser();
   if (!_sb || !_currentUser) return false;
 
-  const accountId = getActiveAccountId();
+  const accountId = _getActiveAccountId();
   let lastPull = await getMeta('lastSyncPull').catch(() => null);
 
   // Safety: if local data is empty but lastPull is set, force a full pull.
@@ -306,9 +310,10 @@ export async function pullFromCloud() {
     // ── DELTA MERGE with conflict resolution: compare updated_at timestamps ──
     const mergeArray = (arr, remoteRows) => {
       if (!remoteRows || !remoteRows.length) return;
+      const posMap = new Map(arr.map((item, idx) => [item.id, idx]));
       for (const row of remoteRows) {
         if (!row.data) continue;
-        const idx = arr.findIndex(i => i.id === row.id);
+        const idx = posMap.has(row.id) ? posMap.get(row.id) : -1;
         if (idx !== -1) {
           // Conflict resolution: remote wins if it's newer (server updated_at vs local _localUpdatedAt)
           const localTs = arr[idx]._localUpdatedAt || 0;
@@ -377,7 +382,7 @@ export async function pullSupplies() {
   const _currentUser = getCurrentUser();
   if (!_sb || !_currentUser) return;
   try {
-    const acctId = getActiveAccountId();
+    const acctId = _getActiveAccountId();
     const { data } = await _sb.from('ft_supplies').select('data').eq('account_id', acctId);
     if (data && data.length) {
       supplies.length = 0;
@@ -395,6 +400,7 @@ export async function pullSupplies() {
 // ══════════════════════════════════════════════════════════════════════════
 
 let _isSyncing = false;
+export function resetSyncGuard() { _isSyncing = false; }
 
 export async function syncNow() {
   if (_isSyncing) return;          // Re-entrancy guard
@@ -413,7 +419,7 @@ export async function syncNow() {
     await pullFromCloud();
     await pushToCloud(); // Delta push — only changed items
     setSyncStatus('connected');
-    recordSync();
+    _recordSync();
     refresh();
     // Re-render dashboard stats so the stats grid reflects fresh cloud data
     if (typeof window.updateDashStats === 'function') window.updateDashStats();
@@ -446,7 +452,7 @@ export function autoSync() {
     try {
       await pushToCloud(); // Delta push — only dirty items
       setSyncStatus('connected');
-      recordSync();
+      _recordSync();
     } catch (e) {
       setSyncStatus('error', e.message);
     }
@@ -498,7 +504,7 @@ export function startRealtime() {
   const _currentUser = getCurrentUser();
   if (!_sb || !_currentUser) return;
 
-  const accountId = getActiveAccountId();
+  const accountId = _getActiveAccountId();
   _realtimeChannel = _sb.channel('ft-sync')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'ft_inventory', filter: `account_id=eq.${accountId}` }, _onRealtimeChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'ft_sales', filter: `account_id=eq.${accountId}` }, _onRealtimeChange)
@@ -521,7 +527,7 @@ function _onRealtimeChange(payload) {
       await pullFromCloud();
       refresh();
       setSyncStatus('connected');
-      recordSync();
+      _recordSync();
       if (typeof window.updateDashStats === 'function') window.updateDashStats();
     } catch (e) {
       setSyncStatus('error', e.message);
@@ -591,7 +597,7 @@ export function initOfflineQueue() {
       const sb = getSupabaseClient();
       const user = getCurrentUser();
       if (!sb || !user) return null;
-      return { sb, accountId: getActiveAccountId() };
+      return { sb, accountId: _getActiveAccountId() };
     },
     (result) => {
       if (result.ok > 0) {

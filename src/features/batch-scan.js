@@ -1,5 +1,5 @@
 // ── BATCH SCAN MODE ───────────────────────────────────────────────────────
-import { inv, save, refresh } from '../data/store.js';
+import { inv, save, refresh, markDirty } from '../data/store.js';
 import { uid, escHtml, escAttr, localDate} from '../utils/format.js';
 import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
@@ -379,7 +379,7 @@ export function batchAddAll() {
     const cat = item.category || '';
     const skuDate = localDate().replace(/-/g,'');
     const skuCat = (cat || 'GEN').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4).padEnd(3,'X');
-    const skuRand = Math.random().toString(36).slice(2,5).toUpperCase();
+    const skuRand = Array.from(crypto.getRandomValues(new Uint8Array(3)),b=>b.toString(36)).join('').slice(0,3).toUpperCase();
     const autoSku = skuCat + '-' + skuDate + '-' + skuRand;
 
     inv.push({
@@ -405,6 +405,7 @@ export function batchAddAll() {
       image: null,
       added: new Date().toISOString(),
     });
+    markDirty('inv', inv[inv.length - 1].id);
     added++;
   }
 

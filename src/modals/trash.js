@@ -4,7 +4,7 @@
 
 import { _trash, saveTrash, save, refresh, restoreItem as storeRestoreItem } from '../data/store.js';
 import { toast, trapFocus, releaseFocus, appConfirm } from '../utils/dom.js';
-import { escHtml } from '../utils/format.js';
+import { escHtml, escAttr } from '../utils/format.js';
 
 export function openTrashModal() {
   // Prune expired items in-place
@@ -20,9 +20,9 @@ export function openTrashModal() {
     return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="flex:1;min-width:0">
         <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(item.name)}</div>
-        <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">${item.sku || '—'} · ${agoStr}</div>
+        <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">${escHtml(item.sku || '—')} · ${agoStr}</div>
       </div>
-      <button onclick="restoreItem('${item.id}');closeTrashModal()" style="background:none;border:1px solid var(--good);color:var(--good);font-size:10px;padding:4px 10px;cursor:pointer;font-family:'DM Mono',monospace">Restore</button>
+      <button onclick="restoreItem('${escAttr(item.id)}');closeTrashModal()" style="background:none;border:1px solid var(--good);color:var(--good);font-size:10px;padding:4px 10px;cursor:pointer;font-family:'DM Mono',monospace">Restore</button>
     </div>`;
   }).reverse().join('');
 
