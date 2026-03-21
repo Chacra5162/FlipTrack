@@ -236,26 +236,32 @@ async function _backfillOrderData(order) {
   const existing = sales.filter(s => s.ebayOrderId === order.orderId);
   if (!existing.length) return;
 
-  // Extract buyer info from order
-  const buyerName = order.buyer?.username || null;
+  // Extract buyer info from order (try multiple field paths)
+  const buyerName = order.buyer?.username
+    || order.buyer?.buyerRegistrationAddress?.fullName
+    || null;
   const shipTo = (order.fulfillmentStartInstructions || [])[0]?.shippingStep?.shipTo;
-  const fullName = shipTo?.fullName || null;
+  const fullName = shipTo?.fullName || shipTo?.name || null;
 
   // Fetch actual shipping fulfillments for tracking numbers
   let trackCode = null;
   let carrier = null;
-  if (order.fulfillmentHrefs?.length) {
-    try {
-      const fulfResp = await ebayAPI('GET',
-        `${FULFILLMENT_API}/order/${order.orderId}/shipping_fulfillment`
-      );
-      const fulfillments = fulfResp.fulfillments || [];
-      if (fulfillments.length) {
-        const shipLines = fulfillments[0].shipmentTrackingNumber;
-        trackCode = shipLines || fulfillments[0].trackingNumber || null;
-        carrier = fulfillments[0].shippingCarrierCode || null;
-      }
-    } catch (_) { /* non-critical — tracking fetch can fail */ }
+  try {
+    const fulfResp = await ebayAPI('GET',
+      `${FULFILLMENT_API}/order/${order.orderId}/shipping_fulfillment`
+    );
+    const fulfillments = fulfResp.fulfillments || fulfResp.shippingFulfillments || [];
+    if (fulfillments.length) {
+      const f = fulfillments[0];
+      // eBay uses different field names across API versions
+      trackCode = f.shipmentTrackingNumber
+        || f.trackingNumber
+        || (f.lineItems?.[0]?.trackingNumber)
+        || null;
+      carrier = f.shippingCarrierCode || f.carrierCode || null;
+    }
+  } catch (e) {
+    console.warn('FlipTrack: backfill tracking fetch:', e.message);
   }
 
   let updated = false;
@@ -282,6 +288,7 @@ async function _backfillOrderData(order) {
     }
     if (updated) markDirty('sales', sale.id);
   }
+  return updated;
 }
 
 /**
@@ -428,8 +435,11 @@ export async function resyncEBayOrders(days = 7) {
  * Pulls the last 30 days of orders and patches any sales missing this data.
  */
 export async function backfillEBayData() {
-  if (!isEBayConnected()) { toast('eBay not connected', true); return; }
-  toast('Syncing eBay tracking & buyer data…');
+  if (!isEBayConnected()) { toast('eBay not connected — connect in Settings', true); return; }
+  const ebayCount = sales.filter(s => s.platform === 'eBay' && s.ebayOrderId).length;
+  const missingBuyer = sales.filter(s => s.platform === 'eBay' && s.ebayOrderId && !s.buyerId).length;
+  const missingTracking = sales.filter(s => s.platform === 'eBay' && s.ebayOrderId && !s.tracking).length;
+  toast(`Syncing ${ebayCount} eBay sales (${missingBuyer} missing buyer, ${missingTracking} missing tracking)…`);
   await resyncEBayOrders(30);
 }
 
