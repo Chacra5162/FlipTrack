@@ -230,6 +230,7 @@ export function shipMarkShipped(saleId) {
   modal.dataset.activeSaleId = saleId;
   document.getElementById('shipCarrier').value = sale.carrier || sale.trackingCarrier || 'USPS';
   document.getElementById('shipTracking').value = sale.trackingNumber || sale.tracking || '';
+  document.getElementById('shipDate').value = sale.shippedDate ? sale.shippedDate.slice(0, 10) : localDate();
   document.getElementById('shipCost').value = sale.actualShipCost || '';
   modal.classList.add('on');
   setTimeout(() => trapFocus(modal.id ? '#' + modal.id : '.modal'), 100);
@@ -241,6 +242,7 @@ export function shipConfirmShipped(saleId) {
 
   const carrier = (document.getElementById('shipCarrier')?.value || '').trim();
   const tracking = (document.getElementById('shipTracking')?.value || '').trim();
+  const shipDateVal = (document.getElementById('shipDate')?.value || '').trim();
   const costStr = (document.getElementById('shipCost')?.value || '').trim();
 
   if (!carrier) { toast('Select carrier', true); return; }
@@ -250,7 +252,7 @@ export function shipConfirmShipped(saleId) {
   const cost = parseFloat(costStr) || 0;
 
   sale.shipped = true;
-  sale.shippedDate = new Date().toISOString();
+  sale.shippedDate = shipDateVal || new Date().toISOString();
   sale.carrier = carrier;
   sale.trackingNumber = tracking;
   sale.tracking = tracking;
@@ -661,6 +663,10 @@ export function initShippingModals() {
               <input id="shipTracking" type="text" placeholder="e.g., 9400111899223456789012" style="padding:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;flex:1" oninput="shipCheckTracking()" />
               <div id="shipTrackingIndicator" style="display:none;padding:8px;border-radius:4px;font-size:10px;font-weight:600;min-width:60px;text-align:center;white-space:nowrap"></div>
             </div>
+          </div>
+          <div class="fgrp">
+            <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Date Shipped</label>
+            <input id="shipDate" type="date" style="padding:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;width:100%" />
           </div>
           <div class="fgrp">
             <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Actual Shipping Cost ($)</label>

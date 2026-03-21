@@ -274,12 +274,9 @@ async function _backfillOrderData(order) {
       sale.trackingCarrier = carrier;
       updated = true;
     }
-    // Backfill shipped status + date
-    if (!sale.shipped && shippedDate) {
-      sale.shipped = true;
-      sale.shippedDate = shippedDate;
-      updated = true;
-    } else if (sale.shipped && !sale.shippedDate && shippedDate) {
+    // Backfill shipped status + date (always prefer eBay's date over local)
+    if (shippedDate) {
+      if (!sale.shipped) sale.shipped = true;
       sale.shippedDate = shippedDate;
       updated = true;
     }
