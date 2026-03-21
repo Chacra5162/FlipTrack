@@ -228,6 +228,46 @@ export async function pullEBayListings() {
 }
 
 /**
+ * Backfill tracking, buyer, and address data on existing sales
+ * that were recorded before these fields were captured.
+ */
+function _backfillOrderData(order) {
+  const existing = sales.filter(s => s.ebayOrderId === order.orderId);
+  if (!existing.length) return;
+
+  const fulfillment = (order.fulfillmentStartInstructions || [])[0];
+  const shipment = fulfillment?.shippingStep;
+  const shipTo = shipment?.shipTo;
+  const trackCode = shipment?.trackingNumber || null;
+  const carrier = shipment?.shippingCarrierCode || null;
+  const buyerName = order.buyer?.username || shipTo?.fullName || null;
+
+  let updated = false;
+  for (const sale of existing) {
+    // Backfill tracking
+    if (!sale.tracking && trackCode) {
+      sale.tracking = trackCode;
+      sale.trackingCarrier = carrier;
+      updated = true;
+    }
+    // Backfill buyer CRM link
+    if (!sale.buyerId && buyerName) {
+      const buyer = getOrCreateBuyer(buyerName, 'eBay');
+      if (buyer) { sale.buyerId = buyer.id; updated = true; }
+    }
+    // Backfill address
+    if (!sale.buyerAddress && shipTo?.contactAddress) {
+      sale.buyerAddress = shipTo.contactAddress.addressLine1 || null;
+      sale.buyerCity = shipTo.contactAddress.city || null;
+      sale.buyerState = shipTo.contactAddress.stateOrProvince || null;
+      sale.buyerZip = shipTo.contactAddress.postalCode || null;
+      updated = true;
+    }
+    if (updated) markDirty('sales', sale.id);
+  }
+}
+
+/**
  * Check recent eBay orders and mark items as sold locally.
  * @param {number} [lookbackMs] - Optional lookback window in ms (default: since last sync or 24h)
  */
@@ -265,8 +305,11 @@ async function _syncEBayOrders(lookbackMs) {
       if (item.ebayListingId) byListingId.set(item.ebayListingId, item);
     }
     for (const order of orders) {
-      // Skip orders we've already recorded
-      if (order.orderId && knownOrderIds.has(order.orderId)) continue;
+      // Backfill existing sales missing tracking/buyer data
+      if (order.orderId && knownOrderIds.has(order.orderId)) {
+        _backfillOrderData(order);
+        continue;
+      }
       for (const lineItem of (order.lineItems || [])) {
         const sku = lineItem.sku;
         const legacyId = lineItem.legacyItemId;
@@ -360,13 +403,23 @@ export async function resyncEBayOrders(days = 7) {
   toast(`Checking eBay orders from last ${days} days…`);
   await _syncEBayOrders(days * 86400000);
   const found = sales.length - before;
+  save(); refresh();
   if (found > 0) {
-    save(); refresh();
-    toast(`Found ${found} missed eBay sale${found > 1 ? 's' : ''}!`);
+    toast(`Found ${found} missed eBay sale${found > 1 ? 's' : ''} + backfilled existing data`);
   } else {
-    toast('No missed eBay sales found');
+    toast('Backfilled tracking & buyer data for existing sales');
   }
   return { found };
+}
+
+/**
+ * Backfill tracking, buyer, and address data for existing eBay sales.
+ * Pulls the last 30 days of orders and patches any sales missing this data.
+ */
+export async function backfillEBayData() {
+  if (!isEBayConnected()) { toast('eBay not connected', true); return; }
+  toast('Syncing eBay tracking & buyer data…');
+  await resyncEBayOrders(30);
 }
 
 /**

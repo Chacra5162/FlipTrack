@@ -466,6 +466,7 @@ export async function renderShippingView() {
       <!-- Actions bar -->
       <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap">
         <button onclick="shipExportLog()" class="btn-secondary" style="padding:6px 12px;font-size:10px">Export Log</button>
+        <button onclick="backfillEBayData()" class="btn-secondary" style="padding:6px 12px;font-size:10px">Sync eBay Data</button>
       </div>
 
       <!-- Table/cards -->

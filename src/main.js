@@ -169,7 +169,7 @@ import {
   wnCalcUpdate
 } from './views/crosslist-dashboard.js';
 import { initEBayAuth, handleEBayCallback, isEBayConnected } from './features/ebay-auth.js';
-import { initEBaySync, startEBaySyncInterval, stopEBaySyncInterval, resyncEBayOrders } from './features/ebay-sync.js';
+import { initEBaySync, startEBaySyncInterval, stopEBaySyncInterval, resyncEBayOrders, backfillEBayData } from './features/ebay-sync.js';
 import { initEtsyAuth, handleEtsyCallback, isEtsyConnected } from './features/etsy-auth.js';
 import { initEtsySync, startEtsySyncInterval, stopEtsySyncInterval, syncEtsyExpenses } from './features/etsy-sync.js';
 import { initWhatnotShows, getTodayShows } from './features/whatnot-show.js';
@@ -440,7 +440,7 @@ Object.assign(window, {
 // Auth
 Object.assign(window, {
   switchAuthTab, authSubmit, authForgotPassword, authSignOut,
-  openAccountMenu, closeAccountMenu, syncNow, mobileSyncNow, resyncEBayOrders
+  openAccountMenu, closeAccountMenu, syncNow, mobileSyncNow, resyncEBayOrders, backfillEBayData
 });
 
 // Teams
