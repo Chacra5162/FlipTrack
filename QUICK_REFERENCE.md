@@ -379,7 +379,64 @@ console.log(_undoStack);  // Max 20 items, sorted by timestamp
 
 ---
 
-**Last Updated:** February 27, 2026
-**Extraction Source:** index.html (465 KB)
-**Total Modules:** 5
-**Total Lines:** ~1,000
+**Last Updated:** March 21, 2026
+**Total Modules:** 50+
+**Total Lines:** ~15,000+
+
+---
+
+## New Features (Sprint 1-4, March 2026)
+
+### Sale Editing
+```javascript
+import { openEditSaleModal } from './src/views/sales.js';
+openEditSaleModal(saleId);  // Opens sold modal pre-filled for editing
+// recSale() auto-detects edit mode and updates in-place
+```
+
+### Multi-Variant Inventory
+```javascript
+import { getVariants, isParent, isVariant, getVariantAggQty } from './src/data/store.js';
+
+// Check if item has variants
+if (isParent(item)) {
+  const children = getVariants(item.id);   // Array of child items
+  const totalQty = getVariantAggQty(item.id);  // Sum of all child qty
+}
+
+// Data model: parent has isParent=true, qty=0; children have parentId
+// No migration needed — existing items have no parentId
+```
+
+### VAPID Push Notifications
+```javascript
+import { subscribeToPush, togglePush, getNotifStatus } from './src/features/push-notifications.js';
+
+await subscribeToPush();  // Request permission + subscribe + save to Supabase
+await togglePush();       // Toggle on/off
+getNotifStatus();         // { supported, permission, enabled, pushSubscribed }
+```
+
+### Goal Gap Widget
+```javascript
+import { getGoalGap, renderGoalGapWidget } from './src/features/kpi-goals.js';
+
+const gap = getGoalGap();  // { gap: 500, revGoal: 2000, actual: 1500, stats }
+const html = renderGoalGapWidget();  // Returns HTML or '' if no gap
+```
+
+### AI Sourcing Mode
+```javascript
+import { openSourcingMode, closeSourcingMode } from './src/features/sourcing-mode.js';
+
+openSourcingMode();   // Full-screen camera → AI → comps → BUY/PASS verdict
+closeSourcingMode();
+```
+
+### Poshmark Sync
+```javascript
+import { openPoshmarkSync, poshMarkSold } from './src/features/poshmark-sync.js';
+
+openPoshmarkSync();         // Modal listing Poshmark items
+poshMarkSold(itemId);       // Mark sold + record sale with 20% fee
+```

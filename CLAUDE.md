@@ -47,7 +47,21 @@ src/
 - `_invIndex` — O(1) inventory lookup by ID (`getInvItem(id)`)
 - `_salesByItemId` — O(1) sales-per-item lookup (`getSalesForItem(id)`)
 - `_salesIndex` / `_expIndex` — O(1) dirty tracking lookups
+- `_variantIndex` — O(1) parent→children lookup (`getVariants(parentId)`)
 - All rebuilt in `rebuildInvIndex()`, called by `save()` and `refresh()`
+
+### Multi-Variant Inventory
+- **Parent items:** `{ ...item, isParent: true, qty: 0 }` — holds shared data (name, category, cost, price)
+- **Child variants:** `{ ...item, parentId: 'parent-id', variantLabel: 'Size M' }` — owns qty, price, platformStatus
+- Helpers: `getVariants(parentId)`, `getParentItem(childId)`, `isParent(item)`, `isVariant(item)`, `getVariantAggQty(parentId)`
+- No migration needed — existing items have no `parentId` (null/undefined)
+- Inventory view filters out children from main list; parents show aggregate qty
+
+### VAPID Web Push
+- **Config:** `src/config/push.js` — VAPID public key (constants.js is protected)
+- **DB table:** `push_subscriptions` (user_id, endpoint, p256dh, auth) with RLS
+- **Edge Function:** `supabase/functions/send-push/index.ts` — sends to all subscriptions, cleans stale
+- **SW handlers:** `push` and `notificationclick` events in `public/sw.js`
 
 ### Subscription Tiers
 - **Free:** Dashboard, inventory, sales, expenses, supplies
@@ -83,6 +97,21 @@ src/
 - Feature modules: `src/features/{name}.js` (kebab-case)
 - View renderers: `src/views/{name}.js`
 - Modal components: `src/modals/{name}.js`
+
+### New Modules (Sprint 1-4, added 2026-03-21)
+- `src/config/push.js` — VAPID public key for Web Push
+- `src/features/sourcing-mode.js` — Full-screen AI sourcing assistant (camera → identify → comps → score)
+- `src/features/poshmark-sync.js` — Manual Poshmark sold-status reconciliation
+- `supabase/functions/send-push/index.ts` — VAPID push notification Edge Function
+
+### Key Feature Summary
+- **Sale Editing:** `openEditSaleModal(saleId)` in sales.js — edit any recorded sale in-place
+- **Mobile Card View:** `toggleInvViewMode()` in inventory.js — responsive card grid for phones
+- **Goal-Aware Alerts:** `renderGoalGapWidget()` in kpi-goals.js — actionable gap-closing suggestions
+- **VAPID Push:** `subscribeToPush()`/`togglePush()` in push-notifications.js — background notifications
+- **Multi-Variant:** `getVariants()`/`isParent()`/`isVariant()` in store.js — parent/child item model
+- **AI Sourcing:** `openSourcingMode()` in sourcing-mode.js — camera → AI → comps → BUY/PASS verdict
+- **Poshmark Sync:** `openPoshmarkSync()` in poshmark-sync.js — manual sold-status check
 
 ## JCodeMunch — Token-Saving Default
 - **Always prefer JCodeMunch MCP tools over Read/Grep** for understanding code

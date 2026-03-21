@@ -74,6 +74,15 @@ const TOUR_STEPS = [
     position: 'top',
     viewRequirement: 'dashboard',
   },
+  {
+    section: 'Dashboard',
+    target: '#goalGapSection',
+    fallbackTarget: '#kpiGoalsSection',
+    title: 'Close the Gap Widget',
+    desc: 'When you have monthly goals set, this widget shows how much revenue you still need and recommends your top 5 items by Flip Score that could close the gap. Each item links to its drawer for quick action.',
+    position: 'top',
+    viewRequirement: 'dashboard',
+  },
 
   /* ── SECTION 2: ADDING INVENTORY ─────────────────────────────────────── */
   {
@@ -111,6 +120,15 @@ const TOUR_STEPS = [
     desc: 'Scan multiple barcodes in rapid succession. Each scan queues an item with auto-filled details. Add them all to inventory at once — perfect for thrift hauls.',
     position: 'bottom-left',
     desktopOnly: true,
+    viewRequirement: 'dashboard',
+  },
+  {
+    section: 'Adding Inventory',
+    target: '#variantToggleBtn',
+    fallbackTarget: '#headerAddBtn',
+    title: 'Multi-Variant Items',
+    desc: 'Selling S/M/L/XL of the same shirt? Click "+ Variants" in the Add Item form to create one parent item with multiple size/color children. Preset sizes (S/M/L/XL) or add custom labels. Each variant tracks its own stock and price.',
+    position: 'bottom',
     viewRequirement: 'dashboard',
   },
 
@@ -151,6 +169,24 @@ const TOUR_STEPS = [
     position: 'top',
     viewRequirement: 'inventory',
   },
+  {
+    section: 'Inventory',
+    target: '#invViewToggle',
+    fallbackTarget: '.inv-toolbar',
+    title: 'Card View Toggle',
+    desc: 'Switch between table and card view with the grid icon button. Card view shows photo thumbnails, prices, qty badges, and action buttons in a responsive grid — optimized for phones. Your preference is saved.',
+    position: 'bottom',
+    viewRequirement: 'inventory',
+  },
+  {
+    section: 'Inventory',
+    target: '#poshSyncBtn',
+    fallbackTarget: '.inv-toolbar',
+    title: 'Poshmark Sales Check',
+    desc: 'Click the Poshmark button to open a reconciliation modal listing all your Poshmark items. Mark items as sold right from the list — it records the sale with the 20% Poshmark fee automatically.',
+    position: 'bottom',
+    viewRequirement: 'inventory',
+  },
 
   /* ── SECTION 4: SALES & RECORDING ────────────────────────────────────── */
   {
@@ -169,6 +205,15 @@ const TOUR_STEPS = [
     title: 'Sales Totals & Filters',
     desc: 'See running totals for revenue, fees, and profit. Filter by platform or date range to drill into specific time periods or marketplaces.',
     position: 'bottom',
+    viewRequirement: 'sales',
+  },
+  {
+    section: 'Sales',
+    target: '#salesBody',
+    fallbackTarget: '#view-sales',
+    title: 'Edit Any Sale',
+    desc: 'Made a typo? Click the Edit button on any sale row to reopen the sold modal pre-filled with that sale\'s data. Change price, quantity, fees, platform, or date — the item\'s stock adjusts automatically.',
+    position: 'top',
     viewRequirement: 'sales',
   },
 
@@ -385,6 +430,15 @@ const TOUR_STEPS = [
     section: 'Operations',
     target: '#view-sourcing',
     fallbackTarget: '#sourcingContent',
+    title: 'AI Sourcing Mode',
+    desc: 'Open Sourcing Mode from the Sourcing view for instant "buy or pass" decisions at thrift stores. Full-screen camera captures an item, AI identifies it, fetches sold comps, and gives a BUY/MAYBE/PASS verdict with ROI calculation. Add to inventory in one tap.',
+    position: 'top',
+    viewRequirement: 'sourcing',
+  },
+  {
+    section: 'Operations',
+    target: '#view-sourcing',
+    fallbackTarget: '#sourcingContent',
     title: 'Haul ROI Receipts',
     desc: 'After a sourcing trip, click "Share Receipt" on any haul card to generate a branded 1080x1350 receipt PNG. Shows items, total spent, estimated value, profit, and ROI — perfect for sharing on social media.',
     position: 'top',
@@ -514,6 +568,15 @@ const TOUR_STEPS = [
     fallbackTarget: '#notifBadge',
     title: 'Notifications',
     desc: 'Get alerts for low stock, listing expirations, price changes, and goals reached. Enable push notifications to stay updated even when the tab is closed.',
+    position: 'bottom-left',
+    viewRequirement: 'dashboard',
+  },
+  {
+    section: 'Settings & Tools',
+    target: '#pushToggleBtn',
+    fallbackTarget: '#notifToggleBtn',
+    title: 'Background Push Notifications',
+    desc: 'Enable VAPID Web Push to receive low-stock and out-of-stock alerts even when FlipTrack is completely closed. Uses your browser\'s native push system — no tab needed. Toggle on/off from the dashboard.',
     position: 'bottom-left',
     viewRequirement: 'dashboard',
   },

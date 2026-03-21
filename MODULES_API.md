@@ -257,3 +257,74 @@ Render the complete sales history table with pagination. Shows revenue/profit su
 - `#s_price_total` - "Total" button
 - `#s_price_hint` - Price hint text
 - `#s_fee_hint` - Fee estimate hint
+
+---
+
+## New Feature Modules (Sprint 1-4)
+
+### Sale Editing (`src/views/sales.js`)
+```javascript
+export function openEditSaleModal(saleId)  // Pre-populate sold modal for editing
+```
+Opens the sold modal with an existing sale's data. `recSale()` auto-detects edit mode via `_editingSaleId` and updates in-place with proper qty delta adjustment.
+
+### Mobile Card View (`src/views/inventory.js`)
+```javascript
+export function toggleInvViewMode()  // Toggle table ↔ card view
+```
+Switches between table and card layouts. Card view uses `_renderCardView(pageItems)` internally. View mode persisted to `localStorage` key `ft_inv_view_mode`.
+
+### Multi-Variant Inventory (`src/data/store.js`)
+```javascript
+export function getVariants(parentId)        // Get child items for a parent
+export function getParentItem(childId)       // Get parent for a child variant
+export function isParent(item)               // Check if item has variants
+export function isVariant(item)              // Check if item is a child variant
+export function getVariantAggQty(parentId)   // Sum qty across all children
+```
+
+### Variant Builder (`src/modals/add-item.js`)
+```javascript
+export function toggleVariantMode()      // Toggle variant builder in add-item form
+export function addVariantLabel()        // Add custom variant label
+export function removeVariantLabel(idx)  // Remove variant label by index
+export function presetVariantSizes()     // Pre-fill S/M/L/XL labels
+```
+
+### Goal-Aware Alerts (`src/features/kpi-goals.js`)
+```javascript
+export function getGoalGap()             // Returns { gap, revGoal, actual, stats } or null
+export function renderGoalGapWidget()    // Returns HTML string for gap-closing widget
+```
+
+### VAPID Push (`src/features/push-notifications.js`)
+```javascript
+export async function subscribeToPush()      // Subscribe to VAPID Web Push
+export async function unsubscribeFromPush()  // Unsubscribe
+export async function togglePush()           // Toggle push on/off
+export async function restorePushSubscription()  // Restore on page load
+export async function sendPushViaEdge(title, body, data)  // Send via Edge Function
+```
+
+### AI Sourcing Mode (`src/features/sourcing-mode.js`)
+```javascript
+export function openSourcingMode()   // Open full-screen sourcing overlay
+export function closeSourcingMode()  // Close overlay
+export function srcCapture()         // Capture photo and run analysis
+export function srcRetake()          // Retake photo
+export function srcUpdateCost()      // Recalculate ROI with new cost
+export function srcAddToInventory()  // Quick-add analyzed item
+```
+
+### Poshmark Sync (`src/features/poshmark-sync.js`)
+```javascript
+export function openPoshmarkSync()     // Open reconciliation modal
+export function closePoshmarkSync()    // Close modal
+export function poshMarkSold(itemId)   // Mark item as sold on Poshmark + record sale
+```
+
+### Drawer Variants Tab (`src/modals/drawer.js`)
+```javascript
+export function updateDrawerVariantsTab(item)  // Show/hide tab based on isParent
+export function renderDrawerVariants()         // Render variant children list
+```
