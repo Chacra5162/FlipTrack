@@ -12,7 +12,7 @@ import { getMeta, setMeta } from '../data/idb.js';
 import { getPlatforms } from '../features/platforms.js';
 import { estimateShippingRate, suggestPackage, getCarrierOptions } from '../features/shipping-rates.js';
 import { printPackingSlip, printBatchSlips, setSellerInfo } from '../features/packing-slip.js';
-import { getBuyer } from '../views/buyers.js';
+import { getBuyer } from './buyers.js';
 
 // ── STATE ──────────────────────────────────────────────────────────────────────
 
@@ -221,8 +221,11 @@ export function shipMarkShipped(saleId) {
   const sale = getSaleById(saleId);
   if (!sale) { toast('Sale not found', true); return; }
 
+  // Ensure modals are injected (handles race if init hasn't run yet)
+  initShippingModals();
+
   const modal = document.getElementById('shipModal');
-  if (!modal) return;
+  if (!modal) { toast('Shipping modal failed to load', true); return; }
 
   modal.dataset.activeSaleId = saleId;
   document.getElementById('shipCarrier').value = sale.carrier || sale.trackingCarrier || 'USPS';
@@ -511,7 +514,7 @@ export async function renderShippingView() {
                       </span>
                     </td>
                     <td style="padding:10px;text-align:center;font-size:10px;display:flex;gap:6px;justify-content:center">
-                      ${!s.shipped ? `<button onclick="shipMarkShipped('${escAttr(s.id)}')" class="act-btn" style="padding:4px 8px">Mark</button>` : ''}
+                      ${!s.shipped ? `<button onclick="shipMarkShipped('${escAttr(s.id)}')" class="act-btn" style="padding:4px 8px">Ship</button>` : ''}
                       <button onclick="shipPrintSlip('${escAttr(s.id)}')" class="act-btn" style="padding:4px 8px">Slip</button>
                       ${trackNum ? `<a href="https://parcelsapp.com/en/tracking/${encodeURIComponent(trackNum)}" target="_blank" class="act-btn" style="padding:4px 8px;text-decoration:none">Track</a>` : ''}
                     </td>
