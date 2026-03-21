@@ -441,7 +441,7 @@ function _updateBundleSummary() {
 
 // ── RECORD SALE ───────────────────────────────────────────────────────────────
 
-export function recSale() {
+export async function recSale() {
   // Prevent double-click / duplicate submissions
   const btn = document.getElementById('recSaleBtn');
   if (btn?.disabled) return;
@@ -517,7 +517,7 @@ export function recSale() {
   // Link sale to buyer if buyer name provided
   const buyerName = (document.getElementById('s_buyer')?.value || '').trim();
   if (buyerName) {
-    const buyer = getOrCreateBuyer(buyerName, platform);
+    const buyer = await getOrCreateBuyer(buyerName, platform);
     if (buyer) sale.buyerId = buyer.id;
   }
   item.qty -= qty;
@@ -545,7 +545,7 @@ export function recSale() {
 
 // ── EDIT EXISTING SALE ────────────────────────────────────────────────────────
 
-function _updateExistingSale(reenableBtn) {
+async function _updateExistingSale(reenableBtn) {
   const sale = getSaleById(_editingSaleId);
   if (!sale) { toast('Sale not found', true); reenableBtn(); closeSold(); return; }
   const item = getInvItem(sale.itemId);
@@ -610,7 +610,7 @@ function _updateExistingSale(reenableBtn) {
   // Link buyer if provided
   const buyerName = (document.getElementById('s_buyer')?.value || '').trim();
   if (buyerName) {
-    const buyer = getOrCreateBuyer(buyerName, platform);
+    const buyer = await getOrCreateBuyer(buyerName, platform);
     if (buyer) sale.buyerId = buyer.id;
   }
 
@@ -625,7 +625,7 @@ function _updateExistingSale(reenableBtn) {
 
 // ── BUNDLE SALE RECORDING ─────────────────────────────────────────────────────
 
-function _recBundleSale(reenableBtn) {
+async function _recBundleSale(reenableBtn) {
   const priceEl = document.getElementById('s_price');
   const totalPrice = parseNum(priceEl.value, { fieldName: 'Total Price' });
   if (!totalPrice) { toast('Enter the total bundle price', true); reenableBtn(); return; }
@@ -651,7 +651,7 @@ function _recBundleSale(reenableBtn) {
   const bundleId = uid();
 
   let buyer = null;
-  if (buyerName) buyer = getOrCreateBuyer(buyerName, platform);
+  if (buyerName) buyer = await getOrCreateBuyer(buyerName, platform);
 
   for (const item of items) {
     const proportion = (item.price || 1) / totalListPrice;
@@ -815,12 +815,12 @@ export function renderSalesView() {
 
 // ── LINK BUYER TO SALE (inline prompt) ──────────────────────────────────────
 
-export function promptLinkBuyer(saleId) {
+export async function promptLinkBuyer(saleId) {
   const name = prompt('Enter buyer name or handle:');
   if (!name || !name.trim()) return;
   const sale = getSaleById(saleId);
   if (!sale) { toast('Sale not found', true); return; }
-  const buyer = getOrCreateBuyer(name.trim(), sale.platform || '');
+  const buyer = await getOrCreateBuyer(name.trim(), sale.platform || '');
   if (buyer) {
     sale.buyerId = buyer.id;
     markDirty('sales', sale.id);

@@ -275,7 +275,7 @@ async function _backfillOrderData(order) {
     // Backfill buyer CRM link
     const name = buyerName || fullName;
     if (!sale.buyerId && name) {
-      const buyer = getOrCreateBuyer(name, 'eBay');
+      const buyer = await getOrCreateBuyer(name, 'eBay');
       if (buyer) { sale.buyerId = buyer.id; updated = true; }
     }
     // Backfill address
@@ -381,7 +381,7 @@ async function _syncEBayOrders(lookbackMs) {
         // Auto-link buyer to CRM
         const buyerName = order.buyer?.username || shipTo?.fullName || null;
         if (buyerName) {
-          const buyer = getOrCreateBuyer(buyerName, 'eBay');
+          const buyer = await getOrCreateBuyer(buyerName, 'eBay');
           if (buyer) sale.buyerId = buyer.id;
         }
 

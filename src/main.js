@@ -1346,15 +1346,14 @@ setTimeout(_killSplash, 3000);
   // Initialize feature modules (Pro/Unlimited features deferred for Free tier)
   const _tier = window.getUserTier?.() || 'free';
   try {
-    // Core features — always init
-    const coreInits = [initEBaySync(), initEtsySync()];
+    // Core features — always init (buyers needed for sale→CRM linking at all tiers)
+    const coreInits = [initEBaySync(), initEtsySync(), initBuyers()];
     // Pro+ features — only init for paid tiers
     if (_tier !== 'free') {
       coreInits.push(
         initHauls(),
         initMileageLog(),
         initRepricingRules(),
-        initBuyers(),
         initOffers(),
         initPackingSlipSettings(),
         initWhatnotShows(),

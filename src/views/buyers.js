@@ -12,6 +12,7 @@ import { renderPagination } from '../utils/pagination.js';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let _buyers = [];
+let _buyersLoaded = false;
 let _buyerSearch = '';
 let _buyerSort = 'spent'; // 'spent', 'recent', 'name'
 let _buyerPage = 0;
@@ -42,6 +43,12 @@ function getBuyerTier(buyerId) {
 export async function initBuyers() {
   const data = await getMeta('buyers');
   try { _buyers = data ? JSON.parse(data) : []; } catch (e) { console.warn('FlipTrack: corrupt buyers data:', e.message); _buyers = []; }
+  _buyersLoaded = true;
+}
+
+/** Ensure buyers are loaded before any operation */
+async function _ensureLoaded() {
+  if (!_buyersLoaded) await initBuyers();
 }
 
 // ── GET / SET ─────────────────────────────────────────────────────────────────
@@ -55,6 +62,13 @@ function _getBuyer(id) {
 }
 
 export function getBuyer(id) {
+  // Sync lookup — relies on initBuyers() having been called
+  // For guaranteed results, call initBuyers() first
+  return _buyers.find(b => b.id === id);
+}
+
+export async function getBuyerAsync(id) {
+  await _ensureLoaded();
   return _buyers.find(b => b.id === id);
 }
 
@@ -138,8 +152,9 @@ export function buyerSetSort(val) {
 
 // ── GET OR CREATE BUYER (from sale flow) ─────────────────────────────────────
 
-export function getOrCreateBuyer(name, platform) {
+export async function getOrCreateBuyer(name, platform) {
   if (!name) return null;
+  await _ensureLoaded();
   const lname = name.toLowerCase().trim();
   // Try to find existing buyer by name or platform handle
   let buyer = _buyers.find(b =>
