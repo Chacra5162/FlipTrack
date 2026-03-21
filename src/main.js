@@ -75,7 +75,7 @@ import {
 import {
   openSoldModal, closeSold, sPriceType, onSoldItemPick,
   updateSalePriceHint, updateFeeEstimate,
-  recSale, renderSalesView, openEditSaleModal,
+  recSale, renderSalesView, openEditSaleModal, promptLinkBuyer,
   toggleBundleMode, filterBundleItems, toggleBundleItem, _updateBundlePriceHint,
   setSalesSearch, setSalesDateFrom, setSalesDateTo, clearSalesFilters
 } from './views/sales.js';
@@ -504,7 +504,7 @@ Object.assign(window, {
 Object.assign(window, {
   openSoldModal, closeSold, sPriceType, onSoldItemPick,
   updateSalePriceHint, updateFeeEstimate,
-  recSale, renderSalesView, delSale, undoSaleDeletion, openEditSaleModal,
+  recSale, renderSalesView, delSale, undoSaleDeletion, openEditSaleModal, promptLinkBuyer,
   toggleBundleMode, filterBundleItems, toggleBundleItem, _updateBundlePriceHint,
   setSalesSearch, setSalesDateFrom, setSalesDateTo, clearSalesFilters
 });

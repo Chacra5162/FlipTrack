@@ -54,6 +54,10 @@ function _getBuyer(id) {
   return _buyers.find(b => b.id === id);
 }
 
+export function getBuyer(id) {
+  return _buyers.find(b => b.id === id);
+}
+
 // ── ADD BUYER ─────────────────────────────────────────────────────────────────
 
 export function buyerAdd() {
@@ -193,21 +197,17 @@ export function renderBuyersView() {
   const container = document.getElementById('buyersContent');
   if (!container) return;
 
+  // Build O(1) buyer→sales map for all stats/sort/render
+  const _sbm = new Map();
+  for (const s of sales) { if (s.buyerId) { if (!_sbm.has(s.buyerId)) _sbm.set(s.buyerId, []); _sbm.get(s.buyerId).push(s); } }
+  const _bSpent = new Map(); // cache spent per buyer for sort
+  for (const [bid, ss] of _sbm) _bSpent.set(bid, ss.reduce((t, s) => t + (s.price || 0), 0));
+
   // Calculate stats
   const totalBuyers = _buyers.length;
-  const repeatBuyers = _buyers.filter(b => {
-    const count = sales.filter(s => s.buyerId === b.id).length;
-    return count > 1;
-  }).length;
-  const totalSpent = _buyers.reduce((sum, b) => {
-    const amount = sales
-      .filter(s => s.buyerId === b.id)
-      .reduce((t, s) => t + (s.price || 0), 0);
-    return sum + amount;
-  }, 0);
-  const avgOrderValue = sales.length
-    ? totalSpent / sales.length
-    : 0;
+  const repeatBuyers = _buyers.filter(b => (_sbm.get(b.id) || []).length > 1).length;
+  const totalSpent = [..._bSpent.values()].reduce((a, b) => a + b, 0);
+  const avgOrderValue = sales.length ? totalSpent / sales.length : 0;
 
   // Filter
   const filtered = _buyers.filter(b => {
@@ -225,10 +225,8 @@ export function renderBuyersView() {
   filtered.sort((a, b) => {
     if (_buyerSort === 'name') return a.name.localeCompare(b.name);
     if (_buyerSort === 'recent') return b.createdAt - a.createdAt;
-    // 'spent' (default)
-    const aSpent = sales.filter(s => s.buyerId === a.id).reduce((t, s) => t + (s.price || 0), 0);
-    const bSpent = sales.filter(s => s.buyerId === b.id).reduce((t, s) => t + (s.price || 0), 0);
-    return bSpent - aSpent;
+    // 'spent' (default) — uses precomputed map
+    return (_bSpent.get(b.id) || 0) - (_bSpent.get(a.id) || 0);
   });
 
   // Paginate
@@ -297,12 +295,16 @@ export function renderBuyersView() {
         ${
           paged.length === 0
             ? '<div class="empty-state">No buyers yet</div>'
-            : paged.map(buyer => {
-              const spent = sales.filter(s => s.buyerId === buyer.id).reduce((t, s) => t + (s.price || 0), 0);
-              const count = sales.filter(s => s.buyerId === buyer.id).length;
-              const lastSale = sales.filter(s => s.buyerId === buyer.id).sort((a, b) => (b.date || 0) - (a.date || 0))[0];
+            : (() => {
+              // Build O(1) lookup map for buyer sales
+              const _salesByBuyer = new Map();
+              for (const s of sales) { if (s.buyerId) { if (!_salesByBuyer.has(s.buyerId)) _salesByBuyer.set(s.buyerId, []); _salesByBuyer.get(s.buyerId).push(s); } }
+              return paged.map(buyer => {
+              const buySales = (_salesByBuyer.get(buyer.id) || []).slice().sort((a, b) => (b.date || 0) - (a.date || 0));
+              const spent = buySales.reduce((t, s) => t + (s.price || 0), 0);
+              const count = buySales.length;
+              const lastSale = buySales[0];
               const isExpanded = _expandedBuyerId === buyer.id;
-              const buySales = sales.filter(s => s.buyerId === buyer.id).sort((a, b) => (b.date || 0) - (a.date || 0));
               const tier = getBuyerTier(buyer.id);
 
               return `
@@ -397,7 +399,8 @@ export function renderBuyersView() {
                   }
                 </div>
               `;
-            }).join('')
+            }).join('');
+              })()
         }
       </div>
 

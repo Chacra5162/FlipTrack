@@ -20,7 +20,7 @@ import { pushDeleteToCloud, autoSync } from '../data/sync.js';
 import { getPlatforms, renderPlatTags } from '../features/platforms.js';
 import { autoDlistOnSale, setListingDate } from '../features/crosslist.js';
 import { logSalePrice } from '../features/price-history.js';
-import { getOrCreateBuyer } from '../views/buyers.js';
+import { getOrCreateBuyer, getBuyer } from '../views/buyers.js';
 import { openMaterialsModal } from '../modals/materials.js';
 import { openDrawer } from '../modals/drawer.js';
 import { renderPagination } from '../utils/pagination.js';
@@ -163,7 +163,10 @@ export function openEditSaleModal(saleId) {
 
   // Optional fields
   const buyerEl = document.getElementById('s_buyer');
-  if (buyerEl) buyerEl.value = sale.buyerName || '';
+  if (buyerEl) {
+    const linkedBuyer = sale.buyerId ? getBuyer(sale.buyerId) : null;
+    buyerEl.value = linkedBuyer ? linkedBuyer.name : '';
+  }
   const trackEl = document.getElementById('s_tracking');
   if (trackEl) trackEl.value = sale.tracking || '';
   const addrEl = document.getElementById('s_address');
@@ -780,6 +783,10 @@ export function renderSalesView() {
           ? `<span style="font-size:9px;color:var(--danger);font-family:'DM Mono',monospace">▼${pct(Math.abs(priceDiff))}</span>`
           : `<span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace">= list</span>`)
       : '';
+    const buyer = s.buyerId ? getBuyer(s.buyerId) : null;
+    const buyerCell = buyer
+      ? `<span style="font-size:11px;color:var(--text);cursor:pointer" onclick="switchView('buyers');buyerSetSearch('${escAttr(buyer.name)}')">${escHtml(buyer.name)}</span>`
+      : `<button class="act-btn" onclick="promptLinkBuyer('${escAttr(s.id)}')" style="font-size:10px">+ Buyer</button>`;
     return `<tr>
       <td><div class="item-name" style="cursor:${it ? 'pointer' : 'default'}" ${it ? `onclick="openDrawer('${escAttr(it.id)}')"` : ''}>${nm}</div>${it?.category ? `<div class="item-meta"><span class="cat-tag">${escHtml(it.category)}</span></div>` : ''}</td>
       <td>${s.platform ? `<span class="plat-tag ${platCls(s.platform) || ''}">${escHtml(s.platform)}</span>` : (it ? renderPlatTags(it) : '-')}</td>
@@ -789,6 +796,7 @@ export function renderSalesView() {
       <td style="color:var(--muted)">${fmt(it ? it.cost : 0)}</td>
       <td style="color:var(--muted)">${fmt((s.fees || 0) + (s.ship || 0))}</td>
       <td style="font-family:'Syne',sans-serif;font-weight:700;color:${pr >= 0 ? 'var(--good)' : 'var(--danger)'}">${fmt(pr)}</td>
+      <td>${buyerCell}</td>
       <td style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)">${s.tracking ? `<a href="https://parcelsapp.com/en/tracking/${encodeURIComponent(s.tracking)}" target="_blank" rel="noopener" style="color:var(--accent)">${escHtml(s.tracking.slice(0, 18))}${s.tracking.length > 18 ? '…' : ''}</a>` : '—'}</td>
       <td><div class="td-acts"><button class="act-btn" onclick="openEditSaleModal('${escAttr(s.id)}')">Edit</button><button class="act-btn red" onclick="delSale('${escAttr(s.id)}')">✕</button></div></td>
     </tr>`;
@@ -802,5 +810,22 @@ export function renderSalesView() {
       pageSize: _salePageSize,
       onPage: (p) => { _salePage = p; renderSalesView(); },
     });
+  }
+}
+
+// ── LINK BUYER TO SALE (inline prompt) ──────────────────────────────────────
+
+export function promptLinkBuyer(saleId) {
+  const name = prompt('Enter buyer name or handle:');
+  if (!name || !name.trim()) return;
+  const sale = getSaleById(saleId);
+  if (!sale) { toast('Sale not found', true); return; }
+  const buyer = getOrCreateBuyer(name.trim(), sale.platform || '');
+  if (buyer) {
+    sale.buyerId = buyer.id;
+    markDirty('sales', sale.id);
+    save();
+    renderSalesView();
+    toast(`Linked to ${buyer.name}`);
   }
 }
