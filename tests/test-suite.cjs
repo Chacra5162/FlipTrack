@@ -624,11 +624,11 @@ test('main.js imports and exposes all new modules', () => {
   assert(main.includes('renderBuyersView'), 'main.js should import buyers');
   assert(main.includes('initRepricingRules'), 'main.js should import repricing');
   assert(main.includes('calcSellThroughRate'), 'main.js should import analytics');
-  // Check switchView cases
-  assert(main.includes("'shipping'"), 'main.js should handle shipping view');
-  assert(main.includes("'sourcing'"), 'main.js should handle sourcing view');
-  assert(main.includes("'tax'"), 'main.js should handle tax view');
-  assert(main.includes("'buyers'"), 'main.js should handle buyers view');
+  // Check VIEW_REGISTRY entries (view registry map replaces if/else chain)
+  assert(main.includes('shipping:'), 'main.js should handle shipping view in registry');
+  assert(main.includes('sourcing:'), 'main.js should handle sourcing view in registry');
+  assert(main.includes('tax:'), 'main.js should handle tax view in registry');
+  assert(main.includes('buyers:'), 'main.js should handle buyers view in registry');
 });
 
 test('app.html has all new view sections', () => {
@@ -763,7 +763,7 @@ test('Phase 8: main.js imports and exposes all Phase 8 modules', () => {
   assert(main.includes('initShipLabels()'), 'main should init ship labels on boot');
   assert(main.includes('initAIListing'), 'main should init AI listing on boot');
   // SwitchView for new views
-  assert(main.includes("'invvalue'"), 'main should handle invvalue view');
+  assert(main.includes('invvalue:'), 'main should handle invvalue view in registry');
 });
 
 test('Phase 8: app.html has inventory value view', () => {
