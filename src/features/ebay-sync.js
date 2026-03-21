@@ -6,10 +6,11 @@
  * Uses the ebay-auth.js proxy for all API calls.
  */
 
-import { inv, sales, save, refresh, markDirty, getInvItem } from '../data/store.js';
+import { inv, sales, save, refresh, markDirty, getInvItem, getSalesForItem } from '../data/store.js';
 import { ebayAPI, isEBayConnected } from './ebay-auth.js';
 import { markPlatformStatus, setListingDate } from './crosslist.js';
 import { autoDlistOnSale } from './crosslist.js';
+import { getOrCreateBuyer } from '../views/buyers.js';
 import { logSalePrice, logPriceChange, logItemEvent } from './price-history.js';
 import { logReturn } from './returns.js';
 import { toast } from '../utils/dom.js';
@@ -290,14 +291,39 @@ async function _syncEBayOrders(lookbackMs) {
           logSalePrice(local.id, price, 'eBay');
         }
 
+        // Extract tracking from fulfillment data
+        const fulfillment = (order.fulfillmentStartInstructions || [])[0];
+        const shipment = fulfillment?.shippingStep;
+        const trackingInfo = shipment?.shippingCarrierCode
+          ? { carrier: shipment.shippingCarrierCode, code: shipment.trackingNumber || null }
+          : null;
+
+        // Extract buyer address from shipping destination
+        const shipTo = shipment?.shipTo;
+        const buyerAddress = shipTo?.contactAddress?.addressLine1 || null;
+        const buyerCity = shipTo?.contactAddress?.city || null;
+        const buyerState = shipTo?.contactAddress?.stateOrProvince || null;
+        const buyerZip = shipTo?.contactAddress?.postalCode || null;
+
         // Create actual sale record (matching recSale() structure)
         const sale = {
           id: uid(), itemId: local.id, price: soldQty > 1 ? price / soldQty : price,
           listPrice: local.price || 0, qty: soldQty, platform: 'eBay',
           fees: 0, ship: 0,
           date: order.creationDate || new Date().toISOString(),
-          tracking: null, ebayOrderId: order.orderId || null,
+          tracking: trackingInfo?.code || null,
+          trackingCarrier: trackingInfo?.carrier || null,
+          ebayOrderId: order.orderId || null,
+          buyerAddress, buyerCity, buyerState, buyerZip,
         };
+
+        // Auto-link buyer to CRM
+        const buyerName = order.buyer?.username || shipTo?.fullName || null;
+        if (buyerName) {
+          const buyer = getOrCreateBuyer(buyerName, 'eBay');
+          if (buyer) sale.buyerId = buyer.id;
+        }
+
         sales.push(sale);
         markDirty('sales', sale.id);
         markDirty('inv', local.id);
@@ -400,7 +426,7 @@ async function _syncEBayReturns() {
 
             // Try to find matching sale and log return
             if (local) {
-              const sale = sales.find(s => s.itemId === local.id && s.platform === 'eBay' && !s.returnInfo);
+              const sale = getSalesForItem(local.id).find(s => s.platform === 'eBay' && !s.returnInfo);
               if (sale) {
                 logReturn(sale.id, `eBay Cancel: ${reason}`, price, `Auto-detected: ${stateLabel}`, cancelState.includes('REFUND'));
               }
@@ -436,7 +462,7 @@ async function _syncEBayReturns() {
 
             // Try to find matching sale and log return
             if (local) {
-              const sale = sales.find(s => s.itemId === local.id && s.platform === 'eBay' && !s.returnInfo);
+              const sale = getSalesForItem(local.id).find(s => s.platform === 'eBay' && !s.returnInfo);
               if (sale) {
                 logReturn(sale.id, 'eBay Return/Refund', refundAmount, `Auto-detected refund on order ${orderId}`, true);
               }
