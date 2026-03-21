@@ -1,0 +1,280 @@
+/**
+ * sourcing-mode.js — Full-screen sourcing assistant for in-store use
+ * Camera capture → AI identify → comps lookup → source score → quick add
+ */
+
+import { inv, save, refresh, markDirty } from '../data/store.js';
+import { uid, fmt, pct, escHtml, localDate } from '../utils/format.js';
+import { toast } from '../utils/dom.js';
+import { computeSourceScore } from './source-score.js';
+
+let _sourcingOpen = false;
+let _aiResult = null;
+let _compsResult = null;
+let _sourceVerdict = null;
+let _capturedImage = null;
+
+export function openSourcingMode() {
+  _sourcingOpen = true;
+  _aiResult = null;
+  _compsResult = null;
+  _sourceVerdict = null;
+  _capturedImage = null;
+
+  const ov = document.getElementById('sourcingModeOv');
+  if (!ov) return;
+  ov.style.display = '';
+  ov.innerHTML = _renderSourcingUI('capture');
+  _startCamera();
+}
+
+export function closeSourcingMode() {
+  _sourcingOpen = false;
+  _stopCamera();
+  const ov = document.getElementById('sourcingModeOv');
+  if (ov) { ov.style.display = 'none'; ov.innerHTML = ''; }
+}
+
+// ── CAMERA ────────────────────────────────────────────────────────────────
+
+let _stream = null;
+
+async function _startCamera() {
+  const video = document.getElementById('srcVideo');
+  if (!video) return;
+  try {
+    _stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    video.srcObject = _stream;
+  } catch (e) {
+    toast('Camera access denied', true);
+    console.warn('Sourcing camera:', e.message);
+  }
+}
+
+function _stopCamera() {
+  if (_stream) {
+    _stream.getTracks().forEach(t => t.stop());
+    _stream = null;
+  }
+}
+
+export function srcCapture() {
+  const video = document.getElementById('srcVideo');
+  if (!video) return;
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth || 640;
+  canvas.height = video.videoHeight || 480;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  _capturedImage = canvas.toDataURL('image/jpeg', 0.85);
+  _stopCamera();
+
+  const ov = document.getElementById('sourcingModeOv');
+  if (ov) ov.innerHTML = _renderSourcingUI('analyzing');
+
+  // Show captured image
+  const preview = document.getElementById('srcPreview');
+  if (preview) preview.src = _capturedImage;
+
+  _runAnalysis();
+}
+
+export function srcRetake() {
+  _aiResult = null;
+  _compsResult = null;
+  _sourceVerdict = null;
+  _capturedImage = null;
+  const ov = document.getElementById('sourcingModeOv');
+  if (ov) ov.innerHTML = _renderSourcingUI('capture');
+  _startCamera();
+}
+
+// ── ANALYSIS PIPELINE ─────────────────────────────────────────────────────
+
+async function _runAnalysis() {
+  try {
+    // Step 1: AI Identify
+    const { idCompressForAI } = await import('./identify.js');
+    const compressed = idCompressForAI(_capturedImage, 'image/jpeg');
+    const aiResp = await _callIdentifyEdge(compressed);
+    _aiResult = aiResp;
+
+    // Step 2: Fetch comps
+    const { fetchComps } = await import('./comps.js');
+    const keyword = _aiResult.name || _aiResult.title || 'unknown item';
+    _compsResult = await fetchComps(keyword, { limit: 6 });
+
+    // Step 3: Compute source score
+    const userCost = parseFloat(document.getElementById('srcCostInput')?.value) || 0;
+    _sourceVerdict = computeSourceScore({
+      compData: _compsResult,
+      aiResult: _aiResult,
+      userCost,
+    });
+
+    _renderResults();
+  } catch (e) {
+    console.warn('Sourcing analysis error:', e.message);
+    toast('Analysis failed: ' + e.message, true);
+    const ov = document.getElementById('sourcingModeOv');
+    if (ov) ov.innerHTML = _renderSourcingUI('error', e.message);
+  }
+}
+
+async function _callIdentifyEdge(imageData) {
+  const { SB_URL, SB_KEY } = await import('../config/constants.js');
+  const res = await fetch(`${SB_URL}/functions/v1/identify-item`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SB_KEY}` },
+    body: JSON.stringify({ image: imageData }),
+  });
+  if (!res.ok) throw new Error('AI identify failed');
+  return res.json();
+}
+
+export function srcUpdateCost() {
+  const userCost = parseFloat(document.getElementById('srcCostInput')?.value) || 0;
+  if (_compsResult && _aiResult) {
+    _sourceVerdict = computeSourceScore({ compData: _compsResult, aiResult: _aiResult, userCost });
+    _renderResults();
+  }
+}
+
+function _renderResults() {
+  const ov = document.getElementById('sourcingModeOv');
+  if (ov) ov.innerHTML = _renderSourcingUI('results');
+}
+
+// ── QUICK ADD TO INVENTORY ────────────────────────────────────────────────
+
+export function srcAddToInventory() {
+  if (!_aiResult) { toast('No analysis result', true); return; }
+  const cost = parseFloat(document.getElementById('srcCostInput')?.value) || 0;
+  const price = _compsResult?.suggestedPrice || _aiResult.suggestedPrice || 0;
+  const name = _aiResult.name || _aiResult.title || 'Sourced Item';
+
+  const newId = uid();
+  inv.push({
+    id: newId,
+    name,
+    sku: '',
+    category: _aiResult.category || '',
+    cost,
+    price,
+    qty: 1,
+    source: 'Sourcing Mode',
+    images: _capturedImage ? [_capturedImage] : [],
+    image: _capturedImage || null,
+    added: new Date().toISOString(),
+  });
+  markDirty('inv', newId);
+  save();
+  refresh();
+  toast(`Added: ${name}`);
+  closeSourcingMode();
+}
+
+// ── UI RENDERING ──────────────────────────────────────────────────────────
+
+function _renderSourcingUI(state, errorMsg) {
+  const base = `
+    <div style="position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;overflow:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--text)">Sourcing Mode</div>
+        <button onclick="closeSourcingMode()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px">✕</button>
+      </div>`;
+
+  if (state === 'capture') {
+    return base + `
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:16px">
+        <video id="srcVideo" autoplay playsinline muted style="width:100%;max-width:500px;border-radius:12px;background:#000"></video>
+        <button onclick="srcCapture()" style="width:80px;height:80px;border-radius:50%;background:var(--accent);border:4px solid var(--text);cursor:pointer;font-size:24px;color:#0a0a0f">📸</button>
+        <div style="font-size:12px;color:var(--muted)">Point at an item and tap to analyze</div>
+      </div>
+    </div>`;
+  }
+
+  if (state === 'analyzing') {
+    return base + `
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:16px">
+        <img id="srcPreview" style="width:100%;max-width:300px;border-radius:12px" alt="Captured">
+        <div style="font-size:14px;color:var(--accent);font-family:'DM Mono',monospace">Analyzing...</div>
+        <div style="font-size:11px;color:var(--muted)">AI identification + market comps</div>
+      </div>
+    </div>`;
+  }
+
+  if (state === 'error') {
+    return base + `
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:16px">
+        <div style="font-size:14px;color:var(--danger)">${escHtml(errorMsg || 'Unknown error')}</div>
+        <button onclick="srcRetake()" class="btn-primary" style="padding:10px 24px">Try Again</button>
+      </div>
+    </div>`;
+  }
+
+  // Results state
+  const v = _sourceVerdict || {};
+  const verdictColor = v.verdict === 'BUY' ? 'var(--good)' : v.verdict === 'MAYBE' ? 'var(--warn)' : 'var(--danger)';
+  const verdictIcon = v.verdict === 'BUY' ? '✅' : v.verdict === 'MAYBE' ? '🤔' : '❌';
+  const comps = (_compsResult?.items || []).slice(0, 3);
+  const cost = parseFloat(document.getElementById('srcCostInput')?.value) || 0;
+  const sugPrice = _compsResult?.suggestedPrice || v.suggestedPrice || 0;
+  const roi = cost > 0 && sugPrice > 0 ? ((sugPrice - cost) / cost) : 0;
+
+  return base + `
+    <div style="flex:1;overflow-y:auto;padding:16px">
+      <div style="display:flex;gap:12px;margin-bottom:16px">
+        <img src="${_capturedImage || ''}" style="width:100px;height:100px;object-fit:cover;border-radius:8px;flex-shrink:0" alt="">
+        <div style="flex:1">
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--text)">${escHtml(_aiResult?.name || 'Unknown')}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">${escHtml(_aiResult?.category || '')} ${_aiResult?.brand ? '· ' + escHtml(_aiResult.brand) : ''}</div>
+        </div>
+      </div>
+
+      <div style="text-align:center;padding:16px;background:var(--surface);border-radius:10px;border:2px solid ${verdictColor};margin-bottom:16px">
+        <div style="font-size:28px;margin-bottom:4px">${verdictIcon}</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:${verdictColor}">${v.verdict || 'PASS'}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Score: ${v.score || 0}/100</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+        <div style="background:var(--surface);border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase">Suggested Price</div>
+          <div style="font-family:'DM Mono',monospace;font-weight:700;font-size:16px;color:var(--good)">${fmt(sugPrice)}</div>
+        </div>
+        <div style="background:var(--surface);border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase">ROI</div>
+          <div style="font-family:'DM Mono',monospace;font-weight:700;font-size:16px;color:${roi > 0.5 ? 'var(--good)' : roi > 0 ? 'var(--warn)' : 'var(--danger)'}">${cost > 0 ? pct(roi) : '—'}</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px">
+        <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">Your Cost</label>
+        <input type="number" id="srcCostInput" placeholder="0.00" step="0.01" value="${cost || ''}" oninput="srcUpdateCost()"
+          style="width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:14px;border-radius:8px;margin-top:4px;box-sizing:border-box">
+      </div>
+
+      ${comps.length ? `
+        <div style="margin-bottom:16px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:8px">Recent Sold Comps</div>
+          ${comps.map(c => `
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+              ${c.image ? `<img src="${escHtml(c.image)}" style="width:40px;height:40px;object-fit:cover;border-radius:6px" loading="lazy" alt="">` : ''}
+              <div style="flex:1;overflow:hidden">
+                <div style="font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(c.title || '')}</div>
+              </div>
+              <span style="font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--good)">${fmt(c.price || 0)}</span>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+
+      <div style="display:flex;gap:8px">
+        <button onclick="srcRetake()" class="btn-secondary" style="flex:1;padding:12px">Retake</button>
+        <button onclick="srcAddToInventory()" class="btn-primary" style="flex:1;padding:12px">Add to Inventory</button>
+      </div>
+    </div>
+  </div>`;
+}

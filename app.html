@@ -330,6 +330,7 @@
       </select>
       <div class="toolbar-spacer"></div>
       <button class="btn-secondary" onclick="printStickers(false)" style="font-size:11px;padding:5px 10px;white-space:nowrap">🏷 Print All</button>
+      <button class="btn-secondary" onclick="openPoshmarkSync()" style="font-size:11px;padding:5px 10px;white-space:nowrap" id="poshSyncBtn">🛍️ Poshmark</button>
       <button class="btn-secondary" onclick="openTrashModal()" style="font-size:11px;padding:5px 10px;white-space:nowrap">🗑️ Trash</button>
       <button class="btn-secondary inv-view-toggle" id="invViewToggle" onclick="toggleInvViewMode()" style="font-size:11px;padding:5px 10px;white-space:nowrap" title="Toggle table/card view">
         <svg id="invViewIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
@@ -593,6 +594,9 @@
 
 <!-- VIEW: SOURCING -->
 <div id="view-sourcing" class="view">
+  <div style="padding:12px 16px;display:flex;gap:8px">
+    <button class="btn-primary" onclick="openSourcingMode()" style="font-size:12px;padding:8px 16px">📷 Sourcing Mode</button>
+  </div>
   <div id="sourcingContent"></div>
 </div>
 
@@ -666,6 +670,12 @@
 
 <!-- MODALS ROOT (injected by shipping, etc.) -->
 <div id="modals-root"></div>
+
+<!-- SOURCING MODE OVERLAY -->
+<div id="sourcingModeOv" style="display:none"></div>
+
+<!-- POSHMARK SYNC MODAL -->
+<div class="overlay" id="poshmarkSyncOv" role="dialog" aria-modal="true" aria-label="Poshmark Sync"></div>
 
 <!-- LIGHTBOX -->
 <div class="lightbox" id="lightbox" onclick="closeLightbox()" role="dialog" aria-modal="true" aria-label="Image Lightbox">

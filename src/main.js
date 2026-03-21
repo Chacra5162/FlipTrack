@@ -197,6 +197,8 @@ import {
 import { estimateShippingRate, suggestPackage, getCarrierOptions } from './features/shipping-rates.js';
 
 // ── Phase 3: Sourcing & Haul Tracking ────────────────────────────────────────
+import { openSourcingMode, closeSourcingMode, srcCapture, srcRetake, srcUpdateCost, srcAddToInventory } from './features/sourcing-mode.js';
+import { openPoshmarkSync, closePoshmarkSync, poshMarkSold } from './features/poshmark-sync.js';
 import {
   renderSourcingView, initHauls, addHaul, deleteHaul, expandHaul,
   linkItemsToHaul, confirmLinkItems, closeItemLinkModal, unlinkItem,
@@ -622,6 +624,8 @@ Object.assign(window, {
   renderSourcingView, addHaul, deleteHaul, expandHaul,
   linkItemsToHaul, confirmLinkItems, closeItemLinkModal, unlinkItem,
   srcSetSearch, srcSetSort,
+  openSourcingMode, closeSourcingMode, srcCapture, srcRetake, srcUpdateCost, srcAddToInventory,
+  openPoshmarkSync, closePoshmarkSync, poshMarkSold,
   shareHaulReceipt: (id) => {
     const haul = getHaulById(id);
     if (!haul) { toast('Haul not found', true); return; }
