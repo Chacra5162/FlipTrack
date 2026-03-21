@@ -234,8 +234,8 @@ export async function pullEBayListings() {
  */
 async function _backfillOrderData(order) {
   const existing = sales.filter(s => s.ebayOrderId === order.orderId);
-  if (!existing.length) { console.log('FlipTrack backfill: no matching sales for', order.orderId); return; }
-  console.log('FlipTrack backfill: processing order', order.orderId, 'matching', existing.length, 'sale(s)');
+  if (!existing.length) { console.warn('FlipTrack backfill: no matching sales for', order.orderId); return; }
+  console.warn('FlipTrack backfill: processing order', order.orderId, 'matching', existing.length, 'sale(s)');
 
   // Extract buyer info from order (try multiple field paths)
   const buyerName = order.buyer?.username
@@ -252,11 +252,11 @@ async function _backfillOrderData(order) {
     const fulfResp = await ebayAPI('GET',
       `${FULFILLMENT_API}/order/${order.orderId}/shipping_fulfillment`
     );
-    console.log('FlipTrack backfill: fulfillment response for', order.orderId, JSON.stringify(fulfResp, null, 2));
+    console.warn('FlipTrack backfill: fulfillment response for', order.orderId, JSON.stringify(fulfResp, null, 2));
     const fulfillments = fulfResp.fulfillments || fulfResp.shippingFulfillments || [];
     if (fulfillments.length) {
       const f = fulfillments[0];
-      console.log('FlipTrack backfill: first fulfillment keys:', Object.keys(f));
+      console.warn('FlipTrack backfill: first fulfillment keys:', Object.keys(f));
       // eBay uses different field names across API versions
       trackCode = f.shipmentTrackingNumber
         || f.trackingNumber
@@ -264,9 +264,9 @@ async function _backfillOrderData(order) {
         || null;
       carrier = f.shippingCarrierCode || f.carrierCode || null;
       shippedDate = f.shippedDate || f.shipDate || f.createdDate || null;
-      console.log('FlipTrack backfill: extracted tracking=', trackCode, 'carrier=', carrier, 'shippedDate=', shippedDate);
+      console.warn('FlipTrack backfill: extracted tracking=', trackCode, 'carrier=', carrier, 'shippedDate=', shippedDate);
     } else {
-      console.log('FlipTrack backfill: no fulfillments returned for', order.orderId);
+      console.warn('FlipTrack backfill: no fulfillments returned for', order.orderId);
     }
   } catch (e) {
     console.warn('FlipTrack: backfill tracking fetch error:', e.message);
