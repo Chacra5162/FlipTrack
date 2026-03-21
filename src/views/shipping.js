@@ -489,6 +489,7 @@ export async function renderShippingView() {
                 <th style="padding:10px;text-align:left;font-size:10px;color:var(--muted);font-weight:600">Weight</th>
                 <th style="padding:10px;text-align:left;font-size:10px;color:var(--muted);font-weight:600">Package</th>
                 <th style="padding:10px;text-align:left;font-size:10px;color:var(--muted);font-weight:600">Status</th>
+                <th style="padding:10px;text-align:left;font-size:10px;color:var(--muted);font-weight:600">Date Shipped</th>
                 <th style="padding:10px;text-align:center;font-size:10px;color:var(--muted);font-weight:600">Actions</th>
               </tr>
             </thead>
@@ -511,9 +512,10 @@ export async function renderShippingView() {
                     <td style="padding:10px;font-size:10px;color:var(--accent)">${pkg ? escHtml(pkg.name) : '—'}</td>
                     <td style="padding:10px;font-size:10px">
                       <span style="color:${s.shipped ? 'var(--good)' : 'var(--warn)'}">
-                        ${s.shipped ? `✓ ${ds(s.shippedDate)}` : 'Pending'}
+                        ${s.shipped ? '✓ Shipped' : 'Pending'}
                       </span>
                     </td>
+                    <td style="padding:10px;font-size:10px;color:var(--muted)">${s.shippedDate ? ds(s.shippedDate) : '—'}</td>
                     <td style="padding:10px;text-align:center;font-size:10px;display:flex;gap:6px;justify-content:center">
                       ${!s.shipped ? `<button onclick="shipMarkShipped('${escAttr(s.id)}')" class="act-btn" style="padding:4px 8px">Ship</button>` : ''}
                       <button onclick="shipPrintSlip('${escAttr(s.id)}')" class="act-btn" style="padding:4px 8px">Slip</button>

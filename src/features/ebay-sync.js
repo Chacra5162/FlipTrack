@@ -243,9 +243,10 @@ async function _backfillOrderData(order) {
   const shipTo = (order.fulfillmentStartInstructions || [])[0]?.shippingStep?.shipTo;
   const fullName = shipTo?.fullName || shipTo?.name || null;
 
-  // Fetch actual shipping fulfillments for tracking numbers
+  // Fetch actual shipping fulfillments for tracking + shipped date
   let trackCode = null;
   let carrier = null;
+  let shippedDate = null;
   try {
     const fulfResp = await ebayAPI('GET',
       `${FULFILLMENT_API}/order/${order.orderId}/shipping_fulfillment`
@@ -259,6 +260,7 @@ async function _backfillOrderData(order) {
         || (f.lineItems?.[0]?.trackingNumber)
         || null;
       carrier = f.shippingCarrierCode || f.carrierCode || null;
+      shippedDate = f.shippedDate || f.shipDate || f.createdDate || null;
     }
   } catch (e) {
     console.warn('FlipTrack: backfill tracking fetch:', e.message);
@@ -270,6 +272,15 @@ async function _backfillOrderData(order) {
     if (!sale.tracking && trackCode) {
       sale.tracking = trackCode;
       sale.trackingCarrier = carrier;
+      updated = true;
+    }
+    // Backfill shipped status + date
+    if (!sale.shipped && shippedDate) {
+      sale.shipped = true;
+      sale.shippedDate = shippedDate;
+      updated = true;
+    } else if (sale.shipped && !sale.shippedDate && shippedDate) {
+      sale.shippedDate = shippedDate;
       updated = true;
     }
     // Backfill buyer CRM link
