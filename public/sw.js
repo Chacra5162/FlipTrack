@@ -154,3 +154,51 @@ self.addEventListener('fetch', (e) => {
   // 5. Everything else (manifest.json, etc.) → stale-while-revalidate
   e.respondWith(staleWhileRevalidate(e.request));
 });
+
+// ── VAPID PUSH NOTIFICATIONS ────────────────────────────────────────────
+self.addEventListener('push', (e) => {
+  if (!e.data) return;
+
+  let payload;
+  try {
+    payload = e.data.json();
+  } catch {
+    payload = { title: 'FlipTrack', body: e.data.text() };
+  }
+
+  const title = payload.title || 'FlipTrack';
+  const options = {
+    body: payload.body || '',
+    icon: './icons/icon-192.png',
+    badge: './icons/icon-192.png',
+    tag: payload.tag || 'ft-push',
+    data: payload.data || {},
+    vibrate: [100, 50, 100],
+  };
+
+  e.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+
+  const data = e.notification.data || {};
+  // Determine which view to navigate to
+  let targetUrl = './app.html';
+  if (data.type === 'low-stock' || data.type === 'oos') {
+    targetUrl = './app.html#inventory';
+  }
+
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+      // Focus existing tab if open
+      for (const client of clients) {
+        if (client.url.includes('app.html')) {
+          return client.focus();
+        }
+      }
+      // Otherwise open new tab
+      return self.clients.openWindow(targetUrl);
+    })
+  );
+});

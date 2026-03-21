@@ -8,7 +8,7 @@ import { getOffers } from '../features/offers.js';
 import { animateStatCounters } from '../features/animated-counters.js';
 import { mountProfitHeatmap } from '../features/profit-heatmap.js';
 import { renderCSVExportPanel } from '../features/csv-templates.js';
-import { renderKPIGoals } from '../features/kpi-goals.js';
+import { renderKPIGoals, renderGoalGapWidget } from '../features/kpi-goals.js';
 import { renderSalesVelocity } from '../features/sales-velocity.js';
 import { computeInventoryHealth } from '../features/inventory-health.js';
 
@@ -307,6 +307,10 @@ export function renderDash() {
   // KPI Goals
   const kpiEl = document.getElementById('kpiGoalsSection');
   if (kpiEl) kpiEl.innerHTML = renderKPIGoals();
+
+  // Goal Gap Widget — actionable "close the gap" suggestions
+  const gapEl = document.getElementById('goalGapSection');
+  if (gapEl) gapEl.innerHTML = renderGoalGapWidget();
 
   // Sales Velocity Chart
   const svEl = document.getElementById('salesVelocitySection');

@@ -3,9 +3,10 @@
  * Users set monthly revenue/profit targets; dashboard shows progress.
  */
 
-import { sales, inv, getInvItem } from '../data/store.js';
-import { fmt, pct } from '../utils/format.js';
+import { sales, inv, getInvItem, calc } from '../data/store.js';
+import { fmt, pct, escHtml, escAttr } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
+import { computeFlipScore } from './flip-score.js';
 
 const STORAGE_KEY = 'ft_kpi_goals';
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -164,4 +165,63 @@ export function saveKPIGoals() {
   // Re-render the KPI section
   const el = document.getElementById('kpiGoalsSection');
   if (el) el.innerHTML = renderKPIGoals();
+  // Re-render goal gap widget
+  const gapEl = document.getElementById('goalGapSection');
+  if (gapEl) gapEl.innerHTML = renderGoalGapWidget();
+}
+
+// ── GOAL-AWARE GAP WIDGET ────────────────────────────────────────────────────
+
+/** Compute the revenue gap between goal and actual for the current month */
+export function getGoalGap() {
+  const goals = getGoals();
+  const key = currentMonthKey();
+  const g = goals[key] || {};
+  const stats = getMonthStats();
+  const revGoal = g.revenue || 0;
+  if (!revGoal) return null;
+  const gap = revGoal - stats.rev;
+  return { gap, revGoal, actual: stats.rev, stats };
+}
+
+/** Render actionable "close the gap" widget with top flip-score items */
+export function renderGoalGapWidget() {
+  const gapData = getGoalGap();
+  if (!gapData || gapData.gap <= 0) return '';
+
+  // Find in-stock items, score them, take top 5
+  const inStock = inv.filter(i => (i.qty || 0) > 0 && !i._del);
+  if (!inStock.length) return '';
+
+  const scored = inStock.map(i => ({
+    item: i,
+    fs: computeFlipScore(i),
+    c: calc(i),
+  })).sort((a, b) => b.fs.score - a.fs.score).slice(0, 5);
+
+  const potentialRev = scored.reduce((a, s) => a + (s.item.price || 0) * (s.item.qty || 1), 0);
+
+  return `<div class="goal-gap-wrap" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-top:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--text)">Close the Gap</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">You need <strong style="color:var(--accent2)">${fmt(gapData.gap)}</strong> more this month</div>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)">${fmt(gapData.actual)} / ${fmt(gapData.revGoal)}</div>
+    </div>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">Top items that could close the gap:</div>
+    ${scored.map(s => {
+      const eid = escAttr(s.item.id);
+      const fc = s.fs.score >= 80 ? 'var(--good)' : s.fs.score >= 60 ? 'var(--accent)' : s.fs.score >= 40 ? 'var(--warn)' : 'var(--danger)';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="openDrawer('${eid}')">
+        <span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:${fc};min-width:28px">${s.fs.score}<sup style="font-size:7px">${s.fs.grade}</sup></span>
+        <div style="flex:1;overflow:hidden">
+          <div style="font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(s.item.name)}</div>
+          <div style="font-size:10px;color:var(--muted)">${fmt(s.item.price)} · ${s.item.qty} in stock</div>
+        </div>
+        <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--good);white-space:nowrap">${fmt((s.item.price || 0) * (s.item.qty || 1))}</span>
+      </div>`;
+    }).join('')}
+    <div style="font-size:10px;color:var(--muted);margin-top:8px;font-family:'DM Mono',monospace;text-align:right">Potential revenue: ${fmt(potentialRev)}</div>
+  </div>`;
 }
