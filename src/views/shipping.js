@@ -517,7 +517,7 @@ export async function renderShippingView() {
                         ${s.shipped ? '✓ Shipped' : 'Pending'}
                       </span>
                     </td>
-                    <td style="padding:10px;font-size:10px;color:var(--muted)">${s.shippedDate ? ds(s.shippedDate) : '—'}</td>
+                    <td style="padding:10px;font-size:10px;color:var(--muted)">${s.shippedDate ? ds(String(s.shippedDate).slice(0, 10)) : '—'}</td>
                     <td style="padding:10px;text-align:center;font-size:10px;display:flex;gap:6px;justify-content:center">
                       ${!s.shipped ? `<button onclick="shipMarkShipped('${escAttr(s.id)}')" class="act-btn" style="padding:4px 8px">Ship</button>` : ''}
                       <button onclick="shipPrintSlip('${escAttr(s.id)}')" class="act-btn" style="padding:4px 8px">Slip</button>
