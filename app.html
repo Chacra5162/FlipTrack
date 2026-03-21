@@ -329,6 +329,9 @@
       <div class="toolbar-spacer"></div>
       <button class="btn-secondary" onclick="printStickers(false)" style="font-size:11px;padding:5px 10px;white-space:nowrap">🏷 Print All</button>
       <button class="btn-secondary" onclick="openTrashModal()" style="font-size:11px;padding:5px 10px;white-space:nowrap">🗑️ Trash</button>
+      <button class="btn-secondary inv-view-toggle" id="invViewToggle" onclick="toggleInvViewMode()" style="font-size:11px;padding:5px 10px;white-space:nowrap" title="Toggle table/card view">
+        <svg id="invViewIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      </button>
       <span id="invCnt" aria-live="polite" aria-atomic="true" style="font-size:11px;color:var(--muted);white-space:nowrap"></span>
     </div>
     <div class="bulk-bar" id="bulkBar">
@@ -367,6 +370,7 @@
         </tr></thead>
         <tbody id="invBody"></tbody>
       </table>
+      <div id="invCards" class="inv-cards-grid" style="display:none"></div>
       <div id="invPagination"></div>
       <div id="invEmpty" class="empty-state" style="display:none">
         <div class="empty-icon">📦</div>

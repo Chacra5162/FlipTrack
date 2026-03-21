@@ -21,6 +21,7 @@ import {
 
 // Local state for drag and drop and filtering
 let dragSrc = null;
+let _viewMode = localStorage.getItem('ft_inv_view_mode') || (window.innerWidth <= 480 ? 'card' : 'table');
 export let subcatFilt = 'all';
 export let subsubcatFilt = 'all';
 let stockFilt = 'all';
@@ -292,6 +293,30 @@ export function setSubsubcatFilt(s,el){
 
 // ── SORT ──────────────────────────────────────────────────────────────────────
 
+// ── VIEW MODE TOGGLE ──────────────────────────────────────────────────────
+
+export function toggleInvViewMode() {
+  _viewMode = _viewMode === 'table' ? 'card' : 'table';
+  localStorage.setItem('ft_inv_view_mode', _viewMode);
+  _syncViewModeUI();
+  renderInv();
+}
+
+function _syncViewModeUI() {
+  const tableWrap = document.querySelector('#invBody')?.closest('.inv-table')?.parentElement;
+  const cardContainer = document.getElementById('invCards');
+  const toggleBtn = document.getElementById('invViewToggle');
+  if (_viewMode === 'card') {
+    if (tableWrap) tableWrap.style.display = 'none';
+    if (cardContainer) cardContainer.style.display = '';
+    if (toggleBtn) toggleBtn.classList.add('active');
+  } else {
+    if (tableWrap) tableWrap.style.display = '';
+    if (cardContainer) cardContainer.style.display = 'none';
+    if (toggleBtn) toggleBtn.classList.remove('active');
+  }
+}
+
 export function setSort(v){document.getElementById('sortSel').value=v;renderInv();}
 
 // Pre-computed flip score cache — rebuilt per renderInv() call, avoids O(n log n) recomputation in sort
@@ -349,11 +374,15 @@ export function renderInv() {
     _filterCache = { key: filterKey, items };
   }
 
+  // Compute stock counts in single pass (avoid 3 separate inv.filter calls)
+  let _lowCnt=0, _outCnt=0, _soldCnt=0;
+  for (const i of inv) { if(i.bulk&&i.qty===0)_outCnt++; else if(i.bulk&&i.qty>0&&i.qty<=(i.lowAlert||2))_lowCnt++; if((i.qty||0)<=0)_soldCnt++; }
+
   // Stock filter banner
   const banner = document.getElementById('stockFilterBanner');
   if (stockFilt !== 'all') {
-    const lowCnt = inv.filter(i=>i.bulk&&i.qty>0&&i.qty<=(i.lowAlert||2)).length;
-    const outCnt = inv.filter(i=>i.bulk&&i.qty===0).length;
+    const lowCnt = _lowCnt;
+    const outCnt = _outCnt;
     document.getElementById('stockFilterLabel').textContent =
       `Showing low stock (${lowCnt}) and out of stock (${outCnt}) items only`;
     banner.style.display = 'flex';
@@ -372,7 +401,7 @@ export function renderInv() {
   }
 
   items=sortItems(items);
-  const soldCnt = inv.filter(i => (i.qty || 0) <= 0).length;
+  const soldCnt = _soldCnt;
   const cntEl = document.getElementById('invCnt');
   if (soldFilt === 'hide' && soldCnt > 0) {
     cntEl.innerHTML = `${items.length} of ${inv.length} items <span onclick="toggleSoldFilt()" style="color:var(--accent);cursor:pointer;font-size:11px;margin-left:6px">(${soldCnt} sold hidden — show)</span>`;
@@ -399,61 +428,70 @@ export function renderInv() {
   if (_invPage >= totalPages) _invPage = totalPages - 1;
   if (_invPage < 0) _invPage = 0;
   const pageItems = items.slice(_invPage * _invPageSize, (_invPage + 1) * _invPageSize);
+  _syncViewModeUI();
   let maxQ=1;for(let i=0;i<inv.length;i++){const q=inv[i].qty||0;if(q>maxQ)maxQ=q;}
-  tbody.innerHTML=pageItems.map((item)=>{
-    const {cost,price,m}=calc(item);
-    const c=sc(item.qty,item.lowAlert,item.bulk);
-    const bp=Math.min(100,((item.qty||0)/maxQ)*100);
-    const isSel=sel.has(item.id);
-    const eid = escAttr(item.id);
-    const _imgs = getItemImages(item);
-    const _img0 = _imgs[0];
-    return `<tr data-id="${eid}" class="${isSel?'sel':''}">
-      <td class="cb-col"><input type="checkbox" ${isSel?'checked':''} onchange="toggleSel('${eid}',this)"></td>
-      <td><span class="drag-handle" draggable="true" ondragstart="dStart(event,'${eid}')" ondragover="dOver(event)" ondrop="dDrop(event,'${eid}')">⠿</span></td>
-      <td>${_img0
-        ? `<img class="item-thumb" loading="lazy" src="${escAttr(_img0)}" alt="${escHtml(item.name)}" onclick="openLightbox('${eid}')">`
-        : `<div class="item-thumb-placeholder" title="Add photo" onclick="openDrawer('${eid}')">＋</div>`
-      }</td>
-      <td>
-        <div class="item-name-row">${_img0
-          ? `<img class="item-thumb-inline" loading="lazy" src="${escAttr(_img0)}" alt="" onclick="event.stopPropagation();openLightbox('${eid}')">`
-          : ''}<div class="item-name" onclick="openDrawer('${eid}')">${escHtml(item.name)}</div></div>
-        <div class="item-meta"><span class="item-sku">${escHtml(item.sku||'—')}</span>${item.upc?`<span class="upc-tag">${escHtml(item.upc)}</span>`:''}${item.category?`<span class="cat-tag">${escHtml(item.category)}</span>`:''} ${item.subcategory?`<span class="cat-tag" style="background:rgba(87,200,255,0.1);color:var(--accent)">${escHtml(item.subcategory)}</span>`:''} ${item.subtype?`<span class="cat-tag" style="background:rgba(123,97,255,0.15);color:var(--accent3)">${escHtml(item.subtype)}</span>`:''} ${item.condition?`<span class="cat-tag" style="background:rgba(87,255,154,0.08);color:var(--good)">${escHtml(item.condition)}</span>`:''} ${item.source?`<span class="cat-tag" style="background:rgba(255,107,53,0.1);color:var(--accent2)">📍${escHtml(item.source)}</span>`:''}${item.author?`<span class="book-meta-tag">✍ ${escHtml(item.author)}</span>`:''}${item.edition?`<span class="book-meta-tag">${escHtml(item.edition)} ed.</span>`:''}${item.signed?`<span class="book-meta-tag" style="background:rgba(255,215,0,0.15);color:#d4a017;border-color:rgba(255,215,0,0.3)">✒ Signed</span>`:''}</div>
-      </td>
-      <td>${renderPlatTags(item)}</td>
-      <td>
-        <div class="stock-cell">
-          <div class="stepper">
-            <button class="stepper-btn" aria-label="Decrease quantity" onclick="adjStock('${eid}',-1)">−</button>
-            <span class="stepper-val sv-${c}" title="${c==='low'?'Low stock':c==='warn'?'Warning':'In stock'}">${item.qty||0}${c==='low'?' ⚠':c==='warn'?' ⚡':''}</span>
-            <button class="stepper-btn" aria-label="Increase quantity" onclick="adjStock('${eid}',+1)">+</button>
+
+  if (_viewMode === 'card') {
+    tbody.innerHTML = '';
+    _renderCardView(pageItems);
+  } else {
+    const cardContainer = document.getElementById('invCards');
+    if (cardContainer) cardContainer.innerHTML = '';
+    tbody.innerHTML=pageItems.map((item)=>{
+      const {cost,price,m}=calc(item);
+      const c=sc(item.qty,item.lowAlert,item.bulk);
+      const bp=Math.min(100,((item.qty||0)/maxQ)*100);
+      const isSel=sel.has(item.id);
+      const eid = escAttr(item.id);
+      const _imgs = getItemImages(item);
+      const _img0 = _imgs[0];
+      return `<tr data-id="${eid}" class="${isSel?'sel':''}">
+        <td class="cb-col"><input type="checkbox" ${isSel?'checked':''} onchange="toggleSel('${eid}',this)"></td>
+        <td><span class="drag-handle" draggable="true" ondragstart="dStart(event,'${eid}')" ondragover="dOver(event)" ondrop="dDrop(event,'${eid}')">⠿</span></td>
+        <td>${_img0
+          ? `<img class="item-thumb" loading="lazy" src="${escAttr(_img0)}" alt="${escHtml(item.name)}" onclick="openLightbox('${eid}')">`
+          : `<div class="item-thumb-placeholder" title="Add photo" onclick="openDrawer('${eid}')">＋</div>`
+        }</td>
+        <td>
+          <div class="item-name-row">${_img0
+            ? `<img class="item-thumb-inline" loading="lazy" src="${escAttr(_img0)}" alt="" onclick="event.stopPropagation();openLightbox('${eid}')">`
+            : ''}<div class="item-name" onclick="openDrawer('${eid}')">${escHtml(item.name)}</div></div>
+          <div class="item-meta"><span class="item-sku">${escHtml(item.sku||'—')}</span>${item.upc?`<span class="upc-tag">${escHtml(item.upc)}</span>`:''}${item.category?`<span class="cat-tag">${escHtml(item.category)}</span>`:''} ${item.subcategory?`<span class="cat-tag" style="background:rgba(87,200,255,0.1);color:var(--accent)">${escHtml(item.subcategory)}</span>`:''} ${item.subtype?`<span class="cat-tag" style="background:rgba(123,97,255,0.15);color:var(--accent3)">${escHtml(item.subtype)}</span>`:''} ${item.condition?`<span class="cat-tag" style="background:rgba(87,255,154,0.08);color:var(--good)">${escHtml(item.condition)}</span>`:''} ${item.source?`<span class="cat-tag" style="background:rgba(255,107,53,0.1);color:var(--accent2)">📍${escHtml(item.source)}</span>`:''}${item.author?`<span class="book-meta-tag">✍ ${escHtml(item.author)}</span>`:''}${item.edition?`<span class="book-meta-tag">${escHtml(item.edition)} ed.</span>`:''}${item.signed?`<span class="book-meta-tag" style="background:rgba(255,215,0,0.15);color:#d4a017;border-color:rgba(255,215,0,0.3)">✒ Signed</span>`:''}</div>
+        </td>
+        <td>${renderPlatTags(item)}</td>
+        <td>
+          <div class="stock-cell">
+            <div class="stepper">
+              <button class="stepper-btn" aria-label="Decrease quantity" onclick="adjStock('${eid}',-1)">−</button>
+              <span class="stepper-val sv-${c}" title="${c==='low'?'Low stock':c==='warn'?'Warning':'In stock'}">${item.qty||0}${c==='low'?' ⚠':c==='warn'?' ⚡':''}</span>
+              <button class="stepper-btn" aria-label="Increase quantity" onclick="adjStock('${eid}',+1)">+</button>
+            </div>
+            <div class="mini-bar"><div class="mb-fill mf-${c}" style="width:${bp}%"></div></div>
           </div>
-          <div class="mini-bar"><div class="mb-fill mf-${c}" style="width:${bp}%"></div></div>
-        </div>
-      </td>
-      <td style="color:var(--muted)">${fmt(cost)}</td>
-      <td><span class="price-disp" title="Click to edit inline" onclick="startPriceEdit(this,'${eid}')">${fmt(price)}</span></td>
-      <td><span class="margin-badge ${margCls(m)}">${pct(m)}</span></td>
-      <td class="days-col">${(()=>{
-        const _dl=daysListed(item);
-        const _itemSales=getSalesForItem(item.id);
-        const _lastSaleDays=_itemSales.length?Math.floor((Date.now()-Math.max(..._itemSales.map(s=>new Date(s.date).getTime())))/86400000):null;
-        const _plats=getPlatforms(item);
-        const _expMin=_plats.reduce((min,p)=>{const d=getDaysUntilExpiry(p,item.platformListingDates?.[p]);return d!==null&&(min===null||d<min)?d:min;},null);
-        return `<span class="days-badge${_dl>=60?' stale':_dl>=30?' aging':''}" title="Listed ${_dl} days">${_dl}d</span>`
-          +(_lastSaleDays!==null?`<span style="font-size:9px;color:${_lastSaleDays>30?'var(--warn)':'var(--muted)'};display:block;margin-top:2px" title="Last sale ${_lastSaleDays} days ago">${_lastSaleDays}d ago</span>`:'')
-          +(_expMin!==null&&_expMin<=7?`<span style="font-size:9px;color:var(--warn);display:block;margin-top:2px" title="Listing expires in ${_expMin} days">⏳${_expMin}d</span>`:'');
-      })()}</td>
-      <td class="flip-score-col pro-gate">${(()=>{const fs=_flipScoreCache.get(item.id)||computeFlipScore(item);const _fc=fs.score>=80?'var(--good)':fs.score>=60?'var(--accent)':fs.score>=40?'var(--warn)':'var(--danger)';return `<span class="flip-badge" style="color:${_fc}" title="Margin:${fs.breakdown.margin} Fresh:${fs.breakdown.freshness} List:${fs.breakdown.listing} Demand:${fs.breakdown.demand}">${fs.score}<sup>${fs.grade}</sup></span>`;})()}</td>
-      <td class="photos-col">${_imgs.length?`<span class="photo-count-badge" title="${_imgs.length} photo${_imgs.length>1?'s':''}">${_imgs.length} 📷</span>`:`<span class="photo-count-badge empty" title="No photos">0</span>`}</td>
-      <td><div class="td-acts">
-        ${item.qty>0?`<button class="act-btn" onclick="openSoldModal('${eid}')">Sold ›</button>`:`<span class="out-badge">Out</span>`}
-        <button class="act-btn" onclick="openDrawer('${eid}')">Edit</button>
-        <button class="act-btn red" onclick="delItem('${eid}')">✕</button>
-      </div></td>
-    </tr>`;
-  }).join('');
+        </td>
+        <td style="color:var(--muted)">${fmt(cost)}</td>
+        <td><span class="price-disp" title="Click to edit inline" onclick="startPriceEdit(this,'${eid}')">${fmt(price)}</span></td>
+        <td><span class="margin-badge ${margCls(m)}">${pct(m)}</span></td>
+        <td class="days-col">${(()=>{
+          const _dl=daysListed(item);
+          const _itemSales=getSalesForItem(item.id);
+          const _lastSaleDays=_itemSales.length?Math.floor((Date.now()-Math.max(..._itemSales.map(s=>new Date(s.date).getTime())))/86400000):null;
+          const _plats=getPlatforms(item);
+          const _expMin=_plats.reduce((min,p)=>{const d=getDaysUntilExpiry(p,item.platformListingDates?.[p]);return d!==null&&(min===null||d<min)?d:min;},null);
+          return `<span class="days-badge${_dl>=60?' stale':_dl>=30?' aging':''}" title="Listed ${_dl} days">${_dl}d</span>`
+            +(_lastSaleDays!==null?`<span style="font-size:9px;color:${_lastSaleDays>30?'var(--warn)':'var(--muted)'};display:block;margin-top:2px" title="Last sale ${_lastSaleDays} days ago">${_lastSaleDays}d ago</span>`:'')
+            +(_expMin!==null&&_expMin<=7?`<span style="font-size:9px;color:var(--warn);display:block;margin-top:2px" title="Listing expires in ${_expMin} days">⏳${_expMin}d</span>`:'');
+        })()}</td>
+        <td class="flip-score-col pro-gate">${(()=>{const fs=_flipScoreCache.get(item.id)||computeFlipScore(item);const _fc=fs.score>=80?'var(--good)':fs.score>=60?'var(--accent)':fs.score>=40?'var(--warn)':'var(--danger)';return `<span class="flip-badge" style="color:${_fc}" title="Margin:${fs.breakdown.margin} Fresh:${fs.breakdown.freshness} List:${fs.breakdown.listing} Demand:${fs.breakdown.demand}">${fs.score}<sup>${fs.grade}</sup></span>`;})()}</td>
+        <td class="photos-col">${_imgs.length?`<span class="photo-count-badge" title="${_imgs.length} photo${_imgs.length>1?'s':''}">${_imgs.length} 📷</span>`:`<span class="photo-count-badge empty" title="No photos">0</span>`}</td>
+        <td><div class="td-acts">
+          ${item.qty>0?`<button class="act-btn" onclick="openSoldModal('${eid}')">Sold ›</button>`:`<span class="out-badge">Out</span>`}
+          <button class="act-btn" onclick="openDrawer('${eid}')">Edit</button>
+          <button class="act-btn red" onclick="delItem('${eid}')">✕</button>
+        </div></td>
+      </tr>`;
+    }).join('');
+  }
   syncBulk();
   // Render pagination
   const pgEl = document.getElementById('invPagination');
@@ -467,6 +505,46 @@ export function renderInv() {
       onPageSize: (s) => { _invPageSize = s; _invPage = 0; renderInv(); },
     });
   }
+}
+
+// ── CARD VIEW RENDERING ───────────────────────────────────────────────────────
+
+function _renderCardView(pageItems) {
+  const container = document.getElementById('invCards');
+  if (!container) return;
+  container.innerHTML = pageItems.map(item => {
+    const { price, m } = calc(item);
+    const c = sc(item.qty, item.lowAlert, item.bulk);
+    const eid = escAttr(item.id);
+    const _imgs = getItemImages(item);
+    const _img0 = _imgs[0];
+    return `<div class="inv-card" data-id="${eid}">
+      ${_img0
+        ? `<img class="inv-card-img" loading="lazy" src="${escAttr(_img0)}" alt="${escHtml(item.name)}" onclick="openLightbox('${eid}')">`
+        : `<div class="inv-card-img-placeholder" onclick="openDrawer('${eid}')">+</div>`
+      }
+      <div class="inv-card-body">
+        <div class="inv-card-name" onclick="openDrawer('${eid}')">${escHtml(item.name)}</div>
+        <div class="inv-card-price-row">
+          <span class="inv-card-price">${fmt(price)}</span>
+          <span class="inv-card-qty sv-${c}">${item.qty || 0}</span>
+        </div>
+        <div class="inv-card-price-row">
+          <span class="inv-card-cost">${fmt(item.cost || 0)} cost</span>
+          <span class="margin-badge ${margCls(m)}" style="font-size:9px;padding:1px 5px">${pct(m)}</span>
+        </div>
+        <div class="inv-card-plats">${renderPlatTags(item)}</div>
+        <div class="inv-card-actions">
+          ${item.qty > 0
+            ? `<button class="act-btn" onclick="openSoldModal('${eid}')">Sold</button>`
+            : `<span class="out-badge" style="flex:1;text-align:center;font-size:10px">Out</span>`
+          }
+          <button class="act-btn" onclick="openDrawer('${eid}')">Edit</button>
+          <button class="act-btn red" onclick="delItem('${eid}')">✕</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ── INLINE PRICE EDIT ─────────────────────────────────────────────────────────

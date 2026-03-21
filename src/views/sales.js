@@ -5,7 +5,7 @@
  */
 
 import {
-  inv, sales, getInvItem,
+  inv, sales, getInvItem, getSaleById,
   save, refresh, pushUndo, showUndoToast,
   markDirty, markDeleted,
 } from '../data/store.js';
@@ -30,6 +30,7 @@ let activeSoldId = null;
 let _sPriceType = 'each'; // 'each' or 'total'
 let _bundleMode = false;
 let _bundleItems = new Set(); // item IDs in the bundle
+let _editingSaleId = null; // non-null when editing an existing sale
 let _salePage = 0;
 const _salePageSize = 50;
 let _salesSearch = '';
@@ -85,6 +86,75 @@ export function onSoldItemPick(id) {
   const item = getInvItem(id);
   if (!item) return;
   _populateSoldModal(item);
+}
+
+/** Open the sold modal pre-populated with an existing sale for editing */
+export function openEditSaleModal(saleId) {
+  const sale = getSaleById(saleId);
+  if (!sale) { toast('Sale not found', true); return; }
+  const item = getInvItem(sale.itemId);
+  if (!item) { toast('Item no longer exists', true); return; }
+
+  _editingSaleId = saleId;
+  activeSoldId = sale.itemId;
+
+  // Populate item info
+  const { pu, m } = calc(item);
+  const infoEl = document.getElementById('soldInfo');
+  infoEl.innerHTML = `
+    <div class="sir"><span class="k">Item</span><span>${escHtml(item.name)}</span></div>
+    <div class="sir"><span class="k">Platforms</span><span>${getPlatforms(item).join(', ') || '—'}</span></div>
+    <div class="sir"><span class="k">Cost</span><span>${fmt(item.cost)}</span></div>
+    <div class="sir"><span class="k">List Price</span><span>${fmt(item.price)}</span></div>
+    <div class="sir"><span class="k">Expected Profit</span><span style="color:var(--good)">${fmt(pu)} (${pct(m)})</span></div>
+    <div class="sir"><span class="k">In Stock</span><span>${(item.qty || 0) + (sale.qty || 1)} units (incl. this sale)</span></div>`;
+
+  // Fill form fields from existing sale
+  document.getElementById('s_price').value = sale.price || '';
+  document.getElementById('s_qty').value = sale.qty || 1;
+  document.getElementById('s_fees').value = sale.fees || '';
+  document.getElementById('s_ship').value = sale.ship || '';
+  document.getElementById('s_date').value = (sale.date || '').slice(0, 10) || localDate();
+
+  // Platform dropdown
+  const itemPlats = getPlatforms(item);
+  const others = PLATFORMS.filter(p => !itemPlats.includes(p));
+  const sel = document.getElementById('s_platform');
+  sel.innerHTML = [
+    ...itemPlats.map(p => `<option value="${p}">${escHtml(p)} ★</option>`),
+    `<option value="" disabled>${itemPlats.length ? '── Other platforms ──' : '── Select platform ──'}</option>`,
+    ...others.map(p => `<option value="${p}">${escHtml(p)}</option>`)
+  ].join('');
+  sel.value = sale.platform || (itemPlats.length ? itemPlats[0] : '');
+
+  // Optional fields
+  const buyerEl = document.getElementById('s_buyer');
+  if (buyerEl) buyerEl.value = sale.buyerName || '';
+  const trackEl = document.getElementById('s_tracking');
+  if (trackEl) trackEl.value = sale.tracking || '';
+  const addrEl = document.getElementById('s_address');
+  if (addrEl) addrEl.value = sale.buyerAddress || '';
+  const cityEl = document.getElementById('s_city');
+  if (cityEl) cityEl.value = sale.buyerCity || '';
+  const stateEl = document.getElementById('s_state');
+  if (stateEl) stateEl.value = sale.buyerState || '';
+  const zipEl = document.getElementById('s_zip');
+  if (zipEl) zipEl.value = sale.buyerZip || '';
+
+  sPriceType('each');
+  updateFeeEstimate();
+
+  // Change modal title and button text
+  const ttl = document.querySelector('#soldOv .modal-ttl');
+  if (ttl) ttl.textContent = 'Edit Sale';
+  const btn = document.getElementById('recSaleBtn');
+  if (btn) btn.textContent = 'Save Changes';
+  // Hide bundle toggle when editing
+  const bt = document.getElementById('bundleToggle');
+  if (bt) bt.style.display = 'none';
+
+  document.getElementById('soldOv').classList.add('on');
+  setTimeout(() => trapFocus('#soldOv'), 100);
 }
 
 function _populateSoldModal(item) {
@@ -210,7 +280,13 @@ export function closeSold() {
   // Reset the save button so it's not stuck on "Saving…" when modal reopens
   const btn = document.getElementById('recSaleBtn');
   if (btn) { btn.disabled = false; btn.textContent = 'Record Sale'; }
+  // Reset edit mode
+  _editingSaleId = null;
   activeSoldId = null;
+  // Restore modal title and bundle toggle visibility
+  const ttl = document.querySelector('#soldOv .modal-ttl');
+  if (ttl) ttl.textContent = 'Record Sale';
+  if (bt) bt.style.display = '';
 }
 
 // ── BUNDLE MODE ───────────────────────────────────────────────────────────────
@@ -340,6 +416,11 @@ export function recSale() {
     return _recBundleSale(reenableBtn);
   }
 
+  // Edit mode: update existing sale in-place
+  if (_editingSaleId) {
+    return _updateExistingSale(reenableBtn);
+  }
+
   const item = getInvItem(activeSoldId);
   if (!item) { toast('Item not found — it may have been deleted', true); reenableBtn(); closeSold(); return; }
 
@@ -423,6 +504,86 @@ export function recSale() {
   showUndoToast('Item marked as sold');
   // Prompt for materials used if any supplies exist
   openMaterialsModal(() => {});
+}
+
+// ── EDIT EXISTING SALE ────────────────────────────────────────────────────────
+
+function _updateExistingSale(reenableBtn) {
+  const sale = getSaleById(_editingSaleId);
+  if (!sale) { toast('Sale not found', true); reenableBtn(); closeSold(); return; }
+  const item = getInvItem(sale.itemId);
+  if (!item) { toast('Item not found', true); reenableBtn(); closeSold(); return; }
+
+  // Validate numeric fields
+  const priceEl = document.getElementById('s_price');
+  const rawPrice = parseNum(priceEl.value, { fieldName: 'Price' });
+  if (isNaN(rawPrice) && priceEl.value.trim() !== '') {
+    validateNumericInput(priceEl, { fieldName: 'Price' });
+    reenableBtn(); return;
+  }
+  if (!rawPrice) { toast('Sold price required', true); reenableBtn(); return; }
+
+  const qtyEl = document.getElementById('s_qty');
+  const newQty = parseNum(qtyEl.value, { fieldName: 'Quantity', integer: true, min: 1 });
+  if (isNaN(newQty)) {
+    validateNumericInput(qtyEl, { fieldName: 'Quantity', integer: true });
+    reenableBtn(); return;
+  }
+
+  const feesEl = document.getElementById('s_fees');
+  const fees = parseNum(feesEl.value, { fieldName: 'Fees', allowZero: true });
+  if (isNaN(fees) && feesEl.value.trim() !== '') {
+    validateNumericInput(feesEl, { fieldName: 'Fees' });
+    reenableBtn(); return;
+  }
+
+  const shipEl = document.getElementById('s_ship');
+  const ship = parseNum(shipEl.value, { fieldName: 'Shipping', allowZero: true });
+  if (isNaN(ship) && shipEl.value.trim() !== '') {
+    validateNumericInput(shipEl, { fieldName: 'Shipping' });
+    reenableBtn(); return;
+  }
+
+  // Adjust item qty: restore old qty, then subtract new qty
+  const oldQty = sale.qty || 1;
+  const qtyDelta = newQty - oldQty;
+  if (qtyDelta > 0 && qtyDelta > (item.qty || 0)) {
+    toast(`Only ${(item.qty || 0) + oldQty} available (${item.qty} in stock + ${oldQty} from this sale)`, true);
+    reenableBtn(); return;
+  }
+  item.qty = Math.max(0, (item.qty || 0) - qtyDelta);
+
+  // Convert to per-unit price for storage
+  const price = _sPriceType === 'total' ? rawPrice / newQty : rawPrice;
+  const platform = document.getElementById('s_platform').value || sale.platform || 'Other';
+
+  // Update sale fields
+  sale.price = price;
+  sale.qty = newQty;
+  sale.platform = platform;
+  sale.fees = isNaN(fees) ? 0 : fees;
+  sale.ship = isNaN(ship) ? 0 : ship;
+  sale.date = document.getElementById('s_date').value || sale.date;
+  sale.tracking = (document.getElementById('s_tracking')?.value || '').trim() || null;
+  sale.buyerAddress = (document.getElementById('s_address')?.value || '').trim() || null;
+  sale.buyerCity = (document.getElementById('s_city')?.value || '').trim() || null;
+  sale.buyerState = (document.getElementById('s_state')?.value || '').trim().toUpperCase() || null;
+  sale.buyerZip = (document.getElementById('s_zip')?.value || '').trim() || null;
+
+  // Link buyer if provided
+  const buyerName = (document.getElementById('s_buyer')?.value || '').trim();
+  if (buyerName) {
+    const buyer = getOrCreateBuyer(buyerName, platform);
+    if (buyer) sale.buyerId = buyer.id;
+  }
+
+  markDirty('sales', sale.id);
+  markDirty('inv', item.id);
+  save();
+  closeSold();
+  refresh();
+  if (typeof window.updateDashStats === 'function') window.updateDashStats();
+  toast('Sale updated');
 }
 
 // ── BUNDLE SALE RECORDING ─────────────────────────────────────────────────────
@@ -542,7 +703,7 @@ export function renderSalesView() {
   const filterBar = document.getElementById('salesFilterBar');
   if (filterBar) {
     filterBar.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 0">
-      <input type="text" placeholder="Search sales..." value="${escHtml(_salesSearch)}"
+      <input type="text" placeholder="Search sales..." value="${escAttr(_salesSearch)}"
              oninput="setSalesSearch(this.value)"
              style="flex:1;min-width:150px;padding:6px 10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:12px;font-family:'DM Mono',monospace">
       <input type="date" value="${_salesDateFrom}" onchange="setSalesDateFrom(this.value)" title="From date"
@@ -595,7 +756,7 @@ export function renderSalesView() {
       <td style="color:var(--muted)">${fmt((s.fees || 0) + (s.ship || 0))}</td>
       <td style="font-family:'Syne',sans-serif;font-weight:700;color:${pr >= 0 ? 'var(--good)' : 'var(--danger)'}">${fmt(pr)}</td>
       <td style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)">${s.tracking ? `<a href="https://parcelsapp.com/en/tracking/${encodeURIComponent(s.tracking)}" target="_blank" rel="noopener" style="color:var(--accent)">${escHtml(s.tracking.slice(0, 18))}${s.tracking.length > 18 ? '…' : ''}</a>` : '—'}</td>
-      <td><div class="td-acts"><button class="act-btn red" onclick="delSale('${escAttr(s.id)}')">✕</button></div></td>
+      <td><div class="td-acts"><button class="act-btn" onclick="openEditSaleModal('${escAttr(s.id)}')">Edit</button><button class="act-btn red" onclick="delSale('${escAttr(s.id)}')">✕</button></div></td>
     </tr>`;
   }).join('');
 

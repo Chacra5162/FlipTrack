@@ -77,7 +77,8 @@ export function updateStats() {
   document.getElementById('sAvgDays').textContent = avgDays !== null ? avgDays + 'd' : '—';
   document.getElementById('sAvgDaysSub').textContent = daysArr.length ? `based on ${daysArr.length} sold items` : 'no sales data yet';
   // alert banner
-  const all=[...out,...low.filter(x=>!out.includes(x))];
+  const _outIds=new Set(out.map(i=>i.id));
+  const all=[...out,...low.filter(x=>!_outIds.has(x.id))];
   const bn=document.getElementById('alertBanner');
   if(all.length){document.getElementById('alertItems').textContent=all.map(i=>`${i.name} (${i.qty} left)`).join(' · ');bn.classList.add('on');}
   else bn.classList.remove('on');
@@ -163,7 +164,7 @@ export function updateSalesLog() {
   const el=document.getElementById('salesLog');
   if(!sales.length){el.innerHTML='<div class="empty-state"><div class="empty-state-icon">💰</div><div class="empty-state-text">No sales recorded yet. Sell an item and log it here!</div><button class="empty-state-cta" onclick="openSoldModal()">Record a Sale →</button></div>';return;}
   const colors=['#57c8ff','#ff6b35','#7b61ff','#57ff9a','#ffb800'];
-  el.innerHTML=[...sales].reverse().slice(0,8).map((s,i)=>{
+  el.innerHTML=sales.slice(-8).reverse().map((s,i)=>{
     const it=getInvItem(s.itemId);
     const nm=it?escHtml(it.name):'Unknown';
     const pr=(s.price||0)*(s.qty||0)-(it?(it.cost||0)*(s.qty||0):0)-(s.fees||0)-(s.ship||0);
@@ -171,6 +172,7 @@ export function updateSalesLog() {
       <div class="sale-dot" style="background:${colors[i%5]}"></div>
       <div class="sale-info"><div class="sale-name">${nm}</div><div class="sale-time">${ds(s.date)} · profit ${fmt(pr)}</div></div>
       <div class="sale-amt">${fmt((s.price||0)*(s.qty||0))}</div>
+      <button class="act-btn" onclick="event.stopPropagation();openEditSaleModal('${escAttr(s.id)}')" style="font-size:10px;padding:2px 8px;margin-left:6px;white-space:nowrap">Edit</button>
     </div>`;
   }).join('');
 }

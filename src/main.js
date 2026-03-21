@@ -36,14 +36,16 @@ import {
 import {
   initAuth, authSubmit, authForgotPassword, authSignOut,
   switchAuthTab, showAuthModal, hideAuthModal,
-  openAccountMenu, closeAccountMenu
+  openAccountMenu, closeAccountMenu,
+  registerAuthCleanup, registerOfflineUserHandler
 } from './data/auth.js';
 import {
   pushToCloud, pushDeleteToCloud, pullFromCloud,
   syncNow, autoSync, setSyncStatus,
   startRealtime, stopRealtime,
   startPoll, stopPoll, mobileSyncNow,
-  initOfflineQueue
+  initOfflineQueue,
+  registerAccountIdProvider, registerRecordSync
 } from './data/sync.js';
 import {
   uploadImageToStorage, deleteImageFromStorage, migrateImagesToStorage
@@ -67,12 +69,13 @@ import {
   bulkExportCSV,
   toggleFilterPanel, openFilterPanel, updateFiltersBadge,
   setStockFilt, clearStockFilter, toggleSoldFilt,
-  setSmokeFilt, setConditionFilt, daysListed
+  setSmokeFilt, setConditionFilt, daysListed,
+  toggleInvViewMode
 } from './views/inventory.js';
 import {
   openSoldModal, closeSold, sPriceType, onSoldItemPick,
   updateSalePriceHint, updateFeeEstimate,
-  recSale, renderSalesView,
+  recSale, renderSalesView, openEditSaleModal,
   toggleBundleMode, filterBundleItems, toggleBundleItem, _updateBundlePriceHint,
   setSalesSearch, setSalesDateFrom, setSalesDateTo, clearSalesFilters
 } from './views/sales.js';
@@ -89,13 +92,12 @@ import {
 import {
   renderReports, showPLReport, renderPLStatement,
   setReportMode, shiftPeriod, goToAddExpense,
-  delSale, delItem, undoSaleDeletion
+  delSale, delItem, undoSaleDeletion, clearReportTimers
 } from './views/reports.js';
 import {
   renderBreakdown, toggleBdSubs, filterToCat, filterToSubcat
 } from './views/breakdown.js';
 import {
-  saveSupplies, syncSupplies, pullSupplies,
   addSupply, updateSupplyQty, setSupplyQty, delSupply,
   renderSupplies, checkSupplyAlerts
 } from './views/supplies.js';
@@ -135,7 +137,7 @@ import {
 import {
   bnav, toggleBnavMore, closeBnavMore, updateBnavVisibility
 } from './features/bnav.js';
-import { updateOnlineStatus } from './features/offline.js';
+import { updateOnlineStatus, setOfflineUser } from './features/offline.js';
 import {
   initListingDates, checkExpiredListings, autoDlistOnSale,
   getCrosslistStats, getExpiredListings, getExpiringListings,
@@ -165,9 +167,9 @@ import {
   wnCalcUpdate
 } from './views/crosslist-dashboard.js';
 import { initEBayAuth, handleEBayCallback, isEBayConnected } from './features/ebay-auth.js';
-import { initEBaySync, startEBaySyncInterval, resyncEBayOrders } from './features/ebay-sync.js';
+import { initEBaySync, startEBaySyncInterval, stopEBaySyncInterval, resyncEBayOrders } from './features/ebay-sync.js';
 import { initEtsyAuth, handleEtsyCallback, isEtsyConnected } from './features/etsy-auth.js';
-import { initEtsySync, startEtsySyncInterval, syncEtsyExpenses } from './features/etsy-sync.js';
+import { initEtsySync, startEtsySyncInterval, stopEtsySyncInterval, syncEtsyExpenses } from './features/etsy-sync.js';
 import { initWhatnotShows, getTodayShows } from './features/whatnot-show.js';
 import {
   setDimUnit, updateDimWeight, suggestPackaging,
@@ -262,11 +264,11 @@ import { initDemoTrigger, loadDemoData, clearDemoData } from './features/demo-da
 import { animateStatCounters } from './features/animated-counters.js';
 import { mountProfitHeatmap } from './features/profit-heatmap.js';
 import { exportPlatformCSV, exportSalesCSV, exportTaxCSV, exportShowPrepCSV, exportShowResultsCSV, exportAllShowsCSV, renderCSVExportPanel } from './features/csv-templates.js';
-import { toggleNotifications, startStockAlertChecks, getNotifStatus, sendNotification } from './features/push-notifications.js';
+import { toggleNotifications, startStockAlertChecks, stopStockAlertChecks, getNotifStatus, sendNotification } from './features/push-notifications.js';
 import { startTour, endTour, maybeStartTour } from './features/onboarding-tour.js';
 import { renderKPIGoals, openKPIGoalEditor, closeKPIGoalEditor, saveKPIGoals } from './features/kpi-goals.js';
 import { toggleNotifCenter, closeNotifCenter, markAllRead, clearNotifications, addNotification, initNotificationCenter, getSalesVelocity, checkWhatnotShowReminders, notifyShowEnded, checkDailyDigest } from './features/notification-center.js';
-import { recordSync, startSyncIndicator } from './features/sync-indicator.js';
+import { recordSync, startSyncIndicator, stopSyncIndicator } from './features/sync-indicator.js';
 import {
   initTeam, getActiveAccountId, getMyRole, getTeam,
   openTeamPanel, closeTeamPanel, renderTeamPanel,
@@ -384,6 +386,17 @@ const applyCsvMapping = _lw(lazyCSV, 'applyCsvMapping');
 const printStickers = _lw(lazyBarcodes, 'printStickers');
 
 
+// ── Register data-layer callbacks (avoids data→feature import violations) ────
+registerAccountIdProvider(getActiveAccountId);
+registerRecordSync(recordSync);
+registerOfflineUserHandler(setOfflineUser);
+registerAuthCleanup(stopEBaySyncInterval);
+registerAuthCleanup(stopEtsySyncInterval);
+registerAuthCleanup(clearReportTimers);
+registerAuthCleanup(stopStockAlertChecks);
+registerAuthCleanup(disableAutoRelist);
+registerAuthCleanup(stopSyncIndicator);
+
 // ══════════════════════════════════════════════════════════════════════════════
 // EXPOSE TO WINDOW — needed for inline HTML event handlers (onclick etc.)
 // ══════════════════════════════════════════════════════════════════════════════
@@ -460,7 +473,8 @@ Object.assign(window, {
   bulkExportCSV,
   toggleFilterPanel, toggleSoldFilt,
   _debouncedRenderInv,
-  setSmokeFilt, setConditionFilt, daysListed
+  setSmokeFilt, setConditionFilt, daysListed,
+  toggleInvViewMode
 });
 // Wire up the debounced inventory search (placeholder in store.js starts as no-op)
 window._debouncedRenderInv = debounce(renderInv, 200);
@@ -484,7 +498,7 @@ Object.assign(window, {
 Object.assign(window, {
   openSoldModal, closeSold, sPriceType, onSoldItemPick,
   updateSalePriceHint, updateFeeEstimate,
-  recSale, renderSalesView, delSale, undoSaleDeletion,
+  recSale, renderSalesView, delSale, undoSaleDeletion, openEditSaleModal,
   toggleBundleMode, filterBundleItems, toggleBundleItem, _updateBundlePriceHint,
   setSalesSearch, setSalesDateFrom, setSalesDateTo, clearSalesFilters
 });
@@ -841,6 +855,17 @@ function clRelistFromDrawer(itemId, platform) {
 // VIEW SWITCHING
 // ══════════════════════════════════════════════════════════════════════════════
 
+// Cached DOM collections for switchView (built once, reused)
+let _viewEls, _navMenuItems, _navGroups, _navTabs, _statsGrid, _prevView;
+function _initViewCache() {
+  if (_viewEls) return;
+  _viewEls = document.querySelectorAll('.view');
+  _navMenuItems = document.querySelectorAll('.nav-menu-item');
+  _navGroups = document.querySelectorAll('.nav-group');
+  _navTabs = document.querySelectorAll('.nav-tab');
+  _statsGrid = document.querySelector('.stats-grid');
+}
+
 function switchView(name, el) {
   // Subscription gating — block access to locked views
   if (window.isViewGated && window.isViewGated(name)) {
@@ -848,58 +873,66 @@ function switchView(name, el) {
     return;
   }
 
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  _initViewCache();
+
+  // Deactivate previous, activate new (targeted swap instead of full sweep)
+  if (_prevView) document.getElementById('view-' + _prevView)?.classList.remove('active');
+  else _viewEls.forEach(v => v.classList.remove('active')); // first call: clear all
   document.getElementById('view-' + name)?.classList.add('active');
+  _prevView = name;
 
   // Remember current view so page refresh restores it
   try { localStorage.setItem('ft_view', name); } catch (_) {}
   try { history.replaceState(null, '', '#' + name); } catch (_) {}
 
   // On mobile, hide stats-grid for non-dashboard views to free screen space
-  const sg = document.querySelector('.stats-grid');
-  if (sg) sg.classList.toggle('not-dash', name !== 'dashboard');
+  if (_statsGrid) _statsGrid.classList.toggle('not-dash', name !== 'dashboard');
 
   // Update grouped nav: clear all active menu items, set new one, update group highlights
-  document.querySelectorAll('.nav-menu-item').forEach(mi => { mi.classList.remove('active'); mi.removeAttribute('aria-current'); });
+  _navMenuItems.forEach(mi => { mi.classList.remove('active'); mi.removeAttribute('aria-current'); });
   const activeItem = document.querySelector(`.nav-menu-item[data-view="${name}"]`);
   if (activeItem) { activeItem.classList.add('active'); activeItem.setAttribute('aria-current', 'page'); }
 
   // Mark parent group as having an active child
-  document.querySelectorAll('.nav-group').forEach(g => g.classList.remove('has-active'));
+  _navGroups.forEach(g => g.classList.remove('has-active'));
   if (activeItem) {
     const parentGroup = activeItem.closest('.nav-group');
     if (parentGroup) parentGroup.classList.add('has-active');
   }
 
   // Legacy .nav-tab support (mobile bottom nav)
-  document.querySelectorAll('.nav-tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); t.setAttribute('tabindex', '-1'); });
+  _navTabs.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); t.setAttribute('tabindex', '-1'); });
   if (el && el.classList.contains('nav-tab')) { el.classList.add('active'); el.setAttribute('aria-selected', 'true'); el.setAttribute('tabindex', '0'); }
 
-  if (name === 'inventory') renderInv();
-  else if (name === 'sales') renderSalesView();
-  else if (name === 'expenses') renderExpenses();
-  else if (name === 'supplies') { renderSupplies(); checkSupplyAlerts(); }
-  else if (name === 'insights') renderInsights();
-  else if (name === 'reports') renderReports();
-  else if (name === 'breakdown') renderBreakdown();
-  else if (name === 'dashboard') renderDash();
-  else if (name === 'profit') renderProfitDashboard();
-  else if (name === 'crosslist') renderCrosslistDashboard();
-  else if (name === 'shipping') renderShippingView();
-  else if (name === 'sourcing') renderSourcingView();
-  else if (name === 'tax') renderTaxCenter();
-  else if (name === 'buyers') renderBuyersView();
-  else if (name === 'invvalue') {
-    const el2 = document.getElementById('invValueContent');
-    if (el2) el2.innerHTML = renderInventoryValueDashboard();
-  }
-  else if (name === 'invhealth') renderInventoryHealth();
-  else if (name === 'sourcinganalytics') renderSourcingAnalytics();
-  else if (name === 'platformroi') renderPlatformROI();
-  else if (name === 'periodcompare') renderPeriodCompare();
-  else if (name === 'returns') renderReturns();
-  else if (name === 'listingscore') renderListingScores();
-  else if (name === 'marginalerts') renderMarginAlerts();
+  // ── VIEW REGISTRY (replaces if/else chain — tech debt #7) ───────────────
+  const VIEW_REGISTRY = {
+    dashboard:          () => renderDash(),
+    inventory:          () => renderInv(),
+    sales:              () => renderSalesView(),
+    expenses:           () => renderExpenses(),
+    supplies:           () => { renderSupplies(); checkSupplyAlerts(); },
+    insights:           () => renderInsights(),
+    reports:            () => renderReports(),
+    breakdown:          () => renderBreakdown(),
+    profit:             () => renderProfitDashboard(),
+    crosslist:          () => renderCrosslistDashboard(),
+    shipping:           () => renderShippingView(),
+    sourcing:           () => renderSourcingView(),
+    buyers:             () => renderBuyersView(),
+    tax:                () => renderTaxCenter(),
+    invvalue:           () => { const el2 = document.getElementById('invValueContent'); if (el2) el2.innerHTML = renderInventoryValueDashboard(); },
+    invhealth:          () => renderInventoryHealth(),
+    sourcinganalytics:  () => renderSourcingAnalytics(),
+    platformroi:        () => renderPlatformROI(),
+    periodcompare:      () => renderPeriodCompare(),
+    returns:            () => renderReturns(),
+    listingscore:       () => renderListingScores(),
+    marginalerts:       () => renderMarginAlerts(),
+  };
+
+  const render = VIEW_REGISTRY[name];
+  if (render) { render(); }
+  else { console.warn('FlipTrack: unknown view:', name); switchView('dashboard', null); return; }
 
   // Update page title for screen readers
   document.title = `FlipTrack — ${name.charAt(0).toUpperCase() + name.slice(1)}`;

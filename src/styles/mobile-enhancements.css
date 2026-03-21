@@ -656,3 +656,147 @@
     opacity: 0.95;
   }
 }
+
+/* ============================================================================
+   INVENTORY CARD VIEW
+   ============================================================================ */
+
+.inv-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+  padding: 12px;
+}
+
+.inv-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.15s;
+}
+
+.inv-card:hover {
+  border-color: var(--accent);
+}
+
+.inv-card-img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  background: var(--bg);
+  cursor: pointer;
+}
+
+.inv-card-img-placeholder {
+  width: 100%;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.inv-card-body {
+  padding: 8px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.inv-card-name {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  cursor: pointer;
+}
+
+.inv-card-price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.inv-card-price {
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--good);
+}
+
+.inv-card-cost {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.inv-card-qty {
+  display: inline-block;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  line-height: 1.6;
+}
+
+.inv-card-qty.sv-ok { background: rgba(87, 255, 154, 0.12); color: var(--good); }
+.inv-card-qty.sv-low { background: rgba(255, 184, 0, 0.15); color: var(--warn); }
+.inv-card-qty.sv-warn { background: rgba(255, 71, 87, 0.15); color: var(--danger); }
+
+.inv-card-plats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 2px;
+}
+
+.inv-card-plats .plat-tag {
+  font-size: 9px;
+  padding: 1px 5px;
+}
+
+.inv-card-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.inv-card-actions .act-btn {
+  flex: 1;
+  font-size: 10px;
+  padding: 4px 0;
+  text-align: center;
+}
+
+/* Toggle button active state */
+.inv-view-toggle.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* On mobile, default to card view */
+@media (max-width: 480px) {
+  .inv-cards-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+    padding: 8px;
+  }
+}
