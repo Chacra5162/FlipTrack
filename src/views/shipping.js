@@ -4,7 +4,7 @@
  * Uses shared patterns from sales.js: filters, pagination, selection state.
  */
 
-import { inv, sales, save, refresh, getInvItem, markDirty } from '../data/store.js';
+import { inv, sales, save, refresh, getInvItem, getSaleById, markDirty } from '../data/store.js';
 import { fmt, ds, uid, escHtml, escAttr, localDate} from '../utils/format.js';
 import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
 import { renderPagination } from '../utils/pagination.js';
@@ -12,6 +12,7 @@ import { getMeta, setMeta } from '../data/idb.js';
 import { getPlatforms } from '../features/platforms.js';
 import { estimateShippingRate, suggestPackage, getCarrierOptions } from '../features/shipping-rates.js';
 import { printPackingSlip, printBatchSlips, setSellerInfo } from '../features/packing-slip.js';
+import { getBuyer } from '../views/buyers.js';
 
 // ── STATE ──────────────────────────────────────────────────────────────────────
 
@@ -136,7 +137,8 @@ function _getFilteredSales() {
     if (_shipSearch) {
       const item = getInvItem(s.itemId);
       const itemName = item ? (item.name || '').toLowerCase() : '';
-      const buyerName = (s.buyerName || '').toLowerCase();
+      const buyer = s.buyerId ? getBuyer(s.buyerId) : null;
+      const buyerName = buyer ? buyer.name.toLowerCase() : '';
       if (!itemName.includes(_shipSearch) && !buyerName.includes(_shipSearch)) {
         return false;
       }
@@ -216,22 +218,22 @@ export function shipToggleReturnForm() {
 // ── MARKING SHIPPED ────────────────────────────────────────────────────────────
 
 export function shipMarkShipped(saleId) {
-  const sale = sales.find(s => s.id === saleId);
+  const sale = getSaleById(saleId);
   if (!sale) { toast('Sale not found', true); return; }
 
   const modal = document.getElementById('shipModal');
   if (!modal) return;
 
   modal.dataset.activeSaleId = saleId;
-  document.getElementById('shipCarrier').value = sale.carrier || 'USPS';
-  document.getElementById('shipTracking').value = sale.trackingNumber || '';
+  document.getElementById('shipCarrier').value = sale.carrier || sale.trackingCarrier || 'USPS';
+  document.getElementById('shipTracking').value = sale.trackingNumber || sale.tracking || '';
   document.getElementById('shipCost').value = sale.actualShipCost || '';
   modal.classList.add('on');
   setTimeout(() => trapFocus(modal.id ? '#' + modal.id : '.modal'), 100);
 }
 
 export function shipConfirmShipped(saleId) {
-  const sale = sales.find(s => s.id === saleId);
+  const sale = getSaleById(saleId);
   if (!sale) { toast('Sale not found', true); return; }
 
   const carrier = (document.getElementById('shipCarrier')?.value || '').trim();
@@ -248,6 +250,8 @@ export function shipConfirmShipped(saleId) {
   sale.shippedDate = new Date().toISOString();
   sale.carrier = carrier;
   sale.trackingNumber = tracking;
+  sale.tracking = tracking;
+  sale.trackingCarrier = carrier;
   sale.actualShipCost = cost;
 
   markDirty('sales', saleId);
@@ -279,7 +283,7 @@ export function shipConfirmBatchMark() {
 
   let marked = 0;
   _shipSelection.forEach(saleId => {
-    const sale = sales.find(s => s.id === saleId);
+    const sale = getSaleById(saleId);
     if (sale && !sale.shipped) {
       sale.shipped = true;
       sale.shippedDate = new Date().toISOString();
@@ -307,7 +311,7 @@ export function shipCancelBatchMark() {
 // ── PRINT & EXPORT ─────────────────────────────────────────────────────────────
 
 export function shipPrintSlip(saleId) {
-  const sale = sales.find(s => s.id === saleId);
+  const sale = getSaleById(saleId);
   if (!sale) { toast('Sale not found', true); return; }
   printPackingSlip(saleId, sale);
 }
@@ -315,7 +319,7 @@ export function shipPrintSlip(saleId) {
 export function shipPrintBatchSlips() {
   if (_shipSelection.size === 0) { toast('Select orders first', true); return; }
   const selectedSales = [..._shipSelection]
-    .map(id => sales.find(s => s.id === id))
+    .map(id => getSaleById(id))
     .filter(Boolean);
   printBatchSlips([..._shipSelection], selectedSales);
 }
@@ -489,11 +493,14 @@ export async function renderShippingView() {
                 const item = getInvItem(s.itemId);
                 const pkg = item ? suggestPackage(item) : null;
                 const isSelected = _shipSelection.has(s.id);
+                const buyer = s.buyerId ? getBuyer(s.buyerId) : null;
+                const buyerDisplay = buyer ? escHtml(buyer.name) : '—';
+                const trackNum = s.trackingNumber || s.tracking || null;
                 return `
                   <tr style="border-bottom:1px solid var(--border);background:${isSelected ? 'rgba(87,200,255,0.05)' : 'transparent'}">
                     <td style="padding:10px"><input type="checkbox" ${isSelected ? 'checked' : ''} onchange="shipToggleSel('${s.id}')" /></td>
                     <td style="padding:10px;font-size:11px;color:var(--text)">${escHtml(item ? item.name : '—')}</td>
-                    <td style="padding:10px;font-size:11px;color:var(--text)">${escHtml(s.buyerName || '—')}</td>
+                    <td style="padding:10px;font-size:11px;color:var(--text)">${buyerDisplay}</td>
                     <td style="padding:10px;font-size:10px;color:var(--muted)">${escHtml(s.platform || '—')}</td>
                     <td style="padding:10px;font-size:10px;color:var(--muted)">${ds(s.date)}</td>
                     <td style="padding:10px;font-size:10px;color:var(--muted)">${item && item.weight ? item.weight + (item.dimUnit || 'oz') : '—'}</td>
@@ -506,7 +513,7 @@ export async function renderShippingView() {
                     <td style="padding:10px;text-align:center;font-size:10px;display:flex;gap:6px;justify-content:center">
                       ${!s.shipped ? `<button onclick="shipMarkShipped('${escAttr(s.id)}')" class="act-btn" style="padding:4px 8px">Mark</button>` : ''}
                       <button onclick="shipPrintSlip('${escAttr(s.id)}')" class="act-btn" style="padding:4px 8px">Slip</button>
-                      ${s.trackingNumber ? `<a href="https://tools.usps.com/go/TrackConfirmAction_input?tLabels=${encodeURIComponent(s.trackingNumber)}" target="_blank" class="act-btn" style="padding:4px 8px;text-decoration:none">Track</a>` : ''}
+                      ${trackNum ? `<a href="https://parcelsapp.com/en/tracking/${encodeURIComponent(trackNum)}" target="_blank" class="act-btn" style="padding:4px 8px;text-decoration:none">Track</a>` : ''}
                     </td>
                   </tr>
                 `;
@@ -535,7 +542,8 @@ export async function renderShippingView() {
                   <option value="">— Select Sale —</option>
                   ${sales.slice().reverse().slice(0, 20).map(s => {
                     const item = getInvItem(s.itemId);
-                    return `<option value="${s.id}">${escHtml(item?.name || 'Item')} - ${escHtml(s.buyerName || 'Buyer')}</option>`;
+                    const b = s.buyerId ? getBuyer(s.buyerId) : null;
+                    return `<option value="${s.id}">${escHtml(item?.name || 'Item')} - ${escHtml(b ? b.name : 'Buyer')}</option>`;
                   }).join('')}
                 </select>
               </div>
@@ -585,7 +593,7 @@ export async function renderShippingView() {
                 <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:8px">Recent Returns</div>
                 <div style="display:flex;flex-direction:column;gap:6px">
                   ${recentReturns.map(ret => {
-                    const retSale = sales.find(s => s.id === ret.saleId);
+                    const retSale = getSaleById(ret.saleId);
                     const retItem = retSale ? getInvItem(retSale.itemId) : null;
                     return `
                       <div style="padding:8px;background:rgba(var(--surface-rgb),0.5);border-radius:3px;border-left:3px solid var(--danger);font-size:10px;font-family:'DM Mono',monospace">
