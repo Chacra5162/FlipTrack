@@ -7,6 +7,8 @@ import { inv, sales, getInvItem, getSalesForItem } from '../data/store.js';
 import { fmt, escHtml, escAttr } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { sendNotification } from '../features/push-notifications.js';
+import { getDaysUntilExpiry } from '../features/crosslist.js';
+import { getPlatforms } from '../features/platforms.js';
 
 const MAX_NOTIFICATIONS = 50;
 const STORAGE_KEY = 'ft_notifications';
@@ -194,29 +196,37 @@ export function generateStockAlerts() {
       `${reprice30.length} item${reprice30.length > 1 ? 's' : ''} listed 30+ days without a sale — lower price by 10-15%?`);
   }
 
-  // ── SMART NOTIFICATION: Expiring listings (eBay 30-day GTC) ───────────
-  const expiring = inv.filter(i => {
-    if ((i.qty || 0) <= 0) return false;
-    const pld = i.platformListingDates;
-    if (!pld) return false;
-    return Object.entries(pld).some(([plat, dateStr]) => {
-      const listed = new Date(dateStr).getTime();
-      const daysSinceListed = Math.floor((now - listed) / 86400000);
-      return daysSinceListed >= 27 && daysSinceListed <= 30; // Expiring in 0-3 days
-    });
-  });
-  if (expiring.length) {
-    const names = expiring.slice(0, 3).map(i => i.name || i.sku || 'Untitled').join(', ');
-    const more = expiring.length > 3 ? ` +${expiring.length - 3} more` : '';
-    if (expiring.length === 1) {
-      addNotification('info', 'Listing Expiring Soon',
-        `${names} is expiring in the next 3 days — relist or renew`,
-        expiring[0].id);
-    } else {
-      addNotification('info', 'Listings Expiring Soon',
-        `${names}${more} — ${expiring.length} listings expiring in the next 3 days`,
-        null,
-        { view: 'crosslist', label: 'View in Crosslist' });
+  // ── SMART NOTIFICATION: Expiring listings (uses actual platform rules) ──
+  // Deduplicate: only notify once per day for expiring items
+  const lastExpCheck = parseInt(localStorage.getItem('ft_notif_exp_check') || '0');
+  if (now - lastExpCheck >= 86400000) { // Once per day
+    localStorage.setItem('ft_notif_exp_check', now.toString());
+    const expiring = [];
+    for (const item of inv) {
+      if ((item.qty || 0) <= 0) continue;
+      const plats = getPlatforms(item);
+      for (const p of plats) {
+        const daysLeft = getDaysUntilExpiry(p, item.platformListingDates?.[p]);
+        if (daysLeft !== null && daysLeft >= 0 && daysLeft <= 3) {
+          expiring.push({ item, platform: p, daysLeft });
+        }
+      }
+    }
+    if (expiring.length) {
+      const names = expiring.slice(0, 3).map(e =>
+        `${e.item.name || e.item.sku || 'Untitled'} (${e.platform}, ${e.daysLeft}d)`
+      ).join(', ');
+      const more = expiring.length > 3 ? ` +${expiring.length - 3} more` : '';
+      if (expiring.length === 1) {
+        addNotification('info', 'Listing Expiring Soon',
+          `${names} — relist or renew`,
+          expiring[0].item.id);
+      } else {
+        addNotification('info', 'Listings Expiring Soon',
+          `${names}${more}`,
+          null,
+          { view: 'crosslist', label: 'View in Crosslist' });
+      }
     }
   }
 
