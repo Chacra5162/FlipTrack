@@ -307,15 +307,15 @@ export function toggleInvViewMode() {
 }
 
 function _syncViewModeUI() {
-  const tableWrap = document.querySelector('#invBody')?.closest('.inv-table')?.parentElement;
+  const table = document.querySelector('#invBody')?.closest('.inv-table');
   const cardContainer = document.getElementById('invCards');
   const toggleBtn = document.getElementById('invViewToggle');
   if (_viewMode === 'card') {
-    if (tableWrap) tableWrap.style.display = 'none';
+    if (table) table.style.display = 'none';
     if (cardContainer) cardContainer.style.display = '';
     if (toggleBtn) toggleBtn.classList.add('active');
   } else {
-    if (tableWrap) tableWrap.style.display = '';
+    if (table) table.style.display = '';
     if (cardContainer) cardContainer.style.display = 'none';
     if (toggleBtn) toggleBtn.classList.remove('active');
   }
