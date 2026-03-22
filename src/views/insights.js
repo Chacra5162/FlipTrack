@@ -747,13 +747,16 @@ export function renderInsights() {
 
   // ── Days-to-Sale Distribution ────────────────────────────────────────────
   const dtsSection = (() => {
-    const sold = itemStats.filter(s => s.unitsSold > 0 && s.item.added);
+    try {
+    const sold = itemStats.filter(s => s.unitsSold > 0 && s.item.added && s.itemSales.length > 0);
     if (sold.length < 3) return '';
     // Calculate days from added to first sale for each item
     const dtsData = sold.map(s => {
-      const firstSale = Math.min(...s.itemSales.map(sl => new Date(sl.date).getTime()));
+      const saleDates = s.itemSales.map(sl => new Date(sl.date).getTime()).filter(t => !isNaN(t));
+      if (!saleDates.length) return 0;
+      const firstSale = Math.min(...saleDates);
       const added = new Date(s.item.added).getTime();
-      return Math.max(0, Math.floor((firstSale - added) / msDay));
+      return isNaN(added) ? 0 : Math.max(0, Math.floor((firstSale - added) / msDay));
     });
     // Build histogram buckets
     const buckets = [
@@ -833,10 +836,12 @@ export function renderInsights() {
         </div>
       ` : ''}
     </div>`;
+    } catch (e) { console.warn('FlipTrack: days-to-sale error:', e.message); return ''; }
   })();
 
   // ── Fee Drag Analysis ──────────────────────────────────────────────────────
   const feeDragSection = (() => {
+    try {
     if (sales.length < 3) return '';
     // Aggregate fees + shipping cost by platform
     const platFees = {};
@@ -919,6 +924,7 @@ export function renderInsights() {
         </div>`;
       }).join('')}
     </div>`;
+    } catch (e) { console.warn('FlipTrack: fee drag error:', e.message); return ''; }
   })();
 
   // ── Assemble ──────────────────────────────────────────────────────────────
