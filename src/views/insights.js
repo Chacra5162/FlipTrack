@@ -749,7 +749,7 @@ export function renderInsights() {
   const dtsSection = (() => {
     try {
     const sold = itemStats.filter(s => s.unitsSold > 0 && s.item.added && s.itemSales.length > 0);
-    if (sold.length < 3) return '';
+    if (!sold.length) return '';
     // Calculate days from added to first sale for each item
     const dtsData = sold.map(s => {
       const saleDates = s.itemSales.map(sl => new Date(sl.date).getTime()).filter(t => !isNaN(t));
@@ -842,7 +842,7 @@ export function renderInsights() {
   // ── Fee Drag Analysis ──────────────────────────────────────────────────────
   const feeDragSection = (() => {
     try {
-    if (sales.length < 3) return '';
+    if (!sales.length) return '';
     // Aggregate fees + shipping cost by platform
     const platFees = {};
     for (const s of sales) {
@@ -966,12 +966,6 @@ export function renderInsights() {
           ${pricingSection}
           ${expSection}
         </div>
-      </div>
-      <div style="background:var(--danger);color:white;padding:10px;margin:12px 0;font-weight:bold;font-size:11px">
-        DEBUG: inv=${inv.length} sales=${sales.length} |
-        itemStats=${itemStats.length} |
-        soldWithAdded=${itemStats.filter(s => s.unitsSold > 0 && s.item.added && s.itemSales.length > 0).length} |
-        dts=${dtsSection.length} fee=${feeDragSection.length}
       </div>
       ${dtsSection}
       ${feeDragSection}
