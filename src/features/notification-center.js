@@ -26,13 +26,14 @@ function persist() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(_notifications.slice(0, MAX_NOTIFICATIONS)));
 }
 
-export function addNotification(type, title, message, actionId) {
+export function addNotification(type, title, message, actionId, action) {
   _notifications.unshift({
     id: Date.now().toString(36),
     type, // 'stock' | 'sync' | 'price' | 'sale' | 'info'
     title,
     message,
     actionId: actionId || null,
+    action: action || null, // { view, label } for navigation actions
     time: new Date().toISOString(),
     read: false,
   });
@@ -100,16 +101,24 @@ function renderDropdown() {
     return;
   }
 
-  list.innerHTML = _notifications.slice(0, 20).map(n => `
-    <div class="notif-item${n.read ? '' : ' unread'}" data-nid="${n.id}"${n.actionId ? ` onclick="openDrawer('${escAttr(n.actionId)}')"` : ''}>
+  list.innerHTML = _notifications.slice(0, 20).map(n => {
+    const clickable = n.actionId || n.action;
+    const onclick = n.actionId
+      ? `openDrawer('${escAttr(n.actionId)}')`
+      : n.action?.view
+        ? `switchView('${escAttr(n.action.view)}');closeNotifCenter()`
+        : '';
+    return `
+    <div class="notif-item${n.read ? '' : ' unread'}" data-nid="${n.id}"${onclick ? ` onclick="${onclick}" style="cursor:pointer"` : ''}>
       <span class="notif-icon">${iconFor(n.type)}</span>
       <div class="notif-body">
         <div class="notif-title">${escHtml(n.title)}</div>
         <div class="notif-msg">${escHtml(n.message)}</div>
+        ${n.action?.label ? `<div style="font-size:9px;color:var(--accent);margin-top:3px;font-weight:600">${escHtml(n.action.label)} &rarr;</div>` : ''}
       </div>
       <span class="notif-time">${timeAgo(n.time)}</span>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 export function toggleNotifCenter() {
@@ -146,13 +155,25 @@ export function generateStockAlerts() {
   });
 
   if (outOfStock.length) {
-    addNotification('stock', 'Out of Stock', `${outOfStock.length} item${outOfStock.length > 1 ? 's' : ''} need restocking`);
+    const osNames = outOfStock.slice(0, 3).map(i => i.name || 'Untitled').join(', ');
+    addNotification('stock', 'Out of Stock',
+      `${osNames}${outOfStock.length > 3 ? ` +${outOfStock.length - 3} more` : ''} — need restocking`,
+      outOfStock.length === 1 ? outOfStock[0].id : null,
+      outOfStock.length > 1 ? { view: 'inventory', label: 'View Inventory' } : null);
   }
   if (lowStock.length) {
-    addNotification('stock', 'Low Stock Warning', `${lowStock.length} item${lowStock.length > 1 ? 's are' : ' is'} running low`);
+    const lsNames = lowStock.slice(0, 3).map(i => i.name || 'Untitled').join(', ');
+    addNotification('stock', 'Low Stock Warning',
+      `${lsNames}${lowStock.length > 3 ? ` +${lowStock.length - 3} more` : ''} — running low`,
+      lowStock.length === 1 ? lowStock[0].id : null,
+      lowStock.length > 1 ? { view: 'inventory', label: 'View Inventory' } : null);
   }
   if (stale.length) {
-    addNotification('price', 'Stale Inventory', `${stale.length} item${stale.length > 1 ? 's' : ''} listed 60+ days with no sales — consider repricing`);
+    const stNames = stale.slice(0, 3).map(i => i.name || 'Untitled').join(', ');
+    addNotification('price', 'Stale Inventory',
+      `${stNames}${stale.length > 3 ? ` +${stale.length - 3} more` : ''} — 60+ days, no sales`,
+      stale.length === 1 ? stale[0].id : null,
+      stale.length > 1 ? { view: 'inventory', label: 'View Inventory' } : null);
   }
 
   // ── SMART NOTIFICATION: Repricing suggestions ─────────────────────────
@@ -178,8 +199,18 @@ export function generateStockAlerts() {
     });
   });
   if (expiring.length) {
-    addNotification('info', 'Listings Expiring Soon',
-      `${expiring.length} listing${expiring.length > 1 ? 's' : ''} expiring in the next 3 days — relist or renew`);
+    const names = expiring.slice(0, 3).map(i => i.name || i.sku || 'Untitled').join(', ');
+    const more = expiring.length > 3 ? ` +${expiring.length - 3} more` : '';
+    if (expiring.length === 1) {
+      addNotification('info', 'Listing Expiring Soon',
+        `${names} is expiring in the next 3 days — relist or renew`,
+        expiring[0].id);
+    } else {
+      addNotification('info', 'Listings Expiring Soon',
+        `${names}${more} — ${expiring.length} listings expiring in the next 3 days`,
+        null,
+        { view: 'crosslist', label: 'View in Crosslist' });
+    }
   }
 
   // ── SMART NOTIFICATION: High-margin items sitting unlisted ────────────
@@ -191,8 +222,18 @@ export function generateStockAlerts() {
     return m >= 0.5 && (i.price || 0) >= 20;
   });
   if (unlistedHighMargin.length) {
-    addNotification('info', 'Unlisted High-Margin Items',
-      `${unlistedHighMargin.length} item${unlistedHighMargin.length > 1 ? 's have' : ' has'} 50%+ margin but ${unlistedHighMargin.length > 1 ? 'aren\'t' : 'isn\'t'} listed on any platform`);
+    const uNames = unlistedHighMargin.slice(0, 3).map(i => i.name || i.sku || 'Untitled').join(', ');
+    const uMore = unlistedHighMargin.length > 3 ? ` +${unlistedHighMargin.length - 3} more` : '';
+    if (unlistedHighMargin.length === 1) {
+      addNotification('info', 'Unlisted High-Margin Item',
+        `${uNames} has 50%+ margin but isn't listed on any platform`,
+        unlistedHighMargin[0].id);
+    } else {
+      addNotification('info', 'Unlisted High-Margin Items',
+        `${uNames}${uMore} — ${unlistedHighMargin.length} items with 50%+ margin aren't listed`,
+        null,
+        { view: 'crosslist', label: 'View in Crosslist' });
+    }
   }
 }
 
