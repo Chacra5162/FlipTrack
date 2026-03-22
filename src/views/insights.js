@@ -967,7 +967,12 @@ export function renderInsights() {
           ${expSection}
         </div>
       </div>
-      <div style="background:var(--danger);color:white;padding:10px;margin:12px 0;font-weight:bold">DEBUG: dtsSection length=${dtsSection.length}, feeDragSection length=${feeDragSection.length}</div>
+      <div style="background:var(--danger);color:white;padding:10px;margin:12px 0;font-weight:bold;font-size:11px">
+        DEBUG: inv=${inv.length} sales=${sales.length} |
+        itemStats=${itemStats.length} |
+        soldWithAdded=${itemStats.filter(s => s.unitsSold > 0 && s.item.added && s.itemSales.length > 0).length} |
+        dts=${dtsSection.length} fee=${feeDragSection.length}
+      </div>
       ${dtsSection}
       ${feeDragSection}
       <div style="background:var(--surface2);border:1px solid var(--border);padding:16px 18px;margin-top:12px" id="seasonalSection">
