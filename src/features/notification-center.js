@@ -102,11 +102,18 @@ function renderDropdown() {
   }
 
   list.innerHTML = _notifications.slice(0, 20).map(n => {
-    const clickable = n.actionId || n.action;
+    // Infer action for legacy notifications missing action/actionId
+    let inferredAction = n.action || null;
+    if (!n.actionId && !n.action) {
+      if (/expir|relist|renew/i.test(n.message)) inferredAction = { view: 'crosslist', label: 'View in Crosslist' };
+      else if (/stock|restock|running low/i.test(n.message)) inferredAction = { view: 'inventory', label: 'View Inventory' };
+      else if (/stale|reprice|lower price/i.test(n.message)) inferredAction = { view: 'inventory', label: 'View Inventory' };
+      else if (/unlisted|not listed/i.test(n.message)) inferredAction = { view: 'crosslist', label: 'View in Crosslist' };
+    }
     const onclick = n.actionId
       ? `openDrawer('${escAttr(n.actionId)}')`
-      : n.action?.view
-        ? `switchView('${escAttr(n.action.view)}');closeNotifCenter()`
+      : inferredAction?.view
+        ? `switchView('${escAttr(inferredAction.view)}');closeNotifCenter()`
         : '';
     return `
     <div class="notif-item${n.read ? '' : ' unread'}" data-nid="${n.id}"${onclick ? ` onclick="${onclick}" style="cursor:pointer"` : ''}>
@@ -114,7 +121,7 @@ function renderDropdown() {
       <div class="notif-body">
         <div class="notif-title">${escHtml(n.title)}</div>
         <div class="notif-msg">${escHtml(n.message)}</div>
-        ${n.action?.label ? `<div style="font-size:9px;color:var(--accent);margin-top:3px;font-weight:600">${escHtml(n.action.label)} &rarr;</div>` : ''}
+        ${inferredAction?.label ? `<div style="font-size:9px;color:var(--accent);margin-top:3px;font-weight:600">${escHtml(inferredAction.label)} &rarr;</div>` : ''}
       </div>
       <span class="notif-time">${timeAgo(n.time)}</span>
     </div>`;
