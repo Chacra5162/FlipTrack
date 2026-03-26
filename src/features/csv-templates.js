@@ -178,8 +178,8 @@ function escCSV(val) {
 
 function downloadCSV(filename, columns, rows) {
   const header = columns.map(escCSV).join(',');
-  const body = rows.map(row => columns.map(col => escCSV(row[col] ?? '')).join(',')).join('\n');
-  const csv = header + '\n' + body;
+  const body = rows.map(row => columns.map(col => escCSV(row[col] ?? '')).join(',')).join('\r\n');
+  const csv = header + '\r\n' + body;
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
