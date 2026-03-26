@@ -168,7 +168,7 @@ export function renderListingScores() {
           <div class="ls-dist-row">
             <span class="ls-dist-grade" style="color:${gradeColors[g]}">${g}</span>
             <div class="ls-dist-bar-wrap">
-              <div class="ls-dist-bar" style="width:${d.total > 0 ? Math.max(4, (count / d.total) * 100) : 0}%;background:${gradeColors[g]}"></div>
+              <div class="ls-dist-bar" style="width:${d.total > 0 && count > 0 ? Math.max(4, (count / d.total) * 100) : 0}%;background:${gradeColors[g]}"></div>
             </div>
             <span class="ls-dist-count">${count}</span>
           </div>
