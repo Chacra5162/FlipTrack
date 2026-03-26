@@ -466,6 +466,7 @@ export async function saveDrawer(){
   }
   // Log field modifications to item history (compares against snapshot taken on drawer open)
   logItemChanges(item.id, _drawerSnapshot);
+  const _drawerSnapshotForEbay = _drawerSnapshot;
   _drawerSnapshot = null;
   // Persist source & brand for future autocomplete
   saveAutocompleteEntry(item.source, item.brand).catch(() => {});
@@ -481,7 +482,14 @@ export async function saveDrawer(){
       toast('Etsy price sync failed — will retry next sync', true);
     });
   }
-  if (item.ebayItemId && isEBayConnected()) {
+  // Only sync to eBay if an eBay-relevant field actually changed
+  const _ebayFields = ['name','price','condition','brand','color','size','material','mpn','model','style','pattern','sizeType','department','notes','upc'];
+  const ebayChanged = _drawerSnapshotForEbay && _ebayFields.some(f => {
+    const oldVal = _drawerSnapshotForEbay[f] ?? '';
+    const newVal = item[f] ?? '';
+    return String(oldVal) !== String(newVal);
+  });
+  if (item.ebayItemId && isEBayConnected() && ebayChanged) {
     updateEBayListing(item.id).then(() => {
       toast('eBay listing updated ✓');
     }).catch(e => {
