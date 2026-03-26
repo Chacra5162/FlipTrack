@@ -88,6 +88,23 @@ const TEMPLATES = {
     }),
   },
 
+  whatnot: {
+    name: 'Whatnot',
+    ext: 'csv',
+    columns: ['Category', 'Sub Category', 'Title', 'Description', 'Quantity', 'Type', 'Price', 'Shipping Profile', 'Offerable'],
+    mapper: (item) => ({
+      'Category': item.category || '',
+      'Sub Category': item.subcategory || '',
+      'Title': (item.name || '').slice(0, 80),
+      'Description': item.notes || item.name || '',
+      'Quantity': item.qty || 1,
+      'Type': 'Buy It Now',
+      'Price': (item.price || 0).toFixed(2),
+      'Shipping Profile': '',
+      'Offerable': 'TRUE',
+    }),
+  },
+
   generic: {
     name: 'FlipTrack Full Export',
     ext: 'csv',
@@ -357,6 +374,7 @@ export function renderCSVExportPanel() {
     { key: 'poshmark', label: 'Poshmark', icon: '👗' },
     { key: 'mercari', label: 'Mercari', icon: '📦' },
     { key: 'depop', label: 'Depop', icon: '🛍' },
+    { key: 'whatnot', label: 'Whatnot', icon: '🎬' },
   ];
 
   return `<div class="csv-export-panel">
