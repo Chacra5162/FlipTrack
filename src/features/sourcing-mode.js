@@ -7,6 +7,8 @@ import { inv, save, refresh, markDirty } from '../data/store.js';
 import { uid, fmt, pct, escHtml, localDate } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { computeSourceScore } from './source-score.js';
+import { setPendingAddImages } from '../modals/add-item.js';
+import { refreshImgSlots } from './images.js';
 
 let _sourcingOpen = false;
 let _aiResult = null;
@@ -150,29 +152,74 @@ function _renderResults() {
 
 export function srcAddToInventory() {
   if (!_aiResult) { toast('No analysis result', true); return; }
-  const cost = parseFloat(document.getElementById('srcCostInput')?.value) || 0;
-  const price = _compsResult?.suggestedPrice || _aiResult.suggestedPrice || 0;
-  const name = _aiResult.name || _aiResult.title || 'Sourced Item';
 
-  const newId = uid();
-  inv.push({
-    id: newId,
-    name,
-    sku: '',
-    category: _aiResult.category || '',
-    cost,
-    price,
-    qty: 1,
-    source: 'Sourcing Mode',
-    images: _capturedImage ? [_capturedImage] : [],
-    image: _capturedImage || null,
-    added: new Date().toISOString(),
-  });
-  markDirty('inv', newId);
-  save();
-  refresh();
-  toast(`Added: ${name}`);
+  // Capture all data before closeSourcingMode clears it
+  const r = _aiResult;
+  const comps = _compsResult;
+  const image = _capturedImage;
+  const cost = parseFloat(document.getElementById('srcCostInput')?.value) || 0;
+  const price = comps?.suggestedPrice || r.suggestedPrice || 0;
+
   closeSourcingMode();
+
+  // Switch to inventory view and open Add modal
+  if (window.switchView) window.switchView('inventory', null);
+  if (window.openAddModal) window.openAddModal();
+
+  // Pre-fill form fields from sourcing analysis
+  setTimeout(() => {
+    try {
+      const _set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+
+      _set('f_name', r.name || r.title);
+      _set('f_cost', cost || '');
+      _set('f_price', price || '');
+      _set('f_brand', r.brand);
+      _set('f_source', 'Sourcing Mode');
+
+      // Category + subcategory
+      const catEl = document.getElementById('f_cat');
+      if (catEl && r.category) {
+        catEl.value = r.category;
+        if (window.syncAddSubcat) window.syncAddSubcat();
+      }
+      _set('f_subcat_txt', r.subcategory);
+
+      // Condition
+      if (r.condition) {
+        const condEl = document.getElementById('f_condition');
+        if (condEl) condEl.value = r.condition;
+        if (window.loadCondTag) window.loadCondTag('f', r.condition);
+      }
+
+      // Detail fields
+      _set('f_color', r.color);
+      _set('f_size', r.size);
+      _set('f_material', r.material);
+      _set('f_model', r.modelNumber || r.model);
+      _set('f_upc', r.upc);
+
+      // Build notes from extra AI details
+      const notesParts = [];
+      if (r.details) notesParts.push(r.details);
+      if (r.year) notesParts.push('Year: ' + r.year);
+      if (notesParts.length) _set('f_notes', notesParts.join(' | '));
+
+      // Pass captured image to the add form
+      if (image) {
+        setPendingAddImages([image]);
+        refreshImgSlots('f', [image]);
+      }
+
+      if (window.prevProfit) window.prevProfit();
+
+      const filled = [r.name, r.brand, r.category, cost, price, r.condition].filter(Boolean).length;
+      toast(`Pre-filled ${filled} fields from scan`);
+    } catch (err) {
+      console.error('FlipTrack: srcAddToInventory prefill error:', err);
+      toast('Opened add form — some fields may need manual entry');
+    }
+  }, 200);
 }
 
 // ── UI RENDERING ──────────────────────────────────────────────────────────
