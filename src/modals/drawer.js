@@ -21,7 +21,7 @@ import {
 import { softDeleteItem } from '../data/store.js';
 import { getDaysUntilExpiry, STATUS_LABELS, STATUS_COLORS, LISTING_STATUSES, markPlatformStatus, relistItem, setListingDate } from '../features/crosslist.js';
 import { generateListingLink, copyListingText } from '../features/deep-links.js';
-import { pushDeleteToCloud } from '../data/sync.js';
+import { pushDeleteToCloud, autoSync } from '../data/sync.js';
 import { logPriceChange, snapshotItem, logItemChanges, renderItemTimeline } from '../features/price-history.js';
 
 // Stores the item snapshot taken when drawer opens, for diff on save
