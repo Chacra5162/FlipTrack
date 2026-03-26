@@ -267,7 +267,7 @@ import { getInventoryValueData, renderInventoryValueDashboard } from './features
 import { initDemoTrigger, loadDemoData, clearDemoData } from './features/demo-data.js';
 import { animateStatCounters } from './features/animated-counters.js';
 import { mountProfitHeatmap } from './features/profit-heatmap.js';
-import { exportPlatformCSV, exportSalesCSV, exportTaxCSV, exportShowPrepCSV, exportShowResultsCSV, exportAllShowsCSV, renderCSVExportPanel } from './features/csv-templates.js';
+import { exportPlatformCSV, exportSalesCSV, exportTaxCSV, exportWhatnotCSV, exportShowPrepCSV, exportShowResultsCSV, exportAllShowsCSV, renderCSVExportPanel } from './features/csv-templates.js';
 import { toggleNotifications, startStockAlertChecks, stopStockAlertChecks, getNotifStatus, sendNotification, subscribeToPush, unsubscribeFromPush, togglePush } from './features/push-notifications.js';
 import { startTour, endTour, maybeStartTour } from './features/onboarding-tour.js';
 import { renderKPIGoals, openKPIGoalEditor, closeKPIGoalEditor, saveKPIGoals } from './features/kpi-goals.js';
@@ -674,7 +674,7 @@ Object.assign(window, {
 // Pre-Demo & Post-Launch Features
 Object.assign(window, {
   loadDemoData, clearDemoData,
-  exportPlatformCSV, exportSalesCSV, exportTaxCSV,
+  exportPlatformCSV, exportSalesCSV, exportTaxCSV, exportWhatnotCSV,
   toggleNotifications, subscribeToPush, unsubscribeFromPush, togglePush,
   // Stakeholder features
   startTour, endTour,

@@ -214,6 +214,40 @@ export function exportPlatformCSV(templateKey, filterPlatform) {
 }
 
 /**
+ * Export inventory as Whatnot-compatible CSV matching their official template exactly.
+ */
+export function exportWhatnotCSV() {
+  let items = [...inv].filter(i => (i.qty || 0) > 0);
+  if (!items.length) { toast('No items to export', true); return; }
+
+  const tpl = TEMPLATES.whatnot;
+  const header = tpl.columns.join(',');
+  const lines = [header];
+  for (const item of items) {
+    const row = tpl.mapper(item);
+    const vals = tpl.columns.map(col => {
+      const v = String(row[col] ?? '');
+      if (v.includes(',') || v.includes('"') || v.includes('\n') || v.includes('\r')) {
+        return '"' + v.replace(/"/g, '""') + '"';
+      }
+      return v;
+    });
+    lines.push(vals.join(','));
+  }
+  const csv = lines.join('\r\n') + '\r\n';
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Whatnot — CSV Template - Template.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast(`Exported ${items.length} items — Whatnot format`);
+}
+
+/**
  * Export sales report
  */
 export function exportSalesCSV() {
@@ -386,7 +420,6 @@ export function renderCSVExportPanel() {
     { key: 'poshmark', label: 'Poshmark', icon: '👗' },
     { key: 'mercari', label: 'Mercari', icon: '📦' },
     { key: 'depop', label: 'Depop', icon: '🛍' },
-    { key: 'whatnot', label: 'Whatnot', icon: '🎬' },
   ];
 
   return `<div class="csv-export-panel">
@@ -395,6 +428,9 @@ export function renderCSVExportPanel() {
       ${platforms.map(p => `<button class="csv-btn" onclick="exportPlatformCSV('${p.key}')">
         <span>${p.icon}</span> ${p.label}
       </button>`).join('')}
+      <button class="csv-btn" onclick="exportWhatnotCSV()">
+        <span>🎬</span> Whatnot
+      </button>
     </div>
     <div class="csv-export-divider"></div>
     <div class="csv-export-grid">
