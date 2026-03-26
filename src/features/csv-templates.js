@@ -91,7 +91,7 @@ const TEMPLATES = {
   whatnot: {
     name: 'Whatnot',
     ext: 'csv',
-    columns: ['Category', 'Sub Category', 'Title', 'Description', 'Quantity', 'Type', 'Price', 'Shipping Profile', 'Offerable'],
+    columns: ['Category', 'Sub Category', 'Title', 'Description', 'Quantity', 'Type', 'Price', 'Shipping Profile', 'Offerable', 'Hazmat', 'Condition', 'Cost Per Item', 'SKU', 'Image URL 1', 'Image URL 2', 'Image URL 3', 'Image URL 4', 'Image URL 5', 'Image URL 6', 'Image URL 7', 'Image URL 8'],
     mapper: (item) => ({
       'Category': item.category || '',
       'Sub Category': item.subcategory || '',
@@ -102,6 +102,18 @@ const TEMPLATES = {
       'Price': (item.price || 0).toFixed(2),
       'Shipping Profile': '',
       'Offerable': 'TRUE',
+      'Hazmat': 'FALSE',
+      'Condition': item.condition || '',
+      'Cost Per Item': (item.cost || 0).toFixed(2),
+      'SKU': item.sku || '',
+      'Image URL 1': '',
+      'Image URL 2': '',
+      'Image URL 3': '',
+      'Image URL 4': '',
+      'Image URL 5': '',
+      'Image URL 6': '',
+      'Image URL 7': '',
+      'Image URL 8': '',
     }),
   },
 
