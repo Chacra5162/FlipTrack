@@ -99,7 +99,7 @@ const TEMPLATES = {
       'Description': item.notes || item.name || '',
       'Quantity': item.qty || 1,
       'Type': 'Buy It Now',
-      'Price': (item.price || 0).toFixed(2),
+      'Price': Math.ceil(item.price || 0),
       'Shipping Profile': '',
       'Offerable': 'TRUE',
       'Hazmat': 'FALSE',
@@ -251,51 +251,57 @@ const WHATNOT_CAT_MAP = {
   'rocks & crystals': 'Rocks & Crystals',
 };
 
-/** Map FlipTrack subcategories to valid Whatnot subcategories */
+/**
+ * Map FlipTrack subcategories → { cat, sub } for Whatnot.
+ * Some subcategories force a category override.
+ */
 const WHATNOT_SUBCAT_MAP = {
-  'engine parts': 'Other',  // Car Parts doesn't have Engine Parts
-  'educational/science kits': 'Other Toys',
-  'educational/math manipulatives': 'Other Toys',
-  'mystery toy': 'Other Toys',
-  'storage & organization': 'Other Home & Garden',
-  'stationery': 'Other Craft Supplies',
-  'keychains': 'Beads, Pens & Keychains',
-  'keychain': 'Beads, Pens & Keychains',
-  'barware': 'Other',
-  'tablet accessories': 'Other Electronics',
-  'dvd': 'DVDs',
-  'dvds': 'DVDs',
-  'travel accessories': 'Other Accessories',
-  'marine electronics': 'Other Outdoors Gear',
-  'smart home accessories': 'Other Home & Garden',
-  'men': 'Men\'s Modern',
-  'mens': 'Men\'s Modern',
-  "men's": 'Men\'s Modern',
-  'woman': 'Women\'s Contemporary',
-  'women': 'Women\'s Contemporary',
-  'womens': 'Women\'s Contemporary',
-  "women's": 'Women\'s Contemporary',
+  'engine parts': { sub: '' },
+  'educational/science kits': { sub: 'Other Toys' },
+  'educational/math manipulatives': { sub: 'Other Toys' },
+  'mystery toy': { sub: 'Other Toys' },
+  'storage & organization': { sub: 'Other Home & Garden' },
+  'stationery': { sub: 'Other Craft Supplies' },
+  'keychains': { cat: 'Arts & Handmade', sub: 'Beads, Pens & Keychains' },
+  'keychain': { cat: 'Arts & Handmade', sub: 'Beads, Pens & Keychains' },
+  'barware': { cat: 'and Whatnot', sub: 'Breweriana' },
+  'tablet accessories': { sub: 'Other Electronics' },
+  'dvd': { cat: 'Movies', sub: 'DVDs' },
+  'dvds': { cat: 'Movies', sub: 'DVDs' },
+  'travel accessories': { sub: 'Other Accessories' },
+  'marine electronics': { cat: 'Outdoor Gear', sub: 'Other Outdoors Gear' },
+  'smart home accessories': { sub: 'Other Home & Garden' },
+  'men': { cat: 'Men\'s Fashion', sub: 'Men\'s Modern' },
+  'mens': { cat: 'Men\'s Fashion', sub: 'Men\'s Modern' },
+  "men's": { cat: 'Men\'s Fashion', sub: 'Men\'s Modern' },
+  'woman': { cat: 'Women\'s Fashion', sub: 'Women\'s Contemporary' },
+  'women': { cat: 'Women\'s Fashion', sub: 'Women\'s Contemporary' },
+  'womens': { cat: 'Women\'s Fashion', sub: 'Women\'s Contemporary' },
+  "women's": { cat: 'Women\'s Fashion', sub: 'Women\'s Contemporary' },
 };
 
-function mapWhatnotCategory(cat, sub) {
-  if (!cat) return '';
-  // Clothing splits into Men's or Women's Fashion based on subcategory
-  if (cat.toLowerCase() === 'clothing' && sub) {
-    const s = sub.toLowerCase();
-    if (/women|woman/.test(s)) return 'Women\'s Fashion';
-    if (/men|man/.test(s)) return 'Men\'s Fashion';
-  }
-  return WHATNOT_CAT_MAP[cat.toLowerCase()] || cat;
-}
+function mapWhatnotCatSub(cat, sub) {
+  let mappedCat = cat ? (WHATNOT_CAT_MAP[cat.toLowerCase()] || cat) : '';
+  let mappedSub = sub || '';
 
-function mapWhatnotSubcategory(sub, mappedCat) {
-  if (!sub) return '';
-  const mapped = WHATNOT_SUBCAT_MAP[sub.toLowerCase()];
-  if (mapped) return mapped;
-  // Fix gender-based subcats based on mapped category
-  if (mappedCat === 'Women\'s Fashion' && /^woman|women/i.test(sub)) return 'Women\'s Contemporary';
-  if (mappedCat === 'Men\'s Fashion' && /^man|men/i.test(sub)) return 'Men\'s Modern';
-  return sub;
+  // Clothing splits into Men's or Women's Fashion based on subcategory
+  if (cat && cat.toLowerCase() === 'clothing' && sub) {
+    const s = sub.toLowerCase();
+    if (/women|woman/.test(s)) { mappedCat = 'Women\'s Fashion'; mappedSub = 'Women\'s Contemporary'; }
+    else if (/men|man/.test(s)) { mappedCat = 'Men\'s Fashion'; mappedSub = 'Men\'s Modern'; }
+  }
+
+  // Check subcategory overrides
+  if (sub) {
+    const key = sub.toLowerCase().trim();
+    const override = WHATNOT_SUBCAT_MAP[key];
+    if (override) {
+      if (override.cat) mappedCat = override.cat;
+      mappedSub = override.sub;
+    }
+  }
+
+  return { cat: mappedCat, sub: mappedSub };
 }
 
 /**
@@ -309,9 +315,8 @@ export function exportWhatnotCSV() {
   const header = tpl.columns.join(',');
   const lines = [header];
   for (const item of items) {
-    const mappedCat = mapWhatnotCategory(item.category, item.subcategory);
-    const mappedSub = mapWhatnotSubcategory(item.subcategory, mappedCat);
-    const row = tpl.mapper({ ...item, category: mappedCat, subcategory: mappedSub });
+    const mapped = mapWhatnotCatSub(item.category, item.subcategory);
+    const row = tpl.mapper({ ...item, category: mapped.cat, subcategory: mapped.sub });
     const vals = tpl.columns.map(col => {
       const v = String(row[col] ?? '');
       if (v.includes(',') || v.includes('"') || v.includes('\n') || v.includes('\r')) {
