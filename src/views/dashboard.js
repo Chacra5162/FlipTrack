@@ -326,7 +326,7 @@ export function renderDash() {
   const tbody=document.getElementById('dashBody');
   if(!items.length){tbody.innerHTML='<tr><td colspan="4" style="padding:20px;color:var(--muted);font-size:12px;text-align:center">No items yet.</td></tr>';return;}
   tbody.innerHTML=items.map(item=>{
-    const {m}=calc(item);const c=sc(item.qty,item.lowAlert,item.bulk);
+    const {m}=calc(item);const c=sc(item.qty,item.lowAlert,item.bulk,item.lowAlertEnabled);
     return `<tr onclick="openDrawer('${escAttr(item.id)}')" style="cursor:pointer">
       <td><div class="item-name">${escHtml(item.name)}</div><div class="item-meta"><span class="item-sku">${escHtml(item.sku||'—')}</span>${item.upc?`<span class="upc-tag">${escHtml(item.upc)}</span>`:''}${item.category?`<span class="cat-tag">${escHtml(item.category)}</span>`:''} ${item.subcategory?`<span class="cat-tag" style="background:rgba(87,200,255,0.1);color:var(--accent)">${escHtml(item.subcategory)}</span>`:''} ${item.subtype?`<span class="cat-tag" style="background:rgba(123,97,255,0.15);color:var(--accent3)">${escHtml(item.subtype)}</span>`:''}</div></td>
       <td>${renderPlatTags(item)}</td>

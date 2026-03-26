@@ -115,7 +115,7 @@ import {
 import {
   dupCurrent, dupItem, addFormTab,
   openAddModal, closeAdd,
-  toggleBulkFields, prevProfit, prefillFromLast,
+  toggleBulkFields, toggleAlertField, prevProfit, prefillFromLast,
   addItem, updateSmokeSlider, updateCoverSlider,
   toggleVariantMode, addVariantLabel, removeVariantLabel, presetVariantSizes
 } from './modals/add-item.js';
@@ -491,7 +491,7 @@ window._debouncedRenderInv = debounce(renderInv, 200);
 Object.assign(window, {
   openDrawer, closeDrawer, drawerTab, saveDrawer, delCurrent, delItem,
   syncDrawerSubcat, syncDrawerSubtype, syncAddSubcat, syncAddSubtype,
-  setCondTag, toggleBulkFields, toggleListingStatus, togglePlatChip,
+  setCondTag, toggleBulkFields, toggleAlertField, toggleListingStatus, togglePlatChip,
   _saveCustomType: saveCustomType,
   renderDrawerVariants
 });

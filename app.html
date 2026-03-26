@@ -743,7 +743,13 @@
             <span class="edit-lbl" style="margin:0">Bulk Item — multiple units</span>
           </label>
         </div>
-        <div class="edit-grp" id="d_alert_grp"><label for="d_alert" class="edit-lbl">Low Stock Alert</label><input class="edit-inp" id="d_alert" type="number" min="0"></div>
+        <div class="edit-grp" id="d_alert_grp">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">
+            <input type="checkbox" id="d_alert_on" onchange="toggleAlertField('d')" style="width:15px;height:15px;accent-color:var(--accent);flex-shrink:0">
+            <span class="edit-lbl" style="margin:0">Low Stock Alert</span>
+          </label>
+          <input class="edit-inp" id="d_alert" type="number" min="1" placeholder="Alert when qty drops below..." style="margin-top:4px">
+        </div>
         <div class="edit-grp"><label for="d_url" class="edit-lbl">Restock URL</label><input class="edit-inp" id="d_url" type="text" placeholder="Source link"></div>
         <div class="edit-grp"><label for="d_source" class="edit-lbl">Source</label><input class="edit-inp" id="d_source" type="text" placeholder="e.g. Goodwill" list="sourceList"></div>
         <div class="edit-grp full">
@@ -1306,7 +1312,13 @@
         <div id="f_bulk_fields" style="display:none;grid-column:1/-1;display:none">
           <div class="form-grid" style="margin-top:0">
             <div class="fgrp"><label for="f_qty">Quantity *</label><input type="number" id="f_qty" value="1" min="1"></div>
-            <div class="fgrp"><label for="f_alert">Low Stock Alert</label><input type="number" id="f_alert" placeholder="2" min="0"></div>
+            <div class="fgrp">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
+                <input type="checkbox" id="f_alert_on" onchange="toggleAlertField('f')" style="width:14px;height:14px;accent-color:var(--accent)">
+                <span>Low Stock Alert</span>
+              </label>
+              <input type="number" id="f_alert" min="1" placeholder="2" style="margin-top:4px">
+            </div>
           </div>
         </div>
         <input type="hidden" id="f_qty_single" value="1">

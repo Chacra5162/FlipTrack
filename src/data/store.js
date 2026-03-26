@@ -592,8 +592,8 @@ export function calc(item) {
   return { cost, price, fees, ship, pu, m, roi };
 }
 
-export function sc(qty, alert, bulk) {
-  if (!bulk) return 'ok'; // single-qty items don't need stock alerts
+export function sc(qty, alert, bulk, alertEnabled) {
+  if (!alertEnabled && !bulk) return 'ok';
   return qty === 0 ? 'low' : qty <= (alert || 2) ? 'warn' : 'ok';
 }
 

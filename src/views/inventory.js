@@ -444,7 +444,7 @@ export function renderInv() {
     if (cardContainer) cardContainer.innerHTML = '';
     tbody.innerHTML=pageItems.map((item)=>{
       const {cost,price,m}=calc(item);
-      const c=sc(item.qty,item.lowAlert,item.bulk);
+      const c=sc(item.qty,item.lowAlert,item.bulk,item.lowAlertEnabled);
       const bp=Math.min(100,((item.qty||0)/maxQ)*100);
       const isSel=sel.has(item.id);
       const eid = escAttr(item.id);
@@ -521,7 +521,7 @@ function _renderCardView(pageItems) {
     const { price, m } = calc(item);
     const _isParent = isParent(item);
     const displayQty = _isParent ? getVariantAggQty(item.id) : (item.qty || 0);
-    const c = sc(displayQty, item.lowAlert, item.bulk);
+    const c = sc(displayQty, item.lowAlert, item.bulk, item.lowAlertEnabled);
     const eid = escAttr(item.id);
     const _imgs = getItemImages(item);
     const _img0 = _imgs[0];
@@ -581,7 +581,7 @@ function _patchStockRow(id) {
   if (!tr) { renderInv(); return; } // item not on current page — fallback
   const item = getInvItem(id);
   if (!item) return;
-  const c = sc(item.qty, item.lowAlert, item.bulk);
+  const c = sc(item.qty, item.lowAlert, item.bulk, item.lowAlertEnabled);
   let maxQ = 1;
   for (let i = 0; i < inv.length; i++) { const q = inv[i].qty || 0; if (q > maxQ) maxQ = q; }
   const bp = Math.min(100, ((item.qty || 0) / maxQ) * 100);

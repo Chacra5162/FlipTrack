@@ -160,7 +160,7 @@ export function openDrawer(id) {
   const iSales=getSalesForItem(id);
   const totSold=iSales.reduce((a,s)=>a+(s.qty||0),0);
   const totRev =iSales.reduce((a,s)=>a+(s.price||0)*(s.qty||0),0);
-  const c=sc(item.qty,item.lowAlert,item.bulk);
+  const c=sc(item.qty,item.lowAlert,item.bulk,item.lowAlertEnabled);
   const stockColor = c === 'ok' ? 'var(--good)' : c === 'warn' ? 'var(--warn)' : 'var(--danger)';
   document.getElementById('dMets').innerHTML=`
     <div class="d-met"><div class="dm-lbl">In Stock</div><div class="dm-val" style="color:${stockColor}">${item.qty||0}</div></div>
@@ -183,6 +183,16 @@ export function openDrawer(id) {
   // Bulk toggle
   const dBulk = document.getElementById('d_bulk');
   if (dBulk) { dBulk.checked = !!item.bulk; toggleBulkFields('d'); }
+  // Low stock alert toggle
+  const alertOn = document.getElementById('d_alert_on');
+  const alertInp = document.getElementById('d_alert');
+  if (alertOn && alertInp) {
+    const hasAlert = !!item.lowAlertEnabled;
+    alertOn.checked = hasAlert;
+    alertInp.value = hasAlert ? (item.lowAlert || '') : '';
+    alertInp.disabled = !hasAlert;
+    alertInp.style.opacity = hasAlert ? '1' : '0.4';
+  }
   buildPlatPicker('d_plat_picker', getPlatforms(item));
   renderListingStatus(item);
   renderFeeCalc(item);
@@ -418,7 +428,8 @@ export async function saveDrawer(){
   const qtyEl = document.getElementById('d_qty');
   const qtyVal = parseInt(qtyEl?.value, 10);
   item.qty     =isNaN(qtyVal) || qtyVal < 0 ? (item.qty || 1) : qtyVal;
-  item.lowAlert=isNaN(alertVal)?2:alertVal;
+  item.lowAlertEnabled = !!document.getElementById('d_alert_on')?.checked;
+  item.lowAlert = item.lowAlertEnabled && !isNaN(alertVal) ? alertVal : (item.lowAlert || 2);
   item.bulk    =document.getElementById('d_bulk')?.checked||false;
   item.url     =document.getElementById('d_url').value.trim();
   item.source  =document.getElementById('d_source').value.trim();
@@ -577,7 +588,7 @@ export function renderDrawerVariants() {
     ${variants.map(v => {
       const { pu, m } = calc(v);
       const eid = escAttr(v.id);
-      const c = sc(v.qty, v.lowAlert, v.bulk);
+      const c = sc(v.qty, v.lowAlert, v.bulk, v.lowAlertEnabled);
       const qc = c === 'low' ? 'var(--warn)' : c === 'warn' ? 'var(--danger)' : 'var(--good)';
       return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
         <div style="flex:1;overflow:hidden">

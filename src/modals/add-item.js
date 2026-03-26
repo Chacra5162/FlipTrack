@@ -202,6 +202,8 @@ export function closeAdd(){
   document.getElementById('f_qty').value='1';
   const bulkCb = document.getElementById('f_bulk'); if(bulkCb) bulkCb.checked=false;
   const bulkFields = document.getElementById('f_bulk_fields'); if(bulkFields) bulkFields.style.display='none';
+  const fAlertOn = document.getElementById('f_alert_on'); if(fAlertOn) fAlertOn.checked = false;
+  const fAlertInp = document.getElementById('f_alert'); if(fAlertInp) { fAlertInp.disabled = true; fAlertInp.style.opacity = '0.4'; fAlertInp.value = ''; }
   document.querySelectorAll('#f_cond_picker .cond-tag').forEach(b => b.classList.remove('active'));
   clearBookFields('f');
   swapConditionTags('f', false);
@@ -220,9 +222,15 @@ export function toggleBulkFields(pfx) {
     const qty = document.getElementById('f_qty');
     if (!bulk && qty) qty.value = '1';
   }
-  if (pfx === 'd') {
-    const alertGrp = document.getElementById('d_alert_grp');
-    if (alertGrp) alertGrp.style.display = bulk ? '' : 'none';
+}
+
+export function toggleAlertField(pfx) {
+  const on = document.getElementById(pfx + '_alert_on')?.checked;
+  const inp = document.getElementById(pfx + '_alert');
+  if (inp) {
+    inp.disabled = !on;
+    inp.style.opacity = on ? '1' : '0.4';
+    if (!on) inp.value = '';
   }
 }
 
@@ -356,7 +364,8 @@ export async function addItem(){
 
   const alertEl = document.getElementById('f_alert');
   const alertVal = parseNum(alertEl.value, { fieldName: 'Low Stock Alert', integer: true, min: 1 });
-  const lowAlert = isBulk ? (isNaN(alertVal) ? 2 : alertVal) : 2;
+  const alertEnabled = !!document.getElementById('f_alert_on')?.checked;
+  const lowAlert = alertEnabled && !isNaN(alertVal) ? alertVal : 2;
 
   const cat=normCat(document.getElementById('f_cat').value.trim());
   const skuDate = localDate().replace(/-/g,'');
@@ -399,7 +408,7 @@ export async function addItem(){
   const department = (document.getElementById('f_department')?.value || '').trim();
   const ebayDesc = (document.getElementById('f_ebay_desc')?.value || '').trim();
 
-  const baseItem = {id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:subcatVal,subtype:subtypeVal,platform,platforms:selPlats,cost:isNaN(cost)?0:cost,price,qty,bulk:isBulk,fees:isNaN(fees)?0:fees,ship:isNaN(ship)?0:ship,lowAlert,notes:document.getElementById('f_notes').value.trim(),source:document.getElementById('f_source').value.trim(),condition:document.getElementById('f_condition').value.trim(),smoke:smokeVal,coverType:isBookCat(cat)?coverVal:null,brand,color,size,sizeType,department,material,mpn,model,style,pattern,ebayDesc,images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),...(isBookCat(cat) ? getBookFields('f') : {}),added:new Date().toISOString()};
+  const baseItem = {id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:subcatVal,subtype:subtypeVal,platform,platforms:selPlats,cost:isNaN(cost)?0:cost,price,qty,bulk:isBulk,fees:isNaN(fees)?0:fees,ship:isNaN(ship)?0:ship,lowAlert,lowAlertEnabled:alertEnabled,notes:document.getElementById('f_notes').value.trim(),source:document.getElementById('f_source').value.trim(),condition:document.getElementById('f_condition').value.trim(),smoke:smokeVal,coverType:isBookCat(cat)?coverVal:null,brand,color,size,sizeType,department,material,mpn,model,style,pattern,ebayDesc,images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),...(isBookCat(cat) ? getBookFields('f') : {}),added:new Date().toISOString()};
 
   if (_hasVariants && _variantLabels.length > 0) {
     // Create parent (qty=0, holds shared data) + N children
