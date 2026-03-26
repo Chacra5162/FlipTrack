@@ -213,6 +213,91 @@ export function exportPlatformCSV(templateKey, filterPlatform) {
   toast(`Exported ${rows.length} items — ${tpl.name} format`);
 }
 
+/** Map FlipTrack categories to valid Whatnot categories */
+const WHATNOT_CAT_MAP = {
+  'automotive': 'Car Parts',
+  'car parts': 'Car Parts',
+  'toys & games': 'Toys & Hobbies',
+  'toys': 'Toys & Hobbies',
+  'office supplies': 'Home & Garden',
+  'art & crafts': 'Arts & Handmade',
+  'arts & crafts': 'Arts & Handmade',
+  'crafts': 'Arts & Handmade',
+  'accessories': 'Bags & Accessories',
+  'collectibles': 'and Whatnot',
+  'books & media': 'Books',
+  'books': 'Books',
+  'media': 'Movies',
+  'sports & outdoors': 'Outdoor Gear',
+  'outdoors': 'Outdoor Gear',
+  'clothing': 'Men\'s Fashion',
+  'home & garden': 'Home & Garden',
+  'home': 'Home & Garden',
+  'electronics': 'Electronics',
+  'jewelry': 'Jewelry',
+  'music': 'Music',
+  'movies': 'Movies',
+  'video games': 'Video Games',
+  'sports cards': 'Sports Cards',
+  'trading cards': 'Trading Card Games',
+  'sneakers': 'Sneakers & Streetwear',
+  'pet supplies': 'Pet Supplies',
+  'pets': 'Pet Supplies',
+  'beauty': 'Beauty',
+  'food': 'Food & Drink',
+  'food & drink': 'Food & Drink',
+  'coins': 'Coins & Money',
+  'comics': 'Comics & Manga',
+  'rocks & crystals': 'Rocks & Crystals',
+};
+
+/** Map FlipTrack subcategories to valid Whatnot subcategories */
+const WHATNOT_SUBCAT_MAP = {
+  'engine parts': 'Other',  // Car Parts doesn't have Engine Parts
+  'educational/science kits': 'Other Toys',
+  'educational/math manipulatives': 'Other Toys',
+  'mystery toy': 'Other Toys',
+  'storage & organization': 'Other Home & Garden',
+  'stationery': 'Other Craft Supplies',
+  'keychains': 'Beads, Pens & Keychains',
+  'keychain': 'Beads, Pens & Keychains',
+  'barware': 'Other',
+  'tablet accessories': 'Other Electronics',
+  'dvd': 'DVDs',
+  'dvds': 'DVDs',
+  'travel accessories': 'Other Accessories',
+  'marine electronics': 'Other Outdoors Gear',
+  'smart home accessories': 'Other Home & Garden',
+  'men': 'Men\'s Modern',
+  'mens': 'Men\'s Modern',
+  "men's": 'Men\'s Modern',
+  'woman': 'Women\'s Contemporary',
+  'women': 'Women\'s Contemporary',
+  'womens': 'Women\'s Contemporary',
+  "women's": 'Women\'s Contemporary',
+};
+
+function mapWhatnotCategory(cat, sub) {
+  if (!cat) return '';
+  // Clothing splits into Men's or Women's Fashion based on subcategory
+  if (cat.toLowerCase() === 'clothing' && sub) {
+    const s = sub.toLowerCase();
+    if (/women|woman/.test(s)) return 'Women\'s Fashion';
+    if (/men|man/.test(s)) return 'Men\'s Fashion';
+  }
+  return WHATNOT_CAT_MAP[cat.toLowerCase()] || cat;
+}
+
+function mapWhatnotSubcategory(sub, mappedCat) {
+  if (!sub) return '';
+  const mapped = WHATNOT_SUBCAT_MAP[sub.toLowerCase()];
+  if (mapped) return mapped;
+  // Fix gender-based subcats based on mapped category
+  if (mappedCat === 'Women\'s Fashion' && /^woman|women/i.test(sub)) return 'Women\'s Contemporary';
+  if (mappedCat === 'Men\'s Fashion' && /^man|men/i.test(sub)) return 'Men\'s Modern';
+  return sub;
+}
+
 /**
  * Export inventory as Whatnot-compatible CSV matching their official template exactly.
  */
@@ -224,7 +309,9 @@ export function exportWhatnotCSV() {
   const header = tpl.columns.join(',');
   const lines = [header];
   for (const item of items) {
-    const row = tpl.mapper(item);
+    const mappedCat = mapWhatnotCategory(item.category, item.subcategory);
+    const mappedSub = mapWhatnotSubcategory(item.subcategory, mappedCat);
+    const row = tpl.mapper({ ...item, category: mappedCat, subcategory: mappedSub });
     const vals = tpl.columns.map(col => {
       const v = String(row[col] ?? '');
       if (v.includes(',') || v.includes('"') || v.includes('\n') || v.includes('\r')) {
