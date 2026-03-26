@@ -182,7 +182,7 @@ export function renderListingScores() {
     <div class="ih-section">
       <div class="ih-section-hdr">🔧 Needs Improvement (Lowest Scores)</div>
       <div class="comps-list" style="max-height:400px">
-        ${d.scored.slice(0, 15).map(item => `
+        ${d.scored.filter(i => i.suggestions.length > 0).slice(0, 15).map(item => `
           <div class="comps-item" onclick="openDrawer('${escAttr(item.id)}')" style="cursor:pointer">
             <div class="ls-item-grade" style="background:${gradeColors[item.grade]}">${item.grade}</div>
             <div class="comps-item-info">
