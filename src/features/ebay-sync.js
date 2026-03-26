@@ -634,6 +634,14 @@ async function _syncEBayPrices() {
 // PUSH: Create/update listing on eBay from local inventory item
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Validate GTIN (UPC-12 / EAN-13) check digit */
+function _validGTIN(code) {
+  const digits = code.split('').map(Number);
+  const check = digits.pop();
+  const sum = digits.reduce((s, d, i) => s + d * ((digits.length - i) % 2 === 0 ? 3 : 1), 0);
+  return (10 - (sum % 10)) % 10 === check;
+}
+
 /**
  * Build eBay inventory item payload from a local FlipTrack item.
  */
@@ -714,10 +722,10 @@ function _buildInventoryPayload(item) {
     };
   }
 
-  // Add UPC if available and valid (must be 12 or 13 digits)
+  // Add UPC if available and valid (12 or 13 digits with valid check digit)
   if (item.upc) {
     const upcClean = item.upc.replace(/[^0-9]/g, '');
-    if (upcClean.length === 12 || upcClean.length === 13) {
+    if ((upcClean.length === 12 || upcClean.length === 13) && _validGTIN(upcClean)) {
       payload.product.upc = [upcClean];
     }
   }
@@ -1614,6 +1622,29 @@ export async function publishEBayListing(itemId, options = {}, _isRetry = false)
     return { success: true, listingId };
   } catch (e) {
     console.error('[eBay] PUBLISH ERROR DETAIL:', e.message);
+
+    // If eBay rejected a product identifier (UPC/EAN/ISBN), strip it and retry once
+    if (/UPC|EAN|ISBN|GTIN/i.test(e.message) && !_isRetry) {
+      console.log('[eBay] Stripping rejected product identifiers and retrying');
+      try {
+        const inv = await ebayAPI('GET', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`);
+        if (inv.product) {
+          delete inv.product.upc;
+          delete inv.product.ean;
+          delete inv.product.isbn;
+        }
+        await ebayAPI('PUT', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`, inv);
+        // Clear local UPC so it doesn't get re-sent
+        delete item.upc;
+        markDirty('inv', itemId);
+        save();
+        toast('Stripped invalid UPC, retrying…');
+        return await publishEBayListing(itemId, options, true);
+      } catch (stripErr) {
+        console.warn('[eBay] UPC strip retry failed:', stripErr.message);
+      }
+    }
+
     // Auto-reset: clear stale eBay refs and retry as a completely fresh listing
     if (item.ebayItemId && !_isRetry) {
       console.log('[eBay] Auto-resetting stale eBay data and retrying as fresh item');
