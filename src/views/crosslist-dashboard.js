@@ -1052,7 +1052,7 @@ export function clToggleAutoRelist(enabled) {
 
 export function clRunAutoRelist() {
   const count = runAutoRelist();
-  if (count === 0) toast('No expired renewable listings to relist');
+  if (count === 0) toast('No expired or expiring listings to relist');
   renderCrosslistDashboard();
 }
 

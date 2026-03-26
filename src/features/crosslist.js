@@ -399,35 +399,57 @@ export function disableAutoRelist() {
 export function isAutoRelistEnabled() { return _autoRelistEnabled; }
 
 /**
- * Run auto-relist: find all expired renewable listings and relist them.
+ * Run auto-relist: find all expired renewable listings and those expiring
+ * within 1 day, then relist them proactively.
  * @returns {number} Number of items relisted
  */
 export function runAutoRelist() {
+  // Collect already-expired listings
   const expired = getExpiredListings(inv);
+  // Collect listings expiring within 1 day (proactive relist)
+  const expiringSoon = getExpiringListings(inv, 1);
+
+  // Deduplicate by item+platform key
+  const seen = new Set();
+  const candidates = [];
+  for (const entry of [...expired, ...expiringSoon]) {
+    const key = `${entry.item.id}:${entry.platform}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    candidates.push(entry);
+  }
+
   let count = 0;
-  for (const { item, platform } of expired) {
+  for (const { item, platform } of candidates) {
     const rule = PLATFORM_EXPIRY_RULES[platform];
-    if (!rule || !rule.renewable) continue; // Only auto-relist renewable platforms
+    if (!rule || !rule.renewable) continue;
     relistItem(item.id, platform);
     count++;
   }
   if (count > 0) {
     save();
     refresh();
-    toast(`Auto-relisted ${count} expired listing${count > 1 ? 's' : ''}`);
+    toast(`Auto-relisted ${count} listing${count > 1 ? 's' : ''}`);
   }
   return count;
 }
 
 /**
- * Get auto-relist candidates (expired + renewable).
+ * Get auto-relist candidates (expired + expiring within 1 day, renewable only).
  */
 export function getAutoRelistCandidates() {
   const expired = getExpiredListings(inv);
-  return expired.filter(({ platform }) => {
-    const rule = PLATFORM_EXPIRY_RULES[platform];
-    return rule && rule.renewable;
-  });
+  const expiringSoon = getExpiringListings(inv, 1);
+  const seen = new Set();
+  const results = [];
+  for (const entry of [...expired, ...expiringSoon]) {
+    const key = `${entry.item.id}:${entry.platform}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const rule = PLATFORM_EXPIRY_RULES[entry.platform];
+    if (rule && rule.renewable) results.push(entry);
+  }
+  return results;
 }
 
 /**
