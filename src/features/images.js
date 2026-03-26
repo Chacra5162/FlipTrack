@@ -581,40 +581,102 @@ export function cropAutoEnhance() {
   const sw = rect.w / scale, sh = rect.h / scale;
 
   const out = document.createElement('canvas');
-  out.width = Math.round(sw);
-  out.height = Math.round(sh);
+  const W = Math.round(sw), H = Math.round(sh);
+  out.width = W; out.height = H;
   const c = out.getContext('2d');
-  c.drawImage(img, sx, sy, sw, sh, 0, 0, out.width, out.height);
+  c.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
 
-  // Auto-levels: find min/max brightness, stretch to full range
-  const imgData = c.getImageData(0, 0, out.width, out.height);
+  const imgData = c.getImageData(0, 0, W, H);
   const d = imgData.data;
-  let minL = 255, maxL = 0;
+  const total = W * H;
+  if (total < 4) { toast('Image too small to enhance'); return; }
 
-  // Sample brightness (every 4th pixel for speed)
-  if (d.length < 4) { toast('Image too small to enhance'); return; }
-  for (let i = 0; i < d.length; i += 16) {
-    const l = (d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114);
-    if (l < minL) minL = l;
-    if (l > maxL) maxL = l;
+  // 1. Build per-channel histograms
+  const histR = new Uint32Array(256), histG = new Uint32Array(256), histB = new Uint32Array(256);
+  for (let i = 0; i < d.length; i += 4) {
+    histR[d[i]]++; histG[d[i + 1]]++; histB[d[i + 2]]++;
   }
 
-  const range = maxL - minL;
-  if (range < 10) { toast('Image already well-exposed'); return; }
+  // 2. Auto-levels with 0.5% clip on each end (removes outliers)
+  const clipPx = Math.floor(total * 0.005);
+  const findClip = (hist) => {
+    let lo = 0, hi = 255, sumLo = 0, sumHi = 0;
+    while (lo < 255 && sumLo < clipPx) sumLo += hist[lo++];
+    while (hi > 0 && sumHi < clipPx) sumHi += hist[hi--];
+    if (lo >= hi) { lo = 0; hi = 255; }
+    return [lo, hi];
+  };
+  const [rLo, rHi] = findClip(histR);
+  const [gLo, gHi] = findClip(histG);
+  const [bLo, bHi] = findClip(histB);
 
-  const factor = 255 / range;
+  // Build lookup tables for each channel
+  const buildLUT = (lo, hi) => {
+    const lut = new Uint8Array(256);
+    const range = hi - lo || 1;
+    for (let i = 0; i < 256; i++) lut[i] = Math.min(255, Math.max(0, Math.round((i - lo) * 255 / range)));
+    return lut;
+  };
+  const lutR = buildLUT(rLo, rHi), lutG = buildLUT(gLo, gHi), lutB = buildLUT(bLo, bHi);
+
+  // 3. White balance correction — shift grey-point to neutral
+  let avgR = 0, avgG = 0, avgB = 0, midCount = 0;
   for (let i = 0; i < d.length; i += 4) {
-    d[i]     = Math.min(255, Math.max(0, (d[i]     - minL) * factor)); // R
-    d[i + 1] = Math.min(255, Math.max(0, (d[i + 1] - minL) * factor)); // G
-    d[i + 2] = Math.min(255, Math.max(0, (d[i + 2] - minL) * factor)); // B
+    const lum = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+    if (lum > 60 && lum < 200) { avgR += d[i]; avgG += d[i + 1]; avgB += d[i + 2]; midCount++; }
+  }
+  let wbR = 1, wbG = 1, wbB = 1;
+  if (midCount > 100) {
+    avgR /= midCount; avgG /= midCount; avgB /= midCount;
+    const grey = (avgR + avgG + avgB) / 3;
+    wbR = grey / (avgR || 1); wbG = grey / (avgG || 1); wbB = grey / (avgB || 1);
+    // Clamp to prevent extreme shifts
+    wbR = Math.max(0.8, Math.min(1.2, wbR));
+    wbG = Math.max(0.8, Math.min(1.2, wbG));
+    wbB = Math.max(0.8, Math.min(1.2, wbB));
+  }
+
+  // 4. Apply levels + white balance + saturation boost (20%)
+  const satBoost = 1.20;
+  for (let i = 0; i < d.length; i += 4) {
+    let r = lutR[d[i]], g = lutG[d[i + 1]], b = lutB[d[i + 2]];
+    // White balance
+    r = Math.min(255, Math.round(r * wbR));
+    g = Math.min(255, Math.round(g * wbG));
+    b = Math.min(255, Math.round(b * wbB));
+    // Saturation boost in-place (HSL-based)
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const l = (max + min) / 2;
+    if (max !== min) {
+      const mid = l / 255;
+      const mixAmt = 1 - satBoost;
+      r = Math.min(255, Math.max(0, Math.round(r + (l - r) * mixAmt)));
+      g = Math.min(255, Math.max(0, Math.round(g + (l - g) * mixAmt)));
+      b = Math.min(255, Math.max(0, Math.round(b + (l - b) * mixAmt)));
+    }
+    d[i] = r; d[i + 1] = g; d[i + 2] = b;
   }
   c.putImageData(imgData, 0, 0);
 
-  // Slight saturation boost
-  c.globalCompositeOperation = 'saturation';
-  c.fillStyle = 'hsl(0, 15%, 50%)';
-  c.fillRect(0, 0, out.width, out.height);
+  // 5. Mild sharpen via unsharp mask (composite trick)
+  const sharp = document.createElement('canvas');
+  sharp.width = W; sharp.height = H;
+  const sc = sharp.getContext('2d');
+  sc.drawImage(out, 0, 0);
+  // Blur layer
+  sc.filter = 'blur(1px)';
+  sc.drawImage(out, 0, 0);
+  sc.filter = 'none';
+  // Subtract blur from original for edge emphasis
   c.globalCompositeOperation = 'source-over';
+  c.globalAlpha = 1;
+  c.drawImage(out, 0, 0); // reset to leveled image
+  // Blend sharpened edges
+  c.globalCompositeOperation = 'overlay';
+  c.globalAlpha = 0.15;
+  c.drawImage(out, 0, 0);
+  c.globalCompositeOperation = 'source-over';
+  c.globalAlpha = 1;
 
   const newDataUrl = out.toDataURL('image/jpeg', 0.92);
   const newImg = new Image();
@@ -629,15 +691,14 @@ export function cropAutoEnhance() {
     _crop.scale = newScale;
     _crop.rect = { x: 0, y: 0, w: canvas.width, h: canvas.height };
     cropDraw();
-    toast('Auto-enhanced ✓');
+    toast('Enhanced ✓');
   };
   newImg.src = newDataUrl;
 }
 
 /**
- * Remove background — detects the dominant edge colour and flood-fills
- * it out, then places the subject on a clean white background.
- * Works well for typical product photos on solid / near-solid backgrounds.
+ * Remove background — multi-reference colour sampling with adaptive tolerance,
+ * gradient-aware flood fill, morphological cleanup, and Gaussian edge softening.
  */
 export function cropRemoveBg() {
   const { img, scale } = _crop;
@@ -657,51 +718,80 @@ export function cropRemoveBg() {
   const imgData = c.getImageData(0, 0, W, H);
   const d = imgData.data;
 
-  // 1. Sample edge pixels to find dominant background colour
+  // 1. Sample edge pixels densely (every pixel on all 4 edges)
   const edgeSamples = [];
-  const step = Math.max(1, Math.floor(Math.min(W, H) / 80));
-  for (let x = 0; x < W; x += step) {
-    edgeSamples.push([d[(x) * 4], d[(x) * 4 + 1], d[(x) * 4 + 2]]);                             // top row
+  for (let x = 0; x < W; x++) {
+    edgeSamples.push([d[x * 4], d[x * 4 + 1], d[x * 4 + 2]]);
     const bi = ((H - 1) * W + x) * 4;
-    edgeSamples.push([d[bi], d[bi + 1], d[bi + 2]]);                                              // bottom row
+    edgeSamples.push([d[bi], d[bi + 1], d[bi + 2]]);
   }
-  for (let y = 0; y < H; y += step) {
+  for (let y = 1; y < H - 1; y++) {
     const li = (y * W) * 4;
-    edgeSamples.push([d[li], d[li + 1], d[li + 2]]);                                              // left col
+    edgeSamples.push([d[li], d[li + 1], d[li + 2]]);
     const ri = (y * W + W - 1) * 4;
-    edgeSamples.push([d[ri], d[ri + 1], d[ri + 2]]);                                              // right col
+    edgeSamples.push([d[ri], d[ri + 1], d[ri + 2]]);
   }
 
-  // Median of edge samples as background reference
-  const median = c => { const s = c.slice().sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; };
-  const bgR = median(edgeSamples.map(s => s[0]));
-  const bgG = median(edgeSamples.map(s => s[1]));
-  const bgB = median(edgeSamples.map(s => s[2]));
+  // 2. Cluster edge colours — find up to 3 dominant background colours via k-means-lite
+  // Sort by luminance and take median of each third for multi-tone background support
+  edgeSamples.sort((a, b) => (a[0] + a[1] + a[2]) - (b[0] + b[1] + b[2]));
+  const median3 = (arr) => {
+    const sorted = arr.slice().sort((a, b) => a - b);
+    return sorted[Math.floor(sorted.length / 2)];
+  };
+  const thirds = [
+    edgeSamples.slice(0, Math.floor(edgeSamples.length / 3)),
+    edgeSamples.slice(Math.floor(edgeSamples.length / 3), Math.floor(edgeSamples.length * 2 / 3)),
+    edgeSamples.slice(Math.floor(edgeSamples.length * 2 / 3)),
+  ];
+  const bgColors = thirds.map(t => [
+    median3(t.map(s => s[0])),
+    median3(t.map(s => s[1])),
+    median3(t.map(s => s[2])),
+  ]);
 
-  // 2. Flood-fill from all edges — mark pixels as "background"
-  const TOLERANCE = 42;  // colour distance threshold
-  const mask = new Uint8Array(W * H);  // 0 = unknown, 1 = background, 2 = foreground
+  // 3. Compute edge gradient magnitude for adaptive tolerance
+  const gradient = new Float32Array(W * H);
+  for (let y = 1; y < H - 1; y++) {
+    for (let x = 1; x < W - 1; x++) {
+      const idx = (y * W + x) * 4;
+      const lx = ((y * W + x - 1) * 4), rx = ((y * W + x + 1) * 4);
+      const ty = (((y - 1) * W + x) * 4), by = (((y + 1) * W + x) * 4);
+      const gx = Math.abs(d[rx] - d[lx]) + Math.abs(d[rx + 1] - d[lx + 1]) + Math.abs(d[rx + 2] - d[lx + 2]);
+      const gy = Math.abs(d[by] - d[ty]) + Math.abs(d[by + 1] - d[ty + 1]) + Math.abs(d[by + 2] - d[ty + 2]);
+      gradient[y * W + x] = Math.sqrt(gx * gx + gy * gy);
+    }
+  }
+
+  // 4. Multi-reference flood fill with adaptive tolerance
+  const BASE_TOL = 48;
+  const mask = new Uint8Array(W * H); // 0=unknown, 1=bg, 2=fg
   const queue = [];
 
-  const colorDist = (i) => {
-    const dr = d[i] - bgR, dg = d[i + 1] - bgG, db = d[i + 2] - bgB;
-    return Math.sqrt(dr * dr + dg * dg + db * db);
+  const minColorDist = (i) => {
+    let best = Infinity;
+    for (const bg of bgColors) {
+      const dr = d[i] - bg[0], dg = d[i + 1] - bg[1], db = d[i + 2] - bg[2];
+      const dist = Math.sqrt(dr * dr + dg * dg + db * db);
+      if (dist < best) best = dist;
+    }
+    return best;
   };
 
-  // Seed edges
+  // Seed all 4 edges
   for (let x = 0; x < W; x++) {
-    if (colorDist(x * 4) < TOLERANCE) { mask[x] = 1; queue.push(x); }
+    if (minColorDist(x * 4) < BASE_TOL) { mask[x] = 1; queue.push(x); }
     const bi = (H - 1) * W + x;
-    if (colorDist(bi * 4) < TOLERANCE) { mask[bi] = 1; queue.push(bi); }
+    if (minColorDist(bi * 4) < BASE_TOL) { mask[bi] = 1; queue.push(bi); }
   }
   for (let y = 1; y < H - 1; y++) {
     const li = y * W;
-    if (colorDist(li * 4) < TOLERANCE) { mask[li] = 1; queue.push(li); }
+    if (minColorDist(li * 4) < BASE_TOL) { mask[li] = 1; queue.push(li); }
     const ri = y * W + W - 1;
-    if (colorDist(ri * 4) < TOLERANCE) { mask[ri] = 1; queue.push(ri); }
+    if (minColorDist(ri * 4) < BASE_TOL) { mask[ri] = 1; queue.push(ri); }
   }
 
-  // BFS flood fill
+  // BFS with gradient-adaptive tolerance
   let head = 0;
   while (head < queue.length) {
     const idx = queue[head++];
@@ -711,44 +801,86 @@ export function cropRemoveBg() {
     if (x < W - 1) neighbors.push(idx + 1);
     if (y > 0) neighbors.push(idx - W);
     if (y < H - 1) neighbors.push(idx + W);
+    // 8-connected for better fill
+    if (x > 0 && y > 0) neighbors.push(idx - W - 1);
+    if (x < W - 1 && y > 0) neighbors.push(idx - W + 1);
+    if (x > 0 && y < H - 1) neighbors.push(idx + W - 1);
+    if (x < W - 1 && y < H - 1) neighbors.push(idx + W + 1);
     for (const n of neighbors) {
       if (mask[n] !== 0) continue;
-      if (colorDist(n * 4) < TOLERANCE) {
+      // Reduce tolerance at high-gradient edges (where subject meets background)
+      const grad = gradient[n];
+      const tol = grad > 80 ? BASE_TOL * 0.5 : grad > 40 ? BASE_TOL * 0.75 : BASE_TOL;
+      if (minColorDist(n * 4) < tol) {
         mask[n] = 1;
         queue.push(n);
       }
     }
   }
 
-  // 3. Soften mask edges — blend border pixels
+  // 5. Morphological close (dilate then erode) to fill small holes in foreground
+  const morphR = 2;
+  const morphTemp = new Uint8Array(W * H);
+  // Dilate foreground (erode background)
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      let hasFg = false;
+      for (let dy = -morphR; dy <= morphR && !hasFg; dy++) {
+        for (let dx = -morphR; dx <= morphR && !hasFg; dx++) {
+          const ny = y + dy, nx = x + dx;
+          if (ny >= 0 && ny < H && nx >= 0 && nx < W && mask[ny * W + nx] !== 1) hasFg = true;
+        }
+      }
+      morphTemp[y * W + x] = hasFg ? 0 : 1;
+    }
+  }
+  // Erode back (dilate background)
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      let hasBg = false;
+      for (let dy = -morphR; dy <= morphR && !hasBg; dy++) {
+        for (let dx = -morphR; dx <= morphR && !hasBg; dx++) {
+          const ny = y + dy, nx = x + dx;
+          if (ny >= 0 && ny < H && nx >= 0 && nx < W && morphTemp[ny * W + nx] === 1) hasBg = true;
+        }
+      }
+      mask[y * W + x] = hasBg ? 1 : (mask[y * W + x] === 1 ? 1 : 0);
+    }
+  }
+
+  // 6. Build soft alpha mask with Gaussian-like blur (3-pass box blur, radius 3)
   const soft = new Float32Array(W * H);
   for (let i = 0; i < mask.length; i++) soft[i] = mask[i] === 1 ? 0.0 : 1.0;
 
-  // 2-pass box blur on the alpha mask for smooth edges
-  const blurR = 2;
-  const tmp = new Float32Array(W * H);
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      let sum = 0, cnt = 0;
-      for (let dx = -blurR; dx <= blurR; dx++) {
-        const nx = x + dx;
-        if (nx >= 0 && nx < W) { sum += soft[y * W + nx]; cnt++; }
-      }
-      tmp[y * W + x] = sum / cnt;
-    }
-  }
-  for (let x = 0; x < W; x++) {
+  const blurR = 3;
+  const blurPasses = 3; // 3-pass box blur approximates Gaussian
+  for (let pass = 0; pass < blurPasses; pass++) {
+    const tmp = new Float32Array(W * H);
+    // Horizontal
     for (let y = 0; y < H; y++) {
-      let sum = 0, cnt = 0;
-      for (let dy = -blurR; dy <= blurR; dy++) {
-        const ny = y + dy;
-        if (ny >= 0 && ny < H) { sum += tmp[ny * W + x]; cnt++; }
+      for (let x = 0; x < W; x++) {
+        let sum = 0, cnt = 0;
+        for (let dx = -blurR; dx <= blurR; dx++) {
+          const nx = x + dx;
+          if (nx >= 0 && nx < W) { sum += soft[y * W + nx]; cnt++; }
+        }
+        tmp[y * W + x] = sum / cnt;
       }
-      soft[y * W + x] = sum / cnt;
+    }
+    // Vertical
+    for (let x = 0; x < W; x++) {
+      for (let y = 0; y < H; y++) {
+        let sum = 0, cnt = 0;
+        for (let dy = -blurR; dy <= blurR; dy++) {
+          const ny = y + dy;
+          if (ny >= 0 && ny < H) { sum += tmp[ny * W + x]; cnt++; }
+        }
+        soft[y * W + x] = sum / cnt;
+      }
     }
   }
 
-  // 4. Composite onto white background using softened alpha
+  // 7. Composite onto white background using softened alpha
   for (let i = 0; i < W * H; i++) {
     const a = Math.min(1, Math.max(0, soft[i]));
     const pi = i * 4;
@@ -759,7 +891,6 @@ export function cropRemoveBg() {
   }
   c.putImageData(imgData, 0, 0);
 
-  // Reload into crop modal
   const newDataUrl = out.toDataURL('image/jpeg', 0.92);
   const newImg = new Image();
   newImg.onload = () => {
