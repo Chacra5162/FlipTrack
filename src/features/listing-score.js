@@ -39,7 +39,8 @@ export function scoreItem(item) {
   const hasColor = /\b(black|white|red|blue|green|pink|gray|grey|brown|navy|beige|cream|gold|silver)\b/i.test(name);
   const hasBrand = !!item.brand;
   const hasSize = /\b(xs|s|m|l|xl|xxl|\d+x\d+|\d+"|small|medium|large)\b/i.test(name);
-  if (!hasColor && name.length < 60) suggestions.push('Add color to title for better search visibility');
+  const colorCats = ['Clothing', 'Shoes', 'Accessories', 'Home & Decor', 'Sports & Outdoors', 'Toys & Games', 'Arts & Crafts'];
+  if (!hasColor && name.length < 60 && colorCats.includes(item.category)) suggestions.push('Add color to title for better search visibility');
   if (!hasBrand && !item.brand) suggestions.push('Include brand name in title');
   if (!hasSize && ['Clothing', 'Shoes', 'Accessories'].includes(item.category)) suggestions.push('Add size info to title');
   if (name.length < 25) suggestions.push('Title is short — aim for 40+ characters with descriptive keywords');
