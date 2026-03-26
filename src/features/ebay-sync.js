@@ -1415,7 +1415,7 @@ async function _fillMissingAspects(aspects, categoryId, item) {
  * @param {string} [options.listingDuration] - 'GTC' or 'DAYS_7', etc.
  * @returns {Promise<{ success: boolean, listingId?: string }>}
  */
-export async function publishEBayListing(itemId, options = {}) {
+export async function publishEBayListing(itemId, options = {}, _isRetry = false) {
   if (!isEBayConnected()) throw new Error('eBay not connected');
 
   const item = getInvItem(itemId);
@@ -1615,7 +1615,7 @@ export async function publishEBayListing(itemId, options = {}) {
   } catch (e) {
     console.error('[eBay] PUBLISH ERROR DETAIL:', e.message);
     // Auto-reset: clear stale eBay refs and retry as a completely fresh listing
-    if (item.ebayItemId) {
+    if (item.ebayItemId && !_isRetry) {
       console.log('[eBay] Auto-resetting stale eBay data and retrying as fresh item');
       toast('Retrying as fresh listing…');
       // Clean up stale data on eBay
@@ -1636,7 +1636,7 @@ export async function publishEBayListing(itemId, options = {}) {
       try {
         const pushResult = await pushItemToEBay(itemId);
         if (pushResult.success) {
-          const pubResult = await publishEBayListing(itemId);
+          const pubResult = await publishEBayListing(itemId, {}, true);
           return pubResult;
         }
       } catch (retryErr) {
