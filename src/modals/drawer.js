@@ -483,11 +483,10 @@ export async function saveDrawer(){
     });
   }
   // Only sync to eBay if an eBay-relevant field actually changed
-  const _ebayFields = ['name','price','condition','brand','color','size','material','mpn','model','style','pattern','sizeType','department','notes','upc'];
-  const ebayChanged = _drawerSnapshotForEbay && _ebayFields.some(f => {
-    const oldVal = _drawerSnapshotForEbay[f] ?? '';
-    const newVal = item[f] ?? '';
-    return String(oldVal) !== String(newVal);
+  // Compare only fields that exist on the snapshot (TRACKED_FIELDS)
+  const _ebayTracked = ['name','price','condition','brand','color','size','material','model','style','pattern','notes','upc'];
+  const ebayChanged = _drawerSnapshotForEbay && _ebayTracked.some(f => {
+    return (f in _drawerSnapshotForEbay) && String(_drawerSnapshotForEbay[f] ?? '') !== String(item[f] ?? '');
   });
   if (item.ebayItemId && isEBayConnected() && ebayChanged) {
     updateEBayListing(item.id).then(() => {
