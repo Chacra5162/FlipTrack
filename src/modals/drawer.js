@@ -171,6 +171,9 @@ export function openDrawer(id) {
     <div class="d-met"><div class="dm-lbl">Total Revenue</div><div class="dm-val">${fmt(totRev)}</div></div>`;
   const fields={d_name:'name',d_sku:'sku',d_upc:'upc',d_cat:'category',d_cost:'cost',d_price:'price',d_fees:'fees',d_ship:'ship',d_notes:'notes',d_url:'url',d_alert:'lowAlert',d_source:'source',d_brand:'brand',d_color:'color',d_size:'size',d_sizeType:'sizeType',d_department:'department',d_material:'material',d_mpn:'mpn',d_model:'model',d_style:'style',d_pattern:'pattern',d_ebay_desc:'ebayDesc',d_cond_desc:'conditionDesc',d_fit:'fit',d_closure:'closure',d_neckline:'neckline',d_sleeveLength:'sleeveLength',d_rise:'rise',d_inseam:'inseam',d_garmentCare:'garmentCare',d_occasion:'occasion',d_shoeSize:'shoeSize',d_shoeWidth:'shoeWidth',d_season:'season',d_theme:'theme',d_vintage:'vintage',d_countryMfg:'countryMfg'};
   for(const[eid,key]of Object.entries(fields)){const el=document.getElementById(eid);if(el)el.value=item[key]||'';}
+  // Populate qty
+  const dQty = document.getElementById('d_qty');
+  if (dQty) dQty.value = item.qty ?? 1;
   // Populate subcategory text input and datalist suggestions
   const subcatTxt = document.getElementById('d_subcat_txt');
   if (subcatTxt) subcatTxt.value = item.subcategory || '';
@@ -412,6 +415,9 @@ export async function saveDrawer(){
   item.price   =isNaN(price)?0:price;
   item.fees    =isNaN(fees)?0:fees;
   item.ship    =isNaN(ship)?0:ship;
+  const qtyEl = document.getElementById('d_qty');
+  const qtyVal = parseInt(qtyEl?.value, 10);
+  item.qty     =isNaN(qtyVal) || qtyVal < 0 ? (item.qty || 1) : qtyVal;
   item.lowAlert=isNaN(alertVal)?2:alertVal;
   item.bulk    =document.getElementById('d_bulk')?.checked||false;
   item.url     =document.getElementById('d_url').value.trim();
