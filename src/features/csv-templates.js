@@ -92,29 +92,44 @@ const TEMPLATES = {
     name: 'Whatnot',
     ext: 'csv',
     columns: ['Category', 'Sub Category', 'Title', 'Description', 'Quantity', 'Type', 'Price', 'Shipping Profile', 'Offerable', 'Hazmat', 'Condition', 'Cost Per Item', 'SKU', 'Image URL 1', 'Image URL 2', 'Image URL 3', 'Image URL 4', 'Image URL 5', 'Image URL 6', 'Image URL 7', 'Image URL 8'],
-    mapper: (item) => ({
-      'Category': item.category || '',
-      'Sub Category': item.subcategory || '',
-      'Title': (item.name || '').slice(0, 80),
-      'Description': item.notes || item.name || '',
-      'Quantity': item.qty || 1,
-      'Type': 'Buy It Now',
-      'Price': Math.ceil(item.price || 0),
-      'Shipping Profile': '',
-      'Offerable': 'TRUE',
-      'Hazmat': 'FALSE',
-      'Condition': item.condition || '',
-      'Cost Per Item': (item.cost || 0).toFixed(2),
-      'SKU': item.sku || '',
-      'Image URL 1': '',
-      'Image URL 2': '',
-      'Image URL 3': '',
-      'Image URL 4': '',
-      'Image URL 5': '',
-      'Image URL 6': '',
-      'Image URL 7': '',
-      'Image URL 8': '',
-    }),
+    mapper: (item) => {
+      const imgs = (item.images && Array.isArray(item.images)) ? item.images : (item.image ? [item.image] : []);
+      // Only include https URLs (skip base64)
+      const urls = imgs.filter(u => typeof u === 'string' && u.startsWith('http')).slice(0, 8);
+      // Build description from available fields
+      const descParts = [];
+      if (item.notes) descParts.push(item.notes);
+      if (item.brand && item.brand !== 'Unbranded') descParts.push('Brand: ' + item.brand);
+      if (item.size) descParts.push('Size: ' + item.size);
+      if (item.color) descParts.push('Color: ' + item.color);
+      if (item.material) descParts.push('Material: ' + item.material);
+      if (item.conditionDesc) descParts.push(item.conditionDesc);
+      const desc = descParts.join('. ') || item.name || '';
+
+      return {
+        'Category': item.category || '',
+        'Sub Category': item.subcategory || '',
+        'Title': (item.name || '').slice(0, 80),
+        'Description': desc,
+        'Quantity': item.qty || 1,
+        'Type': 'Buy It Now',
+        'Price': Math.ceil(item.price || 0),
+        'Shipping Profile': weightToWhatnotShipping(item),
+        'Offerable': 'TRUE',
+        'Hazmat': 'FALSE',
+        'Condition': item.condition || '',
+        'Cost Per Item': (item.cost || 0).toFixed(2),
+        'SKU': item.sku || '',
+        'Image URL 1': urls[0] || '',
+        'Image URL 2': urls[1] || '',
+        'Image URL 3': urls[2] || '',
+        'Image URL 4': urls[3] || '',
+        'Image URL 5': urls[4] || '',
+        'Image URL 6': urls[5] || '',
+        'Image URL 7': urls[6] || '',
+        'Image URL 8': urls[7] || '',
+      };
+    },
   },
 
   generic: {
@@ -153,6 +168,49 @@ const TEMPLATES = {
     mapper: null,
   },
 };
+
+/** Convert FlipTrack weight fields to Whatnot shipping profile string */
+function weightToWhatnotShipping(item) {
+  const maj = parseFloat(item.weightMaj) || 0;
+  const min = parseFloat(item.weightMin) || 0;
+  const unit = (item.dimUnit || 'in').toLowerCase();
+
+  // Convert to oz for imperial, grams for metric
+  let oz;
+  if (unit === 'cm') {
+    // kg + g → grams
+    const grams = maj * 1000 + min;
+    if (grams <= 0) return '';
+    if (grams < 20) return '0 to <20 grams';
+    if (grams < 100) return '20 to <100 grams';
+    if (grams < 250) return '100 to <250 grams';
+    if (grams < 500) return '250 to <500 grams';
+    if (grams < 750) return '500 to <750 grams';
+    if (grams < 1000) return '750 grams to <1 KGs';
+    if (grams < 2000) return '1 KGs to <2 KGs';
+    if (grams < 3000) return '2 KGs to <3 KGs';
+    if (grams < 5000) return '3 KGs to <5 KGs';
+    if (grams < 7000) return '5 KGs to <7 KGs';
+    return '7 to <10 KGs';
+  }
+
+  // lb + oz → total oz
+  oz = maj * 16 + min;
+  // Also check legacy item.weight field (typically in oz)
+  if (oz <= 0) oz = parseFloat(item.weight) || 0;
+  if (oz <= 0) return '';
+  if (oz <= 1) return '0-1 oz';
+  if (oz <= 3) return '1-3 oz';
+  if (oz <= 7) return '4-7 oz';
+  if (oz <= 11) return '8-11 oz';
+  if (oz <= 15) return '12-15 oz';
+  if (oz <= 16) return '1 lb';
+  if (oz <= 32) return '1-2 lbs';
+  if (oz <= 48) return '2-3 lbs';
+  if (oz <= 64) return '3-4 lbs';
+  if (oz <= 96) return '4-6 lbs';
+  return '10-14 lbs';
+}
 
 function conditionToEBay(cond) {
   const map = {
