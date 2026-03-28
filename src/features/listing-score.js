@@ -4,8 +4,9 @@
  * completeness, keyword density, and pricing. Suggests improvements.
  */
 
-import { inv, getInvItem, getSalesForItem } from '../data/store.js';
+import { inv, getInvItem, getSalesForItem, markDirty, save } from '../data/store.js';
 import { fmt, escHtml, escAttr } from '../utils/format.js';
+import { toast } from '../utils/dom.js';
 
 // ── SCORING CRITERIA ──────────────────────────────────────────────────────
 
@@ -21,7 +22,7 @@ const CRITERIA = [
  * Score a single item. Returns { total, breakdown[], suggestions[] }
  */
 export function scoreItem(item) {
-  if (!item) return { total: 0, grade: 'F', breakdown: [], suggestions: [] };
+  if (!item) return { total: 0, grade: 'F', breakdown: [], suggestions: [], fixes: [] };
 
   const breakdown = [];
   const suggestions = [];
@@ -44,9 +45,25 @@ export function scoreItem(item) {
   const cat = item.category || '';
   const sub = item.subcategory || '';
   const wantsColor = colorCats.has(cat) || colorSubs.has(sub);
-  if (!hasColor && name.length < 60 && wantsColor) suggestions.push('Add color to title for better search visibility');
+  // Track fixable fields: attribute exists on item but is missing from title
+  const fixes = [];
+  if (!hasColor && name.length < 60 && wantsColor) {
+    suggestions.push('Add color to title for better search visibility');
+    if (item.color) fixes.push({ field: 'color', value: item.color, label: 'Color' });
+  }
   if (!hasBrand && !item.brand) suggestions.push('Include brand name in title');
-  if (!hasSize && ['Clothing', 'Shoes', 'Accessories'].includes(item.category)) suggestions.push('Add size info to title');
+  if (hasBrand || item.brand) {
+    const brandInTitle = item.brand && name.toLowerCase().includes(item.brand.toLowerCase());
+    if (!brandInTitle && item.brand) fixes.push({ field: 'brand', value: item.brand, label: 'Brand' });
+  }
+  if (!hasSize && ['Clothing', 'Shoes', 'Accessories'].includes(item.category)) {
+    suggestions.push('Add size info to title');
+    if (item.size) fixes.push({ field: 'size', value: item.size, label: 'Size' });
+  }
+  // Additional fixable fields
+  if (item.material && !name.toLowerCase().includes(item.material.toLowerCase())) {
+    fixes.push({ field: 'material', value: item.material, label: 'Material' });
+  }
   if (name.length < 25) suggestions.push('Title is short — aim for 40+ characters with descriptive keywords');
 
   breakdown.push({ ...CRITERIA[0], score: titleScore });
@@ -109,7 +126,7 @@ export function scoreItem(item) {
   const total = breakdown.reduce((s, b) => s + b.score, 0);
   const grade = total >= 90 ? 'A' : total >= 75 ? 'B' : total >= 60 ? 'C' : total >= 40 ? 'D' : 'F';
 
-  return { total, grade, breakdown, suggestions };
+  return { total, grade, breakdown, suggestions, fixes };
 }
 
 function _countPhotos(item) {
@@ -143,6 +160,78 @@ export function computeListingScores() {
   for (const s of scored) gradeDistribution[s.grade]++;
 
   return { scored, avgScore, gradeDistribution, total: scored.length };
+}
+
+// ── AUTO-FIX TITLE ────────────────────────────────────────────────────────
+
+/**
+ * Append missing attribute values (color, size, brand, material) to an item's title.
+ * Only adds values that exist on the item but are not already in the title.
+ */
+export function lsAutoFixTitle(itemId) {
+  const item = getInvItem(itemId);
+  if (!item) return;
+
+  const score = scoreItem(item);
+  if (!score.fixes || !score.fixes.length) {
+    toast('Title already includes all available details');
+    return;
+  }
+
+  const parts = score.fixes.map(f => f.value);
+  const newTitle = (item.name || '').trim() + ' ' + parts.join(' ');
+  item.name = newTitle.trim();
+  markDirty('inv', itemId);
+  save();
+
+  // Update drawer title input if open
+  const nameEl = document.getElementById('d_name');
+  if (nameEl && nameEl.value) nameEl.value = item.name;
+  const headerEl = document.getElementById('dName');
+  if (headerEl) headerEl.textContent = item.name;
+
+  // Re-render score widget in drawer
+  renderDrawerScore(itemId);
+
+  toast(`Added ${parts.join(', ')} to title`);
+}
+
+/**
+ * Render the listing score widget inside the drawer for the given item.
+ */
+export function renderDrawerScore(itemId) {
+  const el = document.getElementById('dListingScore');
+  if (!el) return;
+
+  const item = getInvItem(itemId);
+  if (!item) { el.innerHTML = ''; return; }
+
+  const score = scoreItem(item);
+  const gradeColors = { A: '#4caf50', B: '#8bc34a', C: '#ff9800', D: '#ff5722', F: '#f44336' };
+  const color = gradeColors[score.grade] || 'var(--muted)';
+
+  let fixHtml = '';
+  if (score.fixes && score.fixes.length) {
+    const chips = score.fixes.map(f =>
+      `<span class="ls-fix-chip">${escHtml(f.label)}: ${escHtml(f.value)}</span>`
+    ).join('');
+    fixHtml = `<div class="ls-fix-row">
+      <span class="ls-fix-label">Missing from title:</span>
+      ${chips}
+      <button class="btn-xs btn-accent" onclick="lsAutoFixTitle('${escAttr(itemId)}')">Add to title</button>
+    </div>`;
+  }
+
+  let sugHtml = '';
+  if (score.suggestions.length && !score.fixes.length) {
+    sugHtml = `<div class="ls-drawer-sug">${escHtml(score.suggestions[0])}</div>`;
+  }
+
+  el.innerHTML = `<div class="ls-drawer-widget">
+    <span class="ls-drawer-grade" style="background:${color}">${score.grade}</span>
+    <span class="ls-drawer-label">Listing Score ${score.total}/100</span>
+    ${fixHtml}${sugHtml}
+  </div>`;
 }
 
 // ── RENDER ─────────────────────────────────────────────────────────────────
@@ -193,6 +282,7 @@ export function renderListingScores() {
               <div class="comps-item-title">${escHtml(item.name)}</div>
               <div class="comps-item-meta">${item.total}/100 · ${escHtml(item.category)}${item.price ? ' · ' + fmt(item.price) : ''}</div>
               ${item.suggestions.length ? `<div class="ls-suggestion">💡 ${escHtml(item.suggestions[0])}</div>` : ''}
+              ${item.fixes && item.fixes.length ? `<button class="btn-xs btn-accent ls-autofix-btn" onclick="event.stopPropagation();lsAutoFixTitle('${escAttr(item.id)}')">Auto-fix title</button>` : ''}
             </div>
           </div>
         `).join('')}

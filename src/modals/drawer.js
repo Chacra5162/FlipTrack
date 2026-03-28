@@ -214,6 +214,7 @@ export function openDrawer(id) {
   // Defer non-critical rendering to avoid blocking the drawer animation
   requestAnimationFrame(() => {
     if (window.renderDrawerImg) window.renderDrawerImg(item.id);
+    if (window.renderDrawerScore) window.renderDrawerScore(item.id);
     renderDrawerBarcode(item);
     loadDimsToForm('d', item);
     suggestPackaging('d');
