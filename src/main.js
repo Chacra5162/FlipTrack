@@ -164,14 +164,14 @@ import {
 } from './views/crosslist-dashboard.js';
 import {
   wnToggleShow, wnNewShow, wnDeleteShow, wnStartShow, wnEndShow,
-  wnMarkSold, wnMoveItem, wnRemoveItem, wnOpenItemPicker, wnCloseItemPicker,
+  wnMarkSold, wnMoveItem, wnRemoveItem, wnOpenItemPicker, wnCloseItemPicker, wnPickerSearch, wnPickerShowMore, wnShowAllItems,
   wnPickItem, wnCopyPrep,
   wnSwitchTab, wnEditItemNote, wnCloneShow, wnSetViewerPeak, wnSetExpenses,
   wnPrintRunSheet, wnExportShowCSV,
   wnBuilderToggle, wnBuilderSelectAll, wnBuilderClearSelection, wnBuilderCreateShow,
   wnCalcUpdate,
   wnSetGoal, wnGiveaway, wnEditBinLoc, wnCreateLot, wnRemoveLot,
-  wnCopyRecap, wnSetCompareA, wnSetCompareB, wnMarkShipped
+  wnCopyRecap, wnSetCompareA, wnSetCompareB, wnMarkShipped, wnBulkMarkShipped
 } from './views/whatnot-dashboard.js';
 import { initEBayAuth, handleEBayCallback, isEBayConnected } from './features/ebay-auth.js';
 import { initEBaySync, startEBaySyncInterval, stopEBaySyncInterval, resyncEBayOrders, backfillEBayData } from './features/ebay-sync.js';
@@ -608,14 +608,14 @@ Object.assign(window, {
 // Whatnot Integration
 Object.assign(window, {
   wnToggleShow, wnNewShow, wnDeleteShow, wnStartShow, wnEndShow,
-  wnMarkSold, wnMoveItem, wnRemoveItem, wnOpenItemPicker, wnCloseItemPicker,
+  wnMarkSold, wnMoveItem, wnRemoveItem, wnOpenItemPicker, wnCloseItemPicker, wnPickerSearch, wnPickerShowMore, wnShowAllItems,
   wnPickItem, wnCopyPrep,
   wnSwitchTab, wnEditItemNote, wnCloneShow, wnSetViewerPeak, wnSetExpenses,
   wnPrintRunSheet, wnExportShowCSV,
   wnBuilderToggle, wnBuilderSelectAll, wnBuilderClearSelection, wnBuilderCreateShow,
   wnCalcUpdate,
   wnSetGoal, wnGiveaway, wnEditBinLoc, wnCreateLot, wnRemoveLot,
-  wnCopyRecap, wnSetCompareA, wnSetCompareB, wnMarkShipped,
+  wnCopyRecap, wnSetCompareA, wnSetCompareB, wnMarkShipped, wnBulkMarkShipped,
   exportShowPrepCSV, exportShowResultsCSV, exportAllShowsCSV,
   notifyShowEnded
 });

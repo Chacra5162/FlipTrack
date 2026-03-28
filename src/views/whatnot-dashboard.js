@@ -42,6 +42,9 @@ let _wnCompareB = '';
 let _wnLotPickerShow = null;
 let _wnLotPickerItems = new Set();
 let _wnShipQueueShowId = null;
+let _wnPickerSearch = '';
+let _wnPickerLimit = 50;
+let _wnShowItemsExpanded = new Set();
 
 let _rerender = () => {};
 
@@ -147,7 +150,9 @@ function _renderWnShowsTab() {
         if (show.items.length === 0) {
           html += `<div class="wn-show-empty">No items yet — add items to start your show prep</div>`;
         }
-        show.items.forEach((itemId, i) => {
+        const showItemLimit = _wnShowItemsExpanded.has(show.id) ? show.items.length : 25;
+        const visibleItems = show.items.slice(0, showItemLimit);
+        visibleItems.forEach((itemId, i) => {
           const item = getInvItem(itemId);
           if (!item) return;
           const imgUrl = (item.images && item.images[0]) || '';
@@ -172,6 +177,12 @@ function _renderWnShowsTab() {
             </div>
           </div>`;
         });
+        if (show.items.length > 25 && !_wnShowItemsExpanded.has(show.id)) {
+          const remaining = show.items.length - 25;
+          html += `<div style="text-align:center;padding:6px">
+            <button class="btn-sm" onclick="wnShowAllItems('${escAttr(show.id)}')">Show all ${show.items.length} items (${remaining} more)</button>
+          </div>`;
+        }
         // Lots section
         const lots = getShowLots(show.id);
         if (lots.length > 0 || !isLive) {
@@ -205,24 +216,35 @@ function _renderWnShowsTab() {
         </div>`;
 
         if (_wnShowItemPicker) {
-          const available = inv.filter(x =>
+          const allAvailable = inv.filter(x =>
             (x.qty || 0) > 0 && !show.items.includes(x.id)
-          ).slice(0, 50);
+          );
+          const filtered = _wnPickerSearch
+            ? allAvailable.filter(x => (x.name || '').toLowerCase().includes(_wnPickerSearch.toLowerCase()))
+            : allAvailable;
+          const visible = filtered.slice(0, _wnPickerLimit);
+          const remaining = filtered.length - visible.length;
           html += `<div class="wn-item-picker">
             <div class="wn-picker-header">
-              <strong>Select items to add</strong>
+              <strong>Select items to add (${filtered.length})</strong>
               <button class="btn-xs btn-muted" onclick="wnCloseItemPicker()">Done</button>
             </div>
+            <input type="text" placeholder="Search items..." value="${escAttr(_wnPickerSearch)}" oninput="wnPickerSearch(this.value)" style="width:100%;padding:6px 8px;margin-bottom:6px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);font-family:inherit;font-size:13px">
             <div class="wn-picker-list">`;
-          if (available.length === 0) {
-            html += `<div class="wn-picker-empty">All in-stock items are already in this show</div>`;
+          if (filtered.length === 0) {
+            html += `<div class="wn-picker-empty">${_wnPickerSearch ? 'No items match your search' : 'All in-stock items are already in this show'}</div>`;
           }
-          for (const item of available) {
+          for (const item of visible) {
             const showHist = getItemShowHistory(item.id);
             const histLabel = showHist.length ? ` (${showHist.filter(h => h.wasSold).length}/${showHist.length} shows sold)` : '';
             html += `<div class="wn-picker-item" onclick="wnPickItem('${escAttr(show.id)}','${escAttr(item.id)}')"
               <span class="wn-picker-name">${escHtml(item.name || 'Untitled')}${histLabel}</span>
               <span class="wn-picker-price">${item.price ? fmt(item.price) : ''}</span>
+            </div>`;
+          }
+          if (remaining > 0) {
+            html += `<div style="text-align:center;padding:8px">
+              <button class="btn-sm" onclick="wnPickerShowMore()">Show more (${remaining} remaining)</button>
             </div>`;
           }
           html += `</div></div>`;
@@ -733,6 +755,10 @@ function _renderWnShippingTab() {
   let html = `<div class="wn-shipping">`;
   html += `<div class="wn-section-title">Shipping Queue (${queue.length} unshipped)</div>`;
 
+  if (queue.length > 0) {
+    html += `<div style="margin-bottom:10px"><button class="btn-sm btn-accent" onclick="wnBulkMarkShipped()">Mark All Shipped (${queue.length})</button></div>`;
+  }
+
   if (queue.length === 0) {
     html += `<div style="text-align:center;padding:30px;color:var(--muted)">All items shipped! Nothing in the queue.</div>`;
   } else {
@@ -832,11 +858,31 @@ export async function wnRemoveItem(showId, itemId) {
 export function wnOpenItemPicker(showId) {
   _wnExpandedShow = showId;
   _wnShowItemPicker = true;
+  _wnPickerSearch = '';
+  _wnPickerLimit = 50;
   _rerender();
 }
 
 export function wnCloseItemPicker() {
   _wnShowItemPicker = false;
+  _wnPickerSearch = '';
+  _wnPickerLimit = 50;
+  _rerender();
+}
+
+export function wnPickerSearch(val) {
+  _wnPickerSearch = val;
+  _wnPickerLimit = 50;
+  _rerender();
+}
+
+export function wnPickerShowMore() {
+  _wnPickerLimit += 50;
+  _rerender();
+}
+
+export function wnShowAllItems(showId) {
+  _wnShowItemsExpanded.add(showId);
   _rerender();
 }
 
@@ -1006,5 +1052,16 @@ export function wnSetCompareB(val) {
 
 export async function wnMarkShipped(itemId) {
   await markItemShipped(itemId);
+  _rerender();
+}
+
+export async function wnBulkMarkShipped() {
+  const queue = getGlobalShippingQueue();
+  if (queue.length === 0) return;
+  if (!await appConfirm({ title: 'Mark All Shipped', message: `Mark ${queue.length} items as shipped?` })) return;
+  for (const q of queue) {
+    await markItemShipped(q.itemId);
+  }
+  toast(`${queue.length} items marked as shipped`);
   _rerender();
 }
