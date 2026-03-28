@@ -1996,6 +1996,63 @@ alert may not reflect the true margin.
 
 
 ================================================================================
+WHATNOT LIVE SELLING SUITE (v2.0.1)
+================================================================================
+
+14 new features for Whatnot live sellers — no other reseller tool offers this
+level of Whatnot integration.
+
+  - Live Show Dashboard
+    Real-time command center: running revenue, sell-through, timer, remaining
+    queue, revenue-per-hour. Quick-action sold/giveaway buttons.
+
+  - Lot Bundling
+    Group show items into auction lots with names and starting bids. Lots
+    appear on run sheets with item breakdowns and value calculations.
+
+  - Show Revenue Goals
+    Set per-show revenue targets with real-time progress bar during live shows.
+    Analytics tab tracks goal hit rate across all shows.
+
+  - Post-Show Recap Card
+    Auto-generate shareable text recap: sold count, revenue, sell-through, top
+    seller, giveaways, goal status. Copy to clipboard for social media.
+
+  - Show Countdown Push Reminders
+    Push notifications at 60min and 15min before scheduled shows.
+
+  - Starting Bid Recommendations
+    Data-driven bid suggestions from show history, comps, and list prices.
+    Dedicated Pricing tab with suggested bid, range, and reasoning.
+
+  - Category Rotation Planner
+    Identifies stale categories due for Whatnot exposure with urgency status.
+
+  - Giveaway & Loss Leader Tracker
+    Track items given away during shows. Records cost impact on P&L.
+
+  - Show-to-Show Comparison
+    Side-by-side metrics for any two past shows.
+
+  - Shipping Queue
+    Global view of unshipped sold items with mark-shipped workflow.
+
+  - Bin/Shelf Location
+    Per-item storage location on run sheets, live queue, and shipping queue.
+
+  - Smart Inventory Actions
+    Prescriptive suggestions: Whatnot $1 auction, bundle into lot, drop price,
+    crosslist, or donate for tax write-off. Based on aging and show history.
+
+  - Platform Differential Pricing
+    Suggested prices per platform based on fee structures and buyer culture.
+
+  - AI Description Character Limits
+    1,000 chars for Whatnot/Depop/Mercari, 1,500 Poshmark, 4,000 eBay.
+    Whatnot descriptions use live-show-friendly language.
+
+
+================================================================================
 47. WHAT'S NEW IN VERSION 2.1
 ================================================================================
 

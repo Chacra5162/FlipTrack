@@ -647,3 +647,145 @@ export function calcGoalStats() {
     overPerformPct: totalGoal > 0 ? (totalActual - totalGoal) / totalGoal : 0,
   };
 }
+
+// ── PRESCRIPTIVE INVENTORY ACTIONS ────────────────────────────────────
+
+/**
+ * Generate smart action suggestions for stale or underperforming items.
+ * This is the "business advisor" engine — tells sellers what to DO, not just what happened.
+ * @param {number} limit - Max suggestions to return
+ * @returns {Array<{ item, action, reason, priority, actionType }>}
+ */
+export function calcInventoryActions(limit = 20) {
+  const now = Date.now();
+  const msDay = 86400000;
+  const catPerf = {};
+  for (const c of calcCategoryPerformance()) catPerf[c.category] = c;
+  const actions = [];
+
+  for (const item of inv) {
+    if ((item.qty || 0) <= 0) continue;
+
+    const daysInInv = item.added ? (now - new Date(item.added).getTime()) / msDay : 0;
+    const price = item.price || 0;
+    const cost = item.cost || 0;
+    const margin = price > 0 ? (price - cost) / price : 0;
+    const platforms = item.platformStatus || {};
+    const activePlats = Object.entries(platforms).filter(([, s]) => s === 'active').map(([p]) => p);
+    const wnHistory = getItemShowHistory(item.id);
+    const wnUnsold = getItemShowsWithoutSale(item.id);
+
+    // Whatnot $1 auction suggestion — stale 120+ days
+    if (daysInInv > 120 && !activePlats.includes('Whatnot')) {
+      actions.push({
+        item, priority: 9,
+        action: `Move to Whatnot $1 auction — ${Math.round(daysInInv)}d old, needs fresh exposure`,
+        actionType: 'whatnot-auction',
+      });
+      continue;
+    }
+
+    // Shown on Whatnot 3+ times without selling — drop price or bundle into lot
+    if (wnUnsold >= 3) {
+      actions.push({
+        item, priority: 8,
+        action: `Bundle into a lot or drop price — shown ${wnUnsold}× on Whatnot without selling`,
+        actionType: 'bundle-or-drop',
+      });
+      continue;
+    }
+
+    // Stale 60+ days — suggest best platform based on category performance
+    if (daysInInv > 60 && activePlats.length <= 1) {
+      const cp = catPerf[item.category];
+      if (cp && cp.sellThrough > 0.3) {
+        actions.push({
+          item, priority: 7,
+          action: `Try Whatnot — ${item.category} has ${(cp.sellThrough * 100).toFixed(0)}% sell-through in shows`,
+          actionType: 'relist-whatnot',
+        });
+      } else {
+        actions.push({
+          item, priority: 6,
+          action: `${Math.round(daysInInv)}d old with only ${activePlats.length} platform — crosslist to more marketplaces`,
+          actionType: 'crosslist',
+        });
+      }
+      continue;
+    }
+
+    // Stale 90+ days with low margin — suggest donation for tax write-off
+    if (daysInInv > 90 && margin < 0.15 && cost > 5) {
+      actions.push({
+        item, priority: 5,
+        action: `Consider donating — tax write-off may exceed likely sale (${fmt(cost)} cost, ${Math.round(daysInInv)}d old)`,
+        actionType: 'donate',
+      });
+      continue;
+    }
+
+    // Comp data suggests price is too high
+    if (item.compMedian && price > item.compMedian * 1.3 && daysInInv > 14) {
+      const dropPct = Math.round((1 - item.compMedian / price) * 100);
+      actions.push({
+        item, priority: 7,
+        action: `Drop price ~${dropPct}% — comp median is ${fmt(item.compMedian)}, listed at ${fmt(price)}`,
+        actionType: 'reprice',
+      });
+      continue;
+    }
+
+    // Never listed on Whatnot and high margin — suggest it
+    if (!activePlats.includes('Whatnot') && wnHistory.length === 0 && margin > 0.4 && daysInInv > 7) {
+      actions.push({
+        item, priority: 4,
+        action: `High margin (${(margin * 100).toFixed(0)}%) — add to next Whatnot show for auction energy`,
+        actionType: 'add-to-show',
+      });
+    }
+  }
+
+  return actions.sort((a, b) => b.priority - a.priority).slice(0, limit);
+}
+
+// ── PLATFORM DIFFERENTIAL PRICING ─────────────────────────────────────
+
+/**
+ * Suggest optimal prices per platform for an item based on fee structures and sell-through data.
+ * Different platforms have different buyer cultures and fee structures.
+ */
+export function suggestPlatformPricing(itemId) {
+  const item = getInvItem(itemId);
+  if (!item) return [];
+  const basePrice = item.price || 0;
+  if (!basePrice) return [];
+  const cost = item.cost || 0;
+
+  const strategies = [
+    { platform: 'eBay', pct: 1.0, reason: 'Base price — largest audience' },
+    { platform: 'Poshmark', pct: 1.25, reason: '+25% for offer culture (buyers expect to negotiate)' },
+    { platform: 'Mercari', pct: 0.95, reason: '-5% — Mercari Smart Pricing and price-sensitive buyers' },
+    { platform: 'Depop', pct: 1.10, reason: '+10% for trend/aesthetic premium' },
+    { platform: 'Whatnot', pct: 0, reason: 'Auction — use starting bid recommendations instead' },
+    { platform: 'Etsy', pct: 1.15, reason: '+15% for handmade/vintage premium' },
+    { platform: 'Facebook Marketplace', pct: 0.90, reason: '-10% for local/no-ship expectation' },
+  ];
+
+  return strategies.map(s => {
+    const suggestedPrice = s.pct > 0 ? Math.round(basePrice * s.pct * 100) / 100 : 0;
+    const fee = PLATFORM_FEES[s.platform];
+    let netProfit = 0;
+    if (fee && suggestedPrice > 0) {
+      const commission = suggestedPrice * (fee.pct || 0);
+      const processing = suggestedPrice * (fee.processing || 0) + (fee.processingFlat || 0);
+      netProfit = suggestedPrice - commission - processing - cost;
+    }
+    return {
+      platform: s.platform,
+      suggestedPrice,
+      netProfit,
+      margin: suggestedPrice > 0 ? netProfit / suggestedPrice : 0,
+      reason: s.reason,
+    };
+  });
+}

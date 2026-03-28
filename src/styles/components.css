@@ -3236,6 +3236,14 @@ textarea { resize:vertical; min-height:70px; }
 .wn-ship-name { font-weight: 500; font-size: 0.85rem; display: block; }
 .wn-ship-detail { font-size: 0.72rem; color: var(--muted); }
 
+/* ── Whatnot: Prescriptive Actions ─────────────────────────────── */
+.wn-actions-list { display: flex; flex-direction: column; gap: 4px; }
+.wn-action-row { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; background: var(--bg2); border-radius: 6px; border-left: 3px solid var(--accent2); }
+.wn-action-icon { font-size: 1.1rem; flex: 0 0 24px; text-align: center; }
+.wn-action-info { flex: 1; }
+.wn-action-item { display: block; font-weight: 600; font-size: 0.85rem; }
+.wn-action-text { display: block; font-size: 0.75rem; color: var(--muted); }
+
 /* ── Whatnot: Button variants ─────────────────────────────────── */
 .btn-warn { background: rgba(247,129,102,0.12); color: var(--accent2); border: 1px solid rgba(247,129,102,0.25); }
 .btn-warn:hover { background: rgba(247,129,102,0.2); }

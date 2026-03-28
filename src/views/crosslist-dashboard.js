@@ -50,7 +50,8 @@ import {
   getShowMetrics, calcBestShowDay, calcBestShowTime, calcCategoryPerformance,
   calcShowTrends, calcTopPerformingItems, calcWorstPerformingItems, calcOverallStats,
   suggestShowItems, suggestShowSize, suggestCategoryMix,
-  compareShows, calcCategoryRotation, suggestStartingBid, suggestShowBids, calcGoalStats
+  compareShows, calcCategoryRotation, suggestStartingBid, suggestShowBids, calcGoalStats,
+  calcInventoryActions, suggestPlatformPricing
 } from '../features/whatnot-analytics.js';
 import { copyPlatformListing } from '../features/ai-listing.js';
 
@@ -1434,6 +1435,25 @@ function _renderWnAnalyticsTab() {
         <span class="wn-rot-cat">${escHtml(r.category)}</span>
         <span class="wn-rot-info">${r.inStockCount} in stock · ${r.lastShownDate === 'Never' ? 'Never shown' : r.daysSinceShown + 'd ago'} · ${(r.avgSellThrough * 100).toFixed(0)}% ST</span>
         ${r.suggestion ? `<span class="wn-rot-sug">${escHtml(r.suggestion)}</span>` : ''}
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  // Prescriptive Inventory Actions
+  const invActions = calcInventoryActions(8);
+  if (invActions.length > 0) {
+    html += `<div class="wn-section-title">Smart Actions — What to Do Next</div>
+    <div class="wn-actions-list">`;
+    const icons = { 'whatnot-auction': '🔨', 'bundle-or-drop': '📦', 'relist-whatnot': '📺', 'crosslist': '🔗', 'donate': '🎗', 'reprice': '💰', 'add-to-show': '⭐' };
+    for (const a of invActions) {
+      const icon = icons[a.actionType] || '💡';
+      html += `<div class="wn-action-row">
+        <span class="wn-action-icon">${icon}</span>
+        <div class="wn-action-info">
+          <span class="wn-action-item">${escHtml(a.item.name?.slice(0, 30) || '')}</span>
+          <span class="wn-action-text">${escHtml(a.action)}</span>
+        </div>
       </div>`;
     }
     html += `</div>`;
