@@ -965,7 +965,9 @@ export async function pushItemToEBay(itemId) {
 
   // Auto-detect category, validate condition, and fill required aspects
   try {
-    const catId = await _suggestCategory(item.name || 'item');
+    let catId = await _suggestCategory(item.name || 'item');
+    if (!catId && item.category) catId = await _suggestCategory(`${item.name || ''} ${item.category}`.trim());
+    if (!catId && item.category) catId = await _suggestCategory(item.category);
     if (catId) {
       // Validate condition is accepted for this category
       const validEnum = await _getValidCondition(catId, payload.condition);
@@ -1028,7 +1030,9 @@ export async function updateEBayListing(itemId) {
 
   // Auto-detect category, validate condition, and fill required aspects before pushing
   try {
-    const catId = await _suggestCategory(item.name || 'item');
+    let catId = await _suggestCategory(item.name || 'item');
+    if (!catId && item.category) catId = await _suggestCategory(`${item.name || ''} ${item.category}`.trim());
+    if (!catId && item.category) catId = await _suggestCategory(item.category);
     if (catId) {
       const validEnum = await _getValidCondition(catId, payload.condition);
       if (validEnum !== payload.condition) {
@@ -1437,7 +1441,16 @@ export async function publishEBayListing(itemId, options = {}, _isRetry = false)
   // Auto-detect category first — we need it for condition validation
   let categoryId = options.categoryId || null;
   if (!categoryId) {
-    categoryId = await _suggestCategory(item.name || 'item');
+    // Try name first, then name + category, then category alone
+    const name = item.name || '';
+    const cat = item.category || '';
+    categoryId = await _suggestCategory(name || 'item');
+    if (!categoryId && cat) {
+      categoryId = await _suggestCategory(`${name} ${cat}`.trim());
+    }
+    if (!categoryId && cat) {
+      categoryId = await _suggestCategory(cat);
+    }
   }
   if (!categoryId) {
     throw new Error('Could not determine eBay category. Please set a category for this item.');
