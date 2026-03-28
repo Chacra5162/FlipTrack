@@ -3461,6 +3461,72 @@ textarea { resize:vertical; min-height:70px; }
   line-height: 1.4;
 }
 
+/* ── SUPPLY ALLOCATION ─────────────────────────── */
+.supply-alloc-wrap {
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-top:16px;
+}
+.sa-header {
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;
+}
+.sa-summary {
+  display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;
+}
+.sa-stat {
+  background:var(--surface2,var(--bg));border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;
+}
+.sa-stat-val {
+  font-family:'DM Mono',monospace;font-weight:700;font-size:14px;color:var(--accent);
+}
+.sa-stat-label {
+  font-size:9px;color:var(--muted);text-transform:uppercase;margin-top:2px;
+}
+.sa-add-form {
+  background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px;
+}
+.sa-form-row {
+  display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+}
+.sa-form-row select, .sa-form-row input {
+  background:var(--surface);border:1px solid var(--border);color:var(--text);
+  font-family:'DM Mono',monospace;font-size:11px;padding:6px 8px;border-radius:6px;
+}
+.sa-rules { margin-top:8px; }
+.sa-rule {
+  display:flex;align-items:center;gap:8px;padding:8px 10px;
+  border:1px solid var(--border);border-radius:6px;margin-bottom:6px;
+  background:var(--bg);
+}
+.sa-rule-disabled { opacity:0.5; }
+
+/* ── PEER BENCHMARKING ────────────────────────── */
+.bench-wrap {
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-top:16px;
+}
+.bench-header {
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;
+}
+.bench-tier {
+  display:flex;align-items:center;gap:12px;padding:12px;
+  background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:14px;
+}
+.bench-metrics { display:flex;flex-direction:column;gap:10px; }
+.bench-metric { }
+.bench-metric-header {
+  display:flex;justify-content:space-between;margin-bottom:4px;
+}
+.bench-bar-track {
+  position:relative;height:8px;background:var(--bg);border-radius:4px;overflow:visible;
+  border:1px solid var(--border);
+}
+.bench-bar-fill {
+  height:100%;border-radius:4px;transition:width 0.4s ease;
+}
+.bench-bar-marker {
+  position:absolute;top:-2px;width:2px;height:12px;
+  background:var(--muted);opacity:0.5;border-radius:1px;
+  transform:translateX(-1px);
+}
+
 @media (max-width:600px) {
   .pc-grid { grid-template-columns:1fr; }
   .pc-metrics { grid-template-columns:1fr 1fr; }
@@ -3469,4 +3535,6 @@ textarea { resize:vertical; min-height:70px; }
   .ls-overview { flex-direction:column; text-align:center; }
   .sa-summary { grid-template-columns:repeat(2,1fr); }
   .kbd-hint { display: none; }
+  .sa-form-row { flex-direction:column; }
+  .sa-form-row select, .sa-form-row input { width:100%; }
 }

@@ -2052,6 +2052,69 @@ level of Whatnot integration.
     Whatnot descriptions use live-show-friendly language.
 
 
+ADVANCED ANALYTICS & AUTOMATION (v2.0.2)
+================================================================================
+
+Three new features that go beyond what competitor reseller tools offer —
+supply cost intelligence, peer benchmarking, and a seamless sourcing pipeline.
+
+  - Supply Cost Auto-Allocation
+    Automatically distribute bulk supply costs (boxes, poly mailers, labels,
+    tape, bubble wrap) across individual inventory items as part of COGS.
+    Five allocation methods:
+      * Per-Item: Fixed cost per item (e.g. $0.50/mailer for every item)
+      * Per-Shipment: Cost added at time of each sale
+      * Even Split: Total supply cost divided across all in-stock items
+      * By Weight Class: Rate multiplied by weight (light 0.5x, medium 1x,
+        heavy 2x) for accurate shipping supply allocation
+      * By Category: Different rates per category (e.g. more packaging for
+        fragile items)
+    Set up rules in Supplies view, run bulk allocation, and see true profit
+    per item with supply costs factored in. Summary dashboard shows active
+    rules, allocated totals, and per-shipment costs for the month.
+
+    TUTORIAL: Supplies > scroll to "Supply Cost Allocation" section > Add a
+    rule by selecting a supply, method, and rate > click "Run Allocation" to
+    apply costs across your inventory. Check item profit in the drawer to see
+    updated COGS including allocated supply costs.
+
+  - Peer Benchmarking
+    See how your monthly metrics compare to other resellers with anonymized
+    percentile rankings. Based on published industry benchmark data — your
+    data never leaves your device.
+    Metrics tracked:
+      * Monthly revenue, profit, and units sold
+      * Average profit per item and ROI
+      * Sell-through rate and average days to sell
+    Each metric shows a percentile bar (1st-99th), label (Top 10%, Above
+    Average, etc.), and color coding. Overall tier classification:
+      * Power Seller ($8,000+/mo)
+      * Full-Time ($2,000-$8,000/mo)
+      * Part-Time ($500-$2,000/mo)
+      * Hobbyist (under $500/mo)
+    Toggle visibility on/off from the dashboard.
+
+    TUTORIAL: Dashboard > scroll below Goal Gap widget to "Peer Benchmarking"
+    section. Your metrics auto-populate from this month's sales data. Click
+    "Hide" to collapse, "Show" to re-expand. Use percentile bars to identify
+    weak areas — e.g. if sell-through is Below Average, consider repricing or
+    crosslisting stale items.
+
+  - Sourcing-to-Listing Pipeline
+    When scanning items in Sourcing Mode, you can now auto-queue them for
+    crosslisting. After the AI analysis and source score, check "Auto-queue
+    for crosslisting" and select target platforms (eBay, Poshmark, Mercari,
+    Whatnot, Depop, Facebook). When you tap "Add to Inventory," the item is
+    added AND queued for crosslisting on your chosen platforms.
+    The crosslist queue tracks items waiting to be listed, with item name,
+    target platforms, cost, and suggested price.
+
+    TUTORIAL: Sourcing Mode (camera icon) > scan item > review AI analysis >
+    check "Auto-queue for crosslisting" > select platforms > tap "Add to
+    Inventory." Item is added with pre-filled fields AND queued for
+    crosslisting. View queue in Crosslisting dashboard.
+
+
 ================================================================================
 47. WHAT'S NEW IN VERSION 2.1
 ================================================================================

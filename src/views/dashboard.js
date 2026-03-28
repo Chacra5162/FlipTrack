@@ -312,6 +312,10 @@ export function renderDash() {
   const gapEl = document.getElementById('goalGapSection');
   if (gapEl) gapEl.innerHTML = renderGoalGapWidget();
 
+  // Peer Benchmarking
+  const benchEl = document.getElementById('peerBenchSection');
+  if (benchEl && window.renderPeerBenchmarking) benchEl.innerHTML = window.renderPeerBenchmarking();
+
   // Sales Velocity Chart
   const svEl = document.getElementById('salesVelocitySection');
   if (svEl) svEl.innerHTML = renderSalesVelocity();

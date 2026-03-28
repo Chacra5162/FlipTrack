@@ -16,6 +16,36 @@ let _compsResult = null;
 let _sourceVerdict = null;
 let _capturedImage = null;
 
+// ── CROSSLIST QUEUE ─────────────────────────────────────────────────────────
+// Items scanned in sourcing mode can be auto-queued for crosslisting
+const CROSSLIST_QUEUE_KEY = 'ft_src_crosslist_queue';
+
+function _getCrosslistQueue() {
+  try { return JSON.parse(localStorage.getItem(CROSSLIST_QUEUE_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function _saveCrosslistQueue(q) {
+  localStorage.setItem(CROSSLIST_QUEUE_KEY, JSON.stringify(q.slice(-200)));
+}
+
+export function getSrcCrosslistQueue() { return _getCrosslistQueue(); }
+
+export function srcRemoveFromQueue(itemId) {
+  const q = _getCrosslistQueue().filter(e => e.itemId !== itemId);
+  _saveCrosslistQueue(q);
+  toast('Removed from crosslist queue');
+}
+
+export function srcClearQueue() {
+  _saveCrosslistQueue([]);
+  toast('Queue cleared');
+}
+
+export function srcQueueCount() {
+  return _getCrosslistQueue().length;
+}
+
 export function openSourcingMode() {
   _sourcingOpen = true;
   _aiResult = null;
@@ -160,6 +190,20 @@ export function srcAddToInventory() {
   const cost = parseFloat(document.getElementById('srcCostInput')?.value) || 0;
   const price = comps?.suggestedPrice || r.suggestedPrice || 0;
 
+  // Check if user wants to auto-queue for crosslisting
+  const autoQueue = document.getElementById('srcAutoCrosslist')?.checked;
+  const selectedPlatforms = [];
+  if (autoQueue) {
+    document.querySelectorAll('.src-plat-cb:checked').forEach(cb => {
+      selectedPlatforms.push(cb.value);
+    });
+  }
+
+  // Store crosslist intent for after item is added
+  const crosslistIntent = autoQueue && selectedPlatforms.length > 0
+    ? { platforms: selectedPlatforms, name: r.name || r.title, cost, price }
+    : null;
+
   closeSourcingMode();
 
   // Switch to inventory view and open Add modal
@@ -214,12 +258,38 @@ export function srcAddToInventory() {
       if (window.prevProfit) window.prevProfit();
 
       const filled = [r.name, r.brand, r.category, cost, price, r.condition].filter(Boolean).length;
-      toast(`Pre-filled ${filled} fields from scan`);
+
+      // Queue for crosslisting if requested
+      if (crosslistIntent) {
+        const q = _getCrosslistQueue();
+        q.push({
+          itemName: crosslistIntent.name,
+          platforms: crosslistIntent.platforms,
+          cost: crosslistIntent.cost,
+          price: crosslistIntent.price,
+          queued: new Date().toISOString(),
+          itemId: null, // Will be matched after save
+        });
+        _saveCrosslistQueue(q);
+        toast(`Pre-filled ${filled} fields · Queued for ${crosslistIntent.platforms.join(', ')}`);
+      } else {
+        toast(`Pre-filled ${filled} fields from scan`);
+      }
     } catch (err) {
       console.error('FlipTrack: srcAddToInventory prefill error:', err);
       toast('Opened add form — some fields may need manual entry');
     }
   }, 200);
+}
+
+/** After an item is saved from sourcing, link it to the crosslist queue entry */
+export function srcLinkQueueItem(itemId, itemName) {
+  const q = _getCrosslistQueue();
+  const entry = q.find(e => !e.itemId && e.itemName === itemName);
+  if (entry) {
+    entry.itemId = itemId;
+    _saveCrosslistQueue(q);
+  }
 }
 
 // ── UI RENDERING ──────────────────────────────────────────────────────────
@@ -318,10 +388,30 @@ function _renderSourcingUI(state, errorMsg) {
         </div>
       ` : ''}
 
+      <div style="margin-bottom:16px;background:var(--surface);border-radius:8px;padding:10px 12px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px">
+          <input type="checkbox" id="srcAutoCrosslist" onchange="srcToggleCrosslist()" style="accent-color:var(--accent)">
+          <span style="font-size:12px;color:var(--text);font-weight:600">Auto-queue for crosslisting</span>
+        </label>
+        <div id="srcPlatformPicks" style="display:none;flex-wrap:wrap;gap:6px">
+          ${['eBay','Poshmark','Mercari','Whatnot','Depop','Facebook'].map(p =>
+            `<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);cursor:pointer">
+              <input type="checkbox" class="src-plat-cb" value="${p}" style="accent-color:var(--accent)"> ${p}
+            </label>`
+          ).join('')}
+        </div>
+      </div>
+
       <div style="display:flex;gap:8px">
         <button onclick="srcRetake()" class="btn-secondary" style="flex:1;padding:12px">Retake</button>
         <button onclick="srcAddToInventory()" class="btn-primary" style="flex:1;padding:12px">Add to Inventory</button>
       </div>
     </div>
   </div>`;
+}
+
+export function srcToggleCrosslist() {
+  const checked = document.getElementById('srcAutoCrosslist')?.checked;
+  const picks = document.getElementById('srcPlatformPicks');
+  if (picks) picks.style.display = checked ? 'flex' : 'none';
 }

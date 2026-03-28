@@ -83,6 +83,15 @@ const TOUR_STEPS = [
     position: 'top',
     viewRequirement: 'dashboard',
   },
+  {
+    section: 'Dashboard',
+    target: '#peerBenchSection',
+    fallbackTarget: '#goalGapSection',
+    title: 'Peer Benchmarking',
+    desc: 'See how your monthly metrics stack up against other resellers. Percentile bars show your ranking for revenue, profit, units sold, ROI, and sell-through. Tier badge shows Power Seller, Full-Time, Part-Time, or Hobbyist classification. Privacy-first — data never leaves your device.',
+    position: 'top',
+    viewRequirement: 'dashboard',
+  },
 
   /* ── SECTION 2: ADDING INVENTORY ─────────────────────────────────────── */
   {
@@ -232,7 +241,7 @@ const TOUR_STEPS = [
     target: '#view-supplies',
     fallbackTarget: '#supBody',
     title: 'Supplies Manager',
-    desc: 'Track packing materials — boxes, mailers, tape, labels. Set low-stock alerts so you never run out mid-shipment.',
+    desc: 'Track packing materials — boxes, mailers, tape, labels. Set low-stock alerts so you never run out mid-shipment. Use Supply Cost Allocation to auto-distribute supply costs across items for true profit tracking.',
     position: 'top',
     viewRequirement: 'supplies',
   },
@@ -431,7 +440,7 @@ const TOUR_STEPS = [
     target: '#view-sourcing',
     fallbackTarget: '#sourcingContent',
     title: 'AI Sourcing Mode',
-    desc: 'Open Sourcing Mode from the Sourcing view for instant "buy or pass" decisions at thrift stores. Full-screen camera captures an item, AI identifies it, fetches sold comps, and gives a BUY/MAYBE/PASS verdict with ROI calculation. Add to inventory in one tap.',
+    desc: 'Open Sourcing Mode from the Sourcing view for instant "buy or pass" decisions at thrift stores. Full-screen camera captures an item, AI identifies it, fetches sold comps, and gives a BUY/MAYBE/PASS verdict with ROI calculation. Add to inventory in one tap with optional auto-queue for crosslisting on selected platforms.',
     position: 'top',
     viewRequirement: 'sourcing',
   },

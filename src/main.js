@@ -199,7 +199,9 @@ import {
 import { estimateShippingRate, suggestPackage, getCarrierOptions } from './features/shipping-rates.js';
 
 // ── Phase 3: Sourcing & Haul Tracking ────────────────────────────────────────
-import { openSourcingMode, closeSourcingMode, srcCapture, srcRetake, srcUpdateCost, srcAddToInventory } from './features/sourcing-mode.js';
+import { openSourcingMode, closeSourcingMode, srcCapture, srcRetake, srcUpdateCost, srcAddToInventory, srcToggleCrosslist, getSrcCrosslistQueue, srcRemoveFromQueue, srcClearQueue } from './features/sourcing-mode.js';
+import { renderSupplyAllocation, saAddRule, saRemoveRule, saToggleRule, saRunAllocation, saMethodChanged } from './features/supply-allocation.js';
+import { renderPeerBenchmarking, toggleBenchmarkVisibility } from './features/peer-benchmarking.js';
 import { openPoshmarkSync, closePoshmarkSync, poshMarkSold } from './features/poshmark-sync.js';
 import {
   renderSourcingView, initHauls, addHaul, deleteHaul, expandHaul,
@@ -633,6 +635,7 @@ Object.assign(window, {
   linkItemsToHaul, confirmLinkItems, closeItemLinkModal, unlinkItem,
   srcSetSearch, srcSetSort,
   openSourcingMode, closeSourcingMode, srcCapture, srcRetake, srcUpdateCost, srcAddToInventory,
+  srcToggleCrosslist, getSrcCrosslistQueue, srcRemoveFromQueue, srcClearQueue,
   openPoshmarkSync, closePoshmarkSync, poshMarkSold,
   shareHaulReceipt: (id) => {
     const haul = getHaulById(id);
@@ -683,6 +686,10 @@ Object.assign(window, {
   // Stakeholder features
   startTour, endTour,
   openKPIGoalEditor, closeKPIGoalEditor, saveKPIGoals,
+  // Supply Allocation
+  renderSupplyAllocation, saAddRule, saRemoveRule, saToggleRule, saRunAllocation, saMethodChanged,
+  // Peer Benchmarking
+  renderPeerBenchmarking, toggleBenchmark: toggleBenchmarkVisibility,
   toggleNotifCenter, closeNotifCenter, markAllRead, clearNotifications, addNotification,
   getSalesVelocity,
   exportPLReport, exportTaxReport,
@@ -926,7 +933,7 @@ function switchView(name, el) {
     inventory:          () => renderInv(),
     sales:              () => renderSalesView(),
     expenses:           () => renderExpenses(),
-    supplies:           () => { renderSupplies(); checkSupplyAlerts(); },
+    supplies:           () => { renderSupplies(); checkSupplyAlerts(); const saEl = document.getElementById('supplyAllocSection'); if (saEl) saEl.innerHTML = renderSupplyAllocation(); },
     insights:           () => renderInsights(),
     reports:            () => renderReports(),
     breakdown:          () => renderBreakdown(),
