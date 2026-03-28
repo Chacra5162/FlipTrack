@@ -430,6 +430,31 @@ fee calculator, and book-specific condition tags (Like New, Very Good,
 Good, Acceptable, Reading Copy, Collectible). You can also scan ISBNs
 with your device camera.
 
+MULTI-VARIANT ITEMS
+--------------------------------------------------------------------------------
+
+For products that come in multiple sizes or colors (e.g. S/M/L/XL of
+the same shirt), use variants instead of creating separate items.
+
+  How to create variants:
+  1. Open the Add Item form and fill in the shared details (name,
+     category, cost, brand, photos).
+  2. Click the "+ Variants" toggle button.
+  3. Choose preset sizes (S, M, L, XL) or add custom variant labels
+     (e.g. "Red," "Blue," "Size 10").
+  4. Each variant gets its own quantity, price, and platform status.
+  5. Save — FlipTrack creates a parent item (holds shared data) and
+     child variants (own qty, price, and listings).
+
+  How variants work:
+  - The inventory list shows the parent item with aggregate quantity
+    across all variants.
+  - Click the parent to expand and see individual variants.
+  - Each variant can be listed on different platforms at different
+    prices.
+  - Selling a variant decrements only that variant's stock.
+  - Existing single items are unaffected — variants are opt-in.
+
 
 ================================================================================
 7. ITEM EDITOR (DRAWER)
@@ -957,6 +982,24 @@ Each buyer profile tracks: name, email, phone, platform handles, total
 spent, number of purchases, items bought, and a communication log for
 notes and conversations. Buyers are automatically created when you
 record sales.
+
+OFFER MANAGEMENT
+--------------------------------------------------------------------------------
+
+Track purchase offers from buyers across all platforms.
+
+  How to use offers:
+  1. Open a buyer profile or item drawer and click "Add Offer."
+  2. Enter the offer amount, platform, and any notes.
+  3. Manage offers with Accept, Reject, or Counter actions.
+  4. Accepted offers auto-link to the buyer's purchase history.
+
+  - Offer Aging Alerts: Offers older than 24 hours appear as a
+    dashboard banner so no potential sale goes cold.
+  - Per-Item Offers: View all pending offers for any item in its
+    drawer panel.
+  - Counter Offers: Propose a counter-price that updates the offer
+    record and keeps negotiation history intact.
 
 
 ================================================================================
@@ -2000,55 +2043,111 @@ WHATNOT LIVE SELLING SUITE (v2.0.1)
 ================================================================================
 
 14 new features for Whatnot live sellers — no other reseller tool offers this
-level of Whatnot integration.
+level of Whatnot integration. Access all Whatnot tools from the Crosslisting
+dashboard (Selling > Crosslist) and switch between the Shows, Analytics, Live,
+Pricing, and Shipping tabs.
 
-  - Live Show Dashboard
-    Real-time command center: running revenue, sell-through, timer, remaining
-    queue, revenue-per-hour. Quick-action sold/giveaway buttons.
+CREATING & MANAGING SHOWS
+--------------------------------------------------------------------------------
 
-  - Lot Bundling
-    Group show items into auction lots with names and starting bids. Lots
-    appear on run sheets with item breakdowns and value calculations.
+  How to create a show:
+  1. Go to Crosslist > Shows tab.
+  2. Click "New Show" and enter a title and scheduled date/time.
+  3. Click "Add Items" to open the item picker — select items from
+     your inventory to add to the show.
+  4. (Optional) Set a revenue goal by clicking the goal icon on the
+     show card and entering your target amount.
+  5. (Optional) Add bin/shelf locations by clicking the location icon
+     on each show item so you can grab items quickly during the show.
+  6. Print the run sheet with "Print Run Sheet" for a physical
+     reference during the show.
 
-  - Show Revenue Goals
-    Set per-show revenue targets with real-time progress bar during live shows.
-    Analytics tab tracks goal hit rate across all shows.
+  How to create lots:
+  1. Open a show and scroll to the Lots section.
+  2. Click "Create Lot" and name your lot (e.g. "Mystery Box #1").
+  3. Select items to bundle into the lot and set a starting bid.
+  4. Lots appear on run sheets with item breakdowns and total value.
+  5. Remove items from lots or delete lots with the X button.
 
-  - Post-Show Recap Card
-    Auto-generate shareable text recap: sold count, revenue, sell-through, top
-    seller, giveaways, goal status. Copy to clipboard for social media.
+  How to clone a show:
+  - Click "Clone" on any past show to create a new show with the same
+    structure. Then swap items, adjust dates, and you're ready.
 
-  - Show Countdown Push Reminders
-    Push notifications at 60min and 15min before scheduled shows.
+RUNNING A LIVE SHOW
+--------------------------------------------------------------------------------
 
-  - Starting Bid Recommendations
-    Data-driven bid suggestions from show history, comps, and list prices.
-    Dedicated Pricing tab with suggested bid, range, and reasoning.
+  How to go live:
+  1. Click "Start Show" on a scheduled show card. The show status
+     changes to "live" and the Live tab activates.
+  2. The Live Dashboard shows real-time stats: elapsed time, running
+     revenue, sell-through rate, items remaining, and revenue-per-hour.
+  3. Mark items sold: Click the sold button next to each item as it
+     sells during the show. Revenue updates instantly.
+  4. Track giveaways: Click the giveaway button to record items given
+     away for engagement. Cost is tracked against your P&L.
+  5. Monitor your revenue goal progress bar in real-time.
+  6. When finished, click "End Show" to finalize.
 
-  - Category Rotation Planner
-    Identifies stale categories due for Whatnot exposure with urgency status.
+  Show countdown reminders:
+  - Push notifications fire at 60 minutes and 15 minutes before
+    scheduled shows. Requires push notifications to be enabled in
+    Settings.
 
-  - Giveaway & Loss Leader Tracker
-    Track items given away during shows. Records cost impact on P&L.
+POST-SHOW WORKFLOW
+--------------------------------------------------------------------------------
 
-  - Show-to-Show Comparison
-    Side-by-side metrics for any two past shows.
+  How to generate a recap:
+  1. After ending a show, click "Recap" on the show card.
+  2. FlipTrack generates a shareable summary: items sold, revenue,
+     sell-through, top seller, giveaways given, and goal status.
+  3. Click "Copy" to copy the recap text for posting to social media.
 
-  - Shipping Queue
-    Global view of unshipped sold items with mark-shipped workflow.
+  How to ship sold items:
+  1. Go to Crosslist > Shipping tab for a global view of unshipped
+     sold items across all Whatnot shows.
+  2. Each item shows name, show name, sale date, price, and bin
+     location.
+  3. Click "Mark Shipped" on each item as you fulfill orders.
 
-  - Bin/Shelf Location
-    Per-item storage location on run sheets, live queue, and shipping queue.
+WHATNOT ANALYTICS
+--------------------------------------------------------------------------------
 
-  - Smart Inventory Actions
-    Prescriptive suggestions: Whatnot $1 auction, bundle into lot, drop price,
-    crosslist, or donate for tax write-off. Based on aging and show history.
+  Starting bid recommendations:
+  1. Go to Crosslist > Pricing tab.
+  2. Each show item displays a suggested opening bid based on show
+     history, comp data, and list prices.
+  3. Review the suggested bid, min/max range, and reasoning before
+     your show.
 
-  - Platform Differential Pricing
-    Suggested prices per platform based on fee structures and buyer culture.
+  Category rotation planner:
+  - Found in Crosslist > Analytics tab. Shows categories ranked by
+    days since last featured in a show, sell-through rate, and urgency
+    (overdue / due soon / recent). Use this to plan balanced shows.
 
-  - AI Description Character Limits
-    1,000 chars for Whatnot/Depop/Mercari, 1,500 Poshmark, 4,000 eBay.
+  Show-to-show comparison:
+  1. In the Analytics tab, select two past shows from the dropdowns.
+  2. Side-by-side metrics appear: items, sold, sell-through, revenue,
+     profit, rev/hour, duration, peak viewers, and giveaway cost.
+
+  Smart inventory actions:
+  - In the Analytics tab, prescriptive suggestions appear for items
+    based on aging and show performance:
+      * "Move to Whatnot $1 auction" — stale items that could sell
+        at auction
+      * "Bundle into lot" — similar items worth grouping
+      * "Drop price 15%" — overpriced relative to comps
+      * "Crosslist to more platforms" — items on too few platforms
+      * "Donate for tax write-off" — items past recovery
+
+  Platform differential pricing:
+  - Suggested prices per platform accounting for fee structures and
+    buyer culture: +25% for Poshmark (offer culture), -5% for
+    Mercari, auction-style for Whatnot, +15% for Etsy (vintage
+    premium).
+
+  AI description character limits:
+  - AI-generated descriptions respect platform limits: 1,000 chars
+    for Whatnot/Depop/Mercari, 1,500 for Poshmark, 4,000 for eBay.
     Whatnot descriptions use live-show-friendly language.
 
 

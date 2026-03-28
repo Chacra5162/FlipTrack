@@ -140,6 +140,15 @@ const TOUR_STEPS = [
     position: 'bottom',
     viewRequirement: 'dashboard',
   },
+  {
+    section: 'Adding Inventory',
+    target: '#headerAddBtn',
+    fallbackTarget: '#headerBatchBtn',
+    title: 'Book Mode & ISBN Lookup',
+    desc: 'When you select the "Books" category, Book Mode auto-activates. Scan or enter an ISBN to auto-populate title, author, and publisher. Enter Amazon sales rank, use FBA fee calculator, and apply book-specific condition tags (Like New, Very Good, Good, Acceptable).',
+    position: 'bottom-left',
+    viewRequirement: 'dashboard',
+  },
 
   /* ── SECTION 3: INVENTORY MANAGEMENT ─────────────────────────────────── */
   {
@@ -466,6 +475,24 @@ const TOUR_STEPS = [
   /* ── SECTION 7.8: ADVANCED FEATURES ───────────────────────────────── */
   {
     section: 'Advanced Features',
+    target: '#ptPreview',
+    fallbackTarget: '#view-inventory',
+    title: 'Photo Tools Suite',
+    desc: 'Open any item drawer and scroll to Photos for the full editing suite: AI background removal, auto-crop, watermarking, square padding, brightness/contrast adjustment, and rotation. Process photos without leaving FlipTrack.',
+    position: 'top',
+    viewRequirement: 'inventory',
+  },
+  {
+    section: 'Advanced Features',
+    target: '#bulkMenu',
+    fallbackTarget: '#invTable',
+    title: 'Batch Listing Mode',
+    desc: 'Select multiple items and use Batch List to generate AI-powered listing text for all of them at once. Choose target platforms, copy all listings to clipboard, or open deep links in sequence to list rapidly.',
+    position: 'bottom',
+    viewRequirement: 'inventory',
+  },
+  {
+    section: 'Advanced Features',
     target: '#view-tax',
     fallbackTarget: '#taxContent',
     title: 'Donation Tracker',
@@ -690,6 +717,15 @@ const TOUR_STEPS = [
     position: 'top',
     viewRequirement: 'buyers',
   },
+  {
+    section: 'Customers',
+    target: '#view-buyers',
+    fallbackTarget: '#buyersContent',
+    title: 'Offer Management',
+    desc: 'Track purchase offers from buyers with accept, reject, or counter actions. View pending offers per item in the drawer, and monitor offer aging on the dashboard — offers older than 24 hours are flagged so no buyer goes cold.',
+    position: 'top',
+    viewRequirement: 'buyers',
+  },
 
   /* ── SECTION 11: SETTINGS & TOOLS ────────────────────────────────────── */
   {
@@ -751,6 +787,33 @@ const TOUR_STEPS = [
     title: 'Backup & Restore',
     desc: 'Download a full JSON backup of all your data — inventory, sales, expenses, and supplies — in one file. Restore from any backup to recover your data instantly. Your safety net beyond cloud sync.',
     position: 'top',
+    viewRequirement: 'dashboard',
+  },
+  {
+    section: 'Settings & Tools',
+    target: '#syncDotBtn',
+    fallbackTarget: '#syncDot',
+    title: 'Teams & Collaboration',
+    desc: 'Create or join a team to share inventory data with partners or employees. Team owners generate 7-day invite codes. Three roles: Viewer (read-only), Editor (add/edit items and sales), and Admin (full access including member management). Open the account menu to manage your team.',
+    position: 'bottom-left',
+    viewRequirement: 'dashboard',
+  },
+  {
+    section: 'Settings & Tools',
+    target: '#headerAddBtn',
+    fallbackTarget: '.app-header',
+    title: 'Keyboard Shortcuts',
+    desc: 'Speed up your workflow with keyboard shortcuts: N to add item, S to record sale, / to search, D for dashboard, I for inventory, Esc to close modals. Press ? to see the full shortcut reference.',
+    position: 'bottom',
+    viewRequirement: 'dashboard',
+  },
+  {
+    section: 'Settings & Tools',
+    target: '#syncDotBtn',
+    fallbackTarget: '#syncDot',
+    title: 'Community Pricing',
+    desc: 'Opt in to share anonymized pricing data and see how your prices compare to the community average. Toggle on from Settings — your item names and personal data are never shared, only category/price aggregates.',
+    position: 'bottom-left',
     viewRequirement: 'dashboard',
   },
 ];
