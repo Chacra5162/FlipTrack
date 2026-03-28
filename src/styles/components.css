@@ -2398,6 +2398,7 @@ textarea { resize:vertical; min-height:70px; }
   pointer-events: none; white-space: normal;
 }
 .stat-card:hover .stat-tooltip { display: block; }
+.stat-card:focus-within .stat-tooltip { display: block; }
 
 /* ── EMPTY STATES ─────────────────────────────────────────────────────── */
 .empty-state {
