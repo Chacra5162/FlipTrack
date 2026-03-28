@@ -166,7 +166,9 @@ import {
   wnSwitchTab, wnEditItemNote, wnCloneShow, wnSetViewerPeak, wnSetExpenses,
   wnPrintRunSheet, wnExportShowCSV,
   wnBuilderToggle, wnBuilderSelectAll, wnBuilderClearSelection, wnBuilderCreateShow,
-  wnCalcUpdate
+  wnCalcUpdate,
+  wnSetGoal, wnGiveaway, wnEditBinLoc, wnCreateLot, wnRemoveLot,
+  wnCopyRecap, wnSetCompareA, wnSetCompareB, wnMarkShipped
 } from './views/crosslist-dashboard.js';
 import { initEBayAuth, handleEBayCallback, isEBayConnected } from './features/ebay-auth.js';
 import { initEBaySync, startEBaySyncInterval, stopEBaySyncInterval, resyncEBayOrders, backfillEBayData } from './features/ebay-sync.js';
@@ -606,6 +608,8 @@ Object.assign(window, {
   wnPrintRunSheet, wnExportShowCSV,
   wnBuilderToggle, wnBuilderSelectAll, wnBuilderClearSelection, wnBuilderCreateShow,
   wnCalcUpdate,
+  wnSetGoal, wnGiveaway, wnEditBinLoc, wnCreateLot, wnRemoveLot,
+  wnCopyRecap, wnSetCompareA, wnSetCompareB, wnMarkShipped,
   exportShowPrepCSV, exportShowResultsCSV, exportAllShowsCSV,
   notifyShowEnded
 });
