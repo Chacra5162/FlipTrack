@@ -1975,10 +1975,12 @@ alert may not reflect the true margin.
 
   - AI Listing Generator
     Generate platform-optimized product descriptions using AI. Adapts
-    tone and formatting for eBay, Etsy, Amazon, and more. The AI only
-    uses provided item details and will not fabricate specs or
-    measurements. Temperature has been lowered for more accurate, less
-    creative output while still producing varied, engaging listings.
+    tone and formatting for eBay, Poshmark, Depop, Mercari, Whatnot,
+    and more. Descriptions are automatically capped to each platform's
+    character limit (1,000 for Whatnot/Depop/Mercari, 1,500 for
+    Poshmark, 4,000 for eBay) so listings are always ready to paste.
+    The AI only uses provided item details and will not fabricate specs
+    or measurements.
 
   - AI Identification
     Snap a photo and let AI identify the product -- brand, category,
