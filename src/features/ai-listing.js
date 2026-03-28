@@ -59,9 +59,11 @@ const _CTA_STYLES = [
 const _PLATFORM_DESC_LIMITS = {
   'Depop': 1000,
   'Mercari': 1000,
+  'Whatnot': 1000,
   'Poshmark': 1500,
   'eBay': 4000,
 };
+const _DEFAULT_DESC_LIMIT = 1000;
 
 /**
  * Initialize with Supabase client for auth headers.
@@ -218,6 +220,15 @@ DESCRIPTION format:
 3. End with 5-8 hashtags on one line (e.g. #vintage #streetwear #y2k)
 TONE: Trendy, Gen-Z, casual. Use aesthetic references (cottagecore, Y2K, streetwear, minimalist, etc.).
 Keep it SHORT — Depop has a 1000 character limit. Aim for 80-120 words max.`,
+    'Whatnot': `Whatnot: max 80 char title, brand + key detail + size.
+STRICT LIMIT: Description MUST be under 1000 characters total (including spaces).
+DESCRIPTION format:
+1. One attention-grabbing sentence about the item
+2. Key details: brand, size, color, condition, any notable features
+3. Be honest about flaws — Whatnot buyers appreciate transparency
+4. End with "Comment to claim!" or "Don't miss out!" style CTA
+TONE: Energetic, live-show friendly, hype but honest. Think live auction energy.
+Keep it SHORT — Whatnot has a 1000 character limit. Aim for 80-120 words max.`,
     'Etsy': 'Etsy: include relevant search terms. Description should tell a story about the item. Emphasize uniqueness.',
     'Facebook Marketplace': 'Facebook Marketplace: casual, local-friendly. Mention pickup/shipping availability.',
     'Amazon': 'Amazon: bullet-point style features. Focus on product specifications and condition details.',
@@ -249,7 +260,7 @@ TONE: ${tone}
 
 REQUIREMENTS:
 - Generate a compelling title (under 80 characters) — vary word order and phrasing from typical listings
-- Generate a description appropriate for the platform${platform === 'Depop' ? ' (MUST be under 1000 characters total)' : platform === 'Mercari' ? ' (under 150 words)' : ' (150-300 words)'}
+- Generate a description appropriate for the platform${platform === 'Depop' || platform === 'Whatnot' ? ' (MUST be under 1000 characters total)' : platform === 'Mercari' ? ' (under 150 words)' : ' (150-300 words)'}
 ${includeKeywords ? '- Include 5-8 relevant search keywords' : ''}
 - Include condition details and any flaws
 - End with a call to action matching the closing approach above
@@ -293,6 +304,11 @@ export async function generateAndApply(itemId, opts = {}) {
   const result = await generateListing(item, opts);
 
   if (result.title || result.description) {
+    // Enforce character limit (use platform-specific or default 1000)
+    const descLimit = _PLATFORM_DESC_LIMITS[opts.platform] || _DEFAULT_DESC_LIMIT;
+    if (result.description.length > descLimit) {
+      result.description = result.description.slice(0, descLimit - 3).replace(/\s+\S*$/, '') + '...';
+    }
     // Store AI-generated content on the item (don't overwrite name unless empty)
     if (!item.aiListing) item.aiListing = {};
     item.aiListing.title = result.title;
@@ -415,9 +431,9 @@ export async function generateForPlatform(itemId, platform, force = false) {
   toast(`Generating ${platform} listing…`);
   const result = await generateListing(item, { platform });
 
-  // Enforce platform character limits as a hard guard
-  const descLimit = _PLATFORM_DESC_LIMITS[platform];
-  if (descLimit && result.description.length > descLimit) {
+  // Enforce platform character limits as a hard guard (default 1000 for unlisted platforms)
+  const descLimit = _PLATFORM_DESC_LIMITS[platform] || _DEFAULT_DESC_LIMIT;
+  if (result.description.length > descLimit) {
     result.description = result.description.slice(0, descLimit - 3).replace(/\s+\S*$/, '') + '...';
   }
 
