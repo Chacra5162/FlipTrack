@@ -2484,6 +2484,37 @@ textarea { resize:vertical; min-height:70px; }
   height: 100%; background: var(--accent);
   border-radius: 2px; transition: width 0.4s ease;
 }
+.tour-progress-timer {
+  height: 2px; background: var(--accent2);
+  border-radius: 2px; margin-top: 2px; width: 0%;
+}
+.tour-autoplay {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+}
+.tour-auto-btn {
+  background: var(--surface); border: 1px solid var(--accent);
+  color: var(--accent); font-family: 'DM Mono', monospace;
+  font-size: 11px; padding: 4px 12px; border-radius: 6px;
+  cursor: pointer; transition: all 0.2s;
+}
+.tour-auto-btn:hover { background: var(--accent); color: #0a0a0f; }
+.tour-auto-btn.tour-auto-active {
+  background: var(--accent); color: #0a0a0f;
+}
+.tour-speed-wrap {
+  display: flex; gap: 4px; align-items: center;
+}
+.tour-speed-btn {
+  background: none; border: 1px solid var(--border);
+  color: var(--muted); font-family: 'DM Mono', monospace;
+  font-size: 10px; padding: 2px 8px; border-radius: 4px;
+  cursor: pointer; transition: all 0.2s;
+}
+.tour-speed-btn:hover { color: var(--text); border-color: var(--text); }
+.tour-speed-btn.tour-speed-active {
+  color: var(--accent2); border-color: var(--accent2);
+  font-weight: 700;
+}
 
 /* ── KPI GOALS ─────────────────────────────────────────────────────────── */
 .kpi-goals-empty {
@@ -3167,6 +3198,96 @@ textarea { resize:vertical; min-height:70px; }
 .wn-calc-note { font-size: 0.72rem; color: var(--muted); margin-top: 8px; text-align: center; }
 @media (max-width: 480px) { .wn-calc-form { grid-template-columns: 1fr; } }
 
+/* ── Whatnot: Goal Progress Bar ───────────────────────────────── */
+.wn-goal-bar { position: relative; height: 22px; background: var(--bg2); border-radius: 4px; margin: 4px 12px 4px; overflow: hidden; }
+.wn-goal-bar-lg { height: 28px; margin: 8px 0; border-radius: 6px; }
+.wn-goal-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.3s ease; }
+.wn-goal-fill.wn-goal-hit { background: var(--good); }
+.wn-goal-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.72rem; font-weight: 600; white-space: nowrap; color: var(--text); text-shadow: 0 0 4px var(--bg); }
+
+/* ── Whatnot: Live Show Dashboard ─────────────────────────────── */
+.wn-live-dash { padding: 8px 0; }
+.wn-live-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: rgba(255,60,60,0.08); border-radius: 8px; margin-bottom: 12px; }
+.wn-live-title { font-weight: 700; font-size: 1.1rem; }
+.wn-live-timer { font-family: 'DM Mono', monospace; font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+.wn-live-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.wn-live-stat { background: var(--bg2); border-radius: 6px; padding: 10px 8px; text-align: center; }
+.wn-live-stat-big { grid-column: span 3; background: rgba(0,255,209,0.06); }
+.wn-live-stat-big .wn-stat-val { font-size: 1.8rem; color: var(--good); }
+.wn-live-actions { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.wn-live-queue { display: flex; flex-direction: column; gap: 4px; }
+.wn-live-queue-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--bg2); border-radius: 4px; }
+.wn-queue-name { flex: 1; font-size: 0.85rem; font-weight: 500; }
+.wn-queue-detail { font-size: 0.75rem; color: var(--muted); }
+.wn-queue-actions { display: flex; gap: 4px; }
+
+/* ── Whatnot: Lots ────────────────────────────────────────────── */
+.wn-lots-section { padding: 4px 0 8px; }
+.wn-lot-card { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: rgba(155,89,182,0.08); border-radius: 4px; margin-bottom: 4px; font-size: 0.8rem; }
+.wn-lot-card strong { flex: 0 0 auto; }
+.wn-lot-card span { flex: 1; color: var(--muted); }
+
+/* ── Whatnot: Giveaways ───────────────────────────────────────── */
+.wn-giveaway-section { padding: 4px 0 8px; }
+.wn-giveaway-row { font-size: 0.8rem; color: var(--muted); padding: 3px 0; }
+
+/* ── Whatnot: Category Rotation ───────────────────────────────── */
+.wn-rotation-list { display: flex; flex-direction: column; gap: 4px; }
+.wn-rotation-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 8px; background: var(--bg2); border-radius: 4px; font-size: 0.8rem; }
+.wn-rot-cat { font-weight: 600; min-width: 100px; }
+.wn-rot-info { flex: 1; color: var(--muted); }
+.wn-rot-sug { font-size: 0.72rem; font-weight: 500; }
+.wn-rot-overdue .wn-rot-sug { color: var(--danger); }
+.wn-rot-due .wn-rot-sug { color: var(--warn); }
+
+/* ── Whatnot: Show Comparison ─────────────────────────────────── */
+.wn-compare-selects { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.wn-compare-selects select { flex: 1; min-width: 120px; padding: 4px 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg2); color: var(--text); font-size: 0.8rem; }
+.wn-compare-table { overflow-x: auto; }
+.wn-compare-table table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.wn-compare-table th, .wn-compare-table td { padding: 4px 8px; border-bottom: 1px solid var(--border); text-align: left; }
+.wn-compare-table th { font-weight: 600; background: var(--bg2); }
+
+/* ── Whatnot: Pricing Recommendations ─────────────────────────── */
+.wn-pricing { padding: 8px 0; }
+.wn-pricing-list { display: flex; flex-direction: column; gap: 6px; }
+.wn-pricing-row { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 8px 10px; background: var(--bg2); border-radius: 6px; }
+.wn-pricing-name { font-weight: 500; font-size: 0.85rem; }
+.wn-pricing-detail { font-size: 0.72rem; color: var(--muted); }
+.wn-pricing-bid { text-align: right; }
+.wn-pricing-suggested { display: block; font-weight: 700; font-size: 1.05rem; color: var(--good); }
+.wn-pricing-range { font-size: 0.7rem; color: var(--muted); }
+.wn-pricing-reason { grid-column: 1 / -1; font-size: 0.72rem; color: var(--muted); font-style: italic; }
+
+/* ── Whatnot: Shipping Queue ──────────────────────────────────── */
+.wn-shipping { padding: 8px 0; }
+.wn-ship-list { display: flex; flex-direction: column; gap: 4px; }
+.wn-ship-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--bg2); border-radius: 6px; }
+.wn-ship-info { flex: 1; }
+.wn-ship-name { font-weight: 500; font-size: 0.85rem; display: block; }
+.wn-ship-detail { font-size: 0.72rem; color: var(--muted); }
+
+/* ── Whatnot: Prescriptive Actions ─────────────────────────────── */
+.wn-actions-list { display: flex; flex-direction: column; gap: 4px; }
+.wn-action-row { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; background: var(--bg2); border-radius: 6px; border-left: 3px solid var(--accent2); }
+.wn-action-icon { font-size: 1.1rem; flex: 0 0 24px; text-align: center; }
+.wn-action-info { flex: 1; }
+.wn-action-item { display: block; font-weight: 600; font-size: 0.85rem; }
+.wn-action-text { display: block; font-size: 0.75rem; color: var(--muted); }
+
+/* ── Whatnot: Button variants ─────────────────────────────────── */
+.btn-warn { background: rgba(247,129,102,0.12); color: var(--accent2); border: 1px solid rgba(247,129,102,0.25); }
+.btn-warn:hover { background: rgba(247,129,102,0.2); }
+
+/* ── Whatnot: Tabs overflow for mobile ────────────────────────── */
+@media (max-width: 600px) {
+  .wn-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
+  .wn-tabs::-webkit-scrollbar { display: none; }
+  .wn-live-stats { grid-template-columns: repeat(2, 1fr); }
+  .wn-live-stat-big { grid-column: span 2; }
+  .wn-pricing-row { grid-template-columns: 1fr; }
+}
+
 /* CSV COLUMN MAPPER */
 #csvMapOv { display:none; position:fixed; inset:0; z-index:1100; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; }
 #csvMapOv.on { display:flex; }
@@ -3371,6 +3492,72 @@ textarea { resize:vertical; min-height:70px; }
   line-height: 1.4;
 }
 
+/* ── SUPPLY ALLOCATION ─────────────────────────── */
+.supply-alloc-wrap {
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-top:16px;
+}
+.sa-header {
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;
+}
+.sa-summary {
+  display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;
+}
+.sa-stat {
+  background:var(--surface2,var(--bg));border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;
+}
+.sa-stat-val {
+  font-family:'DM Mono',monospace;font-weight:700;font-size:14px;color:var(--accent);
+}
+.sa-stat-label {
+  font-size:9px;color:var(--muted);text-transform:uppercase;margin-top:2px;
+}
+.sa-add-form {
+  background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px;
+}
+.sa-form-row {
+  display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+}
+.sa-form-row select, .sa-form-row input {
+  background:var(--surface);border:1px solid var(--border);color:var(--text);
+  font-family:'DM Mono',monospace;font-size:11px;padding:6px 8px;border-radius:6px;
+}
+.sa-rules { margin-top:8px; }
+.sa-rule {
+  display:flex;align-items:center;gap:8px;padding:8px 10px;
+  border:1px solid var(--border);border-radius:6px;margin-bottom:6px;
+  background:var(--bg);
+}
+.sa-rule-disabled { opacity:0.5; }
+
+/* ── PEER BENCHMARKING ────────────────────────── */
+.bench-wrap {
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-top:16px;
+}
+.bench-header {
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;
+}
+.bench-tier {
+  display:flex;align-items:center;gap:12px;padding:12px;
+  background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:14px;
+}
+.bench-metrics { display:flex;flex-direction:column;gap:10px; }
+.bench-metric { }
+.bench-metric-header {
+  display:flex;justify-content:space-between;margin-bottom:4px;
+}
+.bench-bar-track {
+  position:relative;height:8px;background:var(--bg);border-radius:4px;overflow:visible;
+  border:1px solid var(--border);
+}
+.bench-bar-fill {
+  height:100%;border-radius:4px;transition:width 0.4s ease;
+}
+.bench-bar-marker {
+  position:absolute;top:-2px;width:2px;height:12px;
+  background:var(--muted);opacity:0.5;border-radius:1px;
+  transform:translateX(-1px);
+}
+
 @media (max-width:600px) {
   .pc-grid { grid-template-columns:1fr; }
   .pc-metrics { grid-template-columns:1fr 1fr; }
@@ -3379,4 +3566,6 @@ textarea { resize:vertical; min-height:70px; }
   .ls-overview { flex-direction:column; text-align:center; }
   .sa-summary { grid-template-columns:repeat(2,1fr); }
   .kbd-hint { display: none; }
+  .sa-form-row { flex-direction:column; }
+  .sa-form-row select, .sa-form-row input { width:100%; }
 }

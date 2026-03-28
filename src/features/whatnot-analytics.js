@@ -4,11 +4,12 @@
  * aggregate analytics, and smart show item suggestions.
  */
 
-import { inv, getInvItem } from '../data/store.js';
+import { inv, sales, getInvItem } from '../data/store.js';
 import { getPlatforms } from './platforms.js';
 import { PLATFORM_FEES } from '../config/platforms.js';
+import { fmt } from '../utils/format.js';
 import {
-  getShows, getEndedShows, getItemShowHistory, getItemShowsWithoutSale
+  getShows, getEndedShows, getItemShowHistory, getItemShowsWithoutSale, getTotalGiveawayCost
 } from './whatnot-show.js';
 
 // ── PER-SHOW METRICS ────────────────────────────────────────────────────
@@ -441,4 +442,350 @@ export function suggestCategoryMix() {
     shown: p.shown,
     sold: p.sold,
   }));
+}
+
+// ── SHOW-TO-SHOW COMPARISON ────────────────────────────────────────────
+
+/**
+ * Compare two shows side-by-side.
+ * @returns {{ labels: string[], showA: Object, showB: Object, diffs: Object }}
+ */
+export function compareShows(showIdA, showIdB) {
+  const ended = getEndedShows();
+  const a = ended.find(s => s.id === showIdA);
+  const b = ended.find(s => s.id === showIdB);
+  if (!a || !b) return null;
+
+  const ma = getShowMetrics(a);
+  const mb = getShowMetrics(b);
+  const ga = getTotalGiveawayCost(a.id);
+  const gb = getTotalGiveawayCost(b.id);
+
+  const fields = [
+    { label: 'Items', a: ma.itemCount, b: mb.itemCount },
+    { label: 'Sold', a: ma.soldCount, b: mb.soldCount },
+    { label: 'Sell-Through', a: ma.sellThrough, b: mb.sellThrough, pct: true },
+    { label: 'Revenue', a: ma.revenue, b: mb.revenue, money: true },
+    { label: 'Profit', a: ma.profit, b: mb.profit, money: true },
+    { label: 'Rev/Hour', a: ma.revenuePerHour, b: mb.revenuePerHour, money: true },
+    { label: 'Duration', a: ma.duration, b: mb.duration, hrs: true },
+    { label: 'Peak Viewers', a: a.viewerPeak || 0, b: b.viewerPeak || 0 },
+    { label: 'Avg Item Price', a: ma.avgItemPrice, b: mb.avgItemPrice, money: true },
+    { label: 'Giveaway Cost', a: ga, b: gb, money: true },
+  ];
+
+  return {
+    showA: { name: a.name, date: a.date, metrics: ma },
+    showB: { name: b.name, date: b.date, metrics: mb },
+    fields,
+  };
+}
+
+// ── CATEGORY ROTATION PLANNER ─────────���────────────────────────────────
+
+/**
+ * Identify categories that haven't been featured recently.
+ * @returns {{ category, lastShownDate, daysSinceShown, avgSellThrough, suggestion }[]}
+ */
+export function calcCategoryRotation() {
+  const ended = getEndedShows();
+  const catPerf = calcCategoryPerformance();
+  const catPerfMap = {};
+  for (const c of catPerf) catPerfMap[c.category] = c;
+
+  // Find last show date per category
+  const catLastShown = {};
+  for (const show of ended) {
+    for (const itemId of show.items) {
+      const item = getInvItem(itemId);
+      if (!item) continue;
+      const cat = item.category || 'Uncategorized';
+      const showDate = show.endedAt || 0;
+      if (!catLastShown[cat] || showDate > catLastShown[cat]) {
+        catLastShown[cat] = showDate;
+      }
+    }
+  }
+
+  // Also include categories with inventory that have NEVER been shown
+  const allCats = new Set();
+  for (const item of inv) {
+    if ((item.qty || 0) > 0 && item.category) allCats.add(item.category);
+  }
+  for (const cat of allCats) {
+    if (!catLastShown[cat]) catLastShown[cat] = 0;
+  }
+
+  const now = Date.now();
+  const msDay = 86400000;
+
+  return Object.entries(catLastShown)
+    .map(([category, lastTs]) => {
+      const daysSince = lastTs ? Math.round((now - lastTs) / msDay) : 999;
+      const perf = catPerfMap[category];
+      const avgST = perf?.sellThrough || 0;
+      const inStockCount = inv.filter(i => (i.qty || 0) > 0 && i.category === category).length;
+      let suggestion = '';
+      if (daysSince > 21 && avgST > 0.4) suggestion = 'Overdue — strong seller, schedule soon';
+      else if (daysSince > 14) suggestion = 'Due for rotation';
+      else if (daysSince === 999) suggestion = 'Never shown on Whatnot';
+      return {
+        category,
+        lastShownDate: lastTs ? new Date(lastTs).toISOString().slice(0, 10) : 'Never',
+        daysSinceShown: daysSince,
+        avgSellThrough: avgST,
+        inStockCount,
+        suggestion,
+      };
+    })
+    .filter(c => c.inStockCount > 0)
+    .sort((a, b) => b.daysSinceShown - a.daysSinceShown);
+}
+
+// ── STARTING BID / BIN PRICING RECOMMENDATIONS ────────────────────────
+
+/**
+ * Suggest a starting bid for an item based on show history and comp data.
+ * Uses the pattern: starting bid ≈ 30-50% of expected sale price.
+ * @param {string} itemId
+ * @returns {{ suggestedBid, minBid, maxBid, reasoning, compPrice }}
+ */
+export function suggestStartingBid(itemId) {
+  const item = getInvItem(itemId);
+  if (!item) return null;
+
+  const price = item.price || 0;
+  const cost = item.cost || 0;
+
+  // Check Whatnot show history for this item
+  const history = getItemShowHistory(itemId);
+  const soldHistory = history.filter(h => h.wasSold);
+  const avgSoldPrice = soldHistory.length
+    ? soldHistory.reduce((s, h) => s + h.salePrice, 0) / soldHistory.length
+    : 0;
+
+  // Check if item has comp/market data
+  const compPrice = item.compMedian || item.compAvg || 0;
+
+  // Reference price: best available price signal
+  const refPrice = avgSoldPrice || compPrice || price;
+  if (!refPrice) return { suggestedBid: 1, minBid: 1, maxBid: 5, reasoning: 'No price data — start at $1' };
+
+  // Starting bid strategy:
+  // - New items (never shown): 35% of ref price to drive bidding
+  // - Previously sold: 40% of avg sold price
+  // - Slow movers (shown 2+ times, never sold): 20% of ref price
+  const unsoldShows = getItemShowsWithoutSale(itemId);
+  let bidPct, reasoning;
+
+  if (unsoldShows >= 2) {
+    bidPct = 0.20;
+    reasoning = `Shown ${unsoldShows}× without selling — low start to attract bids`;
+  } else if (soldHistory.length > 0) {
+    bidPct = 0.40;
+    reasoning = `Sold ${soldHistory.length}× before (avg ${fmt(avgSoldPrice)}) — confident pricing`;
+  } else if (compPrice) {
+    bidPct = 0.35;
+    reasoning = `Comp data suggests ${fmt(compPrice)} — starting at 35%`;
+  } else {
+    bidPct = 0.35;
+    reasoning = `Based on list price ${fmt(price)} — starting at 35%`;
+  }
+
+  const suggestedBid = Math.max(1, Math.round(refPrice * bidPct));
+  const minBid = Math.max(1, Math.round(refPrice * 0.15));
+  const maxBid = Math.max(suggestedBid, Math.round(refPrice * 0.60));
+
+  return {
+    suggestedBid,
+    minBid,
+    maxBid,
+    reasoning,
+    refPrice,
+    compPrice,
+    costFloor: cost > 0 ? cost : null,
+  };
+}
+
+/**
+ * Suggest starting bids for all items in a show.
+ */
+export function suggestShowBids(showId) {
+  const shows = getEndedShows().concat(
+    // Include upcoming shows too
+    getShows().filter(s => s.status === 'prep' || s.status === 'live')
+  );
+  const show = shows.find(s => s.id === showId);
+  if (!show) return [];
+  return show.items.map(itemId => ({
+    itemId,
+    item: getInvItem(itemId),
+    ...suggestStartingBid(itemId),
+  })).filter(r => r.item);
+}
+
+// ── GOAL TRACKING ANALYTICS ────────────────────────────────────────────
+
+/**
+ * Calculate goal hit rate across all shows with goals set.
+ */
+export function calcGoalStats() {
+  const ended = getEndedShows();
+  const withGoals = ended.filter(s => s.revenueGoal > 0);
+  if (!withGoals.length) return null;
+
+  const hits = withGoals.filter(s => (s.totalRevenue || 0) >= s.revenueGoal);
+  const totalGoal = withGoals.reduce((s, sh) => s + sh.revenueGoal, 0);
+  const totalActual = withGoals.reduce((s, sh) => s + (sh.totalRevenue || 0), 0);
+
+  return {
+    showsWithGoals: withGoals.length,
+    goalsHit: hits.length,
+    hitRate: hits.length / withGoals.length,
+    avgGoal: totalGoal / withGoals.length,
+    avgActual: totalActual / withGoals.length,
+    overPerformPct: totalGoal > 0 ? (totalActual - totalGoal) / totalGoal : 0,
+  };
+}
+
+// ── PRESCRIPTIVE INVENTORY ACTIONS ────────────────────────────────────
+
+/**
+ * Generate smart action suggestions for stale or underperforming items.
+ * This is the "business advisor" engine — tells sellers what to DO, not just what happened.
+ * @param {number} limit - Max suggestions to return
+ * @returns {Array<{ item, action, reason, priority, actionType }>}
+ */
+export function calcInventoryActions(limit = 20) {
+  const now = Date.now();
+  const msDay = 86400000;
+  const catPerf = {};
+  for (const c of calcCategoryPerformance()) catPerf[c.category] = c;
+  const actions = [];
+
+  for (const item of inv) {
+    if ((item.qty || 0) <= 0) continue;
+
+    const daysInInv = item.added ? (now - new Date(item.added).getTime()) / msDay : 0;
+    const price = item.price || 0;
+    const cost = item.cost || 0;
+    const margin = price > 0 ? (price - cost) / price : 0;
+    const platforms = item.platformStatus || {};
+    const activePlats = Object.entries(platforms).filter(([, s]) => s === 'active').map(([p]) => p);
+    const wnHistory = getItemShowHistory(item.id);
+    const wnUnsold = getItemShowsWithoutSale(item.id);
+
+    // Whatnot $1 auction suggestion — stale 120+ days
+    if (daysInInv > 120 && !activePlats.includes('Whatnot')) {
+      actions.push({
+        item, priority: 9,
+        action: `Move to Whatnot $1 auction — ${Math.round(daysInInv)}d old, needs fresh exposure`,
+        actionType: 'whatnot-auction',
+      });
+      continue;
+    }
+
+    // Shown on Whatnot 3+ times without selling — drop price or bundle into lot
+    if (wnUnsold >= 3) {
+      actions.push({
+        item, priority: 8,
+        action: `Bundle into a lot or drop price — shown ${wnUnsold}× on Whatnot without selling`,
+        actionType: 'bundle-or-drop',
+      });
+      continue;
+    }
+
+    // Stale 60+ days — suggest best platform based on category performance
+    if (daysInInv > 60 && activePlats.length <= 1) {
+      const cp = catPerf[item.category];
+      if (cp && cp.sellThrough > 0.3) {
+        actions.push({
+          item, priority: 7,
+          action: `Try Whatnot — ${item.category} has ${(cp.sellThrough * 100).toFixed(0)}% sell-through in shows`,
+          actionType: 'relist-whatnot',
+        });
+      } else {
+        actions.push({
+          item, priority: 6,
+          action: `${Math.round(daysInInv)}d old with only ${activePlats.length} platform — crosslist to more marketplaces`,
+          actionType: 'crosslist',
+        });
+      }
+      continue;
+    }
+
+    // Stale 90+ days with low margin — suggest donation for tax write-off
+    if (daysInInv > 90 && margin < 0.15 && cost > 5) {
+      actions.push({
+        item, priority: 5,
+        action: `Consider donating — tax write-off may exceed likely sale (${fmt(cost)} cost, ${Math.round(daysInInv)}d old)`,
+        actionType: 'donate',
+      });
+      continue;
+    }
+
+    // Comp data suggests price is too high
+    if (item.compMedian && price > item.compMedian * 1.3 && daysInInv > 14) {
+      const dropPct = Math.round((1 - item.compMedian / price) * 100);
+      actions.push({
+        item, priority: 7,
+        action: `Drop price ~${dropPct}% — comp median is ${fmt(item.compMedian)}, listed at ${fmt(price)}`,
+        actionType: 'reprice',
+      });
+      continue;
+    }
+
+    // Never listed on Whatnot and high margin — suggest it
+    if (!activePlats.includes('Whatnot') && wnHistory.length === 0 && margin > 0.4 && daysInInv > 7) {
+      actions.push({
+        item, priority: 4,
+        action: `High margin (${(margin * 100).toFixed(0)}%) — add to next Whatnot show for auction energy`,
+        actionType: 'add-to-show',
+      });
+    }
+  }
+
+  return actions.sort((a, b) => b.priority - a.priority).slice(0, limit);
+}
+
+// ── PLATFORM DIFFERENTIAL PRICING ─────────────────────────────────────
+
+/**
+ * Suggest optimal prices per platform for an item based on fee structures and sell-through data.
+ * Different platforms have different buyer cultures and fee structures.
+ */
+export function suggestPlatformPricing(itemId) {
+  const item = getInvItem(itemId);
+  if (!item) return [];
+  const basePrice = item.price || 0;
+  if (!basePrice) return [];
+  const cost = item.cost || 0;
+
+  const strategies = [
+    { platform: 'eBay', pct: 1.0, reason: 'Base price — largest audience' },
+    { platform: 'Poshmark', pct: 1.25, reason: '+25% for offer culture (buyers expect to negotiate)' },
+    { platform: 'Mercari', pct: 0.95, reason: '-5% — Mercari Smart Pricing and price-sensitive buyers' },
+    { platform: 'Depop', pct: 1.10, reason: '+10% for trend/aesthetic premium' },
+    { platform: 'Whatnot', pct: 0, reason: 'Auction — use starting bid recommendations instead' },
+    { platform: 'Etsy', pct: 1.15, reason: '+15% for handmade/vintage premium' },
+    { platform: 'Facebook Marketplace', pct: 0.90, reason: '-10% for local/no-ship expectation' },
+  ];
+
+  return strategies.map(s => {
+    const suggestedPrice = s.pct > 0 ? Math.round(basePrice * s.pct * 100) / 100 : 0;
+    const fee = PLATFORM_FEES[s.platform];
+    let netProfit = 0;
+    if (fee && suggestedPrice > 0) {
+      const commission = suggestedPrice * (fee.pct || 0);
+      const processing = suggestedPrice * (fee.processing || 0) + (fee.processingFlat || 0);
+      netProfit = suggestedPrice - commission - processing - cost;
+    }
+    return {
+      platform: s.platform,
+      suggestedPrice,
+      netProfit,
+      margin: suggestedPrice > 0 ? netProfit / suggestedPrice : 0,
+      reason: s.reason,
+    };
+  });
 }

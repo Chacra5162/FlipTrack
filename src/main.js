@@ -166,7 +166,9 @@ import {
   wnSwitchTab, wnEditItemNote, wnCloneShow, wnSetViewerPeak, wnSetExpenses,
   wnPrintRunSheet, wnExportShowCSV,
   wnBuilderToggle, wnBuilderSelectAll, wnBuilderClearSelection, wnBuilderCreateShow,
-  wnCalcUpdate
+  wnCalcUpdate,
+  wnSetGoal, wnGiveaway, wnEditBinLoc, wnCreateLot, wnRemoveLot,
+  wnCopyRecap, wnSetCompareA, wnSetCompareB, wnMarkShipped
 } from './views/crosslist-dashboard.js';
 import { initEBayAuth, handleEBayCallback, isEBayConnected } from './features/ebay-auth.js';
 import { initEBaySync, startEBaySyncInterval, stopEBaySyncInterval, resyncEBayOrders, backfillEBayData } from './features/ebay-sync.js';
@@ -197,7 +199,9 @@ import {
 import { estimateShippingRate, suggestPackage, getCarrierOptions } from './features/shipping-rates.js';
 
 // ── Phase 3: Sourcing & Haul Tracking ────────────────────────────────────────
-import { openSourcingMode, closeSourcingMode, srcCapture, srcRetake, srcUpdateCost, srcAddToInventory } from './features/sourcing-mode.js';
+import { openSourcingMode, closeSourcingMode, srcCapture, srcRetake, srcUpdateCost, srcAddToInventory, srcToggleCrosslist, getSrcCrosslistQueue, srcRemoveFromQueue, srcClearQueue } from './features/sourcing-mode.js';
+import { renderSupplyAllocation, saAddRule, saRemoveRule, saToggleRule, saRunAllocation, saMethodChanged } from './features/supply-allocation.js';
+import { renderPeerBenchmarking, toggleBenchmarkVisibility } from './features/peer-benchmarking.js';
 import { openPoshmarkSync, closePoshmarkSync, poshMarkSold } from './features/poshmark-sync.js';
 import {
   renderSourcingView, initHauls, addHaul, deleteHaul, expandHaul,
@@ -269,7 +273,7 @@ import { animateStatCounters } from './features/animated-counters.js';
 import { mountProfitHeatmap } from './features/profit-heatmap.js';
 import { exportPlatformCSV, exportSalesCSV, exportTaxCSV, exportWhatnotCSV, exportShowPrepCSV, exportShowResultsCSV, exportAllShowsCSV, renderCSVExportPanel } from './features/csv-templates.js';
 import { toggleNotifications, startStockAlertChecks, stopStockAlertChecks, getNotifStatus, sendNotification, subscribeToPush, unsubscribeFromPush, togglePush } from './features/push-notifications.js';
-import { startTour, endTour, maybeStartTour } from './features/onboarding-tour.js';
+import { startTour, endTour, stopAutoPlay, maybeStartTour } from './features/onboarding-tour.js';
 import { renderKPIGoals, openKPIGoalEditor, closeKPIGoalEditor, saveKPIGoals } from './features/kpi-goals.js';
 import { toggleNotifCenter, closeNotifCenter, markAllRead, clearNotifications, addNotification, initNotificationCenter, getSalesVelocity, checkWhatnotShowReminders, notifyShowEnded, checkDailyDigest } from './features/notification-center.js';
 import { recordSync, startSyncIndicator, stopSyncIndicator } from './features/sync-indicator.js';
@@ -606,6 +610,8 @@ Object.assign(window, {
   wnPrintRunSheet, wnExportShowCSV,
   wnBuilderToggle, wnBuilderSelectAll, wnBuilderClearSelection, wnBuilderCreateShow,
   wnCalcUpdate,
+  wnSetGoal, wnGiveaway, wnEditBinLoc, wnCreateLot, wnRemoveLot,
+  wnCopyRecap, wnSetCompareA, wnSetCompareB, wnMarkShipped,
   exportShowPrepCSV, exportShowResultsCSV, exportAllShowsCSV,
   notifyShowEnded
 });
@@ -629,6 +635,7 @@ Object.assign(window, {
   linkItemsToHaul, confirmLinkItems, closeItemLinkModal, unlinkItem,
   srcSetSearch, srcSetSort,
   openSourcingMode, closeSourcingMode, srcCapture, srcRetake, srcUpdateCost, srcAddToInventory,
+  srcToggleCrosslist, getSrcCrosslistQueue, srcRemoveFromQueue, srcClearQueue,
   openPoshmarkSync, closePoshmarkSync, poshMarkSold,
   shareHaulReceipt: (id) => {
     const haul = getHaulById(id);
@@ -677,8 +684,12 @@ Object.assign(window, {
   exportPlatformCSV, exportSalesCSV, exportTaxCSV, exportWhatnotCSV,
   toggleNotifications, subscribeToPush, unsubscribeFromPush, togglePush,
   // Stakeholder features
-  startTour, endTour,
+  startTour, endTour, stopAutoPlay,
   openKPIGoalEditor, closeKPIGoalEditor, saveKPIGoals,
+  // Supply Allocation
+  renderSupplyAllocation, saAddRule, saRemoveRule, saToggleRule, saRunAllocation, saMethodChanged,
+  // Peer Benchmarking
+  renderPeerBenchmarking, toggleBenchmark: toggleBenchmarkVisibility,
   toggleNotifCenter, closeNotifCenter, markAllRead, clearNotifications, addNotification,
   getSalesVelocity,
   exportPLReport, exportTaxReport,
@@ -922,7 +933,7 @@ function switchView(name, el) {
     inventory:          () => renderInv(),
     sales:              () => renderSalesView(),
     expenses:           () => renderExpenses(),
-    supplies:           () => { renderSupplies(); checkSupplyAlerts(); },
+    supplies:           () => { renderSupplies(); checkSupplyAlerts(); const saEl = document.getElementById('supplyAllocSection'); if (saEl) saEl.innerHTML = renderSupplyAllocation(); },
     insights:           () => renderInsights(),
     reports:            () => renderReports(),
     breakdown:          () => renderBreakdown(),

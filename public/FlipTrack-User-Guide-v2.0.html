@@ -446,7 +446,7 @@
 <div class="hero">
   <h1><span>Flip</span>Track User Guide</h1>
   <p class="subtitle">The all-in-one reseller dashboard for tracking inventory, sales, profits, and cross-platform listings.</p>
-  <div class="version">Version 1.9 — March 2026</div>
+  <div class="version">Version 2.0 — March 2026</div>
 </div>
 
 <!-- ══════════════════════════════════════════════ TOC ════ -->
@@ -948,6 +948,20 @@
 
   <h3>Book Mode</h3>
   <p>When you select "Books" as the category, special fields appear: ISBN lookup (auto-populates title, author, publisher), Amazon sales rank, FBA fee calculator, and book-specific condition tags (Like New, Very Good, Good, Acceptable, Reading Copy, Collectible). You can also scan ISBNs with your device camera.</p>
+
+  <h3>Multi-Variant Items</h3>
+  <p>For products in multiple sizes or colors (e.g. S/M/L/XL of the same shirt), use variants instead of creating separate items.</p>
+  <div class="feature-card">
+    <h4>How to Create Variants</h4>
+    <ol>
+      <li>Open the Add Item form and fill in the shared details (name, category, cost, brand, photos).</li>
+      <li>Click the <strong>+ Variants</strong> toggle button.</li>
+      <li>Choose preset sizes (S, M, L, XL) or add custom variant labels (e.g. "Red," "Blue," "Size 10").</li>
+      <li>Each variant gets its own quantity, price, and platform status.</li>
+      <li>Save &mdash; FlipTrack creates a parent item (holds shared data) and child variants (own qty, price, and listings).</li>
+    </ol>
+    <p>The inventory list shows the parent with aggregate quantity. Click to expand and see individual variants. Each variant can be listed on different platforms at different prices. Selling a variant decrements only that variant's stock.</p>
+  </div>
 </section>
 
 <!-- ═════════════════════════════ DRAWER ═════════════════ -->
@@ -1323,7 +1337,7 @@
   <div class="feature-grid">
     <div class="feature-card">
       <h4>✨ AI Copy</h4>
-      <p>Generates a platform-optimized listing description using AI, tailored to the specific platform's style and format (e.g., hashtag-heavy for Poshmark, clean and concise for Depop). The text is automatically copied to your clipboard.</p>
+      <p>Generates a platform-optimized listing description using AI, tailored to the specific platform's style and format (e.g., hashtag-heavy for Poshmark, clean and concise for Depop, live-show energy for Whatnot). Descriptions are hard-capped to each platform's character limit (1,000 for Whatnot/Depop/Mercari, 1,500 for Poshmark, 4,000 for eBay). The text is automatically copied to your clipboard.</p>
     </div>
     <div class="feature-card">
       <h4>📋 Copy Listing</h4>
@@ -1344,7 +1358,7 @@
       <div class="step-num">1</div>
       <div class="step-content">
         <h4>Click "✨ AI Copy" on the platform row</h4>
-        <p>FlipTrack generates a listing optimized for that platform and copies it to your clipboard. For Poshmark, this includes relevant hashtags; for Depop, it keeps the style short and trendy.</p>
+        <p>FlipTrack generates a listing optimized for that platform and copies it to your clipboard. For Poshmark, this includes relevant hashtags; for Depop, it keeps the style short and trendy; for Whatnot, it uses energetic live-show language. All descriptions stay within the platform's character limit.</p>
       </div>
     </div>
     <div class="step">
@@ -1492,6 +1506,19 @@
   </div>
 
   <p>Each buyer profile tracks: name, email, phone, platform handles, total spent, number of purchases, items bought, and a communication log for notes and conversations. Buyers are automatically created when you record sales.</p>
+
+  <h3>Offer Management</h3>
+  <p>Track purchase offers from buyers across all platforms.</p>
+  <div class="feature-card">
+    <h4>How to Manage Offers</h4>
+    <ol>
+      <li>Open a buyer profile or item drawer and click <strong>Add Offer</strong>.</li>
+      <li>Enter the offer amount, platform, and any notes.</li>
+      <li>Use <strong>Accept</strong>, <strong>Reject</strong>, or <strong>Counter</strong> actions to respond.</li>
+      <li>Accepted offers auto-link to the buyer's purchase history.</li>
+    </ol>
+    <p><strong>Offer Aging Alerts:</strong> Offers older than 24 hours appear as a dashboard banner so no potential sale goes cold. <strong>Counter Offers:</strong> Propose a counter-price that updates the offer record and keeps negotiation history intact.</p>
+  </div>
 </section>
 
 <!-- ═════════════════════════════ PHOTOS ═════════════════ -->
@@ -2537,7 +2564,7 @@
   <div class="feature-grid">
     <div class="feature-card">
       <h4>📝 AI Listing Generator</h4>
-      <p>Generate platform-optimized product descriptions using AI. Adapts tone and formatting for eBay, Etsy, Amazon, and more.</p>
+      <p>Generate platform-optimized product descriptions using AI. Adapts tone and formatting for eBay, Poshmark, Depop, Mercari, Whatnot, and more. Descriptions are automatically capped to each platform's character limit (e.g., 1,000 for Whatnot, Depop, and Mercari; 1,500 for Poshmark; 4,000 for eBay) so listings are always ready to paste.</p>
     </div>
     <div class="feature-card">
       <h4>📷 AI Identification</h4>
@@ -2561,6 +2588,130 @@
     <h2>What's New in Version 2.0</h2>
   </div>
 
+  <h3>Whatnot Live Selling Suite (v2.0.1)</h3>
+  <p>A major expansion of Whatnot tools with 14 new features built for live sellers. No other reseller tool offers this level of Whatnot integration.</p>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <h4>🔴 Live Show Dashboard</h4>
+      <p>Real-time command center during live shows: running revenue, sell-through rate, elapsed timer, items remaining queue, and revenue-per-hour. Quick-action buttons to mark items sold or given away.</p>
+    </div>
+    <div class="feature-card">
+      <h4>📦 Lot Bundling</h4>
+      <p>Group show items into auction lots with names and starting bids. Lots appear on run sheets with item breakdowns and total value calculations.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🎯 Show Revenue Goals</h4>
+      <p>Set a revenue target for each show. Progress bar tracks achievement in real-time during live shows. Analytics tab shows goal hit rate across all shows.</p>
+    </div>
+    <div class="feature-card">
+      <h4>📣 Post-Show Recap Card</h4>
+      <p>Auto-generate a shareable text recap after shows: items sold, revenue, sell-through, top seller, giveaways, and goal status. Copy to clipboard for posting on social media.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🔔 Show Countdown Reminders</h4>
+      <p>Push notifications at 60 minutes and 15 minutes before scheduled shows. Uses existing VAPID push infrastructure for background delivery.</p>
+    </div>
+    <div class="feature-card">
+      <h4>💰 Starting Bid Recommendations</h4>
+      <p>Data-driven bid suggestions based on show history, comp data, and list prices. Shows suggested bid, min/max range, and reasoning for each item in the Pricing tab.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🔄 Category Rotation Planner</h4>
+      <p>Identifies categories that haven't been featured recently. Shows days since last show, sell-through rate, and urgency status. Ensures balanced show content over time.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🎁 Giveaway &amp; Loss Leader Tracker</h4>
+      <p>Track items given away during shows for engagement. Records cost impact on P&amp;L so profit calculations stay accurate. Giveaway button available during live shows.</p>
+    </div>
+    <div class="feature-card">
+      <h4>⚖ Show-to-Show Comparison</h4>
+      <p>Select any two past shows for side-by-side metric comparison: items, sold, sell-through, revenue, profit, rev/hour, duration, peak viewers, and giveaway cost.</p>
+    </div>
+    <div class="feature-card">
+      <h4>📬 Shipping Queue</h4>
+      <p>Global view of all unshipped sold items from Whatnot shows. Shows item name, show name, sale date, price, and bin location. One-click "Mark Shipped" workflow.</p>
+    </div>
+    <div class="feature-card">
+      <h4>📍 Bin/Shelf Location</h4>
+      <p>Per-item storage location field shown on run sheets, live dashboard queue, and shipping queue. Helps hosts grab items quickly during live shows.</p>
+    </div>
+    <div class="feature-card">
+      <h4>💡 Smart Inventory Actions</h4>
+      <p>AI-powered prescriptive suggestions: "Move to Whatnot $1 auction," "Bundle into lot," "Drop price 15%," "Crosslist to more platforms," or "Donate for tax write-off." Based on aging, show history, and comp data.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🏷 Platform Differential Pricing</h4>
+      <p>Suggested prices per platform accounting for fee structures and buyer culture: +25% for Poshmark's offer culture, -5% for Mercari, auction bids for Whatnot, +15% for Etsy vintage premium.</p>
+    </div>
+    <div class="feature-card">
+      <h4>📝 AI Description Limits</h4>
+      <p>AI-generated descriptions now respect platform character limits: 1,000 for Whatnot/Depop/Mercari, 1,500 for Poshmark, 4,000 for eBay. Whatnot descriptions use live-show-friendly language. Default 1,000 char safety net for all platforms.</p>
+    </div>
+  </div>
+
+  <h3>Whatnot Tutorials</h3>
+  <div class="feature-card">
+    <h4>How to Create &amp; Manage Shows</h4>
+    <ol>
+      <li>Go to <strong>Crosslist &gt; Shows tab</strong>.</li>
+      <li>Click <strong>New Show</strong> and enter a title and scheduled date/time.</li>
+      <li>Click <strong>Add Items</strong> to open the item picker &mdash; select items from your inventory.</li>
+      <li>(Optional) Set a <strong>revenue goal</strong> by clicking the goal icon on the show card.</li>
+      <li>(Optional) Add <strong>bin/shelf locations</strong> by clicking the location icon on each show item.</li>
+      <li>Create <strong>lots</strong> to group items into auction bundles with starting bids.</li>
+      <li>Print the <strong>run sheet</strong> for a physical reference during the show.</li>
+    </ol>
+  </div>
+  <div class="feature-card">
+    <h4>How to Run a Live Show</h4>
+    <ol>
+      <li>Click <strong>Start Show</strong> on a scheduled show card. The Live tab activates.</li>
+      <li>Monitor real-time stats: elapsed time, revenue, sell-through, items remaining, rev/hour.</li>
+      <li>Mark items <strong>sold</strong> as they sell &mdash; revenue updates instantly.</li>
+      <li>Track <strong>giveaways</strong> with the giveaway button &mdash; cost is recorded against P&amp;L.</li>
+      <li>Watch your <strong>revenue goal progress bar</strong> update in real-time.</li>
+      <li>Click <strong>End Show</strong> to finalize and unlock the recap card.</li>
+    </ol>
+  </div>
+  <div class="feature-card">
+    <h4>Post-Show: Recap &amp; Shipping</h4>
+    <ol>
+      <li>Click <strong>Recap</strong> on an ended show &mdash; FlipTrack generates a shareable summary.</li>
+      <li>Click <strong>Copy</strong> to copy recap text for social media.</li>
+      <li>Go to <strong>Crosslist &gt; Shipping tab</strong> for all unshipped sold items.</li>
+      <li>Click <strong>Mark Shipped</strong> on each item as you fulfill orders.</li>
+    </ol>
+  </div>
+  <div class="feature-card">
+    <h4>Using Whatnot Analytics</h4>
+    <p>All analytics are in <strong>Crosslist &gt; Analytics tab</strong>:</p>
+    <ul>
+      <li><strong>Pricing tab:</strong> Review starting bid recommendations before your show.</li>
+      <li><strong>Category Rotation:</strong> See which categories are overdue for show exposure.</li>
+      <li><strong>Show Comparison:</strong> Select two past shows for side-by-side metrics.</li>
+      <li><strong>Smart Actions:</strong> Get prescriptive suggestions (auction, bundle, reprice, crosslist, donate).</li>
+      <li><strong>Platform Pricing:</strong> See suggested prices per platform based on fees and buyer culture.</li>
+    </ul>
+  </div>
+
+  <h3>Advanced Analytics &amp; Automation (v2.0.2)</h3>
+  <p>Three new features that go beyond what competitor reseller tools offer — supply cost intelligence, peer benchmarking, and a seamless sourcing-to-listing pipeline.</p>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <h4>📊 Supply Cost Auto-Allocation</h4>
+      <p>Automatically distribute bulk supply costs (boxes, poly mailers, labels, tape) across individual inventory items as part of COGS. Five allocation methods: Per-Item (fixed cost each), Per-Shipment (on sale), Even Split (across stock), By Weight Class (light/medium/heavy multipliers), and By Category (custom rates per category). Run bulk allocation from Supplies view and see true profit per item with supply costs factored in.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🏆 Peer Benchmarking</h4>
+      <p>See how your monthly metrics compare to other resellers with anonymized percentile rankings. Tracks revenue, profit, units sold, average profit per item, ROI, sell-through rate, and days to sell. Each metric shows a percentile bar, label (Top 10%, Above Average, etc.), and tier classification: Power Seller, Full-Time, Part-Time, or Hobbyist. Privacy-first — your data never leaves your device.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🔗 Sourcing-to-Listing Pipeline</h4>
+      <p>When scanning items in Sourcing Mode, check "Auto-queue for crosslisting" and select target platforms (eBay, Poshmark, Mercari, Whatnot, Depop, Facebook). Items are added to inventory AND queued for crosslisting in one step. Eliminates the gap between sourcing and listing — scan, score, add, and list in a single workflow.</p>
+    </div>
+  </div>
+
+  <h3>Previous Release Notes</h3>
   <p>Version 2.0 is a major release focused on automation, platform integrations, and mobile experience. Bundle sales, automatic eBay return detection, live Etsy push, and a redesigned mobile layout headline 14 new features and improvements.</p>
 
   <h3>New Features (v2.0)</h3>

@@ -107,6 +107,43 @@ export function checkStockAlerts() {
 }
 
 /**
+ * Check for upcoming Whatnot shows and send reminder notifications.
+ * Called on the same interval as stock alerts.
+ */
+export function checkShowReminders() {
+  if (_notifPermission !== 'granted') return;
+  try {
+    // Dynamic import to avoid circular dependency
+    import('./whatnot-show.js').then(({ getShowsStartingSoon }) => {
+      const lastShowCheck = localStorage.getItem('ft_show_remind_last') || '0';
+      const now = Date.now();
+      // Don't re-notify within 10 minutes
+      if (now - parseInt(lastShowCheck) < 600000) return;
+
+      // Check for shows starting within 60 minutes
+      const soon = getShowsStartingSoon(60);
+      for (const { show, minutesUntil } of soon) {
+        const notifKey = `ft_show_notified_${show.id}`;
+        const alreadyNotified = localStorage.getItem(notifKey);
+        // Notify at ~60min and ~15min marks
+        if (!alreadyNotified || (minutesUntil <= 15 && alreadyNotified === '60')) {
+          const title = minutesUntil <= 15
+            ? `Show starting in ${minutesUntil} minutes!`
+            : `Show in ${minutesUntil} minutes`;
+          const body = `${show.name} — ${show.items.length} items queued`;
+          sendNotification(title, body, `ft-show-${show.id}`);
+          if (_pushSubscription) sendPushViaEdge(title, body, { type: 'show-reminder', showId: show.id });
+          localStorage.setItem(notifKey, minutesUntil <= 15 ? '15' : '60');
+        }
+      }
+      localStorage.setItem('ft_show_remind_last', String(now));
+    });
+  } catch (e) {
+    console.warn('FlipTrack: Show reminder check failed:', e.message);
+  }
+}
+
+/**
  * Start periodic stock alert checking
  */
 export function startStockAlertChecks() {
@@ -120,9 +157,13 @@ export function startStockAlertChecks() {
 
   // Check once on load (after a delay)
   setTimeout(checkStockAlerts, 10000);
+  setTimeout(checkShowReminders, 12000);
 
   // Then check periodically
-  _checkInterval = setInterval(checkStockAlerts, CHECK_INTERVAL);
+  _checkInterval = setInterval(() => {
+    checkStockAlerts();
+    checkShowReminders();
+  }, CHECK_INTERVAL);
 }
 
 /**

@@ -83,6 +83,15 @@ const TOUR_STEPS = [
     position: 'top',
     viewRequirement: 'dashboard',
   },
+  {
+    section: 'Dashboard',
+    target: '#peerBenchSection',
+    fallbackTarget: '#goalGapSection',
+    title: 'Peer Benchmarking',
+    desc: 'See how your monthly metrics stack up against other resellers. Percentile bars show your ranking for revenue, profit, units sold, ROI, and sell-through. Tier badge shows Power Seller, Full-Time, Part-Time, or Hobbyist classification. Privacy-first — data never leaves your device.',
+    position: 'top',
+    viewRequirement: 'dashboard',
+  },
 
   /* ── SECTION 2: ADDING INVENTORY ─────────────────────────────────────── */
   {
@@ -129,6 +138,15 @@ const TOUR_STEPS = [
     title: 'Multi-Variant Items',
     desc: 'Selling S/M/L/XL of the same shirt? Click "+ Variants" in the Add Item form to create one parent item with multiple size/color children. Preset sizes (S/M/L/XL) or add custom labels. Each variant tracks its own stock and price.',
     position: 'bottom',
+    viewRequirement: 'dashboard',
+  },
+  {
+    section: 'Adding Inventory',
+    target: '#headerAddBtn',
+    fallbackTarget: '#headerBatchBtn',
+    title: 'Book Mode & ISBN Lookup',
+    desc: 'When you select the "Books" category, Book Mode auto-activates. Scan or enter an ISBN to auto-populate title, author, and publisher. Enter Amazon sales rank, use FBA fee calculator, and apply book-specific condition tags (Like New, Very Good, Good, Acceptable).',
+    position: 'bottom-left',
     viewRequirement: 'dashboard',
   },
 
@@ -232,7 +250,16 @@ const TOUR_STEPS = [
     target: '#view-supplies',
     fallbackTarget: '#supBody',
     title: 'Supplies Manager',
-    desc: 'Track packing materials — boxes, mailers, tape, labels. Set low-stock alerts so you never run out mid-shipment.',
+    desc: 'Track packing materials — boxes, mailers, tape, labels. Set low-stock alerts so you never run out mid-shipment. Use Supply Cost Allocation to auto-distribute supply costs across items for true profit tracking.',
+    position: 'top',
+    viewRequirement: 'supplies',
+  },
+  {
+    section: 'Finances',
+    target: '#supplyAllocSection',
+    fallbackTarget: '#view-supplies',
+    title: 'Supply Cost Auto-Allocation',
+    desc: 'Automatically distribute bulk supply costs across inventory items as part of COGS. Five methods: Per-Item, Per-Shipment, Even Split, By Weight Class, and By Category. Set up rules, run allocation, and see true profit per item with supply costs factored into cost calculations.',
     position: 'top',
     viewRequirement: 'supplies',
   },
@@ -431,7 +458,7 @@ const TOUR_STEPS = [
     target: '#view-sourcing',
     fallbackTarget: '#sourcingContent',
     title: 'AI Sourcing Mode',
-    desc: 'Open Sourcing Mode from the Sourcing view for instant "buy or pass" decisions at thrift stores. Full-screen camera captures an item, AI identifies it, fetches sold comps, and gives a BUY/MAYBE/PASS verdict with ROI calculation. Add to inventory in one tap.',
+    desc: 'Open Sourcing Mode from the Sourcing view for instant "buy or pass" decisions at thrift stores. Full-screen camera captures an item, AI identifies it, fetches sold comps, and gives a BUY/MAYBE/PASS verdict with ROI calculation. Add to inventory in one tap with optional auto-queue for crosslisting on selected platforms.',
     position: 'top',
     viewRequirement: 'sourcing',
   },
@@ -446,6 +473,24 @@ const TOUR_STEPS = [
   },
 
   /* ── SECTION 7.8: ADVANCED FEATURES ───────────────────────────────── */
+  {
+    section: 'Advanced Features',
+    target: '#ptPreview',
+    fallbackTarget: '#view-inventory',
+    title: 'Photo Tools Suite',
+    desc: 'Open any item drawer and scroll to Photos for the full editing suite: AI background removal, auto-crop, watermarking, square padding, brightness/contrast adjustment, and rotation. Process photos without leaving FlipTrack.',
+    position: 'top',
+    viewRequirement: 'inventory',
+  },
+  {
+    section: 'Advanced Features',
+    target: '#bulkMenu',
+    fallbackTarget: '#invTable',
+    title: 'Batch Listing Mode',
+    desc: 'Select multiple items and use Batch List to generate AI-powered listing text for all of them at once. Choose target platforms, copy all listings to clipboard, or open deep links in sequence to list rapidly.',
+    position: 'bottom',
+    viewRequirement: 'inventory',
+  },
   {
     section: 'Advanced Features',
     target: '#view-tax',
@@ -514,6 +559,134 @@ const TOUR_STEPS = [
     viewRequirement: 'inventory',
   },
 
+  /* ── SECTION 8.5: WHATNOT LIVE SELLING SUITE ─────────────────────────── */
+  {
+    section: 'Whatnot',
+    target: '#crosslistContent',
+    fallbackTarget: '#view-crosslist',
+    title: 'Whatnot Shows Manager',
+    desc: 'Create, schedule, and manage Whatnot live shows from the Shows tab. Add items to shows, set dates, clone past shows, and track show history. Switch between Shows, Analytics, Live, Pricing, and Shipping tabs.',
+    position: 'top',
+    viewRequirement: 'crosslist',
+  },
+  {
+    section: 'Whatnot',
+    target: '#crosslistContent',
+    fallbackTarget: '#view-crosslist',
+    title: 'Live Show Dashboard',
+    desc: 'Real-time command center during live shows. See running revenue, sell-through rate, elapsed timer, items remaining, and revenue-per-hour. Quick-action buttons to mark items sold or given away.',
+    position: 'top',
+    viewRequirement: 'crosslist',
+  },
+  {
+    section: 'Whatnot',
+    target: '#crosslistContent',
+    fallbackTarget: '#view-crosslist',
+    title: 'Lot Bundling',
+    desc: 'Group show items into auction lots with names and starting bids. Lots appear on run sheets with item breakdowns and total value calculations. Create lots from the Shows tab when viewing a show.',
+    position: 'top',
+    viewRequirement: 'crosslist',
+  },
+  {
+    section: 'Whatnot',
+    target: '#crosslistContent',
+    fallbackTarget: '#view-crosslist',
+    title: 'Show Revenue Goals',
+    desc: 'Set a revenue target for each show with a real-time progress bar during live shows. The Analytics tab tracks your goal hit rate across all shows so you can see improvement over time.',
+    position: 'top',
+    viewRequirement: 'crosslist',
+  },
+  {
+    section: 'Whatnot',
+    target: '#crosslistContent',
+    fallbackTarget: '#view-crosslist',
+    title: 'Giveaway & Loss Leader Tracker',
+    desc: 'Track items given away during shows for engagement. Records cost impact on P&L so profit calculations stay accurate. Use the giveaway button during live shows or from the show detail view.',
+    position: 'top',
+    viewRequirement: 'crosslist',
+  },
+  {
+    section: 'Whatnot',
+    target: '#crosslistContent',
+    fallbackTarget: '#view-crosslist',
+    title: 'Post-Show Recap Card',
+    desc: 'Auto-generate a shareable text recap after shows: items sold, revenue, sell-through, top seller, giveaways, and goal status. Copy to clipboard for posting on social media.',
+    position: 'top',
+    viewRequirement: 'crosslist',
+  },
+  {
+    section: 'Whatnot',
+    target: '#crosslistContent',
+    fallbackTarget: '#view-crosslist',
+    title: 'Starting Bid Recommendations',
+    desc: 'Data-driven bid suggestions in the Pricing tab. Based on show history, comp data, and list prices. Shows suggested bid, min/max range, and reasoning for each item.',
+    position: 'top',
+    viewRequirement: 'crosslist',
+  },
+  {
+    section: 'Whatnot',
+    target: '#crosslistContent',
+    fallbackTarget: '#view-crosslist',
+    title: 'Category Rotation Planner',
+    desc: 'Identifies categories that haven\'t been featured recently in shows. Shows days since last show, sell-through rate, and urgency status (overdue, due soon, recent). Ensures balanced show content over time.',
+    position: 'top',
+    viewRequirement: 'crosslist',
+  },
+  {
+    section: 'Whatnot',
+    target: '#crosslistContent',
+    fallbackTarget: '#view-crosslist',
+    title: 'Show-to-Show Comparison',
+    desc: 'Select any two past shows for side-by-side metric comparison: items, sold count, sell-through, revenue, profit, rev/hour, duration, peak viewers, and giveaway cost.',
+    position: 'top',
+    viewRequirement: 'crosslist',
+  },
+  {
+    section: 'Whatnot',
+    target: '#crosslistContent',
+    fallbackTarget: '#view-crosslist',
+    title: 'Shipping Queue & Bin Locations',
+    desc: 'Global view of all unshipped sold items from Whatnot shows in the Shipping tab. One-click "Mark Shipped" workflow. Per-item bin/shelf location field shown on run sheets, live dashboard, and shipping queue for fast item retrieval during shows.',
+    position: 'top',
+    viewRequirement: 'crosslist',
+  },
+  {
+    section: 'Whatnot',
+    target: '#crosslistContent',
+    fallbackTarget: '#view-crosslist',
+    title: 'Smart Inventory Actions',
+    desc: 'Prescriptive suggestions in Analytics: "Move to Whatnot $1 auction," "Bundle into lot," "Drop price 15%," "Crosslist to more platforms," or "Donate for tax write-off." Based on aging, show history, and comp data.',
+    position: 'top',
+    viewRequirement: 'crosslist',
+  },
+  {
+    section: 'Whatnot',
+    target: '#crosslistContent',
+    fallbackTarget: '#view-crosslist',
+    title: 'Platform Differential Pricing',
+    desc: 'Suggested prices per platform accounting for fee structures and buyer culture: +25% for Poshmark offer culture, -5% for Mercari, auction bids for Whatnot, +15% for Etsy vintage premium.',
+    position: 'top',
+    viewRequirement: 'crosslist',
+  },
+  {
+    section: 'Whatnot',
+    target: '#crosslistContent',
+    fallbackTarget: '#view-crosslist',
+    title: 'Show Countdown Push Reminders',
+    desc: 'Push notifications at 60 minutes and 15 minutes before scheduled shows. Uses VAPID push infrastructure for background delivery even when FlipTrack is closed.',
+    position: 'top',
+    viewRequirement: 'crosslist',
+  },
+  {
+    section: 'Whatnot',
+    target: '#crosslistContent',
+    fallbackTarget: '#view-crosslist',
+    title: 'AI Description Limits',
+    desc: 'AI-generated descriptions respect platform character limits: 1,000 for Whatnot/Depop/Mercari, 1,500 for Poshmark, 4,000 for eBay. Whatnot descriptions use live-show-friendly language optimized for auction engagement.',
+    position: 'top',
+    viewRequirement: 'crosslist',
+  },
+
   /* ── SECTION 9: SHIPPING & SOURCING ──────────────────────────────────── */
   {
     section: 'Operations',
@@ -541,6 +714,15 @@ const TOUR_STEPS = [
     fallbackTarget: '#buyersContent',
     title: 'Buyer CRM',
     desc: 'Track your buyers — platform handles, purchase history, total spent, and notes. Build repeat-customer relationships and spot your best buyers.',
+    position: 'top',
+    viewRequirement: 'buyers',
+  },
+  {
+    section: 'Customers',
+    target: '#view-buyers',
+    fallbackTarget: '#buyersContent',
+    title: 'Offer Management',
+    desc: 'Track purchase offers from buyers with accept, reject, or counter actions. View pending offers per item in the drawer, and monitor offer aging on the dashboard — offers older than 24 hours are flagged so no buyer goes cold.',
     position: 'top',
     viewRequirement: 'buyers',
   },
@@ -607,6 +789,33 @@ const TOUR_STEPS = [
     position: 'top',
     viewRequirement: 'dashboard',
   },
+  {
+    section: 'Settings & Tools',
+    target: '#syncDotBtn',
+    fallbackTarget: '#syncDot',
+    title: 'Teams & Collaboration',
+    desc: 'Create or join a team to share inventory data with partners or employees. Team owners generate 7-day invite codes. Three roles: Viewer (read-only), Editor (add/edit items and sales), and Admin (full access including member management). Open the account menu to manage your team.',
+    position: 'bottom-left',
+    viewRequirement: 'dashboard',
+  },
+  {
+    section: 'Settings & Tools',
+    target: '#headerAddBtn',
+    fallbackTarget: '.app-header',
+    title: 'Keyboard Shortcuts',
+    desc: 'Speed up your workflow with keyboard shortcuts: N to add item, S to record sale, / to search, D for dashboard, I for inventory, Esc to close modals. Press ? to see the full shortcut reference.',
+    position: 'bottom',
+    viewRequirement: 'dashboard',
+  },
+  {
+    section: 'Settings & Tools',
+    target: '#syncDotBtn',
+    fallbackTarget: '#syncDot',
+    title: 'Community Pricing',
+    desc: 'Opt in to share anonymized pricing data and see how your prices compare to the community average. Toggle on from Settings — your item names and personal data are never shared, only category/price aggregates.',
+    position: 'bottom-left',
+    viewRequirement: 'dashboard',
+  },
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -617,6 +826,11 @@ let _currentStep = -1;
 let _overlayEl = null;
 let _activeSteps = [];
 let _returnView = null; // remember where user started
+
+// ── AUTO-PLAY STATE ─────────────────────────────────────────────────────────
+let _autoPlayTimer = null;
+let _autoPlaySpeed = 6000; // ms per step (default 6 seconds)
+let _isAutoPlaying = false;
 
 function isElementVisible(el) {
   if (!el) return false;
@@ -703,6 +917,14 @@ function createOverlay() {
       <div class="tour-step-badge" id="tourBadge"></div>
       <div class="tour-title" id="tourTitle"></div>
       <div class="tour-desc" id="tourDesc"></div>
+      <div class="tour-autoplay" id="tourAutoplay">
+        <button class="tour-auto-btn" id="tourPlayBtn" title="Auto-play tour">▶ Watch</button>
+        <div class="tour-speed-wrap" id="tourSpeedWrap" style="display:none">
+          <button class="tour-speed-btn tour-speed-active" data-speed="6000">1x</button>
+          <button class="tour-speed-btn" data-speed="4000">1.5x</button>
+          <button class="tour-speed-btn" data-speed="2500">2.5x</button>
+        </div>
+      </div>
       <div class="tour-actions">
         <button class="tour-skip" id="tourSkip">Skip Tour</button>
         <div style="flex:1"></div>
@@ -711,6 +933,7 @@ function createOverlay() {
       </div>
       <div class="tour-progress" id="tourProgress">
         <div class="tour-progress-fill" id="tourProgressFill"></div>
+        <div class="tour-progress-timer" id="tourProgressTimer" style="display:none"></div>
       </div>
     </div>
   `;
@@ -718,21 +941,39 @@ function createOverlay() {
   _overlayEl = div;
 
   document.getElementById('tourSkip').addEventListener('click', endTour);
-  document.getElementById('tourPrev').addEventListener('click', () => goToStep(_currentStep - 1));
+  document.getElementById('tourPrev').addEventListener('click', () => { stopAutoPlay(); goToStep(_currentStep - 1); });
   document.getElementById('tourNext').addEventListener('click', () => {
+    stopAutoPlay();
     if (_currentStep >= _activeSteps.length - 1) endTour();
     else goToStep(_currentStep + 1);
   });
   document.getElementById('tourBackdrop').addEventListener('click', endTour);
 
+  // Auto-play controls
+  document.getElementById('tourPlayBtn').addEventListener('click', () => {
+    if (_isAutoPlaying) stopAutoPlay();
+    else startAutoPlay();
+  });
+  document.getElementById('tourSpeedWrap').addEventListener('click', (e) => {
+    const btn = e.target.closest('.tour-speed-btn');
+    if (!btn) return;
+    _autoPlaySpeed = parseInt(btn.dataset.speed);
+    document.querySelectorAll('.tour-speed-btn').forEach(b => b.classList.remove('tour-speed-active'));
+    btn.classList.add('tour-speed-active');
+    // Restart timer with new speed if playing
+    if (_isAutoPlaying) { clearInterval(_autoPlayTimer); _scheduleNextStep(); }
+  });
+
   // Keyboard navigation
   _overlayEl._keyHandler = (e) => {
     if (!_overlayEl.classList.contains('on')) return;
     if (e.key === 'Escape') endTour();
+    else if (e.key === ' ') { e.preventDefault(); if (_isAutoPlaying) stopAutoPlay(); else startAutoPlay(); }
     else if (e.key === 'ArrowRight' || e.key === 'Enter') {
+      stopAutoPlay();
       if (_currentStep >= _activeSteps.length - 1) endTour();
       else goToStep(_currentStep + 1);
-    } else if (e.key === 'ArrowLeft') goToStep(_currentStep - 1);
+    } else if (e.key === 'ArrowLeft') { stopAutoPlay(); goToStep(_currentStep - 1); }
   };
   document.addEventListener('keydown', _overlayEl._keyHandler);
 }
@@ -845,6 +1086,54 @@ function goToStep(idx) {
   }, 80);
 }
 
+// ── AUTO-PLAY ENGINE ──────────────────────────────────────────────────────
+
+function _scheduleNextStep() {
+  _autoPlayTimer = setTimeout(() => {
+    if (!_isAutoPlaying) return;
+    if (_currentStep >= _activeSteps.length - 1) {
+      stopAutoPlay();
+      endTour();
+    } else {
+      goToStep(_currentStep + 1);
+      _scheduleNextStep();
+    }
+  }, _autoPlaySpeed);
+
+  // Animate the progress timer bar
+  const timer = document.getElementById('tourProgressTimer');
+  if (timer) {
+    timer.style.transition = 'none';
+    timer.style.width = '0%';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        timer.style.transition = `width ${_autoPlaySpeed}ms linear`;
+        timer.style.width = '100%';
+      });
+    });
+  }
+}
+
+function startAutoPlay() {
+  _isAutoPlaying = true;
+  const btn = document.getElementById('tourPlayBtn');
+  if (btn) { btn.textContent = '⏸ Pause'; btn.classList.add('tour-auto-active'); }
+  const speedWrap = document.getElementById('tourSpeedWrap');
+  if (speedWrap) speedWrap.style.display = 'flex';
+  const timer = document.getElementById('tourProgressTimer');
+  if (timer) timer.style.display = 'block';
+  _scheduleNextStep();
+}
+
+export function stopAutoPlay() {
+  _isAutoPlaying = false;
+  if (_autoPlayTimer) { clearTimeout(_autoPlayTimer); _autoPlayTimer = null; }
+  const btn = document.getElementById('tourPlayBtn');
+  if (btn) { btn.textContent = '▶ Watch'; btn.classList.remove('tour-auto-active'); }
+  const timer = document.getElementById('tourProgressTimer');
+  if (timer) { timer.style.transition = 'none'; timer.style.width = '0%'; }
+}
+
 export function startTour() {
   // Remember current view so we can return
   const currentView = document.querySelector('.view[style*="display: block"], .view[style*="display:block"]');
@@ -860,6 +1149,7 @@ export function startTour() {
 }
 
 export function endTour() {
+  stopAutoPlay();
   if (_overlayEl) {
     if (_overlayEl._keyHandler) document.removeEventListener('keydown', _overlayEl._keyHandler);
     _overlayEl.classList.remove('on');

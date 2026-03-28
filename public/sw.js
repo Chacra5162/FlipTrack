@@ -1,15 +1,15 @@
-/* ── FlipTrack Service Worker v6 ─────────────────────────────────────────
+/* ── FlipTrack Service Worker v7 ─────────────────────────────────────────
    Smart caching strategies per asset type:
    • HTML navigation     → network-first  (always fresh, offline fallback)
    • Hashed JS/CSS       → stale-while-revalidate  (fast + always updated)
    • Non-hashed scripts  → network-first  (always get latest version)
    • Images & fonts      → cache-first    (rarely change, fast loads)
 
-   v6 fixes the stale-cache bug where corrupted JS bundles were served
-   forever because v5 used cache-first for ALL JS files.
+   v7 cache bust for v2.0.2 feature updates (tour auto-play, supply
+   allocation, peer benchmarking, sourcing pipeline, user guide v2.0).
    ──────────────────────────────────────────────────────────────────────── */
 
-const CACHE_NAME = 'fliptrack-v6';
+const CACHE_NAME = 'fliptrack-v7';
 const MAX_CACHE_ENTRIES = 120;
 const PRECACHE = [
   './',
