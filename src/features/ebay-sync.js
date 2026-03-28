@@ -997,7 +997,6 @@ export async function pushItemToEBay(itemId) {
     if (!item.platformStatus) item.platformStatus = {};
     item.platformStatus['eBay'] = 'draft'; // Not yet published — needs an offer
 
-    setListingDate(itemId, 'eBay', localDate());
     markDirty('inv', itemId);
     save();
 
