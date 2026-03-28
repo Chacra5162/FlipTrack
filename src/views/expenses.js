@@ -11,7 +11,8 @@ let _expSearch = '';
 let _expDateFrom = '';
 let _expDateTo = '';
 
-export function setExpSearch(val) { _expSearch = (val || '').toLowerCase(); renderExpenses(); }
+let _expSearchTimer = null;
+export function setExpSearch(val) { _expSearch = (val || '').toLowerCase(); clearTimeout(_expSearchTimer); _expSearchTimer = setTimeout(renderExpenses, 200); }
 export function setExpDateFrom(val) { _expDateFrom = val || ''; renderExpenses(); }
 export function setExpDateTo(val) { _expDateTo = val || ''; renderExpenses(); }
 export function clearExpFilters() { _expSearch = ''; _expDateFrom = ''; _expDateTo = ''; renderExpenses(); }
@@ -42,6 +43,7 @@ export function addExpense() {
   }
 
   if (!date)         { toast('Please enter a date', true); return; }
+  if (new Date(date + 'T23:59:59') > new Date()) { toast('Date cannot be in the future', true); return; }
   if (!desc)         { toast('Please enter a description', true); return; }
   if (!amt || amt<=0){ toast('Please enter a valid amount', true); return; }
 

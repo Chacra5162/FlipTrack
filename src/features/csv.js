@@ -1,6 +1,6 @@
 // ── CSV IMPORT/EXPORT ───────────────────────────────────────────────────────────
 
-import { inv, sales, expenses, save, refresh, getInvItem, markDirty } from '../data/store.js';
+import { inv, sales, expenses, save, refresh, getInvItem, markDirty, normCat } from '../data/store.js';
 import { fmt, pct, uid, escHtml, escAttr, localDate} from '../utils/format.js';
 import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
@@ -10,6 +10,12 @@ import { autoSync } from '../data/sync.js';
 
 /** Neutralize spreadsheet formula injection — prefix cells starting with =, +, -, @ */
 const _sanitizeCell = v => { const s = String(v); return /^[=+\-@]/.test(s) ? "'" + s : s; };
+/** Sanitize imported text fields — strip formula injection prefixes */
+const _sanitizeImport = v => { const s = String(v || '').trim(); return /^[=+\-@]/.test(s) ? "'" + s : s; };
+/** Parse and round a numeric value to 2 decimal places, defaulting to fallback */
+const _parseNum = (v, fallback = 0) => { const n = parseFloat(String(v || '').replace(/[$,]/g, '')); return isNaN(n) ? fallback : Math.round(n * 100) / 100; };
+/** Parse an integer with explicit radix, defaulting to fallback */
+const _parseInt = (v, fallback = 1) => { const n = parseInt(v, 10); return isNaN(n) ? fallback : n; };
 
 export function exportCSV(){
   const rows=[['Name','SKU','UPC','Category','Subcategory','Source','Condition','Platforms','Qty','Cost','Price','Fees','Ship','Margin','Notes','Added','ISBN','Author','Publisher','Edition','Printing','Year','Signed','Sales Rank']];
@@ -214,10 +220,10 @@ function _executeImport(colMap, lines, parseRow) {
   let imported = 0, skipped = 0;
   for (let r = 1; r < lines.length; r++) {
     const row = parseRow(lines[r]);
-    const name = (row[colMap.name] || '').trim();
+    const name = _sanitizeImport(row[colMap.name]);
     if (!name) { skipped++; continue; }
 
-    const cat = colMap.category !== undefined ? (row[colMap.category] || '').trim() : '';
+    const cat = colMap.category !== undefined ? normCat(_sanitizeImport(row[colMap.category])) : '';
     const skuDate = localDate().replace(/-/g,'');
     const skuCat = (cat || 'GEN').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4).padEnd(3,'X');
     const skuRand = Array.from(crypto.getRandomValues(new Uint8Array(3)), b => b.toString(36)).join('').slice(0,3).toUpperCase();
@@ -231,32 +237,32 @@ function _executeImport(colMap, lines, parseRow) {
       sku: colMap.sku !== undefined ? (row[colMap.sku] || '').trim() || (skuCat + '-' + skuDate + '-' + skuRand) : skuCat + '-' + skuDate + '-' + skuRand,
       upc: colMap.upc !== undefined ? (row[colMap.upc] || '').trim() : '',
       category: cat,
-      subcategory: colMap.subcategory !== undefined ? (row[colMap.subcategory] || '').trim() : '',
+      subcategory: colMap.subcategory !== undefined ? _sanitizeImport(row[colMap.subcategory]) : '',
       subtype: '',
       platform: plats[0] || 'Other',
       platforms: plats,
-      cost: colMap.cost !== undefined ? (parseFloat(row[colMap.cost]) || 0) : 0,
-      price: colMap.price !== undefined ? (parseFloat(row[colMap.price]) || 0) : 0,
-      qty: colMap.qty !== undefined ? (parseInt(row[colMap.qty]) || 1) : 1,
+      cost: colMap.cost !== undefined ? _parseNum(row[colMap.cost], 0) : 0,
+      price: colMap.price !== undefined ? _parseNum(row[colMap.price], 0) : 0,
+      qty: colMap.qty !== undefined ? Math.max(1, _parseInt(row[colMap.qty], 1)) : 1,
       bulk: false,
-      fees: colMap.fees !== undefined ? (parseFloat(row[colMap.fees]) || 0) : 0,
-      ship: colMap.ship !== undefined ? (parseFloat(row[colMap.ship]) || 0) : 0,
+      fees: colMap.fees !== undefined ? _parseNum(row[colMap.fees], 0) : 0,
+      ship: colMap.ship !== undefined ? _parseNum(row[colMap.ship], 0) : 0,
       lowAlert: 2,
-      notes: colMap.notes !== undefined ? (row[colMap.notes] || '').trim() : '',
-      source: colMap.source !== undefined ? (row[colMap.source] || '').trim() : '',
-      condition: colMap.condition !== undefined ? (row[colMap.condition] || '').trim() : '',
+      notes: colMap.notes !== undefined ? _sanitizeImport(row[colMap.notes]) : '',
+      source: colMap.source !== undefined ? _sanitizeImport(row[colMap.source]) : '',
+      condition: colMap.condition !== undefined ? _sanitizeImport(row[colMap.condition]) : '',
       images: [],
       image: null,
       added: new Date().toISOString(),
     };
     if (colMap.isbn !== undefined) item.isbn = (row[colMap.isbn] || '').trim();
-    if (colMap.author !== undefined) item.author = (row[colMap.author] || '').trim();
-    if (colMap.publisher !== undefined) item.publisher = (row[colMap.publisher] || '').trim();
-    if (colMap.edition !== undefined) item.edition = (row[colMap.edition] || '').trim();
-    if (colMap.printing !== undefined) item.printing = (row[colMap.printing] || '').trim();
-    if (colMap.pubYear !== undefined) item.pubYear = parseInt(row[colMap.pubYear]) || null;
+    if (colMap.author !== undefined) item.author = _sanitizeImport(row[colMap.author]);
+    if (colMap.publisher !== undefined) item.publisher = _sanitizeImport(row[colMap.publisher]);
+    if (colMap.edition !== undefined) item.edition = _sanitizeImport(row[colMap.edition]);
+    if (colMap.printing !== undefined) item.printing = _sanitizeImport(row[colMap.printing]);
+    if (colMap.pubYear !== undefined) item.pubYear = _parseInt(row[colMap.pubYear], null);
     if (colMap.signed !== undefined) item.signed = ['yes','true','1','y'].includes((row[colMap.signed]||'').trim().toLowerCase());
-    if (colMap.salesRank !== undefined) item.salesRank = parseInt(row[colMap.salesRank]) || null;
+    if (colMap.salesRank !== undefined) item.salesRank = _parseInt(row[colMap.salesRank], null);
     inv.push(item);
     markDirty('inv', item.id);
     imported++;

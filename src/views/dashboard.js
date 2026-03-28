@@ -114,24 +114,24 @@ export function updatePlatBreakdown() {
   const total=Object.values(m).reduce((a,v)=>a+v,0);
   const entries=Object.entries(m).sort((a,b)=>b[1]-a[1]);
   const colors={
-    'eBay':'#ff6b35','Amazon':'#ffb800','Etsy':'#7b61ff','Facebook Marketplace':'#57ff9a',
-    'Depop':'#ff4757','Poshmark':'#e63950','Mercari':'#3cb371','Grailed':'#57c8ff',
-    'StockX':'#00bcff','GOAT':'#57c8ff','Vinted':'#09b66d','Tradesy':'#ff69b4',
-    'The RealReal':'#b4b4b4','Vestiaire Collective':'#d4af37',
-    'Reverb':'#0096ff','Discogs':'#ffa500',
-    'Craigslist':'#6495ed','OfferUp':'#50c878','Nextdoor':'#00ac4f',
-    'Whatnot':'#9b59b6','TikTok Shop':'#ff0050','Instagram':'#e4405f',
-    'Shopify':'#95bf47','Walmart Marketplace':'#0071ce','Newegg':'#ff5a00',
-    'Bonanza':'#ffc800','Ruby Lane':'#ffc800','Chairish':'#8b5a2b',
-    '1stDibs':'#b4946f','Swappa':'#00aeef','Decluttr':'#ff8c00',
-    'Other':'#57c8ff'
+    'eBay':'var(--plt-ebay)','Amazon':'var(--plt-amazon)','Etsy':'var(--plt-etsy)','Facebook Marketplace':'var(--plt-facebook)',
+    'Depop':'var(--plt-depop)','Poshmark':'var(--plt-poshmark)','Mercari':'var(--plt-mercari)','Grailed':'var(--plt-grailed)',
+    'StockX':'var(--plt-stockx)','GOAT':'var(--plt-goat)','Vinted':'var(--plt-vinted)','Tradesy':'var(--plt-tradesy)',
+    'The RealReal':'var(--plt-realreal)','Vestiaire Collective':'var(--plt-vestiaire)',
+    'Reverb':'var(--plt-reverb)','Discogs':'var(--plt-discogs)',
+    'Craigslist':'var(--plt-craigslist)','OfferUp':'var(--plt-offerup)','Nextdoor':'var(--plt-nextdoor)',
+    'Whatnot':'var(--plt-whatnot)','TikTok Shop':'var(--plt-tiktok)','Instagram':'var(--plt-instagram)',
+    'Shopify':'var(--plt-shopify)','Walmart Marketplace':'var(--plt-walmart)','Newegg':'var(--plt-newegg)',
+    'Bonanza':'var(--plt-bonanza)','Ruby Lane':'var(--plt-ruby-lane)','Chairish':'var(--plt-chairish)',
+    '1stDibs':'var(--plt-1stdibs)','Swappa':'var(--plt-swappa)','Decluttr':'var(--plt-decluttr)',
+    'Other':'var(--plt-ebay)'
   };
   const el=document.getElementById('platBreakdown');
   if(!entries.length){el.innerHTML='<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">Record your first sale to see revenue breakdown by platform</div><button class="empty-state-cta" onclick="switchView(\'sales\',document.querySelectorAll(\'.nav-tab\')[3])">Go to Sales →</button></div>';return;}
   el.innerHTML=entries.map(([n,v])=>`
     <div class="plat-row">
       <span class="plat-name">${escHtml(n)}</span>
-      <div class="plat-bw"><div class="plat-bar"><div class="plat-fill" style="width:${total?v/total*100:0}%;background:${colors[n]||'#57c8ff'}"></div></div></div>
+      <div class="plat-bw"><div class="plat-bar"><div class="plat-fill" style="width:${total?v/total*100:0}%;background:${colors[n]||'var(--accent)'}"></div></div></div>
       <span class="plat-val">${fmt(v)}</span>
     </div>`).join('');
 }
@@ -163,7 +163,7 @@ export function updateSalesLog() {
   document.getElementById('saleCnt').textContent=sales.length+' total';
   const el=document.getElementById('salesLog');
   if(!sales.length){el.innerHTML='<div class="empty-state"><div class="empty-state-icon">💰</div><div class="empty-state-text">No sales recorded yet. Sell an item and log it here!</div><button class="empty-state-cta" onclick="openSoldModal()">Record a Sale →</button></div>';return;}
-  const colors=['#57c8ff','#ff6b35','#7b61ff','#57ff9a','#ffb800'];
+  const colors=['var(--accent)','var(--accent2)','var(--accent3)','var(--good)','var(--warn)'];
   el.innerHTML=sales.slice(-8).reverse().map((s,i)=>{
     const it=getInvItem(s.itemId);
     const nm=it?escHtml(it.name):'Unknown';

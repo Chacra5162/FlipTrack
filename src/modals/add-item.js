@@ -197,6 +197,8 @@ export function openAddModal(){
 
 export function closeAdd(){
   releaseFocus();
+  const trigger = document.getElementById('headerAddBtn') || document.querySelector('[onclick*="openAdd"]');
+  if (trigger) trigger.focus();
   document.getElementById('addOv').classList.remove('on');
   ['f_name','f_sku','f_upc','f_cat','f_subcat_txt','f_subtype_txt','f_cost','f_price','f_fees','f_ship','f_notes','f_alert','f_source','f_condition','f_brand','f_color','f_size','f_sizeType','f_department','f_material','f_mpn','f_model','f_style','f_pattern','f_ebay_desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('f_qty').value='1';
@@ -327,6 +329,14 @@ function _renderVariantBuilder() {
 export async function addItem(){
   const name=document.getElementById('f_name').value.trim();
   if(!name){toast('Name required',true);return;}
+  if(name.length>200){toast('Name is too long (max 200 characters)',true);return;}
+
+  const _notes=document.getElementById('f_notes').value.trim();
+  if(_notes.length>5000){toast('Notes are too long (max 5000 characters)',true);return;}
+  const _brand=(document.getElementById('f_brand')?.value||'').trim();
+  if(_brand.length>100){toast('Brand is too long (max 100 characters)',true);return;}
+  const _ebayDesc=(document.getElementById('f_ebay_desc')?.value||'').trim();
+  if(_ebayDesc.length>5000){toast('eBay Description is too long (max 5000 characters)',true);return;}
 
   const costEl = document.getElementById('f_cost');
   const cost = parseNum(costEl.value, { fieldName: 'Cost' });
@@ -396,7 +406,7 @@ export async function addItem(){
   const subtypeVal = (document.getElementById('f_subtype_txt').value||'').trim();
   if (subcatVal && subtypeVal) window._saveCustomType?.(subcatVal, subtypeVal);
   // eBay listing detail fields
-  const brand = (document.getElementById('f_brand')?.value || '').trim();
+  const brand = _brand;
   const color = (document.getElementById('f_color')?.value || '').trim();
   const size = (document.getElementById('f_size')?.value || '').trim();
   const material = (document.getElementById('f_material')?.value || '').trim();
@@ -406,9 +416,9 @@ export async function addItem(){
   const pattern = (document.getElementById('f_pattern')?.value || '').trim();
   const sizeType = (document.getElementById('f_sizeType')?.value || '').trim();
   const department = (document.getElementById('f_department')?.value || '').trim();
-  const ebayDesc = (document.getElementById('f_ebay_desc')?.value || '').trim();
+  const ebayDesc = _ebayDesc;
 
-  const baseItem = {id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:subcatVal,subtype:subtypeVal,platform,platforms:selPlats,cost:isNaN(cost)?0:cost,price,qty,bulk:isBulk,fees:isNaN(fees)?0:fees,ship:isNaN(ship)?0:ship,lowAlert,lowAlertEnabled:alertEnabled,notes:document.getElementById('f_notes').value.trim(),source:document.getElementById('f_source').value.trim(),condition:document.getElementById('f_condition').value.trim(),smoke:smokeVal,coverType:isBookCat(cat)?coverVal:null,brand,color,size,sizeType,department,material,mpn,model,style,pattern,ebayDesc,images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),...(isBookCat(cat) ? getBookFields('f') : {}),added:new Date().toISOString()};
+  const baseItem = {id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:subcatVal,subtype:subtypeVal,platform,platforms:selPlats,cost:isNaN(cost)?0:cost,price,qty,bulk:isBulk,fees:isNaN(fees)?0:fees,ship:isNaN(ship)?0:ship,lowAlert,lowAlertEnabled:alertEnabled,notes:_notes,source:document.getElementById('f_source').value.trim(),condition:document.getElementById('f_condition').value.trim(),smoke:smokeVal,coverType:isBookCat(cat)?coverVal:null,brand,color,size,sizeType,department,material,mpn,model,style,pattern,ebayDesc,images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),...(isBookCat(cat) ? getBookFields('f') : {}),added:new Date().toISOString()};
 
   if (_hasVariants && _variantLabels.length > 0) {
     // Create parent (qty=0, holds shared data) + N children

@@ -246,7 +246,8 @@ export function sPriceType(type) {
 
 // ── SALES FILTERS ─────────────────────────────────────────────────────────────
 
-export function setSalesSearch(val) { _salesSearch = (val || '').toLowerCase(); _salePage = 0; renderSalesView(); }
+let _salesSearchTimer = null;
+export function setSalesSearch(val) { _salesSearch = (val || '').toLowerCase(); _salePage = 0; clearTimeout(_salesSearchTimer); _salesSearchTimer = setTimeout(renderSalesView, 200); }
 export function setSalesDateFrom(val) { _salesDateFrom = val || ''; _salePage = 0; renderSalesView(); }
 export function setSalesDateTo(val) { _salesDateTo = val || ''; _salePage = 0; renderSalesView(); }
 export function clearSalesFilters() { _salesSearch = ''; _salesDateFrom = ''; _salesDateTo = ''; _salePage = 0; renderSalesView(); }
@@ -501,12 +502,15 @@ export async function recSale() {
   const buyerState = (document.getElementById('s_state')?.value || '').trim().toUpperCase() || null;
   const buyerZip = (document.getElementById('s_zip')?.value || '').trim() || null;
 
+  const saleDate = document.getElementById('s_date').value || new Date().toISOString();
+  if (new Date(saleDate + 'T23:59:59') > new Date()) { toast('Date cannot be in the future', true); reenableBtn(); return; }
+
   const sale = {
     id: uid(), itemId: activeSoldId, price, listPrice: item.price || 0,
     qty, platform,
     fees: isNaN(fees) ? 0 : fees,
     ship: isNaN(ship) ? 0 : ship,
-    date: document.getElementById('s_date').value || new Date().toISOString(),
+    date: saleDate,
     tracking: (document.getElementById('s_tracking')?.value || '').trim() || null,
     buyerAddress, buyerCity, buyerState, buyerZip,
   };
@@ -600,7 +604,9 @@ async function _updateExistingSale(reenableBtn) {
   sale.platform = platform;
   sale.fees = isNaN(fees) ? 0 : fees;
   sale.ship = isNaN(ship) ? 0 : ship;
-  sale.date = document.getElementById('s_date').value || sale.date;
+  const editDate = document.getElementById('s_date').value || sale.date;
+  if (new Date(editDate + 'T23:59:59') > new Date()) { toast('Date cannot be in the future', true); reenableBtn(); return; }
+  sale.date = editDate;
   sale.tracking = (document.getElementById('s_tracking')?.value || '').trim() || null;
   sale.buyerAddress = (document.getElementById('s_address')?.value || '').trim() || null;
   sale.buyerCity = (document.getElementById('s_city')?.value || '').trim() || null;
@@ -636,6 +642,7 @@ async function _recBundleSale(reenableBtn) {
   const ship = parseNum(shipEl.value, { fieldName: 'Shipping', allowZero: true }) || 0;
   const platform = document.getElementById('s_platform').value || 'Other';
   const date = document.getElementById('s_date').value || new Date().toISOString();
+  if (new Date(date + 'T23:59:59') > new Date()) { toast('Date cannot be in the future', true); reenableBtn(); return; }
   const tracking = (document.getElementById('s_tracking')?.value || '').trim() || null;
   const buyerName = (document.getElementById('s_buyer')?.value || '').trim();
   const buyerAddress = (document.getElementById('s_address')?.value || '').trim() || null;

@@ -26,6 +26,8 @@ import { logPriceChange, snapshotItem, logItemChanges, renderItemTimeline } from
 
 // Stores the item snapshot taken when drawer opens, for diff on save
 let _drawerSnapshot = null;
+let _drawerTrigger = null;
+let _drawerDirty = false;
 import { pushEtsyPrice } from '../features/etsy-sync.js';
 import { updateEBayListing, pushItemToEBay, publishEBayListing } from '../features/ebay-sync.js';
 import { isEBayConnected } from '../features/ebay-auth.js';
@@ -142,7 +144,9 @@ export function syncAddSubtype() {
 }
 
 export function openDrawer(id) {
+  _drawerTrigger = document.activeElement;
   setActiveDrawId(id);
+  _drawerDirty = false;
   const item=getInvItem(id); if(!item) return;
   _drawerSnapshot = snapshotItem(item);
   // Refresh autocomplete suggestions for Source & Brand
@@ -245,8 +249,14 @@ export function drawerTab(name, btn) {
   btn.classList.add('active');
 }
 
-export function closeDrawer(){
+export async function closeDrawer(){
+  if (_drawerDirty) {
+    const confirmed = await appConfirm({ title: 'Unsaved Changes', message: 'You have unsaved changes. Close without saving?' });
+    if (!confirmed) return;
+  }
+  _drawerDirty = false;
   releaseFocus();
+  if (_drawerTrigger) { _drawerTrigger.focus(); _drawerTrigger = null; }
   document.getElementById('drawerOv').classList.remove('on');
   document.getElementById('drawer').classList.remove('on');
   // Reset to Details tab for next open
@@ -410,8 +420,17 @@ export async function saveDrawer(){
   const alertEl = document.getElementById('d_alert');
   const alertVal = parseNum(alertEl.value, { fieldName: 'Low Stock Alert', integer: true, min: 1 });
 
+  const _name = document.getElementById('d_name').value.trim();
+  if(_name.length>200){toast('Name is too long (max 200 characters)',true);return;}
+  const _notes = document.getElementById('d_notes').value.trim();
+  if(_notes.length>5000){toast('Notes are too long (max 5000 characters)',true);return;}
+  const _brand = (document.getElementById('d_brand')?.value||'').trim();
+  if(_brand.length>100){toast('Brand is too long (max 100 characters)',true);return;}
+  const _ebayDesc = (document.getElementById('d_ebay_desc')?.value||'').trim();
+  if(_ebayDesc.length>5000){toast('eBay Description is too long (max 5000 characters)',true);return;}
+
   const oldPrice = item.price || 0;
-  item.name    =document.getElementById('d_name').value.trim()||item.name;
+  item.name    =_name||item.name;
   item.sku     =document.getElementById('d_sku').value.trim();
   item.upc     =document.getElementById('d_upc').value.trim();
   item.category=normCat(document.getElementById('d_cat').value.trim());
@@ -428,15 +447,15 @@ export async function saveDrawer(){
   item.ship    =isNaN(ship)?0:ship;
   const qtyEl = document.getElementById('d_qty');
   const qtyVal = parseInt(qtyEl?.value, 10);
-  item.qty     =isNaN(qtyVal) || qtyVal < 0 ? (item.qty || 1) : qtyVal;
+  item.qty     =isNaN(qtyVal) || qtyVal < 0 ? (item.qty ?? 1) : qtyVal;
   item.lowAlertEnabled = !!document.getElementById('d_alert_on')?.checked;
   item.lowAlert = item.lowAlertEnabled && !isNaN(alertVal) ? alertVal : (item.lowAlert || 2);
   item.bulk    =document.getElementById('d_bulk')?.checked||false;
   item.url     =document.getElementById('d_url').value.trim();
   item.source  =document.getElementById('d_source').value.trim();
   item.condition=document.getElementById('d_condition').value.trim();
-  item.notes   =document.getElementById('d_notes').value.trim();
-  item.brand   =(document.getElementById('d_brand')?.value||'').trim();
+  item.notes   =_notes;
+  item.brand   =_brand;
   item.color   =(document.getElementById('d_color')?.value||'').trim();
   item.size    =(document.getElementById('d_size')?.value||'').trim();
   item.material=(document.getElementById('d_material')?.value||'').trim();
@@ -446,7 +465,7 @@ export async function saveDrawer(){
   item.pattern =(document.getElementById('d_pattern')?.value||'').trim();
   item.sizeType=(document.getElementById('d_sizeType')?.value||'').trim();
   item.department=(document.getElementById('d_department')?.value||'').trim();
-  item.ebayDesc=(document.getElementById('d_ebay_desc')?.value||'').trim();
+  item.ebayDesc=_ebayDesc;
   item.conditionDesc=(document.getElementById('d_cond_desc')?.value||'').trim();
   // More tab — apparel fields
   item.fit      =(document.getElementById('d_fit')?.value||'').trim();
@@ -483,6 +502,7 @@ export async function saveDrawer(){
   // Persist source & brand for future autocomplete
   saveAutocompleteEntry(item.source, item.brand).catch(() => {});
   markDirty('inv', item.id);
+  _drawerDirty = false;
   save(); closeDrawer(); refresh(); _sfx.edit(); toast('Changes saved ✓');
 
   // Fire marketplace syncs in background (non-blocking)
@@ -554,6 +574,8 @@ export function setCondTag(prefix, value, btn) {
     btn.classList.add('active');
   }
 }
+
+export function markDrawerDirty() { _drawerDirty = true; }
 
 export function loadCondTag(prefix, value) {
   const hiddenInput = document.getElementById(prefix + '_condition');

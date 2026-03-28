@@ -110,7 +110,8 @@ import {
   syncAddSubcat, syncAddSubtype,
   renderListingStatus, toggleListingStatus, getListingStatusFromDrawer,
   setCondTag, loadCondTag,
-  renderDrawerVariants
+  renderDrawerVariants,
+  markDrawerDirty
 } from './modals/drawer.js';
 import {
   dupCurrent, dupItem, addFormTab,
@@ -499,7 +500,8 @@ Object.assign(window, {
   syncDrawerSubcat, syncDrawerSubtype, syncAddSubcat, syncAddSubtype,
   setCondTag, toggleBulkFields, toggleAlertField, toggleListingStatus, togglePlatChip,
   _saveCustomType: saveCustomType,
-  renderDrawerVariants
+  renderDrawerVariants,
+  markDrawerDirty
 });
 
 // Add item

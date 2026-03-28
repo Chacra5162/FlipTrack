@@ -17,6 +17,12 @@
   --fg: #e8e8f0;
   --fs: 100;
   /* platform tag colors */
+  --plt-ebay: #ff6b35;
+  --plt-amazon: #ffb800;
+  --plt-etsy: #7b61ff;
+  --plt-facebook: #57ff9a;
+  --plt-grailed: #57c8ff;
+  --plt-goat: #57c8ff;
   --plt-depop: #ff4757;
   --plt-poshmark: #e63950;
   --plt-mercari: #3cb371;
@@ -182,6 +188,12 @@ body.font-dyslexic button {
   --good: #1a9955;
   --fg: #1a1a2e;
   /* platform tag colors — darker for light backgrounds */
+  --plt-ebay: #cc5520;
+  --plt-amazon: #c89500;
+  --plt-etsy: #5a40d9;
+  --plt-facebook: #1a9955;
+  --plt-grailed: #1a8fcf;
+  --plt-goat: #1a8fcf;
   --plt-depop: #cc2836;
   --plt-poshmark: #b82d40;
   --plt-mercari: #2d8a57;

@@ -34,6 +34,8 @@ export function openTrashModal() {
 export function closeTrashModal() {
   document.getElementById('trashOv').classList.remove('on');
   releaseFocus();
+  const trigger = document.querySelector('[onclick*="openTrash"]');
+  if (trigger) trigger.focus();
 }
 
 export async function emptyTrash() {

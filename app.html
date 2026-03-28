@@ -41,7 +41,7 @@
 <!-- HEADER -->
 <div id="syncProgressBar" class="sync-progress-bar"></div>
 <header role="banner">
-  <div class="logo" aria-label="FlipTrack" onclick="navTo('dashboard')" style="cursor:pointer" role="button" tabindex="0">Flip<span>Track</span></div>
+  <div class="logo" aria-label="FlipTrack" onclick="navTo('dashboard')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" style="cursor:pointer" role="button" tabindex="0">Flip<span>Track</span></div>
   <nav class="header-center" role="navigation" aria-label="Main navigation">
     <div class="nav-group has-active" data-group="business">
       <button class="nav-group-btn" onclick="toggleNavGroup('business')" aria-expanded="false" aria-label="Business menu">
@@ -710,12 +710,12 @@
     <button class="drawer-tab" onclick="drawerTab('comps',this);loadDrawerComps()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">📊 Comps</button>
     <button class="drawer-tab" id="drawerVariantsTab" onclick="drawerTab('variants',this);renderDrawerVariants()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" style="display:none">Variants</button>
   </div>
-  <div class="drawer-bd">
+  <div class="drawer-bd" oninput="markDrawerDirty()">
 
     <!-- TAB: Details -->
     <div class="drawer-tab-panel active" id="dtab-details">
       <div class="edit-grid">
-        <div class="edit-grp full"><label for="d_name" class="edit-lbl">Item Name</label><input class="edit-inp" id="d_name" type="text"></div>
+        <div class="edit-grp full"><label for="d_name" class="edit-lbl">Item Name</label><input class="edit-inp" id="d_name" type="text" maxlength="200"></div>
         <div class="edit-grp"><label for="d_sku" class="edit-lbl">SKU</label><input class="edit-inp" id="d_sku" type="text"></div>
         <div class="edit-grp">
           <label for="d_upc" class="edit-lbl">UPC / Barcode</label>
@@ -837,7 +837,7 @@
           <!-- Quick Listing Tab — minimum fields to post -->
           <div class="ebay-tab-panel" id="ebayTabQuick">
             <div class="form-grid" style="margin-top:0">
-              <div class="edit-grp"><div class="edit-lbl">Brand</div><input class="edit-inp" type="text" id="d_brand" placeholder="e.g. Nike, Unbranded" list="brandList"></div>
+              <div class="edit-grp"><div class="edit-lbl">Brand</div><input class="edit-inp" type="text" id="d_brand" placeholder="e.g. Nike, Unbranded" maxlength="100" list="brandList"></div>
               <div class="edit-grp"><div class="edit-lbl">Color</div><input class="edit-inp" type="text" id="d_color" placeholder="e.g. Black, Red/Blue" list="colorList"></div>
               <div class="edit-grp"><div class="edit-lbl">Size</div><input class="edit-inp" type="text" id="d_size" placeholder="e.g. Large, 10, 32x30"></div>
               <div class="edit-grp"><div class="edit-lbl">Department</div>
@@ -848,7 +848,7 @@
                 </select>
               </div>
             </div>
-            <div class="edit-grp full" style="margin-top:8px"><div class="edit-lbl">eBay Description <button type="button" class="btn-sm" style="margin-left:8px;font-size:11px;padding:2px 8px" onclick="window.aiGenerateDesc?.('drawer')" aria-label="Generate eBay description using AI">✨ AI Generate</button></div><textarea class="edit-ta" id="d_ebay_desc" placeholder="Leave blank to auto-generate with AI when listing on eBay"></textarea></div>
+            <div class="edit-grp full" style="margin-top:8px"><div class="edit-lbl">eBay Description <button type="button" class="btn-sm" style="margin-left:8px;font-size:11px;padding:2px 8px" onclick="window.aiGenerateDesc?.('drawer')" aria-label="Generate eBay description using AI">✨ AI Generate</button></div><textarea class="edit-ta" id="d_ebay_desc" placeholder="Leave blank to auto-generate with AI when listing on eBay" maxlength="5000"></textarea></div>
             <div class="edit-grp full" style="margin-top:6px"><div class="edit-lbl">Condition Notes <span style="font-size:10px;color:var(--muted)">(visible to buyers)</span></div><textarea class="edit-ta" id="d_cond_desc" rows="2" maxlength="1000" placeholder="e.g. Light scratches on back, missing original box"></textarea></div>
           </div>
           <!-- More Tab — additional eBay fields -->
@@ -942,7 +942,7 @@
             </div>
           </div>
         </div>
-        <div class="edit-grp full"><div class="edit-lbl">Notes</div><textarea class="edit-ta" id="d_notes"></textarea></div>
+        <div class="edit-grp full"><div class="edit-lbl">Notes</div><textarea class="edit-ta" id="d_notes" maxlength="5000"></textarea></div>
       </div>
       <!-- Fee Calculator -->
       <div class="fee-calc-section">
@@ -1269,7 +1269,7 @@
         <button class="add-form-tab" onclick="addFormTab('details',this)" style="flex:1;padding:9px 8px;background:transparent;border:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;cursor:pointer;border-bottom:2px solid transparent">Details</button>
       </div>
       <div class="form-grid">
-        <div class="fgrp full"><label for="f_name">Item Name *</label><input type="text" id="f_name" placeholder="e.g. Vintage Levi's 501 Jeans" onblur="triggerAddComps()"></div>
+        <div class="fgrp full"><label for="f_name">Item Name *</label><input type="text" id="f_name" placeholder="e.g. Vintage Levi's 501 Jeans" maxlength="200" onblur="triggerAddComps()"></div>
         <div class="fgrp"><label for="f_sku">SKU / ID</label><input type="text" id="f_sku" placeholder="auto if blank"></div>
         <div class="fgrp">
           <label for="f_upc">UPC / Barcode</label>
@@ -1418,7 +1418,7 @@
         <div class="fgrp full" id="f_ebay_fields" style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
           <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:8px;display:block">eBay Listing Details</label>
           <div class="form-grid" style="margin-top:0">
-            <div class="fgrp"><label for="f_brand">Brand</label><input type="text" id="f_brand" placeholder="e.g. Nike, Unbranded" list="brandList"></div>
+            <div class="fgrp"><label for="f_brand">Brand</label><input type="text" id="f_brand" placeholder="e.g. Nike, Unbranded" maxlength="100" list="brandList"></div>
             <div class="fgrp"><label for="f_color">Color</label><input type="text" id="f_color" placeholder="e.g. Black, Red/Blue" list="colorList"></div>
             <div class="fgrp"><label for="f_size">Size</label><input type="text" id="f_size" placeholder="e.g. Large, 10, 32x30"></div>
             <div class="fgrp"><label for="f_sizeType">Size Type</label>
@@ -1461,8 +1461,8 @@
             <option value="Plastic"><option value="Wood"><option value="Glass"><option value="Ceramic">
           </datalist>
         </div>
-        <div class="fgrp full"><label for="f_ebay_desc">eBay Description</label> <button type="button" class="btn-sm" style="margin-left:8px;font-size:11px;padding:2px 8px" onclick="window.aiGenerateDesc?.('add')" aria-label="Generate eBay description using AI">✨ AI Generate</button><textarea id="f_ebay_desc" placeholder="Leave blank to auto-generate with AI when listing on eBay" style="min-height:60px"></textarea></div>
-        <div class="fgrp full"><label>Notes</label><textarea id="f_notes" placeholder="Condition, sourcing, etc."></textarea></div>
+        <div class="fgrp full"><label for="f_ebay_desc">eBay Description</label> <button type="button" class="btn-sm" style="margin-left:8px;font-size:11px;padding:2px 8px" onclick="window.aiGenerateDesc?.('add')" aria-label="Generate eBay description using AI">✨ AI Generate</button><textarea id="f_ebay_desc" placeholder="Leave blank to auto-generate with AI when listing on eBay" maxlength="5000" style="min-height:60px"></textarea></div>
+        <div class="fgrp full"><label>Notes</label><textarea id="f_notes" placeholder="Condition, sourcing, etc." maxlength="5000"></textarea></div>
         <div class="fgrp full" id="f_dim_section">
           <label style="display:flex;align-items:center;justify-content:space-between">
             <span>Package Dimensions</span>

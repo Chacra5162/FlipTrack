@@ -399,9 +399,11 @@ export function setProfitDateRange(range) {
   renderProfitDashboard();
 }
 
+let _profitSearchTimer = null;
 export function setProfitSearch(val) {
   _search = (val || '').trim();
-  renderProfitDashboard();
+  clearTimeout(_profitSearchTimer);
+  _profitSearchTimer = setTimeout(renderProfitDashboard, 200);
 }
 
 export function setProfitPlatFilter(val) {

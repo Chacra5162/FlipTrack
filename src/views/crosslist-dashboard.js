@@ -473,7 +473,8 @@ function renderTemplatesTab() {
 
 export function clToggleAllSingle() { _clShowAllSingle = !_clShowAllSingle; renderCrosslistDashboard(); }
 export function clSwitchTab(tab) { _clTab = tab; _clPage = 0; renderCrosslistDashboard(); }
-export function clSetSearch(v) { _clSearch = v || ''; _clPage = 0; renderCrosslistDashboard(); }
+let _clSearchTimer = null;
+export function clSetSearch(v) { _clSearch = v || ''; _clPage = 0; clearTimeout(_clSearchTimer); _clSearchTimer = setTimeout(renderCrosslistDashboard, 200); }
 export function clSetPlatFilter(v) { _clPlatFilter = v || 'all'; _clPage = 0; renderCrosslistDashboard(); }
 export function clSetStatusFilter(v) { _clStatusFilter = v || 'all'; _clPage = 0; renderCrosslistDashboard(); }
 

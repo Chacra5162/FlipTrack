@@ -469,6 +469,11 @@ export function clearSyncTimers() {
   clearTimeout(_rtDebounce);
   _rtDebounce = null;
   stopRealtime();
+  if (_visibilityHandler) {
+    document.removeEventListener('visibilitychange', _visibilityHandler);
+    _visibilityHandler = null;
+  }
+  _syncListenersInitialized = false;
 }
 
 
@@ -572,10 +577,11 @@ export async function pollOnce() {
 
 // ── PAGE VISIBILITY HANDLING ───────────────────────────────────────────────
 let _syncListenersInitialized = false;
+let _visibilityHandler = null;
 export function setupSyncEventListeners() {
   if (_syncListenersInitialized) return;
   _syncListenersInitialized = true;
-  document.addEventListener('visibilitychange', () => {
+  _visibilityHandler = () => {
     const _sb = getSupabaseClient();
     const _currentUser = getCurrentUser();
     if (document.hidden) {
@@ -586,7 +592,8 @@ export function setupSyncEventListeners() {
         startRealtime();
       }
     }
-  });
+  };
+  document.addEventListener('visibilitychange', _visibilityHandler);
 }
 
 

@@ -138,10 +138,12 @@ export function buyerExpand(id) {
 
 // ── SEARCH / SORT ─────────────────────────────────────────────────────────────
 
+let _searchTimer = null;
 export function buyerSetSearch(val) {
   _buyerSearch = (val || '').toLowerCase();
   _buyerPage = 0;
-  renderBuyersView();
+  clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(renderBuyersView, 200);
 }
 
 export function buyerSetSort(val) {

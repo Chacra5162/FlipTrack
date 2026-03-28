@@ -100,12 +100,12 @@ export function buildChips(forceRebuild) {
   // Platform chips — show all platforms, grouped with dividers
   const inUse = new Set(inv.flatMap(i=>getPlatforms(i)).filter(Boolean));
   // Platform chips — "All" clears the set; clicking a platform toggles it
-  let platHtml = `<span class="filter-chip ${platFilt.size===0?'active':''}" role="button" tabindex="0" onclick="setPlatFilt('all',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">All</span>`;
+  let platHtml = `<span class="filter-chip ${platFilt.size===0?'active':''}" role="button" tabindex="0" aria-pressed="${platFilt.size===0}" onclick="setPlatFilt('all',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">All</span>`;
   PLATFORM_GROUPS.forEach(group => {
     platHtml += `<span class="plat-group-divider">${group.label}</span>`;
     group.items.forEach(p => {
       const dot = inUse.has(p) ? `<span class="plat-dot"></span>` : '';
-      platHtml += `<span class="filter-chip plat-chip ${platFilt.has(p)?'active':''}" role="button" tabindex="0" onclick="setPlatFilt('${p}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${dot}${p}</span>`;
+      platHtml += `<span class="filter-chip plat-chip ${platFilt.has(p)?'active':''}" role="button" tabindex="0" aria-pressed="${platFilt.has(p)}" onclick="setPlatFilt('${p}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${dot}${p}</span>`;
     });
   });
   document.getElementById('platChips').innerHTML = platHtml;
@@ -118,7 +118,7 @@ export function buildChips(forceRebuild) {
   catEl.innerHTML=cats.map(c=>{
     const safe=escHtml(c).replace(/'/g,'&#39;');
     const isActive = c==='all' ? catFilt.size===0 : [...catFilt].some(f=>f.toLowerCase()===c.toLowerCase());
-    return `<span class="filter-chip cat-chip ${isActive?'active':''}" role="button" tabindex="0" data-cat="${escHtml(c)}" onclick="setCatFilt('${safe}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${c==='all'?'All Categories':escHtml(c)}</span>`;
+    return `<span class="filter-chip cat-chip ${isActive?'active':''}" role="button" tabindex="0" aria-pressed="${isActive}" data-cat="${escHtml(c)}" onclick="setCatFilt('${safe}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${c==='all'?'All Categories':escHtml(c)}</span>`;
   }).join('');
 
   // hide category row if no categories set yet
@@ -143,7 +143,7 @@ export function buildChips(forceRebuild) {
     document.getElementById('subcatChips').innerHTML=
       ['all',...allSubs].map(s=>{
         const safe=escHtml(s).replace(/'/g,'&#39;');
-        return `<span class="filter-chip subcat-chip ${subcatFilt===s?'active':''}" role="button" tabindex="0" data-subcat="${escHtml(s)}" onclick="setSubcatFilt('${safe}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${s==='all'?'All':escHtml(s)}</span>`;
+        return `<span class="filter-chip subcat-chip ${subcatFilt===s?'active':''}" role="button" tabindex="0" aria-pressed="${subcatFilt===s}" data-subcat="${escHtml(s)}" onclick="setSubcatFilt('${safe}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${s==='all'?'All':escHtml(s)}</span>`;
       }).join('');
     subcatBar.style.display='flex';
   } else {
@@ -161,7 +161,7 @@ export function buildChips(forceRebuild) {
     document.getElementById('subsubcatChips').innerHTML=
       ['all',...allSubsubs].map(s=>{
         const safe=escAttr(s);
-        return `<span class="filter-chip subsubcat-chip ${subsubcatFilt===s?'active':''}" role="button" tabindex="0" onclick="setSubsubcatFilt('${safe}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${s==='all'?'All':escHtml(s)}</span>`;
+        return `<span class="filter-chip subsubcat-chip ${subsubcatFilt===s?'active':''}" role="button" tabindex="0" aria-pressed="${subsubcatFilt===s}" onclick="setSubsubcatFilt('${safe}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${s==='all'?'All':escHtml(s)}</span>`;
       }).join('');
     subsubBar.style.display='flex';
   } else {
@@ -175,7 +175,7 @@ export function buildChips(forceRebuild) {
     const smokeOpts = ['all','smoke-free','smoke-exposure','unset'];
     const smokeLabels = { all:'All', 'smoke-free':'🟢 Smoke-Free', 'smoke-exposure':'🔴 Smoke Exp.', unset:'⚪ Unset' };
     document.getElementById('smokeChips').innerHTML = smokeOpts.map(s =>
-      `<span class="filter-chip ${smokeFilt===s?'active':''}" role="button" tabindex="0" onclick="setSmokeFilt('${s}')">${smokeLabels[s]}</span>`
+      `<span class="filter-chip ${smokeFilt===s?'active':''}" role="button" tabindex="0" aria-pressed="${smokeFilt===s}" onclick="setSmokeFilt('${s}')">${smokeLabels[s]}</span>`
     ).join('');
     smokeBar.style.display = 'flex';
   }
@@ -187,7 +187,7 @@ export function buildChips(forceRebuild) {
     if (usedConds.length) {
       document.getElementById('conditionChips').innerHTML =
         ['all',...usedConds].map(c =>
-          `<span class="filter-chip ${conditionFilt===c?'active':''}" role="button" tabindex="0" onclick="setConditionFilt('${c==='all'?'all':escAttr(c)}')">${c==='all'?'All Conditions':escHtml(c)}</span>`
+          `<span class="filter-chip ${conditionFilt===c?'active':''}" role="button" tabindex="0" aria-pressed="${conditionFilt===c}" onclick="setConditionFilt('${c==='all'?'all':escAttr(c)}')">${c==='all'?'All Conditions':escHtml(c)}</span>`
         ).join('');
       condBar.style.display = 'flex';
     } else {
@@ -202,19 +202,27 @@ export function buildChips(forceRebuild) {
 export function _updateChipActiveStates() {
   document.querySelectorAll('#platChips .filter-chip').forEach(c => {
     const p = c.textContent.trim();
-    c.classList.toggle('active', p === 'All' ? platFilt.size === 0 : platFilt.has(p));
+    const active = p === 'All' ? platFilt.size === 0 : platFilt.has(p);
+    c.classList.toggle('active', active);
+    c.setAttribute('aria-pressed', String(active));
   });
   document.querySelectorAll('#catChips .filter-chip').forEach(c => {
     const t = c.textContent.trim();
-    c.classList.toggle('active', t === 'All Categories' ? catFilt.size === 0 : [...catFilt].some(f => f.toLowerCase() === t.toLowerCase()));
+    const active = t === 'All Categories' ? catFilt.size === 0 : [...catFilt].some(f => f.toLowerCase() === t.toLowerCase());
+    c.classList.toggle('active', active);
+    c.setAttribute('aria-pressed', String(active));
   });
   document.querySelectorAll('#subcatChips .filter-chip').forEach(c => {
     const t = c.textContent.trim();
-    c.classList.toggle('active', t === 'All' ? subcatFilt === 'all' : subcatFilt === t);
+    const active = t === 'All' ? subcatFilt === 'all' : subcatFilt === t;
+    c.classList.toggle('active', active);
+    c.setAttribute('aria-pressed', String(active));
   });
   document.querySelectorAll('#subsubcatChips .filter-chip').forEach(c => {
     const t = c.textContent.trim();
-    c.classList.toggle('active', t === 'All' ? subsubcatFilt === 'all' : subsubcatFilt === t);
+    const active = t === 'All' ? subsubcatFilt === 'all' : subsubcatFilt === t;
+    c.classList.toggle('active', active);
+    c.setAttribute('aria-pressed', String(active));
   });
   updateFiltersBadge();
 }
