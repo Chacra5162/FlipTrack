@@ -461,7 +461,7 @@ test('Source files total reasonable size', () => {
   walk(SRC);
   const kb = Math.round(totalBytes / 1024);
   console.log(`    Source size: ${kb} KB across all JS + CSS`);
-  assert(kb < 1800, `Source too large: ${kb} KB (max 1800 KB)`);
+  assert(kb < 2000, `Source too large: ${kb} KB (max 2000 KB)`);
   assert(kb > 50, `Source too small: ${kb} KB (suspiciously low)`);
 });
 

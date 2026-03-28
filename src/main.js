@@ -159,7 +159,9 @@ import {
   clEtsySubTab, clEtsyLoadStats, clEtsyLoadReviews, clEtsyLoadShipments,
   clEtsyPushTracking, clEtsySyncQty, clEtsyPushPhotos, clEtsyPushQty,
   clEtsyPushPrice, clEtsyTagSelect, clEtsyRemoveTag, clEtsyAddTag,
-  clEtsySuggestTags, clEtsySaveTags, clEtsySyncExpenses,
+  clEtsySuggestTags, clEtsySaveTags, clEtsySyncExpenses
+} from './views/crosslist-dashboard.js';
+import {
   wnToggleShow, wnNewShow, wnDeleteShow, wnStartShow, wnEndShow,
   wnMarkSold, wnMoveItem, wnRemoveItem, wnOpenItemPicker, wnCloseItemPicker,
   wnPickItem, wnCopyPrep,
@@ -169,7 +171,7 @@ import {
   wnCalcUpdate,
   wnSetGoal, wnGiveaway, wnEditBinLoc, wnCreateLot, wnRemoveLot,
   wnCopyRecap, wnSetCompareA, wnSetCompareB, wnMarkShipped
-} from './views/crosslist-dashboard.js';
+} from './views/whatnot-dashboard.js';
 import { initEBayAuth, handleEBayCallback, isEBayConnected } from './features/ebay-auth.js';
 import { initEBaySync, startEBaySyncInterval, stopEBaySyncInterval, resyncEBayOrders, backfillEBayData } from './features/ebay-sync.js';
 import { initEtsyAuth, handleEtsyCallback, isEtsyConnected } from './features/etsy-auth.js';
