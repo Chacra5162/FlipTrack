@@ -490,6 +490,8 @@ async function _autoListEBay(itemId) {
     const pubResult = await publishEBayListing(itemId);
     if (pubResult.success) {
       toast(`Listed on eBay! Item #${pubResult.listingId}`);
+    } else {
+      toast('eBay push saved as draft — publish failed. Try publishing from Crosslist.', true);
     }
   } catch (e) {
     console.warn('[eBay] Auto-list failed:', e.message);

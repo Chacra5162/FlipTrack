@@ -516,6 +516,8 @@ export async function saveDrawer(){
         const pubResult = await publishEBayListing(item.id);
         if (pubResult.success) {
           toast(`Listed on eBay! Item #${pubResult.listingId}`);
+        } else {
+          toast('eBay push saved as draft — publish failed. Try publishing from Crosslist.', true);
         }
       } catch (e) {
         console.warn('[eBay] Auto-list from drawer failed:', e.message);
