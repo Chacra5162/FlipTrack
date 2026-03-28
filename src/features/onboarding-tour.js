@@ -827,6 +827,11 @@ let _overlayEl = null;
 let _activeSteps = [];
 let _returnView = null; // remember where user started
 
+// ── AUTO-PLAY STATE ─────────────────────────────────────────────────────────
+let _autoPlayTimer = null;
+let _autoPlaySpeed = 6000; // ms per step (default 6 seconds)
+let _isAutoPlaying = false;
+
 function isElementVisible(el) {
   if (!el) return false;
   const style = getComputedStyle(el);
@@ -912,6 +917,14 @@ function createOverlay() {
       <div class="tour-step-badge" id="tourBadge"></div>
       <div class="tour-title" id="tourTitle"></div>
       <div class="tour-desc" id="tourDesc"></div>
+      <div class="tour-autoplay" id="tourAutoplay">
+        <button class="tour-auto-btn" id="tourPlayBtn" title="Auto-play tour">▶ Watch</button>
+        <div class="tour-speed-wrap" id="tourSpeedWrap" style="display:none">
+          <button class="tour-speed-btn tour-speed-active" data-speed="6000">1x</button>
+          <button class="tour-speed-btn" data-speed="4000">1.5x</button>
+          <button class="tour-speed-btn" data-speed="2500">2.5x</button>
+        </div>
+      </div>
       <div class="tour-actions">
         <button class="tour-skip" id="tourSkip">Skip Tour</button>
         <div style="flex:1"></div>
@@ -920,6 +933,7 @@ function createOverlay() {
       </div>
       <div class="tour-progress" id="tourProgress">
         <div class="tour-progress-fill" id="tourProgressFill"></div>
+        <div class="tour-progress-timer" id="tourProgressTimer" style="display:none"></div>
       </div>
     </div>
   `;
@@ -927,21 +941,39 @@ function createOverlay() {
   _overlayEl = div;
 
   document.getElementById('tourSkip').addEventListener('click', endTour);
-  document.getElementById('tourPrev').addEventListener('click', () => goToStep(_currentStep - 1));
+  document.getElementById('tourPrev').addEventListener('click', () => { stopAutoPlay(); goToStep(_currentStep - 1); });
   document.getElementById('tourNext').addEventListener('click', () => {
+    stopAutoPlay();
     if (_currentStep >= _activeSteps.length - 1) endTour();
     else goToStep(_currentStep + 1);
   });
   document.getElementById('tourBackdrop').addEventListener('click', endTour);
 
+  // Auto-play controls
+  document.getElementById('tourPlayBtn').addEventListener('click', () => {
+    if (_isAutoPlaying) stopAutoPlay();
+    else startAutoPlay();
+  });
+  document.getElementById('tourSpeedWrap').addEventListener('click', (e) => {
+    const btn = e.target.closest('.tour-speed-btn');
+    if (!btn) return;
+    _autoPlaySpeed = parseInt(btn.dataset.speed);
+    document.querySelectorAll('.tour-speed-btn').forEach(b => b.classList.remove('tour-speed-active'));
+    btn.classList.add('tour-speed-active');
+    // Restart timer with new speed if playing
+    if (_isAutoPlaying) { clearInterval(_autoPlayTimer); _scheduleNextStep(); }
+  });
+
   // Keyboard navigation
   _overlayEl._keyHandler = (e) => {
     if (!_overlayEl.classList.contains('on')) return;
     if (e.key === 'Escape') endTour();
+    else if (e.key === ' ') { e.preventDefault(); if (_isAutoPlaying) stopAutoPlay(); else startAutoPlay(); }
     else if (e.key === 'ArrowRight' || e.key === 'Enter') {
+      stopAutoPlay();
       if (_currentStep >= _activeSteps.length - 1) endTour();
       else goToStep(_currentStep + 1);
-    } else if (e.key === 'ArrowLeft') goToStep(_currentStep - 1);
+    } else if (e.key === 'ArrowLeft') { stopAutoPlay(); goToStep(_currentStep - 1); }
   };
   document.addEventListener('keydown', _overlayEl._keyHandler);
 }
@@ -1054,6 +1086,54 @@ function goToStep(idx) {
   }, 80);
 }
 
+// ── AUTO-PLAY ENGINE ──────────────────────────────────────────────────────
+
+function _scheduleNextStep() {
+  _autoPlayTimer = setTimeout(() => {
+    if (!_isAutoPlaying) return;
+    if (_currentStep >= _activeSteps.length - 1) {
+      stopAutoPlay();
+      endTour();
+    } else {
+      goToStep(_currentStep + 1);
+      _scheduleNextStep();
+    }
+  }, _autoPlaySpeed);
+
+  // Animate the progress timer bar
+  const timer = document.getElementById('tourProgressTimer');
+  if (timer) {
+    timer.style.transition = 'none';
+    timer.style.width = '0%';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        timer.style.transition = `width ${_autoPlaySpeed}ms linear`;
+        timer.style.width = '100%';
+      });
+    });
+  }
+}
+
+function startAutoPlay() {
+  _isAutoPlaying = true;
+  const btn = document.getElementById('tourPlayBtn');
+  if (btn) { btn.textContent = '⏸ Pause'; btn.classList.add('tour-auto-active'); }
+  const speedWrap = document.getElementById('tourSpeedWrap');
+  if (speedWrap) speedWrap.style.display = 'flex';
+  const timer = document.getElementById('tourProgressTimer');
+  if (timer) timer.style.display = 'block';
+  _scheduleNextStep();
+}
+
+export function stopAutoPlay() {
+  _isAutoPlaying = false;
+  if (_autoPlayTimer) { clearTimeout(_autoPlayTimer); _autoPlayTimer = null; }
+  const btn = document.getElementById('tourPlayBtn');
+  if (btn) { btn.textContent = '▶ Watch'; btn.classList.remove('tour-auto-active'); }
+  const timer = document.getElementById('tourProgressTimer');
+  if (timer) { timer.style.transition = 'none'; timer.style.width = '0%'; }
+}
+
 export function startTour() {
   // Remember current view so we can return
   const currentView = document.querySelector('.view[style*="display: block"], .view[style*="display:block"]');
@@ -1069,6 +1149,7 @@ export function startTour() {
 }
 
 export function endTour() {
+  stopAutoPlay();
   if (_overlayEl) {
     if (_overlayEl._keyHandler) document.removeEventListener('keydown', _overlayEl._keyHandler);
     _overlayEl.classList.remove('on');

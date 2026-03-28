@@ -273,7 +273,7 @@ import { animateStatCounters } from './features/animated-counters.js';
 import { mountProfitHeatmap } from './features/profit-heatmap.js';
 import { exportPlatformCSV, exportSalesCSV, exportTaxCSV, exportWhatnotCSV, exportShowPrepCSV, exportShowResultsCSV, exportAllShowsCSV, renderCSVExportPanel } from './features/csv-templates.js';
 import { toggleNotifications, startStockAlertChecks, stopStockAlertChecks, getNotifStatus, sendNotification, subscribeToPush, unsubscribeFromPush, togglePush } from './features/push-notifications.js';
-import { startTour, endTour, maybeStartTour } from './features/onboarding-tour.js';
+import { startTour, endTour, stopAutoPlay, maybeStartTour } from './features/onboarding-tour.js';
 import { renderKPIGoals, openKPIGoalEditor, closeKPIGoalEditor, saveKPIGoals } from './features/kpi-goals.js';
 import { toggleNotifCenter, closeNotifCenter, markAllRead, clearNotifications, addNotification, initNotificationCenter, getSalesVelocity, checkWhatnotShowReminders, notifyShowEnded, checkDailyDigest } from './features/notification-center.js';
 import { recordSync, startSyncIndicator, stopSyncIndicator } from './features/sync-indicator.js';
@@ -684,7 +684,7 @@ Object.assign(window, {
   exportPlatformCSV, exportSalesCSV, exportTaxCSV, exportWhatnotCSV,
   toggleNotifications, subscribeToPush, unsubscribeFromPush, togglePush,
   // Stakeholder features
-  startTour, endTour,
+  startTour, endTour, stopAutoPlay,
   openKPIGoalEditor, closeKPIGoalEditor, saveKPIGoals,
   // Supply Allocation
   renderSupplyAllocation, saAddRule, saRemoveRule, saToggleRule, saRunAllocation, saMethodChanged,

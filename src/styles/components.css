@@ -2484,6 +2484,37 @@ textarea { resize:vertical; min-height:70px; }
   height: 100%; background: var(--accent);
   border-radius: 2px; transition: width 0.4s ease;
 }
+.tour-progress-timer {
+  height: 2px; background: var(--accent2);
+  border-radius: 2px; margin-top: 2px; width: 0%;
+}
+.tour-autoplay {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+}
+.tour-auto-btn {
+  background: var(--surface); border: 1px solid var(--accent);
+  color: var(--accent); font-family: 'DM Mono', monospace;
+  font-size: 11px; padding: 4px 12px; border-radius: 6px;
+  cursor: pointer; transition: all 0.2s;
+}
+.tour-auto-btn:hover { background: var(--accent); color: #0a0a0f; }
+.tour-auto-btn.tour-auto-active {
+  background: var(--accent); color: #0a0a0f;
+}
+.tour-speed-wrap {
+  display: flex; gap: 4px; align-items: center;
+}
+.tour-speed-btn {
+  background: none; border: 1px solid var(--border);
+  color: var(--muted); font-family: 'DM Mono', monospace;
+  font-size: 10px; padding: 2px 8px; border-radius: 4px;
+  cursor: pointer; transition: all 0.2s;
+}
+.tour-speed-btn:hover { color: var(--text); border-color: var(--text); }
+.tour-speed-btn.tour-speed-active {
+  color: var(--accent2); border-color: var(--accent2);
+  font-weight: 700;
+}
 
 /* ── KPI GOALS ─────────────────────────────────────────────────────────── */
 .kpi-goals-empty {
