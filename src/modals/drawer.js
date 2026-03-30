@@ -307,6 +307,12 @@ export function renderListingStatus(item) {
   const isSoldOut = (item.qty || 0) <= 0 && itemSales.length > 0;
   el.innerHTML = plats.map(p => {
     let st = ps[p] || 'active';
+    // For API-managed platforms, derive real status from actual push state
+    if (p === 'eBay' && !ps[p]) {
+      st = item.ebayItemId ? (item.ebayListingId ? 'active' : 'draft') : 'draft';
+    } else if (p === 'Etsy' && !ps[p]) {
+      st = 'draft';
+    }
     // Override to sold if item is sold out and platform still shows active
     if (isSoldOut && (st === 'active' || !ps[p])) {
       const soldOnThis = itemSales.some(s => s.platform === p);

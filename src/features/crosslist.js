@@ -366,8 +366,11 @@ export function initListingDates() {
         if (expiry) item.platformListingExpiry[p] = expiry;
         patched++;
       }
-      // Ensure status exists
-      if (!item.platformStatus[p]) item.platformStatus[p] = 'active';
+      // Ensure status exists — but skip API-managed platforms (eBay, Etsy)
+      // whose status should only be set by their respective sync modules
+      if (!item.platformStatus[p] && p !== 'eBay' && p !== 'Etsy') {
+        item.platformStatus[p] = 'active';
+      }
     }
     if (patched > 0) markDirty('inv', item.id);
   }
