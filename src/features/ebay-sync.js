@@ -199,14 +199,14 @@ export async function pullEBayListings() {
     );
     for (const item of activeEbayItems) {
       if (!seenSkus.has(item.ebayItemId)) {
-        console.warn(`[eBay] Listing ended externally: "${item.name}" (SKU: ${item.ebayItemId})`);
-        markPlatformStatus(item.id, 'eBay', 'ended');
-        logItemEvent(item.id, 'ebay-sync', 'eBay sync: listing ended externally');
+        console.warn(`[eBay] Listing removed by eBay: "${item.name}" (SKU: ${item.ebayItemId})`);
+        markPlatformStatus(item.id, 'eBay', 'removed');
+        logItemEvent(item.id, 'ebay-sync', 'eBay removed this listing — check eBay Seller Hub for details');
         markDirty('inv', item.id);
         updated++;
         const label = item.name || item.sku || 'Item';
-        toast(`eBay listing ended: ${label}`);
-        addNotification('info', 'eBay Listing Ended', `${label} is no longer active on eBay`, item.id);
+        toast(`⚠ eBay removed: ${label}`, true);
+        addNotification('warning', 'eBay Removed Listing', `"${label}" was removed by eBay. Check Seller Hub for the reason.`, item.id);
       }
     }
 

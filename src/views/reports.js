@@ -4,6 +4,8 @@ import { fmt, ds, escHtml, escAttr } from '../utils/format.js';
 import { toast, appConfirm } from '../utils/dom.js';
 import { pushDeleteToCloud, autoSync, pushToCloud } from '../data/sync.js';
 import { setDefaultExpDate } from './expenses.js';
+import { endEBayListing } from '../features/ebay-sync.js';
+import { isEBayConnected } from '../features/ebay-auth.js';
 
 let reportMode   = 'monthly'; // 'weekly' | 'monthly'
 let reportOffset = 0;         // 0 = current period, -1 = previous, etc.
@@ -637,4 +639,4 @@ async function _commitSaleDeletion() {
 }
 
 // DELETE ITEM
-export async function delItem(id){const item=getInvItem(id);if(!await appConfirm({ title: 'Delete Item', message: `Delete "${item?.name}"?`, danger: true }))return;softDeleteItem(id);sel.delete(id);save();refresh();renderInv();toast('Item deleted — check 🗑️ to restore');await pushDeleteToCloud('ft_inventory',[id]);autoSync();}
+export async function delItem(id){const item=getInvItem(id);if(!await appConfirm({ title: 'Delete Item', message: `Delete "${item?.name}"?`, danger: true }))return;if(item.ebayItemId&&isEBayConnected()){endEBayListing(id).catch(e=>console.warn('[eBay] End on delete failed:',e.message));}softDeleteItem(id);sel.delete(id);save();refresh();renderInv();toast('Item deleted — check 🗑️ to restore');await pushDeleteToCloud('ft_inventory',[id]);autoSync();}
