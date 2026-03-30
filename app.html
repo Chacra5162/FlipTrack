@@ -725,9 +725,9 @@
           </div>
         </div>
         <div class="edit-grp"><label for="d_cat" class="edit-lbl">Category</label><input class="edit-inp" id="d_cat" type="text" placeholder="e.g. Clothing" oninput="syncDrawerSubcat()"></div>
-        <div class="edit-grp"><label for="d_subcat_txt" class="edit-lbl">Subcategory</label><input class="edit-inp" id="d_subcat_txt" type="text" placeholder="e.g. Sneakers, Men's…" list="d_subcat_dl"><datalist id="d_subcat_dl"></datalist></div>
+        <div class="edit-grp"><label for="d_subcat_txt" class="edit-lbl">Subcategory</label><input class="edit-inp" id="d_subcat_txt" type="text" placeholder="e.g. Sneakers, Men's…"></div>
         <select id="d_subcat" style="display:none"></select>
-        <div class="edit-grp" id="d_subtype_grp"><label for="d_subtype_txt" class="edit-lbl" id="d_subtype_lbl">Type</label><input class="edit-inp" id="d_subtype_txt" type="text" placeholder="e.g. Shirts, Sci-Fi…" list="d_subtype_dl" oninput="syncDrawerSubtype()"><datalist id="d_subtype_dl"></datalist></div>
+        <div class="edit-grp" id="d_subtype_grp"><label for="d_subtype_txt" class="edit-lbl" id="d_subtype_lbl">Type</label><input class="edit-inp" id="d_subtype_txt" type="text" placeholder="e.g. Shirts, Sci-Fi…" oninput="syncDrawerSubtype()"></div>
         <div class="edit-grp full">
           <div class="edit-lbl">Platforms <span style="color:var(--muted);font-weight:400;font-size:9px">— select all that apply</span></div>
           <div class="plat-picker" id="d_plat_picker"></div>
@@ -1280,9 +1280,9 @@
         </div>
         <div class="fgrp"><label for="f_cat">Category</label><input type="text" id="f_cat" placeholder="e.g. Clothing" oninput="syncAddSubcat()"></div>
         <div class="fgrp"><label for="f_source">Source</label><input type="text" id="f_source" placeholder="e.g. Goodwill, Garage Sale"></div>
-        <div class="fgrp"><label for="f_subcat_txt">Subcategory</label><input type="text" id="f_subcat_txt" placeholder="e.g. Sneakers, Men's…" list="f_subcat_dl"><datalist id="f_subcat_dl"></datalist></div>
+        <div class="fgrp"><label for="f_subcat_txt">Subcategory</label><input type="text" id="f_subcat_txt" placeholder="e.g. Sneakers, Men's…"></div>
         <select id="f_subcat" style="display:none"></select>
-        <div class="fgrp" id="f_subtype_grp"><label id="f_subtype_lbl" for="f_subtype_txt">Type</label><input type="text" id="f_subtype_txt" placeholder="e.g. Shirts, Sci-Fi…" list="f_subtype_dl" oninput="syncAddSubtype()"><datalist id="f_subtype_dl"></datalist></div>
+        <div class="fgrp" id="f_subtype_grp"><label id="f_subtype_lbl" for="f_subtype_txt">Type</label><input type="text" id="f_subtype_txt" placeholder="e.g. Shirts, Sci-Fi…" oninput="syncAddSubtype()"></div>
         <div class="fgrp full">
           <label for="f_plat_picker">Platforms * <span style="color:var(--muted);font-weight:400;font-size:10px">— select all that apply</span></label>
           <div class="plat-picker" id="f_plat_picker"></div>

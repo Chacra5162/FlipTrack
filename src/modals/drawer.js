@@ -113,10 +113,6 @@ export function populateSubtypeSelect(prefix, subcategory, currentValue) {
 
 export function syncDrawerSubcat() {
   const cat = document.getElementById('d_cat').value.trim();
-  // Populate datalist with known subcats for this category
-  const subs = getSubcats(cat);
-  const dl = document.getElementById('d_subcat_dl');
-  if (dl) dl.innerHTML = subs.map(s => `<option value="${escAttr(s)}">`).join('');
   // Keep the hidden select in sync for legacy data reads
   populateSubcatSelect('d_subcat', cat, document.getElementById('d_subcat_txt').value);
   populateSubtypeSelect('d', (document.getElementById('d_subcat_txt').value||'').trim(), '');
@@ -130,9 +126,6 @@ export function syncDrawerSubtype() {
 
 export function syncAddSubcat() {
   const cat = document.getElementById('f_cat').value.trim();
-  const subs = getSubcats(cat);
-  const dl = document.getElementById('f_subcat_dl');
-  if (dl) dl.innerHTML = subs.map(s => `<option value="${escAttr(s)}">`).join('');
   populateSubcatSelect('f_subcat', cat, document.getElementById('f_subcat_txt').value);
   populateSubtypeSelect('f', (document.getElementById('f_subcat_txt').value||'').trim(), '');
   toggleBookFields('f');
@@ -182,8 +175,6 @@ export function openDrawer(id) {
   const subcatTxt = document.getElementById('d_subcat_txt');
   if (subcatTxt) subcatTxt.value = item.subcategory || '';
   const subs = getSubcats(item.category||'');
-  const dl = document.getElementById('d_subcat_dl');
-  if (dl) dl.innerHTML = subs.map(s => `<option value="${escAttr(s)}">`).join('');
   // Bulk toggle
   const dBulk = document.getElementById('d_bulk');
   if (dBulk) { dBulk.checked = !!item.bulk; toggleBulkFields('d'); }

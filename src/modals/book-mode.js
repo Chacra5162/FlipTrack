@@ -232,8 +232,6 @@ function _getSubcats(cat) {
 function syncAddSubcat() {
   const cat = document.getElementById('f_cat').value.trim();
   const subs = _getSubcats(cat);
-  const dl = document.getElementById('f_subcat_dl');
-  if (dl) dl.innerHTML = subs.map(s => `<option value="${escAttr(s)}">`).join('');
   // populateSubcatSelect('f_subcat', cat, document.getElementById('f_subcat_txt').value);
   // populateSubtypeSelect('f_subtype', document.getElementById('f_subcat').value, '');
   // toggleBookFields('f');
@@ -242,8 +240,6 @@ function syncAddSubcat() {
 function syncDrawerSubcat() {
   const cat = document.getElementById('d_cat').value.trim();
   const subs = _getSubcats(cat);
-  const dl = document.getElementById('d_subcat_dl');
-  if (dl) dl.innerHTML = subs.map(s => `<option value="${escAttr(s)}">`).join('');
   // populateSubcatSelect('d_subcat', cat, document.getElementById('d_subcat_txt').value);
   // populateSubtypeSelect('d_subtype', document.getElementById('d_subcat').value, '');
   // toggleBookFields('d');
