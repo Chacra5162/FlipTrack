@@ -11,7 +11,7 @@ import { fmt, escHtml, escAttr, ds } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { logPriceChange } from './price-history.js';
 import { pushEBayPrice } from './ebay-sync.js';
-import { isEBayConnected } from './ebay-auth.js';
+import { isEBayConnected, ebayAPI } from './ebay-auth.js';
 
 // ── CACHE ─────────────────────────────────────────────────────────────────
 const CACHE_TTL = 1800000; // 30 minutes
@@ -48,6 +48,19 @@ export async function fetchComps(keyword, opts = {}) {
     }
   } catch (e) {
     console.warn('FlipTrack: comps-lookup edge error:', e.message);
+  }
+
+  // Fallback: use user's own eBay OAuth to search sold listings via Browse API
+  if (isEBayConnected()) {
+    try {
+      const result = await _fetchViaBrowseAPI(keyword.trim(), opts);
+      if (result.count > 0) {
+        _compsCache[cacheKey] = { results: result, ts: Date.now() };
+        return result;
+      }
+    } catch (e) {
+      console.warn('FlipTrack: Browse API comps error:', e.message);
+    }
   }
 
   // Fallback: local comps from our own sales data
@@ -103,6 +116,33 @@ async function _fetchFromEdge(keyword, opts) {
     highPrice: parsed.highPrice || 0,
     count: parsed.count || 0,
   };
+}
+
+/**
+ * Search eBay sold listings via the Browse API using the user's OAuth connection.
+ */
+async function _fetchViaBrowseAPI(keyword, opts) {
+  const limit = opts.limit || 25;
+  const q = encodeURIComponent(keyword);
+  // filter=buyingOptions:{FIXED_PRICE} limits to BIN; sold items have COMPLETED status
+  const path = `https://api.ebay.com/buy/browse/v1/item_summary/search?q=${q}&filter=buyingOptions:{FIXED_PRICE},conditions:{NEW|USED|VERY_GOOD|GOOD|ACCEPTABLE}&sort=-price&limit=${limit}`;
+
+  const data = await ebayAPI('GET', path);
+  const items = data?.itemSummaries || [];
+
+  const comps = items.map(item => ({
+    title: item.title || '',
+    price: parseFloat(item.price?.value) || 0,
+    currency: item.price?.currency || 'USD',
+    condition: item.condition || 'Unknown',
+    imageUrl: item.thumbnailImages?.[0]?.imageUrl || item.image?.imageUrl || '',
+    itemUrl: item.itemWebUrl || '',
+    sold: item.itemEndDate ? 'eBay Sold' : 'eBay Active',
+    date: item.itemEndDate || item.itemCreationDate || '',
+    shippingCost: parseFloat(item.shippingOptions?.[0]?.shippingCost?.value) || 0,
+  })).filter(c => c.price > 0);
+
+  return _buildResult(comps, 'eBay');
 }
 
 /**
