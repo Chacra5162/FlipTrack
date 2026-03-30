@@ -47,21 +47,24 @@ export function scoreItem(item) {
   const wantsColor = colorCats.has(cat) || colorSubs.has(sub);
   // Track fixable fields: attribute exists on item but is missing from title
   const fixes = [];
-  if (!hasColor && name.length < 60 && wantsColor) {
+  const nameLower = name.toLowerCase();
+  const colorInTitle = item.color && nameLower.includes(item.color.toLowerCase());
+  if (!hasColor && !colorInTitle && name.length < 60 && wantsColor) {
     suggestions.push('Add color to title for better search visibility');
     if (item.color) fixes.push({ field: 'color', value: item.color, label: 'Color' });
   }
   if (!hasBrand && !item.brand) suggestions.push('Include brand name in title');
   if (hasBrand || item.brand) {
-    const brandInTitle = item.brand && name.toLowerCase().includes(item.brand.toLowerCase());
+    const brandInTitle = item.brand && nameLower.includes(item.brand.toLowerCase());
     if (!brandInTitle && item.brand) fixes.push({ field: 'brand', value: item.brand, label: 'Brand' });
   }
-  if (!hasSize && ['Clothing', 'Shoes', 'Accessories'].includes(item.category)) {
+  const sizeInTitle = item.size && nameLower.includes(item.size.toLowerCase());
+  if (!hasSize && !sizeInTitle && ['Clothing', 'Shoes', 'Accessories'].includes(item.category)) {
     suggestions.push('Add size info to title');
     if (item.size) fixes.push({ field: 'size', value: item.size, label: 'Size' });
   }
   // Additional fixable fields
-  if (item.material && !name.toLowerCase().includes(item.material.toLowerCase())) {
+  if (item.material && !nameLower.includes(item.material.toLowerCase())) {
     fixes.push({ field: 'material', value: item.material, label: 'Material' });
   }
   if (name.length < 25) suggestions.push('Title is short — aim for 40+ characters with descriptive keywords');
