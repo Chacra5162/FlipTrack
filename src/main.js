@@ -257,7 +257,7 @@ import {
   triggerAddComps, compsUsePrice
 } from './features/comps.js';
 import {
-  initPhotoSettings, removeBackground, autoCrop, addWatermark, squarePad,
+  initPhotoSettings, autoCrop, addWatermark, squarePad,
   adjustImage, batchProcess, renderPhotoToolsPanel, getPhotoSettings, savePhotoSettings
 } from './features/photo-tools.js';
 import { calculateProfit, renderProfitCalc, quickProfitEstimate } from './features/profit-calc.js';
@@ -362,7 +362,6 @@ const cropCancel = _lw(lazyImages, 'cropCancel');
 const cropReset = _lw(lazyImages, 'cropReset');
 const cropSetAspect = _lw(lazyImages, 'cropSetAspect');
 const cropWhiteBg = _lw(lazyImages, 'cropWhiteBg');
-const cropRemoveBg = _lw(lazyImages, 'cropRemoveBg');
 const cropAutoEnhance = _lw(lazyImages, 'cropAutoEnhance');
 const cropRotate = _lw(lazyImages, 'cropRotate');
 
@@ -552,7 +551,7 @@ Object.assign(window, {
   imgDragOver, imgDragLeave, imgDrop,
   openLightbox, openLightboxUrl, closeLightbox, lightboxPrev, lightboxNext,
   openCropModal, cropDraw, cropConfirm, cropCancel, cropReset, cropSetAspect,
-  cropWhiteBg, cropRemoveBg, cropAutoEnhance, cropRotate,
+  cropWhiteBg, cropAutoEnhance, cropRotate,
   renderAddFormImages, renderDrawerImg
 });
 
@@ -737,7 +736,7 @@ Object.assign(window, {
   loadDrawerComps, resetDrawerComps,
   triggerAddComps, compsUsePrice,
   // Photo Tools
-  removeBackground, autoCrop, addWatermark, squarePad, adjustImage,
+  autoCrop, addWatermark, squarePad, adjustImage,
   renderPhotoToolsPanel, savePhotoSettings,
   // Profit Calculator
   calculateProfit, renderProfitCalc, quickProfitEstimate,
@@ -795,19 +794,6 @@ Object.assign(window, {
   estimateRates, getCheapestRate, renderRateComparison,
   recordLabelCost, getShippingCostSummary, saveShipLabelSettings,
   // Photo tool action handlers
-  ptRemoveBg: async (itemId) => {
-    const item = getInvItem(itemId);
-    if (!item?.image) return;
-    toast('Removing background…');
-    try {
-      const result = await removeBackground(item.image);
-      document.getElementById('ptPreview').src = result;
-      item.image = result;
-      markDirty('inv', itemId);
-      save();
-      toast('Background removed ✓');
-    } catch (e) { toast('BG removal failed: ' + e.message, true); }
-  },
   ptAutoCrop: async (itemId) => {
     const item = getInvItem(itemId);
     if (!item?.image) return;
