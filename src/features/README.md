@@ -186,6 +186,61 @@ Bulk barcode scanning and rapid item addition mode.
 
 ---
 
+### crosslist.js
+Cross-listing lifecycle management: platform statuses, expiry rules, auto-delist on sale.
+
+**Exports:**
+- `PLATFORM_EXPIRY_RULES` - Days until listing expires per platform
+- `LISTING_STATUSES` - Valid statuses: `active`, `sold`, `sold-elsewhere`, `delisted`, `expired`, `draft`, `removed`
+- `STATUS_LABELS` - Display labels (e.g., `removed` → "eBay Removed")
+- `STATUS_COLORS` - Color mapping per status
+- `markPlatformStatus(itemId, platform, status)` - Single source of truth for status changes
+- `getDaysUntilExpiry(item, platform)` - Calculate days until listing expires
+- `initListingDates()` - Boot-time patch for listing dates/statuses
+- `relistItem(itemId, platform)` - Relist expired/delisted item
+- `setListingDate(itemId, platform, date)` - Set/update listing date
+
+**Notes:**
+- `removed` status is eBay-controlled only — set when eBay externally removes a listing
+- Manual status cycling in the drawer skips `removed`
+
+---
+
+### ebay-sync.js
+Bidirectional eBay listing synchronization via Inventory/Trading APIs.
+
+**Exports:**
+- `pullEBayListings()` - Sync active eBay listings → local inventory
+- `pushItemToEBay(itemId)` - Push item to eBay Inventory API (creates offer)
+- `publishEBayListing(itemId)` - Publish offer to make it live on eBay
+- `endEBayListing(itemId)` - End listing on eBay (sets qty to 0)
+- `updateEBayListing(itemId)` - Push field changes to existing eBay listing
+- `isEBaySyncing()` - Check if sync is in progress
+- `getLastEBaySyncTime()` - Get last sync timestamp
+- `resyncEBayOrders()` - Check recent eBay orders for sold items
+
+**Behavior:**
+- External eBay removal detected during `pullEBayListings()` → sets status to `removed`, shows warning notification
+- Delisting or deleting an item in FlipTrack calls `endEBayListing()` automatically
+- eBay errors are logged to `item.itemHistory[]` via `logItemEvent()`
+- All API calls go through `ebayAPI()` proxy (edge function)
+
+---
+
+### comps.js
+Comparable pricing with 3-tier fallback: edge function → eBay Browse API → local sales.
+
+**Exports:**
+- `getItemComps(item)` - Fetch comps with fallback chain
+- `loadDrawerComps(itemId)` - Load/refresh comps in drawer (cached up to 24h)
+- `consumeAddComps()` - Retrieve and clear comps from add-item flow
+
+**Notes:**
+- Comps persist to `item._comps` to survive page reloads
+- Browse API uses relative path: `/buy/browse/v1/item_summary/search?q=...`
+
+---
+
 ## Global Dependencies
 
 These modules rely on global variables and functions that should be imported/injected:

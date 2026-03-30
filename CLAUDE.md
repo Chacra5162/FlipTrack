@@ -112,6 +112,9 @@ src/
 - **Multi-Variant:** `getVariants()`/`isParent()`/`isVariant()` in store.js — parent/child item model
 - **AI Sourcing:** `openSourcingMode()` in sourcing-mode.js — camera → AI → comps → BUY/PASS verdict
 - **Poshmark Sync:** `openPoshmarkSync()` in poshmark-sync.js — manual sold-status check
+- **eBay Sync:** `pullEBayListings()`/`endEBayListing()`/`pushItemToEBay()` in ebay-sync.js — bidirectional eBay listing sync
+- **eBay Status Sync:** Delisting or deleting an item in FlipTrack auto-ends it on eBay; eBay external removals show as 'removed' status with notification
+- **Listing Statuses:** 7 statuses: `active`, `sold`, `sold-elsewhere`, `delisted`, `expired`, `draft`, `removed` (eBay-controlled only)
 
 ## JCodeMunch — Token-Saving Default
 - **Always prefer JCodeMunch MCP tools over Read/Grep** for understanding code
@@ -130,6 +133,8 @@ src/
 - Always push changes before asking user to test (they verify from live site)
 - Never stage `dist/`, `.env`, or `node_modules/`
 - Never force-push to `master`
+- **Always merge to `master` and push when work is complete** — don't leave finished work on feature branches
+- **Always update documentation when features or flow change** — review and update `QUICK_REFERENCE.md`, `MODULES_API.md`, `src/features/README.md`, `src/data/README.md`, and any other howto/tutorial docs to reflect new or changed functionality
 
 ## Do NOT
 - Use `innerHTML` with unescaped user data
