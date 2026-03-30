@@ -47,7 +47,7 @@ export const PLATFORM_EXPIRY_RULES = {
 };
 
 // Valid platform statuses
-export const LISTING_STATUSES = ['active', 'sold', 'sold-elsewhere', 'delisted', 'expired', 'draft'];
+export const LISTING_STATUSES = ['active', 'sold', 'sold-elsewhere', 'delisted', 'expired', 'draft', 'removed'];
 
 export const STATUS_LABELS = {
   'active': 'Active',
@@ -55,7 +55,8 @@ export const STATUS_LABELS = {
   'sold-elsewhere': 'Sold Elsewhere',
   'delisted': 'Delisted',
   'expired': 'Expired',
-  'draft': 'Draft'
+  'draft': 'Draft',
+  'removed': 'eBay Removed'
 };
 
 export const STATUS_COLORS = {
@@ -64,7 +65,8 @@ export const STATUS_COLORS = {
   'sold-elsewhere': 'var(--accent2)',
   'delisted':       'var(--muted)',
   'expired':        'var(--danger)',
-  'draft':          'var(--warn)'
+  'draft':          'var(--warn)',
+  'removed':        '#ff4466'
 };
 
 // ── EXPIRY CALCULATION ─────────────────────────────────────────────────────

@@ -29,7 +29,7 @@ let _drawerSnapshot = null;
 let _drawerTrigger = null;
 let _drawerDirty = false;
 import { pushEtsyPrice } from '../features/etsy-sync.js';
-import { updateEBayListing, pushItemToEBay, publishEBayListing } from '../features/ebay-sync.js';
+import { updateEBayListing, pushItemToEBay, publishEBayListing, endEBayListing } from '../features/ebay-sync.js';
 import { isEBayConnected } from '../features/ebay-auth.js';
 import { getPlatforms, buildPlatPicker, getSelectedPlats } from '../features/platforms.js';
 import { PLATFORM_FEES, calcPlatformFee } from '../config/platforms.js';
@@ -358,9 +358,10 @@ export function renderListingStatus(item) {
 }
 
 export function toggleListingStatus(el) {
-  const cycle = LISTING_STATUSES;
+  const cycle = LISTING_STATUSES.filter(s => s !== 'removed');
   const current = el.getAttribute('data-status');
-  const next = cycle[(cycle.indexOf(current) + 1) % cycle.length];
+  const idx = cycle.indexOf(current);
+  const next = cycle[(idx >= 0 ? idx + 1 : 0) % cycle.length];
   el.setAttribute('data-status', next);
   const labelEl = el.querySelector('.ls-label');
   const dotEl = el.querySelector('.ls-dot');
@@ -384,6 +385,7 @@ export function getListingStatusFromDrawer() {
 export async function saveDrawer(){
   const item=getInvItem(activeDrawId); if(!item) return;
   const oldPlatforms = new Set(item.platforms || []);
+  const oldEbayStatus = item.platformStatus?.eBay || '';
 
   // Validate numeric fields
   const costEl = document.getElementById('d_cost');
@@ -543,12 +545,27 @@ export async function saveDrawer(){
       }
     })();
   }
+
+  // End eBay listing when status changed to 'delisted' in the drawer
+  const newEbayStatus = item.platformStatus?.eBay || '';
+  if (item.ebayItemId && isEBayConnected() && newEbayStatus === 'delisted' && oldEbayStatus !== 'delisted') {
+    endEBayListing(item.id).then(() => {
+      toast('eBay listing ended ✓');
+    }).catch(e => {
+      console.warn('[eBay] End listing failed:', e.message);
+      toast('Failed to end eBay listing — try again from Crosslist', true);
+    });
+  }
 }
 
 export async function delCurrent(){
   const item=getInvItem(activeDrawId);
   if(!await appConfirm({ title: 'Delete Item', message: `Delete "${item?.name}"?`, danger: true }))return;
   const id=activeDrawId;
+  // End eBay listing before deleting
+  if (item.ebayItemId && isEBayConnected()) {
+    endEBayListing(id).catch(e => console.warn('[eBay] End on delete failed:', e.message));
+  }
   softDeleteItem(id);
   save();
   closeDrawer();
