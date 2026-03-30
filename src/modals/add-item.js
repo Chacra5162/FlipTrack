@@ -135,6 +135,8 @@ export function dupItem(id) {
     id: newId,
     sku: skuCat + '-' + skuDate + '-' + skuRand,
     added: new Date().toISOString(),
+    // Clean slate — no platforms, no statuses, no listing IDs
+    platforms: [],
     platformStatus: {},
     platformListingDates: {},
     platformListingExpiry: {},
@@ -142,7 +144,6 @@ export function dupItem(id) {
     priceHistory: [],
     _comps: null,
   };
-  // Clear eBay/Etsy listing IDs — duplicate is a new item, not the same listing
   delete clone.ebayItemId;
   delete clone.ebayListingId;
   delete clone.etsyListingId;
@@ -150,15 +151,6 @@ export function dupItem(id) {
   markDirty('inv', clone.id);
   save(); refresh(); _sfx.create();
   toast('Duplicated: ' + clone.name + ' \u2713');
-
-  // Auto-list to eBay if the original had eBay and user is connected
-  const wantsEbay = (clone.platforms || []).includes('eBay') && isEBayConnected();
-  if (wantsEbay) {
-    _autoListEBay(newId).catch(e => {
-      console.warn('FlipTrack: auto eBay list for duplicate failed:', e.message);
-      toast('eBay auto-list failed — try manually from Crosslist', true);
-    });
-  }
 }
 
 export function addFormTab(tab, btn) {
