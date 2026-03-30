@@ -28,6 +28,7 @@ import { openDrawer, closeDrawer, loadCondTag, syncAddSubcat } from './drawer.js
 import { isEBayConnected } from '../features/ebay-auth.js';
 import { pushItemToEBay, publishEBayListing } from '../features/ebay-sync.js';
 import { generateForPlatform } from '../features/ai-listing.js';
+import { consumeAddComps } from '../features/comps.js';
 
 // pendingAddImages is now managed in images.js (single source of truth)
 // setPendingAddImages, getPendingAddImages, clearPendingAddImages imported above
@@ -453,6 +454,13 @@ export async function addItem(){
   // Persist source & brand for future autocomplete
   const addedItem = getInvItem(newId);
   if (addedItem) saveAutocompleteEntry(addedItem.source, addedItem.brand).catch(() => {});
+  // Persist comps fetched during add-item to the new item
+  const addComps = consumeAddComps();
+  if (addedItem && addComps) {
+    addedItem._comps = addComps;
+    markDirty('inv', newId);
+    save();
+  }
 
   const wantsEbay = selPlats.includes('eBay') && isEBayConnected();
 

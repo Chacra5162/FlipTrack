@@ -420,8 +420,11 @@ export async function getItemComps(itemId) {
   const item = getInvItem(itemId);
   if (!item || !item.name) return _emptyResult();
   const result = await fetchComps(item.name, { condition: item.condition });
-  // Attach keyword for search links
   result.keyword = item.name;
+  // Persist comps to item so they survive page reloads
+  item._comps = { ...result, ts: Date.now() };
+  markDirty('inv', itemId);
+  save();
   return result;
 }
 
@@ -450,7 +453,32 @@ export async function loadDrawerComps() {
     return;
   }
 
-  // Loading state
+  // Show cached comps immediately if available (< 24h old)
+  const cached = item._comps;
+  const cacheAge = cached?.ts ? Date.now() - cached.ts : Infinity;
+  if (cached && cached.count > 0 && cacheAge < 86400000) {
+    cached.keyword = cached.keyword || item.name;
+    el.innerHTML = renderCompsPanel(cached, {
+      showSuggest: true,
+      currentPrice: item.price || 0,
+    });
+    _drawerCompsLoaded = true;
+    // Refresh in background if older than 30 min
+    if (cacheAge > 1800000) {
+      getItemComps(drawerId).then(result => {
+        if (result.count > 0) {
+          result.keyword = item.name;
+          el.innerHTML = renderCompsPanel(result, {
+            showSuggest: true,
+            currentPrice: item.price || 0,
+          });
+        }
+      }).catch(() => {});
+    }
+    return;
+  }
+
+  // No cache — show loading and fetch
   el.innerHTML = `
     <div class="comps-loading">
       <div class="comps-loading-spinner"></div>
@@ -482,6 +510,7 @@ export function resetDrawerComps() {
 // ── ADD-ITEM COMPS SUGGESTION ────────────────────────────────────────────
 
 let _addCompsDebounce = null;
+let _lastAddComps = null; // Store last add-item comps for saving to new item
 
 /**
  * Trigger comps lookup for the add-item form (debounced).
@@ -507,6 +536,7 @@ export function triggerAddComps() {
       const condition = condEl ? condEl.value : '';
       const result = await fetchComps(name, { condition });
       result.keyword = name;
+      _lastAddComps = result.count > 0 ? { ...result, ts: Date.now() } : null;
       compsEl.innerHTML = renderCompsInline(result);
     } catch (e) {
       console.warn('FlipTrack: add-item comps error:', e.message);
@@ -523,6 +553,16 @@ export function triggerAddComps() {
         </div>`;
     }
   }, 800);
+}
+
+/**
+ * Retrieve and clear the last comps fetched during add-item.
+ * Called after item creation to persist comps to the new item.
+ */
+export function consumeAddComps() {
+  const result = _lastAddComps;
+  _lastAddComps = null;
+  return result;
 }
 
 /**
