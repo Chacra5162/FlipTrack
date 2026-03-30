@@ -119,13 +119,12 @@ async function _fetchFromEdge(keyword, opts) {
 }
 
 /**
- * Search eBay sold listings via the Browse API using the user's OAuth connection.
+ * Search eBay listings via the Browse API using the user's OAuth connection.
  */
 async function _fetchViaBrowseAPI(keyword, opts) {
   const limit = opts.limit || 25;
   const q = encodeURIComponent(keyword);
-  // filter=buyingOptions:{FIXED_PRICE} limits to BIN; sold items have COMPLETED status
-  const path = `https://api.ebay.com/buy/browse/v1/item_summary/search?q=${q}&filter=buyingOptions:{FIXED_PRICE},conditions:{NEW|USED|VERY_GOOD|GOOD|ACCEPTABLE}&sort=-price&limit=${limit}`;
+  const path = `/buy/browse/v1/item_summary/search?q=${q}&sort=price&limit=${limit}`;
 
   const data = await ebayAPI('GET', path);
   const items = data?.itemSummaries || [];
@@ -137,8 +136,8 @@ async function _fetchViaBrowseAPI(keyword, opts) {
     condition: item.condition || 'Unknown',
     imageUrl: item.thumbnailImages?.[0]?.imageUrl || item.image?.imageUrl || '',
     itemUrl: item.itemWebUrl || '',
-    sold: item.itemEndDate ? 'eBay Sold' : 'eBay Active',
-    date: item.itemEndDate || item.itemCreationDate || '',
+    sold: 'eBay Active',
+    date: item.itemCreationDate || '',
     shippingCost: parseFloat(item.shippingOptions?.[0]?.shippingCost?.value) || 0,
   })).filter(c => c.price > 0);
 
