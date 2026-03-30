@@ -755,7 +755,7 @@
           <input class="edit-inp" id="d_alert" type="number" min="1" placeholder="Alert when qty drops below..." style="margin-top:4px">
         </div>
         <div class="edit-grp"><label for="d_url" class="edit-lbl">Restock URL</label><input class="edit-inp" id="d_url" type="text" placeholder="Source link"></div>
-        <div class="edit-grp"><label for="d_source" class="edit-lbl">Source</label><input class="edit-inp" id="d_source" type="text" placeholder="e.g. Goodwill" list="sourceList"></div>
+        <div class="edit-grp"><label for="d_source" class="edit-lbl">Source</label><input class="edit-inp" id="d_source" type="text" placeholder="e.g. Goodwill"></div>
         <div class="edit-grp full">
           <div class="edit-lbl">Condition</div>
           <div id="d_cond_picker" style="display:flex;gap:6px;flex-wrap:wrap">
@@ -837,8 +837,8 @@
           <!-- Quick Listing Tab — minimum fields to post -->
           <div class="ebay-tab-panel" id="ebayTabQuick">
             <div class="form-grid" style="margin-top:0">
-              <div class="edit-grp"><div class="edit-lbl">Brand</div><input class="edit-inp" type="text" id="d_brand" placeholder="e.g. Nike, Unbranded" maxlength="100" list="brandList"></div>
-              <div class="edit-grp"><div class="edit-lbl">Color</div><input class="edit-inp" type="text" id="d_color" placeholder="e.g. Black, Red/Blue" list="colorList"></div>
+              <div class="edit-grp"><div class="edit-lbl">Brand</div><input class="edit-inp" type="text" id="d_brand" placeholder="e.g. Nike, Unbranded"></div>
+              <div class="edit-grp"><div class="edit-lbl">Color</div><input class="edit-inp" type="text" id="d_color" placeholder="e.g. Black, Red/Blue"></div>
               <div class="edit-grp"><div class="edit-lbl">Size</div><input class="edit-inp" type="text" id="d_size" placeholder="e.g. Large, 10, 32x30"></div>
               <div class="edit-grp"><div class="edit-lbl">Department</div>
                 <select class="edit-inp" id="d_department">
@@ -854,7 +854,7 @@
           <!-- More Tab — additional eBay fields -->
           <div class="ebay-tab-panel" id="ebayTabMore" style="display:none">
             <div class="form-grid" style="margin-top:0">
-              <div class="edit-grp"><div class="edit-lbl">Material</div><input class="edit-inp" type="text" id="d_material" placeholder="e.g. Cotton, Leather" list="materialList"></div>
+              <div class="edit-grp"><div class="edit-lbl">Material</div><input class="edit-inp" type="text" id="d_material" placeholder="e.g. Cotton, Leather"></div>
               <div class="edit-grp"><div class="edit-lbl">MPN</div><input class="edit-inp" type="text" id="d_mpn" placeholder="Mfr Part Number"></div>
               <div class="edit-grp"><div class="edit-lbl">Model</div><input class="edit-inp" type="text" id="d_model" placeholder="e.g. Air Max 90"></div>
               <div class="edit-grp"><div class="edit-lbl">Style</div><input class="edit-inp" type="text" id="d_style" placeholder="e.g. Casual, Athletic"></div>
@@ -1279,27 +1279,7 @@
           </div>
         </div>
         <div class="fgrp"><label for="f_cat">Category</label><input type="text" id="f_cat" placeholder="e.g. Clothing" oninput="syncAddSubcat()"></div>
-        <div class="fgrp"><label for="f_source">Source</label><input type="text" id="f_source" placeholder="e.g. Goodwill, Garage Sale" list="sourceList"></div>
-        <datalist id="sourceList">
-          <option value="Goodwill">
-          <option value="Salvation Army">
-          <option value="Thrift Store">
-          <option value="Garage Sale">
-          <option value="Estate Sale">
-          <option value="Flea Market">
-          <option value="Facebook Marketplace">
-          <option value="OfferUp">
-          <option value="Craigslist">
-          <option value="Wholesale">
-          <option value="Liquidation">
-          <option value="Retail Arbitrage">
-          <option value="Online Arbitrage">
-          <option value="Dumpster Dive">
-          <option value="Storage Unit">
-          <option value="Auction">
-          <option value="Personal Collection">
-          <option value="Other">
-        </datalist>
+        <div class="fgrp"><label for="f_source">Source</label><input type="text" id="f_source" placeholder="e.g. Goodwill, Garage Sale"></div>
         <div class="fgrp"><label for="f_subcat_txt">Subcategory</label><input type="text" id="f_subcat_txt" placeholder="e.g. Sneakers, Men's…" list="f_subcat_dl"><datalist id="f_subcat_dl"></datalist></div>
         <select id="f_subcat" style="display:none"></select>
         <div class="fgrp" id="f_subtype_grp"><label id="f_subtype_lbl" for="f_subtype_txt">Type</label><input type="text" id="f_subtype_txt" placeholder="e.g. Shirts, Sci-Fi…" list="f_subtype_dl" oninput="syncAddSubtype()"><datalist id="f_subtype_dl"></datalist></div>
@@ -1418,8 +1398,8 @@
         <div class="fgrp full" id="f_ebay_fields" style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
           <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:8px;display:block">eBay Listing Details</label>
           <div class="form-grid" style="margin-top:0">
-            <div class="fgrp"><label for="f_brand">Brand</label><input type="text" id="f_brand" placeholder="e.g. Nike, Unbranded" maxlength="100" list="brandList"></div>
-            <div class="fgrp"><label for="f_color">Color</label><input type="text" id="f_color" placeholder="e.g. Black, Red/Blue" list="colorList"></div>
+            <div class="fgrp"><label for="f_brand">Brand</label><input type="text" id="f_brand" placeholder="e.g. Nike, Unbranded"></div>
+            <div class="fgrp"><label for="f_color">Color</label><input type="text" id="f_color" placeholder="e.g. Black, Red/Blue"></div>
             <div class="fgrp"><label for="f_size">Size</label><input type="text" id="f_size" placeholder="e.g. Large, 10, 32x30"></div>
             <div class="fgrp"><label for="f_sizeType">Size Type</label>
               <select id="f_sizeType">
@@ -1435,31 +1415,12 @@
                 <option value="Unisex Adults">Unisex Adults</option>
               </select>
             </div>
-            <div class="fgrp"><label for="f_material">Material</label><input type="text" id="f_material" placeholder="e.g. Cotton, Leather" list="materialList"></div>
+            <div class="fgrp"><label for="f_material">Material</label><input type="text" id="f_material" placeholder="e.g. Cotton, Leather"></div>
             <div class="fgrp"><label for="f_mpn">MPN</label><input type="text" id="f_mpn" placeholder="Mfr Part Number"></div>
             <div class="fgrp"><label for="f_model">Model</label><input type="text" id="f_model" placeholder="e.g. Air Max 90"></div>
             <div class="fgrp"><label for="f_style">Style</label><input type="text" id="f_style" placeholder="e.g. Casual, Athletic"></div>
             <div class="fgrp"><label>Type / Pattern</label><input type="text" id="f_pattern" placeholder="e.g. Solid, Striped"></div>
           </div>
-          <datalist id="brandList">
-            <option value="Unbranded"><option value="Nike"><option value="Adidas"><option value="Levi's">
-            <option value="Under Armour"><option value="Champion"><option value="Carhartt"><option value="The North Face">
-            <option value="Patagonia"><option value="Ralph Lauren"><option value="Tommy Hilfiger"><option value="Calvin Klein">
-            <option value="Coach"><option value="Michael Kors"><option value="Gucci"><option value="Louis Vuitton">
-            <option value="Apple"><option value="Samsung"><option value="Sony"><option value="Dell">
-          </datalist>
-          <datalist id="colorList">
-            <option value="Black"><option value="White"><option value="Blue"><option value="Red">
-            <option value="Green"><option value="Gray"><option value="Navy"><option value="Brown">
-            <option value="Pink"><option value="Purple"><option value="Orange"><option value="Yellow">
-            <option value="Beige"><option value="Multicolor">
-          </datalist>
-          <datalist id="materialList">
-            <option value="Cotton"><option value="Polyester"><option value="Leather"><option value="Denim">
-            <option value="Nylon"><option value="Wool"><option value="Silk"><option value="Linen">
-            <option value="Canvas"><option value="Suede"><option value="Rubber"><option value="Metal">
-            <option value="Plastic"><option value="Wood"><option value="Glass"><option value="Ceramic">
-          </datalist>
         </div>
         <div class="fgrp full"><label for="f_ebay_desc">eBay Description</label> <button type="button" class="btn-sm" style="margin-left:8px;font-size:11px;padding:2px 8px" onclick="window.aiGenerateDesc?.('add')" aria-label="Generate eBay description using AI">✨ AI Generate</button><textarea id="f_ebay_desc" placeholder="Leave blank to auto-generate with AI when listing on eBay" maxlength="5000" style="min-height:60px"></textarea></div>
         <div class="fgrp full"><label>Notes</label><textarea id="f_notes" placeholder="Condition, sourcing, etc." maxlength="5000"></textarea></div>
@@ -1700,7 +1661,7 @@
     </div>
     <div class="batch-source-bar">
       <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;white-space:nowrap">Source:</span>
-      <input type="text" id="batchSource" placeholder="e.g. Goodwill, Garage Sale" list="sourceList">
+      <input type="text" id="batchSource" placeholder="e.g. Goodwill, Garage Sale">
     </div>
     <div class="batch-list" id="batchList">
       <div class="batch-empty" id="batchEmpty">Scan barcodes to add items here<br>or tap + Manual to type them in</div>

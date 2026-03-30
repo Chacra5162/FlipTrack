@@ -31,6 +31,7 @@ function toggleBnavMore(e) {
   popup.style.display = isOpen ? 'block' : 'none';
   backdrop.style.display = isOpen ? 'block' : 'none';
   if (btn) btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  document.body.style.overflow = isOpen ? 'hidden' : '';
   if (isOpen) { const first = popup.querySelector('.bnav-more-item'); if (first) first.focus(); }
 }
 
@@ -42,6 +43,7 @@ function closeBnavMore() {
   backdrop.classList.remove('open');
   popup.style.display = 'none';
   backdrop.style.display = 'none';
+  document.body.style.overflow = '';
   if (btn) { btn.setAttribute('aria-expanded', 'false'); btn.focus(); }
 }
 

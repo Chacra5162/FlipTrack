@@ -13,7 +13,7 @@
 /* DRAWER */
 .drawer-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:300; opacity:0; pointer-events:none; transition:opacity 0.25s; }
 .drawer-overlay.on { opacity:1; pointer-events:all; }
-.drawer { position:fixed; top:0; right:0; width:50vw; min-width:420px; max-width:900px; height:100vh; height:100dvh; background:var(--surface2); border-left:1px solid var(--border); z-index:301; transform:translateX(100%); transition:transform 0.28s cubic-bezier(0.4,0,0.2,1); display:flex; flex-direction:column; overflow:hidden; will-change:transform; }
+.drawer { position:fixed; top:0; right:0; width:50vw; min-width:min(420px, 100vw); max-width:900px; height:100vh; height:100dvh; background:var(--surface2); border-left:1px solid var(--border); z-index:301; transform:translateX(100%); transition:transform 0.28s cubic-bezier(0.4,0,0.2,1); display:flex; flex-direction:column; overflow:hidden; will-change:transform; }
 .drawer.on { transform:translateX(0); }
 .drawer-hd { display:flex; justify-content:space-between; align-items:flex-start; padding:14px 18px 12px; border-bottom:1px solid var(--border); flex-shrink:0; background:var(--surface2); }
 .drawer-name { font-family:'Syne',sans-serif; font-weight:800; font-size:16px; line-height:1.2; margin-bottom:3px; }

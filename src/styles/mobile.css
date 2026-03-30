@@ -8,7 +8,7 @@
 
 /* iPad landscape / iPad Air landscape (1024–1180px) */
 @media (max-width: 1024px) {
-  .drawer { width: 60vw; min-width: 380px; }
+  .drawer { width: 60vw; min-width: min(380px, 100vw); }
   .nav-tab { font-size: 11px; padding: 6px 10px; }
   .date-badge { font-size: 10px; }
   .inv-table thead th { font-size: 10px; padding: 9px 8px; }
