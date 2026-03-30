@@ -1078,9 +1078,9 @@ textarea { resize:vertical; min-height:70px; }
 }
 
 /* ── Accessibility: Color-blind safe indicators ────────────── */
-.margin-badge.mb-high::before { content: '▲ '; font-size: 8px; }
-.margin-badge.mb-mid::before  { content: '● '; font-size: 8px; }
-.margin-badge.mb-low::before  { content: '▼ '; font-size: 8px; }
+.margin-badge.mb-high::before { content: '▲'; font-size: 8px; margin-right: 3px; }
+.margin-badge.mb-mid::before  { content: '●'; font-size: 8px; margin-right: 3px; }
+.margin-badge.mb-low::before  { content: '▼'; font-size: 8px; margin-right: 3px; }
 
 /* Profit/loss text indicators for screen readers */
 .profit-positive::after { content: ' (profit)'; }
