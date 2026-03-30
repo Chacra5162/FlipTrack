@@ -1005,6 +1005,7 @@ export async function pushItemToEBay(itemId) {
     return { success: true, sku };
   } catch (e) {
     toast(`eBay push error: ${e.message}`, true);
+    logItemEvent(itemId, 'ebay-error', `eBay push failed: ${e.message}`);
     return { success: false, sku };
   }
 }
@@ -1688,6 +1689,7 @@ export async function publishEBayListing(itemId, options = {}, _isRetry = false)
       }
     }
     toast(`eBay listing error: ${e.message}`, true);
+    logItemEvent(itemId, 'ebay-error', `eBay publish failed: ${e.message}`);
     return { success: false };
   }
 }
@@ -1719,6 +1721,7 @@ export async function endEBayListing(itemId) {
     return { success: true };
   } catch (e) {
     toast(`eBay end listing error: ${e.message}`, true);
+    logItemEvent(itemId, 'ebay-error', `eBay end listing failed: ${e.message}`);
     return { success: false };
   }
 }
@@ -1752,6 +1755,7 @@ export async function relistOnEBay(itemId) {
     return { success: true };
   } catch (e) {
     toast(`eBay relist error: ${e.message}`, true);
+    logItemEvent(itemId, 'ebay-error', `eBay relist failed: ${e.message}`);
     return { success: false };
   }
 }
