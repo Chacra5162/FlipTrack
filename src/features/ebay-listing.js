@@ -532,32 +532,25 @@ export async function pushEBayPrice(itemId) {
       return { success: true };
     }
 
-    // Build minimal offer update payload — handle auctions vs fixed price
+    // Build FULL offer body — eBay PUT /offer requires complete payload
+    // Strip read-only fields that eBay returns but rejects on update
+    const { sku: _s, marketplaceId: _m, offerId: _oid, status: _st, listing: _l, ...offerBase } = offer;
+
     const isAuction = (offer.format === 'AUCTION' || item.ebayListingFormat === 'AUCTION');
-    const pricingSummary = {};
+    const pricingSummary = { ...(offerBase.pricingSummary || {}) };
     if (isAuction) {
-      // Auctions use buyItNowPrice for the BIN price
       pricingSummary.buyItNowPrice = { value: item.price.toFixed(2), currency: 'USD' };
-      // Preserve existing auction start price if set
-      if (offer.pricingSummary?.auctionStartPrice) {
-        pricingSummary.auctionStartPrice = offer.pricingSummary.auctionStartPrice;
-      }
     } else {
       pricingSummary.price = { value: item.price.toFixed(2), currency: 'USD' };
     }
+
     const offerUpdate = {
+      ...offerBase,
       pricingSummary,
       availableQuantity: item.qty || 1,
     };
 
-    // Preserve required offer fields
-    if (offer.categoryId) offerUpdate.categoryId = offer.categoryId;
-    if (offer.listingPolicies) offerUpdate.listingPolicies = offer.listingPolicies;
-    if (offer.merchantLocationKey) offerUpdate.merchantLocationKey = offer.merchantLocationKey;
-    if (offer.format) offerUpdate.format = offer.format;
-    if (offer.listingDuration) offerUpdate.listingDuration = offer.listingDuration;
-
-    console.log('[eBay] Pushing price update: $' + ebayPrice.toFixed(2) + ' → $' + item.price.toFixed(2));
+    console.warn('[eBay] Pushing price update: $' + ebayPrice.toFixed(2) + ' → $' + item.price.toFixed(2));
     await ebayAPI('PUT', `${INVENTORY_API}/offer/${offerId}`, offerUpdate);
 
     // Re-publish to make it live
@@ -567,7 +560,7 @@ export async function pushEBayPrice(itemId) {
     return { success: true };
   } catch (e) {
     console.warn('[eBay] Price push failed:', e.message);
-    return { success: false };
+    return { success: false, error: e.message };
   }
 }
 
