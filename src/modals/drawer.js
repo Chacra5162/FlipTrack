@@ -560,16 +560,28 @@ export async function saveDrawer(){
     // Format change requires end + relist (eBay doesn't allow format changes on live listings)
     (async () => {
       try {
-        toast('Changing eBay listing format — ending and relisting…');
-        await endEBayListing(item.id);
+        toast('Changing eBay listing format…');
+        const endResult = await endEBayListing(item.id);
+        if (!endResult.success) {
+          toast('Could not end current eBay listing — format change aborted', true);
+          return;
+        }
+        toast('Old listing ended — creating new listing…');
         const pubResult = await publishEBayListing(item.id);
         if (pubResult.success) {
           toast(`Relisted on eBay as ${item.ebayListingFormat === 'AUCTION' ? 'Auction' : 'Fixed Price'}! #${pubResult.listingId}`);
         } else {
-          toast('Ended old listing but relist failed — try from Crosslist', true);
+          // Ensure FlipTrack doesn't show as active when publish failed
+          markPlatformStatus(item.id, 'eBay', 'draft');
+          markDirty('inv', item.id);
+          save();
+          toast('Old listing ended but new listing failed to publish — saved as draft. Try publishing from Crosslist.', true);
         }
       } catch (e) {
         console.warn('[eBay] Format change failed:', e.message);
+        markPlatformStatus(item.id, 'eBay', 'draft');
+        markDirty('inv', item.id);
+        save();
         toast('eBay format change failed: ' + e.message, true);
       }
     })();
