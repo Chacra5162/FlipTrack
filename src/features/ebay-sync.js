@@ -678,7 +678,7 @@ export async function pullEBayListings() {
             item.name = resp.title; changed = true;
           }
           // Image enrichment (only if missing)
-          const imgUrl = resp.image?.imageUrl || '';
+          const imgUrl = resp.image?.imageUrl || resp.thumbnailImages?.[0]?.imageUrl || '';
           if (imgUrl && (!item.images || !item.images.length)) {
             item.images = [imgUrl]; item.image = imgUrl; changed = true;
           }
@@ -688,6 +688,21 @@ export async function pullEBayListings() {
             if (allImgs.length > (item.images?.length || 0)) {
               item.images = allImgs; item.image = allImgs[0]; changed = true;
             }
+          }
+          // If still no images, try Inventory API
+          if ((!item.images || !item.images.length) && (item.ebayItemId || item.sku)) {
+            try {
+              const invSku = item.ebayItemId || item.sku;
+              if (invSku && !invSku.startsWith('ebay-')) {
+                const invResp = await ebayAPI('GET',
+                  `${INVENTORY_API}/inventory_item/${encodeURIComponent(invSku)}`
+                );
+                const prodImgs = (invResp?.product?.imageUrls || []).filter(u => u?.startsWith('http'));
+                if (prodImgs.length) {
+                  item.images = prodImgs; item.image = prodImgs[0]; changed = true;
+                }
+              }
+            } catch (_) {}
           }
           // Description enrichment
           if (resp.shortDescription && !item.notes) {
@@ -1442,8 +1457,22 @@ export async function importEBayItem(input) {
     const browsePrice = parseFloat(resp.price?.value || '0');
     const browseBid = parseFloat(resp.currentBidPrice?.value || '0');
     const price = browsePrice || browseBid;
-    const imgUrl = resp.image?.imageUrl || '';
-    const allImgs = [imgUrl, ...(resp.additionalImages || []).map(i => i.imageUrl)].filter(Boolean);
+    // Try multiple image paths — Browse API structure varies through proxy
+    const imgUrl = resp.image?.imageUrl || resp.thumbnailImages?.[0]?.imageUrl || '';
+    const addlImgs = (resp.additionalImages || []).map(i => i?.imageUrl).filter(Boolean);
+    const allImgs = [imgUrl, ...addlImgs].filter(Boolean);
+    // If no images from Browse API, try fetching from Inventory API
+    if (allImgs.length === 0 && (resp.sku || resp.legacyItemId)) {
+      try {
+        const invSku = resp.sku || `ebay-${listingId}`;
+        const invItem = await ebayAPI('GET',
+          `${INVENTORY_API}/inventory_item/${encodeURIComponent(invSku)}`
+        );
+        const prodImgs = invItem?.product?.imageUrls || [];
+        allImgs.push(...prodImgs.filter(u => u?.startsWith('http')));
+      } catch (_) {}
+    }
+    console.warn(`[eBay] Import images: ${allImgs.length} found, resp.image=${JSON.stringify(resp.image)?.slice(0,100)}`);
 
     const newId = uid();
     const newItem = {
