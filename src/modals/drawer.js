@@ -445,6 +445,7 @@ export async function saveDrawer(){
   if(_ebayDesc.length>5000){toast('eBay Description is too long (max 5000 characters)',true);return;}
 
   const oldPrice = item.price || 0;
+  const oldEbayFormat = item.ebayListingFormat || 'FIXED_PRICE';
   item.name    =_name||item.name;
   item.sku     =document.getElementById('d_sku').value.trim();
   item.upc     =document.getElementById('d_upc').value.trim();
@@ -545,6 +546,7 @@ export async function saveDrawer(){
   });
   const ebayAdded = item.platforms.includes('eBay') && !oldPlatforms.has('eBay');
   const ebayRemoved = !item.platforms.includes('eBay') && oldPlatforms.has('eBay');
+  const formatChanged = item.ebayListingFormat !== oldEbayFormat;
 
   if (ebayRemoved && item.ebayItemId && isEBayConnected()) {
     // eBay platform tag removed — end the listing on eBay
@@ -554,6 +556,23 @@ export async function saveDrawer(){
       console.warn('[eBay] End listing failed:', e.message);
       toast('Failed to end eBay listing', true);
     });
+  } else if (item.ebayItemId && isEBayConnected() && formatChanged) {
+    // Format change requires end + relist (eBay doesn't allow format changes on live listings)
+    (async () => {
+      try {
+        toast('Changing eBay listing format — ending and relisting…');
+        await endEBayListing(item.id);
+        const pubResult = await publishEBayListing(item.id);
+        if (pubResult.success) {
+          toast(`Relisted on eBay as ${item.ebayListingFormat === 'AUCTION' ? 'Auction' : 'Fixed Price'}! #${pubResult.listingId}`);
+        } else {
+          toast('Ended old listing but relist failed — try from Crosslist', true);
+        }
+      } catch (e) {
+        console.warn('[eBay] Format change failed:', e.message);
+        toast('eBay format change failed: ' + e.message, true);
+      }
+    })();
   } else if (item.ebayItemId && isEBayConnected() && ebayChanged && !ebayRemoved) {
     toast('Syncing to eBay…');
     updateEBayListing(item.id).then(() => {
