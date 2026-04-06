@@ -334,6 +334,9 @@ export async function pullEBayListings() {
               || (sku && (bySku.get(sku) || byEbayId.get(sku)))
               || null;
 
+            // Any non-ended offer status means the item is live on eBay
+            const isLive = status && status !== 'ENDED' && status !== 'WITHDRAWN';
+
             if (local) {
               matched++;
               let changed = false;
@@ -347,7 +350,7 @@ export async function pullEBayListings() {
                 local.platforms.push('eBay'); changed = true;
               }
               if (!local.platformStatus) local.platformStatus = {};
-              if ((status === 'ACTIVE' || status === 'PUBLISHED') && local.platformStatus.eBay !== 'active') {
+              if (isLive && local.platformStatus.eBay !== 'active') {
                 markPlatformStatus(local.id, 'eBay', 'active'); changed = true;
               }
               const fmt = isAuction ? 'AUCTION' : 'FIXED_PRICE';
@@ -373,7 +376,7 @@ export async function pullEBayListings() {
                 } catch (_) {}
               }
               if (changed) { markDirty('inv', local.id); updated++; }
-            } else if ((status === 'ACTIVE' || status === 'PUBLISHED') && !_isDismissed(lid, sku)) {
+            } else if (isLive && !_isDismissed(lid, sku)) {
               // Fetch product details from inventory item
               let title = sku || 'eBay Import';
               let images = [];
