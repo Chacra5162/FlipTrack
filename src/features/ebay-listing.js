@@ -532,14 +532,21 @@ export async function pushEBayPrice(itemId) {
       return { success: true };
     }
 
-    // Build minimal offer update payload
+    // Build minimal offer update payload — handle auctions vs fixed price
+    const isAuction = (offer.format === 'AUCTION' || item.ebayListingFormat === 'AUCTION');
+    const pricingSummary = {};
+    if (isAuction) {
+      // Auctions use buyItNowPrice for the BIN price
+      pricingSummary.buyItNowPrice = { value: item.price.toFixed(2), currency: 'USD' };
+      // Preserve existing auction start price if set
+      if (offer.pricingSummary?.auctionStartPrice) {
+        pricingSummary.auctionStartPrice = offer.pricingSummary.auctionStartPrice;
+      }
+    } else {
+      pricingSummary.price = { value: item.price.toFixed(2), currency: 'USD' };
+    }
     const offerUpdate = {
-      pricingSummary: {
-        price: {
-          value: item.price.toFixed(2),
-          currency: 'USD',
-        },
-      },
+      pricingSummary,
       availableQuantity: item.qty || 1,
     };
 
