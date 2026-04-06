@@ -543,15 +543,26 @@ export async function saveDrawer(){
   const ebayChanged = _drawerSnapshotForEbay && _ebayTracked.some(f => {
     return (f in _drawerSnapshotForEbay) && String(_drawerSnapshotForEbay[f] ?? '') !== String(item[f] ?? '');
   });
-  if (item.ebayItemId && isEBayConnected() && ebayChanged) {
+  const ebayAdded = item.platforms.includes('eBay') && !oldPlatforms.has('eBay');
+  const ebayRemoved = !item.platforms.includes('eBay') && oldPlatforms.has('eBay');
+
+  if (ebayRemoved && item.ebayItemId && isEBayConnected()) {
+    // eBay platform tag removed — end the listing on eBay
+    endEBayListing(item.id).then(() => {
+      toast('eBay listing ended ✓');
+    }).catch(e => {
+      console.warn('[eBay] End listing failed:', e.message);
+      toast('Failed to end eBay listing', true);
+    });
+  } else if (item.ebayItemId && isEBayConnected() && ebayChanged && !ebayRemoved) {
     updateEBayListing(item.id).then(() => {
       toast('eBay listing updated ✓');
     }).catch(e => {
       console.warn('[eBay] Auto-update failed:', e.message);
       toast('eBay sync failed — will retry next sync', true);
     });
-  } else if (!item.ebayItemId && isEBayConnected() && item.platforms.includes('eBay') && !oldPlatforms.has('eBay')) {
-    // eBay was just added as a platform — auto-push + publish
+  } else if (ebayAdded && isEBayConnected()) {
+    // eBay was just added as a platform — push + publish
     (async () => {
       try {
         toast('Listing on eBay…');
@@ -572,7 +583,7 @@ export async function saveDrawer(){
 
   // End eBay listing when status changed to 'delisted' in the drawer
   const newEbayStatus = item.platformStatus?.eBay || '';
-  if (item.ebayItemId && isEBayConnected() && newEbayStatus === 'delisted' && oldEbayStatus !== 'delisted') {
+  if (!ebayRemoved && item.ebayItemId && isEBayConnected() && newEbayStatus === 'delisted' && oldEbayStatus !== 'delisted') {
     endEBayListing(item.id).then(() => {
       toast('eBay listing ended ✓');
     }).catch(e => {
