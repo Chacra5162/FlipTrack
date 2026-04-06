@@ -373,6 +373,18 @@ export function initListingDates() {
         }
         patched++;
       }
+      // Clean up stale eBay expiry dates and false expired status
+      if (p === 'eBay') {
+        if (item.platformListingExpiry[p]) {
+          delete item.platformListingExpiry[p];
+          patched++;
+        }
+        // Undo false 'expired' status set by previous expiry logic
+        if (item.platformStatus[p] === 'expired') {
+          item.platformStatus[p] = 'active';
+          patched++;
+        }
+      }
       // Ensure status exists — but skip API-managed platforms (eBay, Etsy)
       // whose status should only be set by their respective sync modules
       if (!item.platformStatus[p] && p !== 'eBay' && p !== 'Etsy') {

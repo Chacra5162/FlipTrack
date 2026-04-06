@@ -24,6 +24,7 @@ import { sfx } from '../utils/sfx.js';
 // ── CONSTANTS ──────────────────────────────────────────────────────────────
 const INVENTORY_API = '/sell/inventory/v1';
 const FULFILLMENT_API = '/sell/fulfillment/v1';
+const BROWSE_API = '/buy/browse/v1';
 
 // eBay condition enum mapping (Inventory API ConditionEnum values)
 // See: https://developer.ebay.com/api-docs/sell/inventory/types/slr:ConditionEnum
@@ -256,12 +257,90 @@ export async function pullEBayListings() {
       tradingWorked = true;
       console.log(`[eBay] Trading API: matched=${matched}, imported=${imported}, updated=${updated}`);
     } catch (e) {
-      console.warn('[eBay] GetMyeBaySelling failed:', e.message, '— falling back to Inventory API');
-      toast('eBay Trading API unavailable — using Inventory API', true);
+      console.warn('[eBay] GetMyeBaySelling failed:', e.message);
     }
 
-    // ── FALLBACK: Inventory API (only if Trading API failed) ───────────
+    // ── FALLBACK 1: Browse API seller search (if Trading API failed) ──
     if (!tradingWorked) {
+      try {
+        const username = getEBayUsername();
+        if (username) {
+          toast('Searching eBay listings via Browse API…');
+          // Browse API seller filter uses %7B %7D for braces (pre-encoded)
+          const sellerFilter = `sellers:%7B${encodeURIComponent(username)}%7D`;
+          let browseOffset = 0;
+          let browseHasMore = true;
+
+          while (browseHasMore) {
+            const resp = await ebayAPI('GET',
+              `${BROWSE_API}/item_summary/search?q=&filter=${sellerFilter}&limit=200&offset=${browseOffset}`
+            );
+            const summaries = resp?.itemSummaries || [];
+            if (summaries.length < 200) browseHasMore = false;
+
+            for (const summary of summaries) {
+              const listingId = (summary.itemId || '').replace(/^v1\||\|0$/g, '');
+              const legacyId = summary.legacyItemId || listingId;
+              const title = summary.title || '';
+              const price = parseFloat(summary.price?.value || '0');
+              const imageUrl = summary.image?.imageUrl || summary.thumbnailImages?.[0]?.imageUrl || '';
+              const buyingOpts = summary.buyingOptions || [];
+              const isAuction = buyingOpts.includes('AUCTION');
+
+              if (legacyId) seenListingIds.add(legacyId);
+
+              let local = byListingId.get(legacyId) || null;
+              if (!local && listingId !== legacyId) local = byListingId.get(listingId);
+
+              if (local) {
+                matched++;
+                let changed = false;
+                if (local.ebayListingId !== legacyId) { local.ebayListingId = legacyId; changed = true; }
+                if (!local.platforms?.includes('eBay')) {
+                  if (!local.platforms) local.platforms = [];
+                  local.platforms.push('eBay'); changed = true;
+                }
+                if (!local.platformStatus) local.platformStatus = {};
+                if (local.platformStatus.eBay !== 'active') {
+                  markPlatformStatus(local.id, 'eBay', 'active'); changed = true;
+                }
+                const fmt = isAuction ? 'AUCTION' : 'FIXED_PRICE';
+                if (local.ebayListingFormat !== fmt) { local.ebayListingFormat = fmt; changed = true; }
+                if (changed) { markDirty('inv', local.id); updated++; }
+              } else {
+                const newId = uid();
+                const newItem = {
+                  id: newId, name: title || 'eBay Import', sku: '', price, qty: 1, cost: 0,
+                  condition: 'good', category: '',
+                  platforms: ['eBay'], platformStatus: { eBay: 'active' },
+                  platformListingDates: { eBay: localDate() }, platformListingExpiry: {},
+                  ebayItemId: `ebay-${legacyId}`, ebayListingId: legacyId,
+                  ebayListingFormat: isAuction ? 'AUCTION' : 'FIXED_PRICE',
+                  url: `https://www.ebay.com/itm/${legacyId}`,
+                  images: imageUrl ? [imageUrl] : [], image: imageUrl || '',
+                  notes: '', tags: [], dateAdded: new Date().toISOString(), _notifiedOfferIds: [],
+                };
+                inv.push(newItem);
+                markDirty('inv', newId);
+                byListingId.set(legacyId, newItem);
+                byEbayId.set(newItem.ebayItemId, newItem);
+                imported++;
+                logItemEvent(newId, 'ebay-import', `Imported from eBay: "${title}" (#${legacyId})`);
+              }
+            }
+            browseOffset += 200;
+          }
+          if (imported > 0 || matched > 0) tradingWorked = true;
+          console.log(`[eBay] Browse API: matched=${matched}, imported=${imported}`);
+        }
+      } catch (e) {
+        console.warn('[eBay] Browse API search failed:', e.message);
+      }
+    }
+
+    // ── FALLBACK 2: Inventory API + Offer scan ────────────────────────
+    if (!tradingWorked) {
+      toast('Using Inventory API…');
       let offset = 0;
       const limit = 100;
       let hasMore = true;
@@ -281,16 +360,19 @@ export async function pullEBayListings() {
             matched++;
             let changed = false;
             if (!local.ebayItemId || local.ebayItemId !== sku) { local.ebayItemId = sku; changed = true; }
+            if (!local.platforms?.includes('eBay')) {
+              if (!local.platforms) local.platforms = [];
+              local.platforms.push('eBay'); changed = true;
+            }
+            if (!local.platformStatus) local.platformStatus = {};
 
             const avail = ebayItem.availability?.shipToLocationAvailability;
             if (avail) {
               const ebayQty = avail.quantity || 0;
-              if (ebayQty === 0 && local.platformStatus?.eBay === 'active') {
-                markPlatformStatus(local.id, 'eBay', 'sold');
-                changed = true;
-              } else if (ebayQty > 0 && local.platformStatus?.eBay !== 'active') {
-                markPlatformStatus(local.id, 'eBay', 'active');
-                changed = true;
+              if (ebayQty === 0 && local.platformStatus.eBay === 'active') {
+                markPlatformStatus(local.id, 'eBay', 'sold'); changed = true;
+              } else if (ebayQty > 0 && local.platformStatus.eBay !== 'active') {
+                markPlatformStatus(local.id, 'eBay', 'active'); changed = true;
               }
             }
 
@@ -301,33 +383,19 @@ export async function pullEBayListings() {
                 local.images = product.imageUrls; local.image = product.imageUrls[0]; changed = true;
               }
             }
-
             if (changed) { markDirty('inv', local.id); updated++; }
           } else {
-            // Import unmatched Inventory API items
             const product = ebayItem.product || {};
             const newId = uid();
             const newItem = {
-              id: newId,
-              name: product.title || sku || 'eBay Import',
-              sku: sku,
-              price: 0,
-              qty: ebayItem.availability?.shipToLocationAvailability?.quantity || 1,
-              cost: 0,
-              condition: 'good',
-              category: '',
-              platforms: ['eBay'],
-              platformStatus: { eBay: 'active' },
-              platformListingDates: { eBay: localDate() },
-              platformListingExpiry: {},
-              ebayItemId: sku,
-              ebayListingId: '',
-              images: product.imageUrls || [],
-              image: product.imageUrls?.[0] || '',
-              notes: '',
-              tags: [],
-              dateAdded: new Date().toISOString(),
-              _notifiedOfferIds: [],
+              id: newId, name: product.title || sku || 'eBay Import', sku,
+              price: 0, qty: ebayItem.availability?.shipToLocationAvailability?.quantity || 1,
+              cost: 0, condition: 'good', category: '',
+              platforms: ['eBay'], platformStatus: { eBay: 'active' },
+              platformListingDates: { eBay: localDate() }, platformListingExpiry: {},
+              ebayItemId: sku, ebayListingId: '',
+              images: product.imageUrls || [], image: product.imageUrls?.[0] || '',
+              notes: '', tags: [], dateAdded: new Date().toISOString(), _notifiedOfferIds: [],
             };
             inv.push(newItem);
             markDirty('inv', newId);
@@ -340,7 +408,7 @@ export async function pullEBayListings() {
         offset += limit;
       }
 
-      // Also scan offers to pick up listing IDs and formats
+      // Scan offers to pick up listing IDs, formats, and prices
       try {
         const offerResp = await ebayAPI('GET', `${INVENTORY_API}/offer?limit=200`);
         for (const offer of (offerResp?.offers || [])) {
@@ -354,6 +422,12 @@ export async function pullEBayListings() {
           const fmt = offer.format === 'AUCTION' ? 'AUCTION' : 'FIXED_PRICE';
           if (local.ebayListingFormat !== fmt) { local.ebayListingFormat = fmt; changed = true; }
           if (!local.url && lid) { local.url = `https://www.ebay.com/itm/${lid}`; changed = true; }
+          // Grab price from offer if item has none
+          if (!local.price || local.price <= 0) {
+            const p = parseFloat(offer.pricingSummary?.price?.value
+              || offer.pricingSummary?.auctionStartPrice?.value || '0');
+            if (p > 0) { local.price = p; changed = true; }
+          }
           if (changed) { markDirty('inv', local.id); updated++; }
         }
       } catch (e) {
