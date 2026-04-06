@@ -137,6 +137,16 @@ src/
 - **Always merge to `master` and push when work is complete** — don't leave finished work on feature branches
 - **Always update documentation when features or flow change** — review and update `QUICK_REFERENCE.md`, `MODULES_API.md`, `src/features/README.md`, `src/data/README.md`, and any other howto/tutorial docs to reflect new or changed functionality
 
+### Required Deploy Verification Process
+After every merge to `master` and push, you **MUST**:
+1. Run `npm test` locally **before** pushing — all tests must pass
+2. Run `npx vite build` locally **before** pushing — build must succeed
+3. After pushing, **wait for the GitHub Actions deploy workflow** to complete
+4. Check the deploy status (via GitHub commit status or Actions page)
+5. **Report the result** to the user: PASSED or FAILED
+6. **If FAILED**: investigate the failure, fix it, and re-push until the deploy passes
+7. Never move on to the next task or tell the user work is done until deploy is confirmed green
+
 ## Do NOT
 - Use `innerHTML` with unescaped user data
 - Add new `_daysSince()` implementations — use `daysSince()` from `utils/format.js`
