@@ -175,7 +175,7 @@ import {
   wnCopyRecap, wnSetCompareA, wnSetCompareB, wnMarkShipped, wnBulkMarkShipped
 } from './views/whatnot-dashboard.js';
 import { initEBayAuth, handleEBayCallback, isEBayConnected } from './features/ebay-auth.js';
-import { initEBaySync, startEBaySyncInterval, stopEBaySyncInterval, resyncEBayOrders, backfillEBayData, dismissEBayItem, undismissEBayItem } from './features/ebay-sync.js';
+import { initEBaySync, startEBaySyncInterval, stopEBaySyncInterval, resyncEBayOrders, backfillEBayData, dismissEBayItem, undismissEBayItem, importEBayItem } from './features/ebay-sync.js';
 import { initEtsyAuth, handleEtsyCallback, isEtsyConnected } from './features/etsy-auth.js';
 import { initEtsySync, startEtsySyncInterval, stopEtsySyncInterval, syncEtsyExpenses } from './features/etsy-sync.js';
 import { initWhatnotShows, getTodayShows } from './features/whatnot-show.js';
@@ -451,7 +451,21 @@ Object.assign(window, {
 // Auth
 Object.assign(window, {
   switchAuthTab, authSubmit, authForgotPassword, authSignOut,
-  openAccountMenu, closeAccountMenu, syncNow, mobileSyncNow, resyncEBayOrders, backfillEBayData
+  openAccountMenu, closeAccountMenu, syncNow, mobileSyncNow, resyncEBayOrders, backfillEBayData,
+  importEBayItem: async (input) => {
+    const result = await importEBayItem(input);
+    if (result.success) {
+      toast(`Imported: "${result.item.name}"`);
+      refresh();
+    } else {
+      toast(result.error || 'Import failed', true);
+    }
+    return result;
+  },
+  promptImportEBay: () => {
+    const input = prompt('Enter eBay listing URL or ID:');
+    if (input) window.importEBayItem(input);
+  }
 });
 
 // Teams

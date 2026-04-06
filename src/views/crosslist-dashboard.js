@@ -1100,6 +1100,7 @@ function _renderEBayPanel() {
           ${syncing ? '⟳ Syncing…' : '⟳ Sync Now'}
         </button>
         <button class="btn-sm btn-muted" onclick="clEBayResyncOrders()" title="Re-check eBay orders from the last 7 days for missed sales">Resync Orders</button>
+        <button class="btn-sm btn-muted" onclick="promptImportEBay()" title="Import a single eBay listing by URL or ID">+ Import Listing</button>
         <button class="btn-sm btn-muted" onclick="clEBayDisconnect()">Disconnect</button>
       </div>
     </div>`;

@@ -1401,6 +1401,83 @@ export {
 // This comment marks where ~1150 lines of code used to be.
 
 
+// ── MANUAL IMPORT ─────────────────────────────────────────────────────────
+
+/**
+ * Import a single eBay listing by URL or listing ID.
+ * Uses Browse API getItemByLegacyId — works without username.
+ * @param {string} input - eBay URL (e.g. ebay.com/itm/123456) or numeric listing ID
+ * @returns {Promise<{success: boolean, item?: Object, error?: string}>}
+ */
+export async function importEBayItem(input) {
+  if (!isEBayConnected()) return { success: false, error: 'eBay not connected' };
+
+  // Extract listing ID from URL or use as-is
+  let listingId = input.trim();
+  const urlMatch = listingId.match(/\/itm\/(?:[^/]*\/)?(\d+)/);
+  if (urlMatch) listingId = urlMatch[1];
+  // Strip non-numeric characters
+  listingId = listingId.replace(/\D/g, '');
+  if (!listingId) return { success: false, error: 'Invalid listing ID or URL' };
+
+  // Check if already in inventory
+  const existing = inv.find(i => i.ebayListingId === listingId);
+  if (existing) {
+    return { success: false, error: `Already in inventory: "${existing.name}"` };
+  }
+
+  // Clear dismissal if this listing was previously dismissed
+  if (_dismissedEBayIds.has(listingId)) {
+    _dismissedEBayIds.delete(listingId);
+    setMeta('ebay_dismissed_ids', JSON.stringify([..._dismissedEBayIds])).catch(() => {});
+  }
+
+  try {
+    const resp = await ebayAPI('GET',
+      `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${listingId}`
+    );
+    if (!resp) return { success: false, error: 'eBay returned no data for this listing' };
+
+    const title = resp.title || 'eBay Import';
+    const buyOpts = resp.buyingOptions || [];
+    const isAuction = buyOpts.includes('AUCTION');
+    const browsePrice = parseFloat(resp.price?.value || '0');
+    const browseBid = parseFloat(resp.currentBidPrice?.value || '0');
+    const price = browsePrice || browseBid;
+    const imgUrl = resp.image?.imageUrl || '';
+    const allImgs = [imgUrl, ...(resp.additionalImages || []).map(i => i.imageUrl)].filter(Boolean);
+
+    const newId = uid();
+    const newItem = {
+      id: newId, name: title, sku: resp.sku || '', price, qty: 1, cost: 0,
+      condition: (resp.condition || 'good').toLowerCase(),
+      category: resp.categoryPath?.split('|')?.[0]?.trim() || '',
+      platforms: ['eBay'], platformStatus: { eBay: 'active' },
+      platformListingDates: { eBay: localDate() }, platformListingExpiry: {},
+      ebayItemId: resp.sku || `ebay-${listingId}`, ebayListingId: listingId,
+      ebayListingFormat: isAuction ? 'AUCTION' : 'FIXED_PRICE',
+      ebayBestOffer: buyOpts.includes('BEST_OFFER'),
+      url: `https://www.ebay.com/itm/${listingId}`,
+      images: allImgs, image: allImgs[0] || '',
+      notes: resp.shortDescription || '', tags: [],
+      dateAdded: new Date().toISOString(), _notifiedOfferIds: [],
+    };
+    if (isAuction) {
+      if (browsePrice > 0) newItem.ebayBuyItNowPrice = browsePrice;
+      if (browseBid > 0) newItem.ebayStartBid = browseBid;
+    }
+
+    inv.push(newItem);
+    markDirty('inv', newId);
+    save();
+    logItemEvent(newId, 'ebay-import', `Manually imported from eBay: "${title}" (#${listingId})`);
+
+    return { success: true, item: newItem };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
 // ── GETTERS ────────────────────────────────────────────────────────────────
 
 export function isEBaySyncing() { return _syncing; }
