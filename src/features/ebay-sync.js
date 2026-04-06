@@ -601,14 +601,93 @@ export async function pullEBayListings() {
       }
     }
 
-    // ── ENRICH: Fetch individual offers for items still missing price/format ──
+    // ── ENRICH: Use Browse API to get live listing data for items missing details ──
     const needsEnrich = inv.filter(i =>
-      i.platforms?.includes('eBay') && i.ebayItemId &&
-      ((!i.price || i.price <= 0) || !i.ebayListingFormat || !i.ebayListingId)
+      i.platforms?.includes('eBay') && i.ebayListingId &&
+      ((!i.price || i.price <= 0) || !i._ebayEnriched)
     );
     if (needsEnrich.length > 0) {
-      console.warn(`[eBay] Enriching ${needsEnrich.length} items missing price/format/listingId`);
-      for (const item of needsEnrich.slice(0, 20)) { // Cap at 20 to avoid rate limits
+      console.warn(`[eBay] Enriching ${needsEnrich.length} items via Browse API (item detail)`);
+      for (const item of needsEnrich.slice(0, 25)) {
+        try {
+          // Browse API GetItem by legacy ID
+          const resp = await ebayAPI('GET',
+            `${BROWSE_API}/item/v1|0|${item.ebayListingId}`
+          );
+          if (!resp) continue;
+          let changed = false;
+
+          // Price
+          const p = parseFloat(resp.price?.value || resp.currentBidPrice?.value || '0');
+          if (p > 0 && (!item.price || item.price <= 0)) {
+            item.price = p; changed = true;
+          }
+
+          // Format: AUCTION vs FIXED_PRICE
+          const buyingOpts = resp.buyingOptions || [];
+          const isAuction = buyingOpts.includes('AUCTION');
+          const fmt = isAuction ? 'AUCTION' : 'FIXED_PRICE';
+          if (item.ebayListingFormat !== fmt) {
+            item.ebayListingFormat = fmt; changed = true;
+          }
+
+          // Title
+          if (resp.title && (!item.name || item.name === 'eBay Import' || item.name === item.sku)) {
+            item.name = resp.title; changed = true;
+          }
+
+          // Images
+          const imgUrl = resp.image?.imageUrl || '';
+          if (imgUrl && (!item.images || !item.images.length)) {
+            const allImgs = resp.additionalImages?.map(i => i.imageUrl).filter(Boolean) || [];
+            item.images = [imgUrl, ...allImgs];
+            item.image = imgUrl;
+            changed = true;
+          }
+
+          // Condition
+          if (resp.condition) {
+            const condLabel = resp.condition.toLowerCase();
+            if (condLabel.includes('new')) item.condition = 'new';
+            else if (condLabel.includes('open box') || condLabel.includes('like new')) item.condition = 'like_new';
+          }
+
+          item._ebayEnriched = true;
+          if (changed) { markDirty('inv', item.id); updated++; }
+        } catch (e) {
+          // Try alternate Browse API path format
+          try {
+            const resp2 = await ebayAPI('GET',
+              `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${item.ebayListingId}`
+            );
+            if (!resp2) { item._ebayEnriched = true; continue; }
+            let changed = false;
+            const p = parseFloat(resp2.price?.value || resp2.currentBidPrice?.value || '0');
+            if (p > 0 && (!item.price || item.price <= 0)) { item.price = p; changed = true; }
+            const buyingOpts = resp2.buyingOptions || [];
+            const fmt = buyingOpts.includes('AUCTION') ? 'AUCTION' : 'FIXED_PRICE';
+            if (item.ebayListingFormat !== fmt) { item.ebayListingFormat = fmt; changed = true; }
+            if (resp2.title && (!item.name || item.name === 'eBay Import')) { item.name = resp2.title; changed = true; }
+            const imgUrl = resp2.image?.imageUrl || '';
+            if (imgUrl && (!item.images || !item.images.length)) {
+              item.images = [imgUrl]; item.image = imgUrl; changed = true;
+            }
+            item._ebayEnriched = true;
+            if (changed) { markDirty('inv', item.id); updated++; }
+          } catch (_) {
+            console.warn(`[eBay] Enrich failed for "${item.name}":`, e.message);
+          }
+        }
+      }
+    }
+
+    // Also enrich items without ebayListingId but with ebayItemId (SKU) via Offer API
+    const needsListingId = inv.filter(i =>
+      i.platforms?.includes('eBay') && i.ebayItemId && !i.ebayListingId
+    );
+    if (needsListingId.length > 0) {
+      console.warn(`[eBay] ${needsListingId.length} items missing listingId — trying per-SKU offer lookup`);
+      for (const item of needsListingId.slice(0, 20)) {
         try {
           const sku = item.ebayItemId || item.sku;
           if (!sku) continue;
@@ -619,24 +698,15 @@ export async function pullEBayListings() {
           for (const offer of offers) {
             let changed = false;
             const lid = offer.listing?.listingId || offer.listingId || '';
-            const status = offer.status;
-            if (lid && item.ebayListingId !== lid) { item.ebayListingId = lid; changed = true; }
-            if (lid) seenListingIds.add(lid);
-            if (!item.url && lid) { item.url = `https://www.ebay.com/itm/${lid}`; changed = true; }
-            const fmt = (offer.format || offer.listingPolicies?.listingFormat || '') === 'AUCTION' ? 'AUCTION' : 'FIXED_PRICE';
-            if (item.ebayListingFormat !== fmt) { item.ebayListingFormat = fmt; changed = true; }
-            const p = parseFloat(offer.pricingSummary?.price?.value
-              || offer.pricingSummary?.auctionStartPrice?.value || '0');
-            if ((!item.price || item.price <= 0) && p > 0) { item.price = p; changed = true; }
-            if ((status === 'ACTIVE' || status === 'PUBLISHED') && item.platformStatus?.eBay !== 'active') {
-              markPlatformStatus(item.id, 'eBay', 'active'); changed = true;
+            if (lid) {
+              item.ebayListingId = lid; changed = true;
+              seenListingIds.add(lid);
+              if (!item.url) { item.url = `https://www.ebay.com/itm/${lid}`; changed = true; }
             }
             if (changed) { markDirty('inv', item.id); updated++; }
-            break; // Use first offer
+            break;
           }
-        } catch (e) {
-          console.warn(`[eBay] Enrich ${item.name}:`, e.message);
-        }
+        } catch (_) {}
       }
     }
 
