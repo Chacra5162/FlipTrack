@@ -216,6 +216,10 @@ export async function pullEBayListings() {
     // Check recent orders for sold items
     await _syncEBayOrders();
 
+    // Check for best offers and ended auctions
+    await _syncEBayOffers().catch(e => console.warn('[eBay] Offer sync:', e.message));
+    await _syncEBayAuctions().catch(e => console.warn('[eBay] Auction sync:', e.message));
+
     _lastSyncTime = new Date().toISOString();
     await setMeta('ebay_last_sync', _lastSyncTime);
 
@@ -627,6 +631,122 @@ async function _syncEBayPrices() {
   } catch (e) {
     console.warn('[eBay] Price sync error:', e.message);
   }
+  return updated;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SYNC: Best Offers and Auction Status
+// ═══════════════════════════════════════════════════════════════════════════
+
+const TRADING_API = '/ws/api.dll';
+
+/**
+ * Check for pending Best Offers on active eBay listings.
+ * Uses the Trading API GetBestOffers call.
+ */
+async function _syncEBayOffers() {
+  const ebayItems = inv.filter(i =>
+    i.ebayListingId && i.platformStatus?.eBay === 'active' && i.ebayBestOffer
+  );
+  if (!ebayItems.length) return 0;
+
+  let notified = 0;
+  for (const item of ebayItems) {
+    try {
+      const resp = await ebayAPI('GET',
+        `${INVENTORY_API}/offer?sku=${encodeURIComponent(item.ebayItemId)}`
+      );
+      const offer = resp?.offers?.[0];
+      if (!offer) continue;
+
+      // Check the listing for best offers via Trading API GetBestOffers
+      const offersResp = await ebayAPI('POST', TRADING_API, {
+        _tradingCall: 'GetBestOffers',
+        ItemID: item.ebayListingId,
+        Status: 'Active',
+      });
+
+      const bestOffers = offersResp?.BestOfferArray?.BestOffer || [];
+      const pending = bestOffers.filter(o => o.Status === 'Pending');
+      if (!pending.length) continue;
+
+      // Track which offers we've already notified about
+      const notifiedOffers = new Set(item._notifiedOfferIds || []);
+      for (const bo of pending) {
+        const offerId = bo.BestOfferID;
+        if (notifiedOffers.has(offerId)) continue;
+        notifiedOffers.add(offerId);
+
+        const amount = parseFloat(bo.Price?.Value || bo.Price || 0);
+        const buyer = bo.Buyer?.UserID || 'Unknown buyer';
+        const label = item.name || item.sku || 'Item';
+
+        addNotification('price', 'Best Offer Received',
+          `${buyer} offered $${amount.toFixed(2)} for "${label}"`, item.id);
+        logItemEvent(item.id, 'ebay-offer',
+          `Best offer: $${amount.toFixed(2)} from ${buyer}`);
+        notified++;
+      }
+      item._notifiedOfferIds = [...notifiedOffers];
+      markDirty('inv', item.id);
+    } catch (e) {
+      // Trading API may not be available — skip silently
+      console.warn('[eBay] Offer check failed for', item.name, ':', e.message);
+    }
+  }
+  if (notified > 0) save();
+  return notified;
+}
+
+/**
+ * Check for ended auctions and notify the user.
+ * Compares local auction items against eBay's active listings.
+ */
+async function _syncEBayAuctions() {
+  const auctionItems = inv.filter(i =>
+    i.ebayListingId &&
+    i.ebayListingFormat === 'AUCTION' &&
+    i.platformStatus?.eBay === 'active'
+  );
+  if (!auctionItems.length) return 0;
+
+  let updated = 0;
+  for (const item of auctionItems) {
+    try {
+      // Check if the listing still has an active offer on eBay
+      const resp = await ebayAPI('GET',
+        `${INVENTORY_API}/offer?sku=${encodeURIComponent(item.ebayItemId)}`
+      );
+      const offer = resp?.offers?.[0];
+      if (!offer) {
+        // Offer gone — auction ended (sold or expired)
+        const label = item.name || item.sku || 'Item';
+        // Check if there's a matching sale from _syncEBayOrders
+        const recentSale = sales.find(s =>
+          s.itemId === item.id && s.platform === 'eBay' &&
+          new Date(s.date) > new Date(Date.now() - 7 * 86400000)
+        );
+        if (recentSale) {
+          addNotification('sale', 'Auction Sold!',
+            `"${label}" sold for $${recentSale.price?.toFixed(2) || '?'}`, item.id);
+          logItemEvent(item.id, 'auction-end',
+            `Auction ended — sold for $${recentSale.price?.toFixed(2) || '?'}`);
+        } else {
+          // Auction ended without a sale
+          markPlatformStatus(item.id, 'eBay', 'expired');
+          markDirty('inv', item.id);
+          addNotification('info', 'Auction Ended',
+            `"${label}" auction ended without a sale`, item.id);
+          logItemEvent(item.id, 'auction-end',
+            'Auction ended without a sale');
+        }
+        updated++;
+      }
+    } catch (e) {
+      console.warn('[eBay] Auction check failed for', item.name, ':', e.message);
+    }
+  }
+  if (updated > 0) { save(); refresh(); }
   return updated;
 }
 
@@ -1535,22 +1655,50 @@ export async function publishEBayListing(itemId, options = {}, _isRetry = false)
     throw new Error('Could not set up eBay inventory location. Go to eBay Seller Hub → Shipping → Locations and add one.');
   }
 
+  const isAuction = item.ebayListingFormat === 'AUCTION';
   const offerPayload = {
     sku,
     marketplaceId: 'EBAY_US',
-    format: 'FIXED_PRICE',
-    listingDuration: options.listingDuration || 'GTC',
+    format: isAuction ? 'AUCTION' : 'FIXED_PRICE',
+    listingDuration: isAuction
+      ? (item.ebayAuctionDuration || options.listingDuration || 'DAYS_7')
+      : (options.listingDuration || 'GTC'),
     categoryId,
     merchantLocationKey,
     listingPolicies,
-    pricingSummary: {
-      price: {
-        value: price.toFixed(2),
-        currency: 'USD',
-      },
-    },
-    availableQuantity: item.qty || 1,
+    pricingSummary: isAuction
+      ? {
+          auctionStartPrice: {
+            value: (item.ebayAuctionStart || price).toFixed(2),
+            currency: 'USD',
+          },
+          ...(item.ebayAuctionReserve > 0 ? {
+            auctionReservePrice: {
+              value: item.ebayAuctionReserve.toFixed(2),
+              currency: 'USD',
+            },
+          } : {}),
+        }
+      : {
+          price: {
+            value: price.toFixed(2),
+            currency: 'USD',
+          },
+        },
+    availableQuantity: isAuction ? 1 : (item.qty || 1),
   };
+
+  // Best Offer terms (fixed-price only)
+  if (!isAuction && item.ebayBestOffer) {
+    offerPayload.listingPolicies = {
+      ...offerPayload.listingPolicies,
+      bestOfferTerms: {
+        bestOfferEnabled: true,
+        ...(item.ebayAutoAccept > 0 ? { autoAcceptPrice: { value: item.ebayAutoAccept.toFixed(2), currency: 'USD' } } : {}),
+        ...(item.ebayAutoDecline > 0 ? { autoDeclinePrice: { value: item.ebayAutoDecline.toFixed(2), currency: 'USD' } } : {}),
+      },
+    };
+  }
 
   try {
     // Check for existing offers for this SKU first

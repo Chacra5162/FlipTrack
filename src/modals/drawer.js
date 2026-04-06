@@ -171,6 +171,22 @@ export function openDrawer(id) {
   // Populate qty
   const dQty = document.getElementById('d_qty');
   if (dQty) dQty.value = item.qty ?? 1;
+  // Populate eBay auction/best-offer fields
+  const dFmt = document.getElementById('d_ebayFormat');
+  if (dFmt) dFmt.value = item.ebayListingFormat || 'FIXED_PRICE';
+  const dBO = document.getElementById('d_bestOffer');
+  if (dBO) dBO.checked = !!item.ebayBestOffer;
+  const dAS = document.getElementById('d_auctionStart');
+  if (dAS) dAS.value = item.ebayAuctionStart || '';
+  const dAR = document.getElementById('d_auctionReserve');
+  if (dAR) dAR.value = item.ebayAuctionReserve || '';
+  const dAD = document.getElementById('d_auctionDuration');
+  if (dAD) dAD.value = item.ebayAuctionDuration || 'DAYS_7';
+  const dAA = document.getElementById('d_autoAccept');
+  if (dAA) dAA.value = item.ebayAutoAccept || '';
+  const dADc = document.getElementById('d_autoDecline');
+  if (dADc) dADc.value = item.ebayAutoDecline || '';
+  if (window.toggleAuctionFields) window.toggleAuctionFields('d');
   // Populate subcategory text input and datalist suggestions
   const subcatTxt = document.getElementById('d_subcat_txt');
   if (subcatTxt) subcatTxt.value = item.subcategory || '';
@@ -483,6 +499,14 @@ export async function saveDrawer(){
   item.theme    =(document.getElementById('d_theme')?.value||'').trim();
   item.vintage  =(document.getElementById('d_vintage')?.value||'').trim();
   item.countryMfg=(document.getElementById('d_countryMfg')?.value||'').trim();
+  // eBay auction/best-offer fields
+  item.ebayListingFormat = document.getElementById('d_ebayFormat')?.value || 'FIXED_PRICE';
+  item.ebayBestOffer = !!document.getElementById('d_bestOffer')?.checked;
+  item.ebayAuctionStart = parseFloat(document.getElementById('d_auctionStart')?.value) || 0;
+  item.ebayAuctionReserve = parseFloat(document.getElementById('d_auctionReserve')?.value) || 0;
+  item.ebayAuctionDuration = document.getElementById('d_auctionDuration')?.value || 'DAYS_7';
+  item.ebayAutoAccept = parseFloat(document.getElementById('d_autoAccept')?.value) || 0;
+  item.ebayAutoDecline = parseFloat(document.getElementById('d_autoDecline')?.value) || 0;
   Object.assign(item, getDimsFromForm('d'));
   if (isBookCat(item.category)) {
     Object.assign(item, getBookFields('d'));

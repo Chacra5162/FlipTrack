@@ -1022,7 +1022,17 @@ function switchEbayTab(tab, btnEl) {
   btnEl.closest('.ebay-tabs').querySelectorAll('.ebay-tab').forEach(b => b.classList.remove('active'));
   btnEl.classList.add('active');
 }
-Object.assign(window, { toggleNavGroup, closeAllNavGroups, navTo, switchEbayTab });
+function toggleAuctionFields(pfx) {
+  const fmt = document.getElementById(pfx + '_ebayFormat')?.value;
+  const isAuction = fmt === 'AUCTION';
+  const af = document.getElementById(pfx + '_auctionFields');
+  const bog = document.getElementById(pfx + '_bestOfferGrp');
+  const bof = document.getElementById(pfx + '_bestOfferFields');
+  if (af) af.style.display = isAuction ? '' : 'none';
+  if (bog) bog.style.display = isAuction ? 'none' : '';
+  if (bof) bof.style.display = (!isAuction && document.getElementById(pfx + '_bestOffer')?.checked) ? '' : 'none';
+}
+Object.assign(window, { toggleNavGroup, closeAllNavGroups, navTo, switchEbayTab, toggleAuctionFields });
 
 function goToBreakdown() {
   switchView('breakdown', null);

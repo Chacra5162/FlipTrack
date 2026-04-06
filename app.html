@@ -836,6 +836,41 @@
           </div>
           <!-- Quick Listing Tab — minimum fields to post -->
           <div class="ebay-tab-panel" id="ebayTabQuick">
+            <!-- Listing Format -->
+            <div class="form-grid" style="margin-top:0;margin-bottom:8px">
+              <div class="edit-grp"><div class="edit-lbl">Listing Format</div>
+                <select class="edit-inp" id="d_ebayFormat" onchange="window.toggleAuctionFields?.('d')">
+                  <option value="FIXED_PRICE">Fixed Price</option>
+                  <option value="AUCTION">Auction</option>
+                </select>
+              </div>
+              <div class="edit-grp" id="d_bestOfferGrp"><div class="edit-lbl">Best Offer</div>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="d_bestOffer" onchange="window.toggleAuctionFields?.('d')"><span style="font-size:12px">Allow Best Offer</span></label>
+              </div>
+            </div>
+            <!-- Auction Fields (hidden by default) -->
+            <div id="d_auctionFields" style="display:none">
+              <div class="form-grid" style="margin-top:0;margin-bottom:8px">
+                <div class="edit-grp"><div class="edit-lbl">Starting Bid</div><input class="edit-inp" type="number" id="d_auctionStart" min="0.99" step="0.01" placeholder="$0.99"></div>
+                <div class="edit-grp"><div class="edit-lbl">Reserve Price <span style="font-size:10px;color:var(--muted)">(optional)</span></div><input class="edit-inp" type="number" id="d_auctionReserve" min="0" step="0.01" placeholder="$0.00"></div>
+                <div class="edit-grp"><div class="edit-lbl">Duration</div>
+                  <select class="edit-inp" id="d_auctionDuration">
+                    <option value="DAYS_1">1 Day</option>
+                    <option value="DAYS_3">3 Days</option>
+                    <option value="DAYS_5">5 Days</option>
+                    <option value="DAYS_7" selected>7 Days</option>
+                    <option value="DAYS_10">10 Days</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <!-- Best Offer Thresholds (hidden by default) -->
+            <div id="d_bestOfferFields" style="display:none">
+              <div class="form-grid" style="margin-top:0;margin-bottom:8px">
+                <div class="edit-grp"><div class="edit-lbl">Auto-Accept Above</div><input class="edit-inp" type="number" id="d_autoAccept" min="0" step="0.01" placeholder="$0.00"></div>
+                <div class="edit-grp"><div class="edit-lbl">Auto-Decline Below</div><input class="edit-inp" type="number" id="d_autoDecline" min="0" step="0.01" placeholder="$0.00"></div>
+              </div>
+            </div>
             <div class="form-grid" style="margin-top:0">
               <div class="edit-grp"><div class="edit-lbl">Brand</div><input class="edit-inp" type="text" id="d_brand" placeholder="e.g. Nike, Unbranded"></div>
               <div class="edit-grp"><div class="edit-lbl">Color</div><input class="edit-inp" type="text" id="d_color" placeholder="e.g. Black, Red/Blue"></div>
@@ -1397,6 +1432,36 @@
         <!-- eBay Listing Details -->
         <div class="fgrp full" id="f_ebay_fields" style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
           <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:8px;display:block">eBay Listing Details</label>
+          <!-- Listing Format -->
+          <div class="form-grid" style="margin-top:0;margin-bottom:8px">
+            <div class="fgrp"><label for="f_ebayFormat">Listing Format</label>
+              <select id="f_ebayFormat" onchange="window.toggleAuctionFields?.('f')">
+                <option value="FIXED_PRICE">Fixed Price</option>
+                <option value="AUCTION">Auction</option>
+              </select>
+            </div>
+            <div class="fgrp" id="f_bestOfferGrp"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="f_bestOffer" onchange="window.toggleAuctionFields?.('f')"><span style="font-size:12px">Allow Best Offer</span></label></div>
+          </div>
+          <!-- Auction Fields -->
+          <div id="f_auctionFields" style="display:none">
+            <div class="form-grid" style="margin-top:0;margin-bottom:8px">
+              <div class="fgrp"><label for="f_auctionStart">Starting Bid</label><input type="number" id="f_auctionStart" min="0.99" step="0.01" placeholder="$0.99"></div>
+              <div class="fgrp"><label for="f_auctionReserve">Reserve Price <span style="font-size:10px;color:var(--muted)">(opt)</span></label><input type="number" id="f_auctionReserve" min="0" step="0.01" placeholder="$0.00"></div>
+              <div class="fgrp"><label for="f_auctionDuration">Duration</label>
+                <select id="f_auctionDuration">
+                  <option value="DAYS_1">1 Day</option><option value="DAYS_3">3 Days</option><option value="DAYS_5">5 Days</option>
+                  <option value="DAYS_7" selected>7 Days</option><option value="DAYS_10">10 Days</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <!-- Best Offer Thresholds -->
+          <div id="f_bestOfferFields" style="display:none">
+            <div class="form-grid" style="margin-top:0;margin-bottom:8px">
+              <div class="fgrp"><label for="f_autoAccept">Auto-Accept Above</label><input type="number" id="f_autoAccept" min="0" step="0.01" placeholder="$0.00"></div>
+              <div class="fgrp"><label for="f_autoDecline">Auto-Decline Below</label><input type="number" id="f_autoDecline" min="0" step="0.01" placeholder="$0.00"></div>
+            </div>
+          </div>
           <div class="form-grid" style="margin-top:0">
             <div class="fgrp"><label for="f_brand">Brand</label><input type="text" id="f_brand" placeholder="e.g. Nike, Unbranded"></div>
             <div class="fgrp"><label for="f_color">Color</label><input type="text" id="f_color" placeholder="e.g. Black, Red/Blue"></div>

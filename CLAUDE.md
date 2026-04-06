@@ -114,6 +114,7 @@ src/
 - **Poshmark Sync:** `openPoshmarkSync()` in poshmark-sync.js — manual sold-status check
 - **eBay Sync:** `pullEBayListings()`/`endEBayListing()`/`pushItemToEBay()` in ebay-sync.js — bidirectional eBay listing sync
 - **eBay Status Sync:** Delisting or deleting an item in FlipTrack auto-ends it on eBay; eBay external removals show as 'removed' status with notification
+- **eBay Auctions:** `ebayListingFormat` AUCTION/FIXED_PRICE, `ebayBestOffer` toggle, `_syncEBayOffers()`/`_syncEBayAuctions()` — auction creation, best offer notifications, auction-end detection
 - **Listing Statuses:** 7 statuses: `active`, `sold`, `sold-elsewhere`, `delisted`, `expired`, `draft`, `removed` (eBay-controlled only)
 
 ## JCodeMunch — Token-Saving Default

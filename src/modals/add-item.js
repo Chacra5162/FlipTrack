@@ -221,7 +221,10 @@ export function closeAdd(){
   const trigger = document.getElementById('headerAddBtn') || document.querySelector('[onclick*="openAdd"]');
   if (trigger) trigger.focus();
   document.getElementById('addOv').classList.remove('on');
-  ['f_name','f_sku','f_upc','f_cat','f_subcat_txt','f_subtype_txt','f_cost','f_price','f_fees','f_ship','f_notes','f_alert','f_source','f_condition','f_brand','f_color','f_size','f_sizeType','f_department','f_material','f_mpn','f_model','f_style','f_pattern','f_ebay_desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['f_name','f_sku','f_upc','f_cat','f_subcat_txt','f_subtype_txt','f_cost','f_price','f_fees','f_ship','f_notes','f_alert','f_source','f_condition','f_brand','f_color','f_size','f_sizeType','f_department','f_material','f_mpn','f_model','f_style','f_pattern','f_ebay_desc','f_auctionStart','f_auctionReserve','f_autoAccept','f_autoDecline'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const fFmt = document.getElementById('f_ebayFormat'); if (fFmt) fFmt.value = 'FIXED_PRICE';
+  const fBO = document.getElementById('f_bestOffer'); if (fBO) fBO.checked = false;
+  if (window.toggleAuctionFields) window.toggleAuctionFields('f');
   document.getElementById('f_qty').value='1';
   const bulkCb = document.getElementById('f_bulk'); if(bulkCb) bulkCb.checked=false;
   const bulkFields = document.getElementById('f_bulk_fields'); if(bulkFields) bulkFields.style.display='none';
@@ -439,7 +442,16 @@ export async function addItem(){
   const department = (document.getElementById('f_department')?.value || '').trim();
   const ebayDesc = _ebayDesc;
 
-  const baseItem = {id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:subcatVal,subtype:subtypeVal,platform,platforms:selPlats,cost:isNaN(cost)?0:cost,price,qty,bulk:isBulk,fees:isNaN(fees)?0:fees,ship:isNaN(ship)?0:ship,lowAlert,lowAlertEnabled:alertEnabled,notes:_notes,source:document.getElementById('f_source').value.trim(),condition:document.getElementById('f_condition').value.trim(),smoke:smokeVal,coverType:isBookCat(cat)?coverVal:null,brand,color,size,sizeType,department,material,mpn,model,style,pattern,ebayDesc,images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),...(isBookCat(cat) ? getBookFields('f') : {}),added:new Date().toISOString()};
+  // eBay auction/best-offer fields
+  const ebayListingFormat = document.getElementById('f_ebayFormat')?.value || 'FIXED_PRICE';
+  const ebayBestOffer = !!document.getElementById('f_bestOffer')?.checked;
+  const ebayAuctionStart = parseFloat(document.getElementById('f_auctionStart')?.value) || 0;
+  const ebayAuctionReserve = parseFloat(document.getElementById('f_auctionReserve')?.value) || 0;
+  const ebayAuctionDuration = document.getElementById('f_auctionDuration')?.value || 'DAYS_7';
+  const ebayAutoAccept = parseFloat(document.getElementById('f_autoAccept')?.value) || 0;
+  const ebayAutoDecline = parseFloat(document.getElementById('f_autoDecline')?.value) || 0;
+
+  const baseItem = {id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:subcatVal,subtype:subtypeVal,platform,platforms:selPlats,cost:isNaN(cost)?0:cost,price,qty,bulk:isBulk,fees:isNaN(fees)?0:fees,ship:isNaN(ship)?0:ship,lowAlert,lowAlertEnabled:alertEnabled,notes:_notes,source:document.getElementById('f_source').value.trim(),condition:document.getElementById('f_condition').value.trim(),smoke:smokeVal,coverType:isBookCat(cat)?coverVal:null,brand,color,size,sizeType,department,material,mpn,model,style,pattern,ebayDesc,ebayListingFormat,ebayBestOffer,ebayAuctionStart,ebayAuctionReserve,ebayAuctionDuration,ebayAutoAccept,ebayAutoDecline,images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),...(isBookCat(cat) ? getBookFields('f') : {}),added:new Date().toISOString()};
 
   if (_hasVariants && _variantLabels.length > 0) {
     // Create parent (qty=0, holds shared data) + N children

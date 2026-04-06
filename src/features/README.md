@@ -219,6 +219,13 @@ Bidirectional eBay listing synchronization via Inventory/Trading APIs.
 - `getLastEBaySyncTime()` - Get last sync timestamp
 - `resyncEBayOrders()` - Check recent eBay orders for sold items
 
+**Auction & Best Offer:**
+- Supports `AUCTION` and `FIXED_PRICE` listing formats via `item.ebayListingFormat`
+- Auction fields: `ebayAuctionStart`, `ebayAuctionReserve`, `ebayAuctionDuration` (DAYS_1/3/5/7/10)
+- Best Offer: `ebayBestOffer` toggle, `ebayAutoAccept`/`ebayAutoDecline` price thresholds
+- `_syncEBayOffers()` — checks for pending best offers, notifies user of new ones
+- `_syncEBayAuctions()` — detects ended auctions, notifies on sale or expiry
+
 **Behavior:**
 - External eBay removal detected during `pullEBayListings()` → sets status to `removed`, shows warning notification
 - Delisting or deleting an item in FlipTrack calls `endEBayListing()` automatically
