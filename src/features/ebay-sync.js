@@ -318,6 +318,14 @@ export async function pullEBayListings() {
               || offer.pricingSummary?.auctionStartPrice?.value
               || offer.pricingSummary?.minimumAdvertisedPrice?.value || '0'
             );
+            // Log offers with no price for debugging
+            if (price <= 0) {
+              console.warn('[eBay] Offer zero-price debug:', JSON.stringify({
+                sku, lid, status, format, price,
+                pricingSummary: offer.pricingSummary,
+                allKeys: Object.keys(offer),
+              }));
+            }
 
             if (lid) seenListingIds.add(lid);
 
@@ -405,10 +413,10 @@ export async function pullEBayListings() {
       }
     }
 
-    // ── SUPPLEMENT 2: Browse API seller search ─────────────────────────
-    // Run if Trading API failed OR if there are items still missing ebayListingId
-    const hasMissingListingIds = inv.some(i => i.platforms?.includes('eBay') && !i.ebayListingId);
-    if (!tradingWorked || hasMissingListingIds) {
+    // ── ALWAYS RUN: Browse API seller search ───────────────────────────
+    // Browse API is the only reliable source of live price and format data
+    // (Offer API often returns no pricingSummary for eBay.com-created listings)
+    {
       try {
         const username = getEBayUsername();
         console.warn('[eBay] Browse API: username =', username || '(none)');
@@ -416,14 +424,14 @@ export async function pullEBayListings() {
           toast('Searching your eBay store…');
           const sellerFilter = `sellers:%7B${encodeURIComponent(username)}%7D`;
           // Try multiple broad search terms to maximize coverage
-          const queries = ['', 'a', 'e', 'the', 'new', 'lot', 'vintage'];
+          // eBay Browse API requires non-empty q — use broad terms that match most listings
+          const queries = ['a', 'e', 'the', 'new', 'lot', 'vintage', 'set', 'bag'];
           const seenBrowseIds = new Set();
 
           for (const q of queries) {
             try {
-              const qParam = q ? `q=${encodeURIComponent(q)}&` : '';
               const resp = await ebayAPI('GET',
-                `${BROWSE_API}/item_summary/search?${qParam}filter=${sellerFilter}&limit=200`
+                `${BROWSE_API}/item_summary/search?q=${encodeURIComponent(q)}&filter=${sellerFilter}&limit=200`
               );
               const summaries = resp?.itemSummaries || [];
               console.warn(`[eBay] Browse q="${q}": ${summaries.length} results`);
@@ -441,6 +449,8 @@ export async function pullEBayListings() {
 
                 let local = byListingId.get(legacyId)
                   || byEbayId.get(`ebay-${legacyId}`)
+                  // Also match by SKU from local items that have ebayItemId
+                  || inv.find(i => i.platforms?.includes('eBay') && i.ebayListingId === legacyId)
                   || null;
                 if (local) {
                   matched++;
@@ -486,8 +496,10 @@ export async function pullEBayListings() {
                   logItemEvent(newId, 'ebay-import', `Imported from eBay: "${title}" (#${legacyId})`);
                 }
               }
-              // If we got results, the API is working — no need to try all queries
-              if (summaries.length > 0) break;
+              // Keep trying queries until we've found all items or exhausted queries
+              // Each query finds items containing that term — need multiple for full coverage
+              if (summaries.length >= 200) continue; // Might have more, try next query
+              if (seenBrowseIds.size >= 50) break; // Found plenty, stop
             } catch (qErr) {
               console.warn(`[eBay] Browse q="${q}" failed:`, qErr.message);
               // If first attempt fails (empty q), try next query term
@@ -598,115 +610,6 @@ export async function pullEBayListings() {
         }
       } catch (e) {
         console.warn('[eBay] Offer scan failed:', e.message);
-      }
-    }
-
-    // ── ENRICH: Use Browse API to get live listing data for items missing details ──
-    const needsEnrich = inv.filter(i =>
-      i.platforms?.includes('eBay') && i.ebayListingId &&
-      ((!i.price || i.price <= 0) || !i._ebayEnriched)
-    );
-    if (needsEnrich.length > 0) {
-      console.warn(`[eBay] Enriching ${needsEnrich.length} items via Browse API (item detail)`);
-      for (const item of needsEnrich.slice(0, 25)) {
-        try {
-          // Browse API GetItem by legacy ID
-          const resp = await ebayAPI('GET',
-            `${BROWSE_API}/item/v1|0|${item.ebayListingId}`
-          );
-          if (!resp) continue;
-          let changed = false;
-
-          // Price
-          const p = parseFloat(resp.price?.value || resp.currentBidPrice?.value || '0');
-          if (p > 0 && (!item.price || item.price <= 0)) {
-            item.price = p; changed = true;
-          }
-
-          // Format: AUCTION vs FIXED_PRICE
-          const buyingOpts = resp.buyingOptions || [];
-          const isAuction = buyingOpts.includes('AUCTION');
-          const fmt = isAuction ? 'AUCTION' : 'FIXED_PRICE';
-          if (item.ebayListingFormat !== fmt) {
-            item.ebayListingFormat = fmt; changed = true;
-          }
-
-          // Title
-          if (resp.title && (!item.name || item.name === 'eBay Import' || item.name === item.sku)) {
-            item.name = resp.title; changed = true;
-          }
-
-          // Images
-          const imgUrl = resp.image?.imageUrl || '';
-          if (imgUrl && (!item.images || !item.images.length)) {
-            const allImgs = resp.additionalImages?.map(i => i.imageUrl).filter(Boolean) || [];
-            item.images = [imgUrl, ...allImgs];
-            item.image = imgUrl;
-            changed = true;
-          }
-
-          // Condition
-          if (resp.condition) {
-            const condLabel = resp.condition.toLowerCase();
-            if (condLabel.includes('new')) item.condition = 'new';
-            else if (condLabel.includes('open box') || condLabel.includes('like new')) item.condition = 'like_new';
-          }
-
-          item._ebayEnriched = true;
-          if (changed) { markDirty('inv', item.id); updated++; }
-        } catch (e) {
-          // Try alternate Browse API path format
-          try {
-            const resp2 = await ebayAPI('GET',
-              `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${item.ebayListingId}`
-            );
-            if (!resp2) { item._ebayEnriched = true; continue; }
-            let changed = false;
-            const p = parseFloat(resp2.price?.value || resp2.currentBidPrice?.value || '0');
-            if (p > 0 && (!item.price || item.price <= 0)) { item.price = p; changed = true; }
-            const buyingOpts = resp2.buyingOptions || [];
-            const fmt = buyingOpts.includes('AUCTION') ? 'AUCTION' : 'FIXED_PRICE';
-            if (item.ebayListingFormat !== fmt) { item.ebayListingFormat = fmt; changed = true; }
-            if (resp2.title && (!item.name || item.name === 'eBay Import')) { item.name = resp2.title; changed = true; }
-            const imgUrl = resp2.image?.imageUrl || '';
-            if (imgUrl && (!item.images || !item.images.length)) {
-              item.images = [imgUrl]; item.image = imgUrl; changed = true;
-            }
-            item._ebayEnriched = true;
-            if (changed) { markDirty('inv', item.id); updated++; }
-          } catch (_) {
-            console.warn(`[eBay] Enrich failed for "${item.name}":`, e.message);
-          }
-        }
-      }
-    }
-
-    // Also enrich items without ebayListingId but with ebayItemId (SKU) via Offer API
-    const needsListingId = inv.filter(i =>
-      i.platforms?.includes('eBay') && i.ebayItemId && !i.ebayListingId
-    );
-    if (needsListingId.length > 0) {
-      console.warn(`[eBay] ${needsListingId.length} items missing listingId — trying per-SKU offer lookup`);
-      for (const item of needsListingId.slice(0, 20)) {
-        try {
-          const sku = item.ebayItemId || item.sku;
-          if (!sku) continue;
-          const resp = await ebayAPI('GET',
-            `${INVENTORY_API}/offer?sku=${encodeURIComponent(sku)}&limit=10`
-          );
-          const offers = resp?.offers || [];
-          for (const offer of offers) {
-            let changed = false;
-            const lid = offer.listing?.listingId || offer.listingId || '';
-            if (lid) {
-              item.ebayListingId = lid; changed = true;
-              seenListingIds.add(lid);
-              if (!item.url) { item.url = `https://www.ebay.com/itm/${lid}`; changed = true; }
-            }
-            if (changed) { markDirty('inv', item.id); updated++; }
-            break;
-          }
-        } catch (_) {}
       }
     }
 
