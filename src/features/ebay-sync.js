@@ -236,8 +236,13 @@ export async function pullEBayListings() {
         pageNum++;
       }
 
-      tradingWorked = true;
-      console.log(`[eBay] Trading API: matched=${matched}, imported=${imported}, updated=${updated}`);
+      // Only count as working if we actually found listings
+      if (matched > 0 || imported > 0) {
+        tradingWorked = true;
+        console.log(`[eBay] Trading API: matched=${matched}, imported=${imported}, updated=${updated}`);
+      } else {
+        console.warn('[eBay] Trading API returned 0 listings — trying fallbacks');
+      }
     } catch (e) {
       console.warn('[eBay] GetMyeBaySelling failed:', e.message);
     }
