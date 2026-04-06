@@ -338,7 +338,10 @@ export async function pullEBayListings() {
               matched++;
               let changed = false;
               if (sku && local.ebayItemId !== sku) { local.ebayItemId = sku; changed = true; }
-              if (lid && local.ebayListingId !== lid) { local.ebayListingId = lid; changed = true; }
+              if (lid && local.ebayListingId !== lid) {
+                local.ebayListingId = lid; changed = true;
+                byListingId.set(lid, local);
+              }
               if (!local.platforms?.includes('eBay')) {
                 if (!local.platforms) local.platforms = [];
                 local.platforms.push('eBay'); changed = true;
@@ -443,19 +446,30 @@ export async function pullEBayListings() {
                 seenListingIds.add(legacyId);
 
                 const title = summary.title || '';
-                const price = parseFloat(summary.price?.value || '0');
+                const buyOpts = summary.buyingOptions || [];
+                const isAuction = buyOpts.includes('AUCTION');
+                // For auctions: price = BIN price, currentBidPrice = current/start bid
+                const binPrice = parseFloat(summary.price?.value || '0');
+                const bidPrice = parseFloat(summary.currentBidPrice?.value || '0');
+                const price = binPrice || bidPrice;
                 const imageUrl = summary.image?.imageUrl || '';
-                const isAuction = (summary.buyingOptions || []).includes('AUCTION');
 
+                // Match by listingId first, then by ebayItemId, then fuzzy name match
+                const titleLower = title.toLowerCase().trim();
                 let local = byListingId.get(legacyId)
                   || byEbayId.get(`ebay-${legacyId}`)
-                  // Also match by SKU from local items that have ebayItemId
-                  || inv.find(i => i.platforms?.includes('eBay') && i.ebayListingId === legacyId)
+                  || (titleLower && inv.find(i =>
+                    i.platforms?.includes('eBay') && !i.ebayListingId &&
+                    i.name && i.name.toLowerCase().trim() === titleLower
+                  ))
                   || null;
                 if (local) {
                   matched++;
                   let changed = false;
-                  if (local.ebayListingId !== legacyId) { local.ebayListingId = legacyId; changed = true; }
+                  if (local.ebayListingId !== legacyId) {
+                    local.ebayListingId = legacyId; changed = true;
+                    byListingId.set(legacyId, local); // Update lookup map
+                  }
                   if (!local.platforms?.includes('eBay')) {
                     if (!local.platforms) local.platforms = [];
                     local.platforms.push('eBay'); changed = true;
@@ -468,6 +482,14 @@ export async function pullEBayListings() {
                   const fmt = isAuction ? 'AUCTION' : 'FIXED_PRICE';
                   if (local.ebayListingFormat !== fmt) { local.ebayListingFormat = fmt; changed = true; }
                   if ((!local.price || local.price <= 0) && price > 0) { local.price = price; changed = true; }
+                  // Auction details: store BIN and start bid
+                  if (isAuction) {
+                    if (binPrice > 0) { local.ebayBuyItNowPrice = binPrice; changed = true; }
+                    if (bidPrice > 0) { local.ebayStartBid = bidPrice; changed = true; }
+                  }
+                  if (buyOpts.includes('BEST_OFFER') && !local.ebayBestOffer) {
+                    local.ebayBestOffer = true; changed = true;
+                  }
                   if (title && (!local.name || local.name === 'eBay Import')) { local.name = title; changed = true; }
                   if (imageUrl && (!local.images || !local.images.length)) {
                     local.images = [imageUrl]; local.image = imageUrl; changed = true;
@@ -506,8 +528,56 @@ export async function pullEBayListings() {
               continue;
             }
           }
+          // Targeted search: for items still missing ebayListingId, search by name
+          const stillMissing = inv.filter(i =>
+            i.platforms?.includes('eBay') && i.ebayItemId && !i.ebayListingId
+          );
+          for (const item of stillMissing.slice(0, 10)) {
+            try {
+              // Use first 3 words of item name as search query
+              const words = (item.name || '').split(/\s+/).slice(0, 3).join(' ').trim();
+              if (!words || words.length < 3) continue;
+              const resp = await ebayAPI('GET',
+                `${BROWSE_API}/item_summary/search?q=${encodeURIComponent(words)}&filter=${sellerFilter}&limit=20`
+              );
+              for (const summary of (resp?.itemSummaries || [])) {
+                const legacyId = summary.legacyItemId || '';
+                if (!legacyId || seenBrowseIds.has(legacyId)) continue;
+                seenBrowseIds.add(legacyId);
+                seenListingIds.add(legacyId);
+
+                const sTitle = (summary.title || '').toLowerCase().trim();
+                const iTitle = (item.name || '').toLowerCase().trim();
+                // Require title match (at least one should contain the other)
+                if (!sTitle.includes(iTitle) && !iTitle.includes(sTitle) &&
+                    !sTitle.split(' ').slice(0, 3).join(' ').includes(iTitle.split(' ').slice(0, 3).join(' '))) continue;
+
+                let changed = false;
+                item.ebayListingId = legacyId; changed = true;
+                byListingId.set(legacyId, item);
+                if (item.platformStatus?.eBay !== 'active') {
+                  markPlatformStatus(item.id, 'eBay', 'active'); changed = true;
+                }
+                const sPrice = parseFloat(summary.price?.value || '0');
+                if (sPrice > 0 && (!item.price || item.price <= 0)) { item.price = sPrice; changed = true; }
+                const sAuction = (summary.buyingOptions || []).includes('AUCTION');
+                const sFmt = sAuction ? 'AUCTION' : 'FIXED_PRICE';
+                if (item.ebayListingFormat !== sFmt) { item.ebayListingFormat = sFmt; changed = true; }
+                if (!item.url || !item.url.includes(legacyId)) {
+                  item.url = `https://www.ebay.com/itm/${legacyId}`; changed = true;
+                }
+                const sImg = summary.image?.imageUrl || '';
+                if (sImg && (!item.images || !item.images.length)) {
+                  item.images = [sImg]; item.image = sImg; changed = true;
+                }
+                if (changed) { markDirty('inv', item.id); updated++; }
+                break; // Found match for this item
+              }
+            } catch (_) {}
+          }
+
           if (imported > 0 || matched > 0) tradingWorked = true;
-          console.warn(`[eBay] Browse API: matched=${matched}, imported=${imported}`);
+          console.warn(`[eBay] Browse API: matched=${matched}, imported=${imported}, updated=${updated}`);
         } else {
           console.warn('[eBay] No eBay username available — Browse API skipped');
         }
