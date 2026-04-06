@@ -366,7 +366,20 @@ export async function pullEBayListings() {
                 } catch (_) {}
               }
               if (changed) { markDirty('inv', local.id); updated++; }
-            } else if (isLive && !_isDismissed(lid, sku)) {
+            } else if (isLive) {
+              // Check dismissed status — but if the listing ID is NEW (not itself
+              // dismissed), the user relisted on eBay, so allow re-import
+              const lidDismissed = lid && _dismissedEBayIds.has(lid);
+              const skuDismissed = sku && _dismissedEBayIds.has(sku);
+              if (lidDismissed || (skuDismissed && !lid)) {
+                // Listing ID itself is dismissed, or SKU dismissed with no new listing ID
+                continue;
+              }
+              // If SKU was dismissed but listing ID is new → clear SKU dismissal (relisted)
+              if (skuDismissed && lid) {
+                _dismissedEBayIds.delete(sku);
+                setMeta('ebay_dismissed_ids', JSON.stringify([..._dismissedEBayIds])).catch(() => {});
+              }
               // Fetch product details from inventory item
               let title = sku || 'eBay Import';
               let images = [];

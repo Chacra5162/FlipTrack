@@ -574,7 +574,7 @@ export function startPriceEdit(span, id) {
   const origSpan = span.cloneNode(true);
   origSpan.onclick = () => startPriceEdit(origSpan, id);
   span.replaceWith(inp); inp.focus(); inp.select();
-  let committed=false;const commit=()=>{if(committed)return;committed=true;const v=parseFloat(inp.value);if(!isNaN(v)&&v>=0){const oldP=item.price||0;item.price=v;markDirty('inv',item.id);inp.style.background='var(--good)';inp.style.color='#fff';inp.style.transition='background 0.2s';save();refresh();setTimeout(()=>renderInv(),200);toast('Price updated ✓');if(v!==oldP&&v>0){logPriceChange(item.id,v,'manual');if(item.ebayItemId&&isEBayConnected()){pushEBayPrice(item.id).then(r=>{if(r.success)toast('eBay price synced ✓');}).catch(e=>console.warn('[eBay] Price push:',e.message));}}}else renderInv();};
+  let committed=false;const commit=()=>{if(committed)return;committed=true;const v=parseFloat(inp.value);if(!isNaN(v)&&v>=0){const oldP=item.price||0;item.price=v;markDirty('inv',item.id);inp.style.background='var(--good)';inp.style.color='#fff';inp.style.transition='background 0.2s';save();refresh();setTimeout(()=>renderInv(),200);toast('Price updated ✓');if(v!==oldP&&v>0){logPriceChange(item.id,v,'manual');if(item.ebayItemId&&isEBayConnected()){pushEBayPrice(item.id).then(r=>{if(r.success)toast('eBay price synced ✓');else toast('eBay price sync failed',true);}).catch(e=>{console.warn('[eBay] Price push:',e.message);toast('eBay price sync error',true);});}}}else renderInv();};
   inp.addEventListener('blur',commit);
   inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();inp.blur();}if(e.key==='Escape'){inp.removeEventListener('blur',commit);inp.replaceWith(origSpan);}});
 }
