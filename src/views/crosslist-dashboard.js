@@ -349,11 +349,11 @@ function renderMatrixTab(inStock) {
       <div class="cl-matrix-platforms">`;
 
     for (const p of plats) {
-      // For eBay: derive real status from whether item was actually pushed/published
+      // For eBay: derive status — trust platformStatus if explicitly set to active
       let st = ps[p] || 'active';
       if (p === 'eBay') {
         if (!item.ebayItemId) st = 'unlisted';          // tagged but never pushed
-        else if (!item.ebayListingId) st = 'draft';      // pushed to inventory but not published
+        else if (!item.ebayListingId && ps.eBay !== 'active') st = 'draft'; // pushed but not published AND not confirmed active
         // else keep whatever platformStatus says (active, sold, etc.)
       }
       const daysLeft = getDaysUntilExpiry(p, dates[p]);
@@ -365,8 +365,8 @@ function renderMatrixTab(inStock) {
 
       // Show "List on eBay" button if platform is eBay but item hasn't actually been pushed
       const needsEbayPush = p === 'eBay' && !item.ebayItemId && isEBayConnected();
-      // Show "Publish" button if pushed to inventory but not yet live
-      const needsEbayPublish = p === 'eBay' && item.ebayItemId && !item.ebayListingId && isEBayConnected();
+      // Show "Publish" button if pushed to inventory but not yet live (and not confirmed active by sync)
+      const needsEbayPublish = p === 'eBay' && item.ebayItemId && !item.ebayListingId && ps.eBay !== 'active' && isEBayConnected();
       const ebayFormatTag = (p === 'eBay' && item.ebayListingFormat)
         ? (item.ebayListingFormat === 'AUCTION' ? ' · Auction' : ' · Fixed Price')
         : '';
