@@ -293,7 +293,7 @@ export async function pullEBayListings() {
                 local.platforms.push('eBay'); changed = true;
               }
               if (!local.platformStatus) local.platformStatus = {};
-              if (status === 'ACTIVE' && local.platformStatus.eBay !== 'active') {
+              if ((status === 'ACTIVE' || status === 'PUBLISHED') && local.platformStatus.eBay !== 'active') {
                 markPlatformStatus(local.id, 'eBay', 'active'); changed = true;
               }
               const fmt = isAuction ? 'AUCTION' : 'FIXED_PRICE';
@@ -319,7 +319,7 @@ export async function pullEBayListings() {
                 } catch (_) {}
               }
               if (changed) { markDirty('inv', local.id); updated++; }
-            } else if (status === 'ACTIVE') {
+            } else if (status === 'ACTIVE' || status === 'PUBLISHED') {
               // Fetch product details from inventory item
               let title = sku || 'eBay Import';
               let images = [];
