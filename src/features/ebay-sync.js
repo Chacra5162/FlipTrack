@@ -33,6 +33,7 @@ let _syncing = false;
 let _syncInterval = null;
 let _orderSyncErrorLogged = false; // throttle repeated order-sync warnings
 let _processedReturnIds = new Set(); // avoid duplicate return/cancel notifications
+let _dismissedEBayIds = new Set(); // eBay IDs of items user deleted — prevent re-import
 let _returnCheckInterval = null;
 const RETURN_CHECK_WINDOW = 30 * 86400000; // 30 days
 
@@ -44,6 +45,35 @@ export async function initEBaySync() {
     const ids = await getMeta('ebay_processed_returns');
     if (ids) _processedReturnIds = new Set(JSON.parse(ids));
   } catch (_) {}
+  try {
+    const dismissed = await getMeta('ebay_dismissed_ids');
+    if (dismissed) _dismissedEBayIds = new Set(JSON.parse(dismissed));
+  } catch (_) {}
+}
+
+/** Mark eBay IDs as dismissed so they won't be re-imported on next sync. */
+export function dismissEBayItem(item) {
+  if (!item) return;
+  if (item.ebayListingId) _dismissedEBayIds.add(item.ebayListingId);
+  if (item.ebayItemId) _dismissedEBayIds.add(item.ebayItemId);
+  if (_dismissedEBayIds.size > 0) {
+    setMeta('ebay_dismissed_ids', JSON.stringify([..._dismissedEBayIds])).catch(() => {});
+  }
+}
+
+/** Remove eBay IDs from dismissed list (e.g. when restoring from trash). */
+export function undismissEBayItem(item) {
+  if (!item) return;
+  if (item.ebayListingId) _dismissedEBayIds.delete(item.ebayListingId);
+  if (item.ebayItemId) _dismissedEBayIds.delete(item.ebayItemId);
+  setMeta('ebay_dismissed_ids', JSON.stringify([..._dismissedEBayIds])).catch(() => {});
+}
+
+function _isDismissed(listingId, sku, ebayItemId) {
+  if (listingId && _dismissedEBayIds.has(listingId)) return true;
+  if (sku && _dismissedEBayIds.has(sku)) return true;
+  if (ebayItemId && _dismissedEBayIds.has(ebayItemId)) return true;
+  return false;
 }
 
 /**
@@ -195,7 +225,7 @@ export async function pullEBayListings() {
             }
 
             if (changed) { markDirty('inv', local.id); updated++; }
-          } else {
+          } else if (!_isDismissed(listingId, sku)) {
             // Import as new FlipTrack item
             const newId = uid();
             const newItem = {
@@ -319,7 +349,7 @@ export async function pullEBayListings() {
                 } catch (_) {}
               }
               if (changed) { markDirty('inv', local.id); updated++; }
-            } else if (status === 'ACTIVE' || status === 'PUBLISHED') {
+            } else if ((status === 'ACTIVE' || status === 'PUBLISHED') && !_isDismissed(lid, sku)) {
               // Fetch product details from inventory item
               let title = sku || 'eBay Import';
               let images = [];
@@ -408,7 +438,7 @@ export async function pullEBayListings() {
                     markPlatformStatus(local.id, 'eBay', 'active'); changed = true;
                   }
                   if (changed) { markDirty('inv', local.id); updated++; }
-                } else {
+                } else if (!_isDismissed(legacyId)) {
                   const newId = uid();
                   const newItem = {
                     id: newId, name: title || 'eBay Import', sku: '', price, qty: 1, cost: 0,
@@ -492,7 +522,7 @@ export async function pullEBayListings() {
               }
             }
             if (changed) { markDirty('inv', local.id); updated++; }
-          } else {
+          } else if (!_isDismissed(null, sku)) {
             const product = ebayItem.product || {};
             const newId = uid();
             const newItem = {
