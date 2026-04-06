@@ -193,6 +193,11 @@ export async function pullEBayListings() {
       offset += limit;
     }
 
+    // Pull active offers to capture auction listings and listing IDs
+    await _pullActiveOffers(bySku, byEbayId, seenSkus).catch(e =>
+      console.warn('[eBay] Active offer pull:', e.message)
+    );
+
     // Reconcile: mark local items as ended if they were active but no longer on eBay
     const activeEbayItems = inv.filter(i =>
       i.ebayItemId && i.platformStatus?.eBay === 'active'
@@ -632,6 +637,128 @@ async function _syncEBayPrices() {
     console.warn('[eBay] Price sync error:', e.message);
   }
   return updated;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PULL ACTIVE OFFERS: Capture auctions and listings not in Inventory API
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Pull all active offers from eBay to capture auction listings and
+ * items created outside FlipTrack (e.g., listed directly on eBay).
+ * Creates local inventory items for unmatched active listings.
+ */
+async function _pullActiveOffers(bySku, byEbayId, seenSkus) {
+  let offset = 0;
+  const limit = 100;
+  let hasMore = true;
+
+  while (hasMore) {
+    const resp = await ebayAPI('GET',
+      `${INVENTORY_API}/offer?limit=${limit}&offset=${offset}`
+    );
+    const offers = resp?.offers || [];
+    if (offers.length < limit) hasMore = false;
+
+    for (const offer of offers) {
+      const sku = offer.sku;
+      if (!sku) continue;
+      seenSkus.add(sku);
+
+      const listingId = offer.listing?.listingId || null;
+      const format = offer.format || 'FIXED_PRICE';
+      const isAuction = format === 'AUCTION';
+      const status = offer.status; // ACTIVE, ENDED, etc.
+
+      // Match to local item
+      let local = bySku.get(sku) || byEbayId.get(sku);
+
+      if (local) {
+        // Update listing ID and format if missing
+        let changed = false;
+        if (listingId && local.ebayListingId !== listingId) {
+          local.ebayListingId = listingId;
+          local.url = `https://www.ebay.com/itm/${listingId}`;
+          changed = true;
+        }
+        if (isAuction && local.ebayListingFormat !== 'AUCTION') {
+          local.ebayListingFormat = 'AUCTION';
+          changed = true;
+        }
+        if (status === 'ACTIVE' && local.platformStatus?.eBay !== 'active') {
+          markPlatformStatus(local.id, 'eBay', 'active');
+          changed = true;
+        }
+        // Sync best-offer status from offer
+        if (offer.listingPolicies?.bestOfferTerms?.bestOfferEnabled && !local.ebayBestOffer) {
+          local.ebayBestOffer = true;
+          changed = true;
+        }
+        if (changed) {
+          markDirty('inv', local.id);
+        }
+      } else if (status === 'ACTIVE') {
+        // Active eBay listing with no local item — import it
+        try {
+          const invItem = await ebayAPI('GET',
+            `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`
+          );
+          const product = invItem?.product || {};
+          const title = product.title || sku;
+          const images = product.imageUrls || [];
+          const price = offer.pricingSummary?.price?.value
+            || offer.pricingSummary?.auctionStartPrice?.value
+            || 0;
+
+          const newId = uid();
+          const newItem = {
+            id: newId,
+            name: title,
+            sku: sku,
+            upc: product.upc?.[0] || '',
+            category: '',
+            platforms: ['eBay'],
+            platformStatus: { eBay: 'active' },
+            platformListingDates: { eBay: localDate() },
+            platformListingExpiry: {},
+            cost: 0,
+            price: parseFloat(price) || 0,
+            qty: invItem?.availability?.shipToLocationAvailability?.quantity || 1,
+            fees: 0,
+            ship: 0,
+            brand: product.aspects?.Brand?.[0] || '',
+            color: product.aspects?.Color?.[0] || '',
+            size: product.aspects?.Size?.[0] || '',
+            images,
+            image: images[0] || null,
+            ebayItemId: sku,
+            ebayListingId: listingId || '',
+            ebayListingFormat: isAuction ? 'AUCTION' : 'FIXED_PRICE',
+            ebayBestOffer: !!offer.listingPolicies?.bestOfferTerms?.bestOfferEnabled,
+            url: listingId ? `https://www.ebay.com/itm/${listingId}` : '',
+            added: new Date().toISOString(),
+            itemHistory: [],
+            priceHistory: [],
+            notes: 'Imported from eBay',
+          };
+          inv.push(newItem);
+          markDirty('inv', newId);
+          // Update lookup maps
+          bySku.set(sku, newItem);
+          byEbayId.set(sku, newItem);
+
+          const label = title.length > 40 ? title.slice(0, 40) + '…' : title;
+          logItemEvent(newId, 'ebay-sync', `Imported from eBay (${isAuction ? 'Auction' : 'Fixed Price'})`);
+          addNotification('sync', 'eBay Import', `"${label}" imported from eBay`, newId);
+          console.log('[eBay] Imported listing:', title, isAuction ? '(Auction)' : '');
+        } catch (e) {
+          console.warn('[eBay] Failed to import listing', sku, ':', e.message);
+        }
+      }
+    }
+    offset += limit;
+  }
+  save();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
