@@ -367,9 +367,12 @@ function renderMatrixTab(inStock) {
       const needsEbayPush = p === 'eBay' && !item.ebayItemId && isEBayConnected();
       // Show "Publish" button if pushed to inventory but not yet live
       const needsEbayPublish = p === 'eBay' && item.ebayItemId && !item.ebayListingId && isEBayConnected();
+      const ebayFormatTag = (p === 'eBay' && item.ebayListingFormat)
+        ? (item.ebayListingFormat === 'AUCTION' ? ' · Auction' : ' · Fixed Price')
+        : '';
       const ebayStatusLabel = needsEbayPush ? 'Not on eBay yet'
         : needsEbayPublish ? 'Draft — not published'
-        : (STATUS_LABELS[st] || st);
+        : (STATUS_LABELS[st] || st) + ebayFormatTag;
       // AI Copy for platforms without direct API, or API platforms when not connected
       const noApiPlats = ['Poshmark','Mercari','Depop','Grailed','Facebook Marketplace','StockX','GOAT','Vinted'];
       const showAICopy = noApiPlats.includes(p) || (p === 'eBay' && !isEBayConnected());

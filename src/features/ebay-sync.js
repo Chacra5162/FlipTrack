@@ -183,9 +183,15 @@ export async function pullEBayListings() {
             }
 
             // Sync product details if local is missing them
-            if (!local.name && title) { local.name = title; changed = true; }
+            if (title && (!local.name || local.name === 'eBay Import' || local.name === local.sku)) {
+              local.name = title; changed = true;
+            }
             if (images.length && (!local.images || !local.images.length)) {
               local.images = images; local.image = images[0]; changed = true;
+            }
+            // Enrich missing price
+            if ((!local.price || local.price <= 0) && price > 0) {
+              local.price = price; changed = true;
             }
 
             if (changed) { markDirty('inv', local.id); updated++; }
@@ -289,6 +295,23 @@ export async function pullEBayListings() {
               if (local.ebayListingFormat !== fmt) { local.ebayListingFormat = fmt; changed = true; }
               if (lid && !local.url?.includes(lid)) {
                 local.url = `https://www.ebay.com/itm/${lid}`; changed = true;
+              }
+              // Enrich missing price from offer
+              if ((!local.price || local.price <= 0) && price > 0) {
+                local.price = price; changed = true;
+              }
+              // Enrich missing name from inventory item
+              if ((!local.name || local.name === 'eBay Import' || local.name === sku) && sku) {
+                try {
+                  const invItem = await ebayAPI('GET',
+                    `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`
+                  );
+                  const product = invItem?.product || {};
+                  if (product.title) { local.name = product.title; changed = true; }
+                  if (product.imageUrls?.length && (!local.images || !local.images.length)) {
+                    local.images = product.imageUrls; local.image = product.imageUrls[0]; changed = true;
+                  }
+                } catch (_) {}
               }
               if (changed) { markDirty('inv', local.id); updated++; }
             } else if (status === 'ACTIVE') {
