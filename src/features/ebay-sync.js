@@ -275,20 +275,23 @@ export async function pullEBayListings() {
     });
     updated += browseImported;
 
-    // Reconcile: mark local items as ended if they were active but no longer on eBay
-    const activeEbayItems = inv.filter(i =>
-      i.ebayItemId && i.platformStatus?.eBay === 'active'
-    );
-    for (const item of activeEbayItems) {
-      if (!seenSkus.has(item.ebayItemId)) {
-        console.warn(`[eBay] Listing removed by eBay: "${item.name}" (SKU: ${item.ebayItemId})`);
-        markPlatformStatus(item.id, 'eBay', 'removed');
-        logItemEvent(item.id, 'ebay-sync', 'eBay removed this listing — check eBay Seller Hub for details');
-        markDirty('inv', item.id);
-        updated++;
-        const label = item.name || item.sku || 'Item';
-        toast(`⚠ eBay removed: ${label}`, true);
-        addNotification('warning', 'eBay Removed Listing', `"${label}" was removed by eBay. Check Seller Hub for the reason.`, item.id);
+    // Reconcile: only mark items removed if the Inventory API actually returned results
+    // (avoids false removals when API returns empty or all listings were created on eBay.com)
+    if (seenSkus.size > 0) {
+      const activeEbayItems = inv.filter(i =>
+        i.ebayItemId && i.platformStatus?.eBay === 'active'
+      );
+      for (const item of activeEbayItems) {
+        if (!seenSkus.has(item.ebayItemId) && !seenSkus.has(item.ebayListingId)) {
+          console.warn(`[eBay] Listing removed by eBay: "${item.name}" (SKU: ${item.ebayItemId})`);
+          markPlatformStatus(item.id, 'eBay', 'removed');
+          logItemEvent(item.id, 'ebay-sync', 'eBay removed this listing — check eBay Seller Hub for details');
+          markDirty('inv', item.id);
+          updated++;
+          const label = item.name || item.sku || 'Item';
+          toast(`⚠ eBay removed: ${label}`, true);
+          addNotification('warning', 'eBay Removed Listing', `"${label}" was removed by eBay. Check Seller Hub for the reason.`, item.id);
+        }
       }
     }
 
@@ -748,8 +751,10 @@ async function _importFromBrowseAPI(seenSkus) {
   while (hasMore) {
     let resp;
     try {
+      // q is required — use * wildcard; filter braces must not be encoded
+      const filterStr = `sellers:%7B${encodeURIComponent(seller)}%7D`;
       resp = await ebayAPI('GET',
-        `${BROWSE_API}/item_summary/search?q=&filter=sellers:{${encodeURIComponent(seller)}}&limit=${browseLimit}&offset=${browseOffset}`
+        `${BROWSE_API}/item_summary/search?q=*&filter=${filterStr}&limit=${browseLimit}&offset=${browseOffset}`
       );
     } catch (e) {
       console.warn('[eBay] Browse API search failed:', e.message);
