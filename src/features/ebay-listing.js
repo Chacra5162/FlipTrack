@@ -1136,13 +1136,42 @@ export async function endEBayListing(itemId) {
   const item = getInvItem(itemId);
   if (!item || !item.ebayItemId) throw new Error('Item not on eBay');
 
+  const sku = item.ebayItemId;
+
   try {
-    // Set quantity to 0 to effectively end the listing
-    await ebayAPI('PUT', `${INVENTORY_API}/inventory_item/${encodeURIComponent(item.ebayItemId)}`, {
-      availability: {
-        shipToLocationAvailability: { quantity: 0 },
-      },
-    });
+    // 1. Try Trading API EndItem if we have a listing ID (required for auctions)
+    if (item.ebayListingId) {
+      try {
+        await ebayAPI('POST', '/ws/api.dll', {
+          _tradingCall: 'EndItem',
+          ItemID: item.ebayListingId,
+          EndingReason: 'NotAvailable',
+        });
+        console.warn('[eBay] Trading API EndItem succeeded for', item.ebayListingId);
+      } catch (tradingErr) {
+        console.warn('[eBay] Trading API EndItem failed:', tradingErr.message, '— falling back to Inventory API');
+      }
+    }
+
+    // 2. Delete all offers for this SKU (so republish creates fresh)
+    try {
+      const existing = await ebayAPI('GET', `${INVENTORY_API}/offer?sku=${encodeURIComponent(sku)}`);
+      for (const o of (existing?.offers || [])) {
+        try { await ebayAPI('DELETE', `${INVENTORY_API}/offer/${o.offerId}`); } catch (_) {}
+      }
+    } catch (_) {}
+
+    // 3. Set quantity to 0 (belt-and-suspenders for fixed-price listings)
+    try {
+      await ebayAPI('PUT', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`, {
+        availability: {
+          shipToLocationAvailability: { quantity: 0 },
+        },
+      });
+    } catch (_) {}
+
+    // Clear the old listing ID so publishEBayListing creates everything fresh
+    delete item.ebayListingId;
 
     markPlatformStatus(itemId, 'eBay', 'delisted');
     logItemEvent(itemId, 'delisted', 'eBay listing ended');
