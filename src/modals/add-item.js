@@ -144,6 +144,7 @@ export function dupItem(id) {
     itemHistory: [],
     priceHistory: [],
     _comps: null,
+    _notifiedOfferIds: [],
   };
   // Clear marketplace IDs — this is a new item, not linked to any existing listing
   delete clone.ebayItemId;
