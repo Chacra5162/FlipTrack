@@ -445,6 +445,7 @@ export async function saveDrawer(){
   if(_ebayDesc.length>5000){toast('eBay Description is too long (max 5000 characters)',true);return;}
 
   const oldPrice = item.price || 0;
+  const oldEbayFormat = item.ebayListingFormat || 'FIXED_PRICE';
   item.name    =_name||item.name;
   item.sku     =document.getElementById('d_sku').value.trim();
   item.upc     =document.getElementById('d_upc').value.trim();
@@ -543,7 +544,36 @@ export async function saveDrawer(){
   const ebayChanged = _drawerSnapshotForEbay && _ebayTracked.some(f => {
     return (f in _drawerSnapshotForEbay) && String(_drawerSnapshotForEbay[f] ?? '') !== String(item[f] ?? '');
   });
-  if (item.ebayItemId && isEBayConnected() && ebayChanged) {
+  const ebayAdded = item.platforms.includes('eBay') && !oldPlatforms.has('eBay');
+  const ebayRemoved = !item.platforms.includes('eBay') && oldPlatforms.has('eBay');
+  const formatChanged = item.ebayListingFormat !== oldEbayFormat;
+
+  if (ebayRemoved && item.ebayItemId && isEBayConnected()) {
+    // eBay platform tag removed — end the listing on eBay
+    endEBayListing(item.id).then(() => {
+      toast('eBay listing ended ✓');
+    }).catch(e => {
+      console.warn('[eBay] End listing failed:', e.message);
+      toast('Failed to end eBay listing', true);
+    });
+  } else if (item.ebayItemId && isEBayConnected() && formatChanged) {
+    // Format change requires end + relist (eBay doesn't allow format changes on live listings)
+    (async () => {
+      try {
+        toast('Changing eBay listing format — ending and relisting…');
+        await endEBayListing(item.id);
+        const pubResult = await publishEBayListing(item.id);
+        if (pubResult.success) {
+          toast(`Relisted on eBay as ${item.ebayListingFormat === 'AUCTION' ? 'Auction' : 'Fixed Price'}! #${pubResult.listingId}`);
+        } else {
+          toast('Ended old listing but relist failed — try from Crosslist', true);
+        }
+      } catch (e) {
+        console.warn('[eBay] Format change failed:', e.message);
+        toast('eBay format change failed: ' + e.message, true);
+      }
+    })();
+  } else if (item.ebayItemId && isEBayConnected() && ebayChanged && !ebayRemoved) {
     toast('Syncing to eBay…');
     updateEBayListing(item.id).then(() => {
       toast('eBay listing updated ✓');
@@ -551,12 +581,12 @@ export async function saveDrawer(){
       console.warn('[eBay] Auto-update failed:', e.message);
       toast('eBay sync failed: ' + e.message, true);
     });
-  } else if (item.platforms?.includes('eBay') && ebayChanged) {
+  } else if (item.platforms?.includes('eBay') && ebayChanged && !ebayRemoved) {
     // eBay field changed but can't sync — tell user why
     if (!item.ebayItemId) toast('eBay item ID missing — sync manually', true);
     else if (!isEBayConnected()) toast('eBay not connected — reconnect to sync', true);
-  } else if (!item.ebayItemId && isEBayConnected() && item.platforms.includes('eBay') && !oldPlatforms.has('eBay')) {
-    // eBay was just added as a platform — auto-push + publish
+  } else if (ebayAdded && isEBayConnected()) {
+    // eBay was just added as a platform — push + publish
     (async () => {
       try {
         toast('Listing on eBay…');
