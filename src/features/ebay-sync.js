@@ -318,13 +318,11 @@ export async function pullEBayListings() {
               || offer.pricingSummary?.auctionStartPrice?.value
               || offer.pricingSummary?.minimumAdvertisedPrice?.value || '0'
             );
-            // Log offers with no price for debugging
-            if (price <= 0) {
-              console.warn('[eBay] Offer zero-price debug:', JSON.stringify({
-                sku, lid, status, format, price,
-                pricingSummary: offer.pricingSummary,
-                allKeys: Object.keys(offer),
-              }));
+            // VISIBLE DEBUG: Show first zero-price offer data as toast so user can screenshot
+            if (price <= 0 && !window._ebayDebugShown) {
+              window._ebayDebugShown = true;
+              const debugInfo = JSON.stringify(offer, null, 0).slice(0, 600);
+              toast(`DEBUG OFFER (${sku}): ${debugInfo}`, false, 30000);
             }
 
             if (lid) seenListingIds.add(lid);
