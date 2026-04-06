@@ -70,7 +70,10 @@
       title.textContent = 'Connected!';
       title.className = 'success';
       message.textContent = msg || 'Your eBay account is now linked to FlipTrack.';
-      card.innerHTML += '<p style="margin-top:12px;font-size:12px;color:#8b8b99">This window will close automatically…</p>';
+      const p = document.createElement('p');
+      p.style.cssText = 'margin-top:12px;font-size:12px;color:#8b8b99';
+      p.textContent = 'This window will close automatically\u2026';
+      card.appendChild(p);
     }
 
     function showError(msg) {
@@ -78,7 +81,11 @@
       title.textContent = 'Authorization Failed';
       title.className = 'error';
       message.textContent = msg;
-      card.innerHTML += '<button class="btn" onclick="window.close()">Close</button>';
+      const btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.textContent = 'Close';
+      btn.onclick = () => window.close();
+      card.appendChild(btn);
     }
 
     if (error) {

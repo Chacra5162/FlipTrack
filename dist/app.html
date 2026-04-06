@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://gqructzvlkafclooybnc.supabase.co https://*.ebay.com https://*.etsystatic.com; connect-src 'self' https://gqructzvlkafclooybnc.supabase.co https://*.supabase.co wss://*.supabase.co https://api.anthropic.com;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https://gqructzvlkafclooybnc.supabase.co https://*.ebay.com https://*.ebayimg.com https://*.ebaystatic.com https://*.etsystatic.com; connect-src 'self' https://gqructzvlkafclooybnc.supabase.co https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://api.upcitemdb.com;">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>FlipTrack — Reseller Dashboard</title>
   <link rel="preconnect" href="https://gqructzvlkafclooybnc.supabase.co" crossorigin>
@@ -22,11 +22,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"></noscript>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
-  <script type="module" crossorigin src="./assets/app-BrdmdSFJ.js"></script>
+  <script type="module" crossorigin src="./assets/app-CJwinq62.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/vendor-supabase-jY4wIOEF.js">
-  <link rel="modulepreload" crossorigin href="./assets/pro-tier-DUah97Or.js">
-  <link rel="modulepreload" crossorigin href="./assets/unlimited-tier-CKgYeZti.js">
-  <link rel="stylesheet" crossorigin href="./assets/app-CTomEv0F.css">
+  <link rel="modulepreload" crossorigin href="./assets/pro-tier-C5oA1Dfy.js">
+  <link rel="modulepreload" crossorigin href="./assets/unlimited-tier-C7dP_J_c.js">
+  <link rel="stylesheet" crossorigin href="./assets/app-y0NRX5e1.css">
 </head>
 <body>
 <!-- SPLASH / LOADING SCREEN — removed by main.js on init -->
@@ -44,8 +44,9 @@
 <div class="shell">
 
 <!-- HEADER -->
+<div id="syncProgressBar" class="sync-progress-bar"></div>
 <header role="banner">
-  <div class="logo" aria-label="FlipTrack" onclick="navTo('dashboard')" style="cursor:pointer" role="button" tabindex="0">Flip<span>Track</span></div>
+  <div class="logo" aria-label="FlipTrack" onclick="navTo('dashboard')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" style="cursor:pointer" role="button" tabindex="0">Flip<span>Track</span></div>
   <nav class="header-center" role="navigation" aria-label="Main navigation">
     <div class="nav-group has-active" data-group="business">
       <button class="nav-group-btn" onclick="toggleNavGroup('business')" aria-expanded="false" aria-label="Business menu">
@@ -99,7 +100,7 @@
     <span id="syncTimestamp"></span><span id="syncPendingBadge"></span><span id="offlineIndicator">Offline</span>
     <button class="fs-btn" onclick="toggleFsPopover()" title="Adjust text size" id="fsSizeBtn" aria-label="Font size settings">Aᴬ</button>
     <button class="fs-btn" onclick="toggleTheme()" title="Toggle light/dark theme" id="themeBtn" aria-label="Toggle light or dark mode">☀</button>
-    <button class="fs-btn" id="notifBellBtn" onclick="toggleNotifCenter()" aria-label="Notifications">🔔<span id="notifBadge">0</span></button>
+    <button class="fs-btn" id="notifBellBtn" onclick="toggleNotifCenter()" aria-label="Notifications">🔔<span id="notifBadge" style="display:none"></span></button>
     <button class="fs-btn" id="globalSearchBtn" onclick="toggleGlobalSearch()" aria-label="Search everything" title="Search everything (Ctrl+K)">⌕</button>
     <div class="nav-group" data-group="tools">
       <button class="nav-group-btn" onclick="toggleNavGroup('tools')" aria-label="Tools menu" style="font-size:11px;padding:6px 12px">
@@ -112,6 +113,7 @@
         <button class="nav-menu-item" onclick="closeAllNavGroups();quickList()"><span class="nmi-icon" aria-hidden="true">⚡</span> Quick List</button>
         <button class="nav-menu-item" id="headerIdBtn" onclick="closeAllNavGroups();openIdentify()"><span class="nmi-icon" aria-hidden="true">📸</span> Identify Item</button>
         <button class="nav-menu-item" id="headerBatchBtn" onclick="closeAllNavGroups();openBatchScan()"><span class="nmi-icon" aria-hidden="true">📷</span> Batch Scan</button>
+        <button class="nav-menu-item unlimited-gate" onclick="closeAllNavGroups();openVoiceAdd()"><span class="nmi-icon" aria-hidden="true">🎤</span> Voice Add</button>
       </div>
     </div>
     <input type="file" id="csvImportInput" accept=".csv,.tsv" style="display:none" onchange="importCSV(this.files[0])">
@@ -177,15 +179,18 @@
   <div class="stat-card c4"><span class="stat-info-icon">?</span><div class="stat-tooltip">Return on investment — profit divided by total cost basis. Higher = better use of capital.</div><div class="stat-label">ROI</div><div class="stat-value" id="sROI">—</div><div class="stat-sub" id="sCOGS">$0 cost basis</div></div>
   <div class="stat-card c5" onclick="goToStockAlert()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goToStockAlert()}" role="button" tabindex="0" style="cursor:pointer" aria-label="Low Stock — click to view alerts"><span class="stat-info-icon">?</span><div class="stat-tooltip">Items below minimum stock threshold. Click to view and restock.</div><div class="stat-label">Low Stock</div><div class="stat-value" id="sLow">0</div><div class="stat-sub" id="sOut">0 out of stock</div></div>
   <div class="stat-card c3"><span class="stat-info-icon">?</span><div class="stat-tooltip">Average days from listing to first sale. Lower = faster turnover.</div><div class="stat-label">Avg Days to Sell</div><div class="stat-value" id="sAvgDays">—</div><div class="stat-sub" id="sAvgDaysSub">from list to sold</div></div>
+  <div class="stat-card c2"><span class="stat-info-icon">?</span><div class="stat-tooltip">Consecutive days with at least one sale. Keep the streak alive!</div><div class="stat-label">Sales Streak</div><div class="stat-value" id="sStreak">—</div><div class="stat-sub" id="sStreakSub">days in a row</div></div>
 </div>
 
 <!-- VIEW: DASHBOARD -->
 <div id="view-dashboard" class="view active">
+  <div id="dashOnboarding"></div>
   <div class="alerts-banner" id="alertBanner">
     <div class="alert-title">⚠ Restock Alert</div>
     <div class="alert-items" id="alertItems"></div>
     <button class="alert-x" onclick="document.getElementById('alertBanner').classList.remove('on')" aria-label="Dismiss alert">×</button>
   </div>
+  <div id="offerAgingAlert" style="display:none"></div>
   <div id="priceAlerts" style="display:none"></div>
   <div id="deathPileSection" style="display:none"></div>
   <!-- KPI GOALS -->
@@ -195,6 +200,8 @@
       <button class="tour-trigger-btn" onclick="startTour()">? Tour</button>
     </div>
     <div id="kpiGoalsSection"></div>
+    <div id="goalGapSection"></div>
+    <div id="peerBenchSection"></div>
   </div>
   <div id="salesVelocitySection" class="panel" style="animation-delay:.16s"></div>
   <div id="agingSummarySection" class="panel" style="animation-delay:.17s;display:none"></div>
@@ -224,7 +231,8 @@
       <div class="panel" style="animation-delay:.36s">
         <div class="panel-header">
           <div class="panel-title">Quick Export</div>
-          <button class="btn-secondary" onclick="toggleNotifications()" id="notifToggleBtn" style="font-size:10px;padding:4px 10px">🔔 Push Alerts</button>
+          <button class="btn-secondary" onclick="toggleNotifications()" id="notifToggleBtn" style="font-size:10px;padding:4px 10px">🔔 Tab Alerts</button>
+          <button class="btn-secondary" onclick="togglePush()" id="pushToggleBtn" style="font-size:10px;padding:4px 10px" title="Background push notifications (works even when tab is closed)">📡 Background Push</button>
         </div>
         <div id="csvExportSection"></div>
         <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
@@ -257,7 +265,7 @@
 
 <!-- VIEW: INVENTORY -->
 <div id="view-inventory" class="view">
-  <div id="stockFilterBanner" style="display:none;background:rgba(255,184,0,0.1);border-bottom:1px solid rgba(255,184,0,0.3);padding:10px 20px;display:none;align-items:center;gap:12px;">
+  <div id="stockFilterBanner" style="display:none;background:rgba(255,184,0,0.1);border-bottom:1px solid rgba(255,184,0,0.3);padding:10px 20px;align-items:center;gap:12px;">
     <span style="font-size:13px">⚠</span>
     <span id="stockFilterLabel" style="font-size:12px;color:var(--warn);font-family:'DM Mono',monospace;flex:1"></span>
     <button onclick="clearStockFilt()" style="background:none;border:1px solid rgba(255,184,0,0.5);color:var(--warn);font-size:11px;padding:4px 10px;cursor:pointer;font-family:'DM Mono',monospace;letter-spacing:0.5px">✕ Clear Filter</button>
@@ -271,7 +279,6 @@
     <div class="inv-toolbar">
       <div class="search-wrap">
         <span class="search-icon">⌕</span>
-        <label for="invSearch" class="sr-only">Search inventory</label>
         <label for="invSearch" class="sr-only">Search inventory</label><input type="text" id="invSearch" placeholder="Search name, SKU, category…" oninput="_debouncedRenderInv()">
       </div>
       <button class="filter-toggle-btn" id="filterToggleBtn" onclick="toggleFilterPanel()">
@@ -325,10 +332,15 @@
         <option value="days-asc">Newest Listed</option>
         <option value="qty-asc">Low Stock First</option>
         <option value="price-desc">Price High–Low</option>
+        <option value="flip-desc" data-gate="pro">Flip Score</option>
       </select>
       <div class="toolbar-spacer"></div>
       <button class="btn-secondary" onclick="printStickers(false)" style="font-size:11px;padding:5px 10px;white-space:nowrap">🏷 Print All</button>
+      <button class="btn-secondary" onclick="openPoshmarkSync()" style="font-size:11px;padding:5px 10px;white-space:nowrap" id="poshSyncBtn">🛍️ Poshmark</button>
       <button class="btn-secondary" onclick="openTrashModal()" style="font-size:11px;padding:5px 10px;white-space:nowrap">🗑️ Trash</button>
+      <button class="btn-secondary inv-view-toggle" id="invViewToggle" onclick="toggleInvViewMode()" style="font-size:11px;padding:5px 10px;white-space:nowrap" title="Toggle table/card view">
+        <svg id="invViewIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      </button>
       <span id="invCnt" aria-live="polite" aria-atomic="true" style="font-size:11px;color:var(--muted);white-space:nowrap"></span>
     </div>
     <div class="bulk-bar" id="bulkBar">
@@ -342,6 +354,7 @@
           <button onclick="openBulkCategory()">📁 Set Category</button>
           <button onclick="openBulkPlatform()">🏪 Add/Remove Platform</button>
           <button onclick="bulkExportCSV()">📤 Export CSV</button>
+          <button onclick="createGalleryFromSelection()" class="pro-gate">📸 Create Gallery</button>
         </div>
       </div>
       <button class="btn-danger"    onclick="bulkDel()">Delete</button>
@@ -360,11 +373,13 @@
           <th onclick="setSort('price-desc')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setSort('price-desc')}" tabindex="0" role="columnheader button" aria-label="Sort by price" style="cursor:pointer">Price <span class="sort-arrow">↕</span></th>
           <th onclick="setSort('margin-desc')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setSort('margin-desc')}" tabindex="0" role="columnheader button" aria-label="Sort by margin" style="cursor:pointer">Margin <span class="sort-arrow">↕</span></th>
           <th onclick="setSort('days-desc')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setSort('days-desc')}" tabindex="0" role="columnheader button" aria-label="Sort by days listed" class="days-col" style="cursor:pointer">Days <span class="sort-arrow">↕</span></th>
+          <th class="flip-score-col pro-gate" onclick="setSort('flip-desc')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setSort('flip-desc')}" tabindex="0" role="columnheader button" aria-label="Sort by flip score" style="cursor:pointer">Flip <span class="sort-arrow">↕</span></th>
           <th class="photos-col">📷</th>
           <th>Actions</th>
         </tr></thead>
         <tbody id="invBody"></tbody>
       </table>
+      <div id="invCards" class="inv-cards-grid" style="display:none"></div>
       <div id="invPagination"></div>
       <div id="invEmpty" class="empty-state" style="display:none">
         <div class="empty-icon">📦</div>
@@ -397,7 +412,7 @@
         <thead><tr>
           <th>Item</th><th>Platform</th><th>Date</th><th>Qty</th>
           <th>Sold For</th><th>Unit Cost</th><th>Fees+Ship</th>
-          <th>Net Profit</th><th style="text-align:right">Actions</th>
+          <th>Net Profit</th><th>Buyer</th><th>Tracking</th><th style="text-align:right">Actions</th>
         </tr></thead>
         <tbody id="salesBody"></tbody>
       </table>
@@ -467,6 +482,8 @@
       </div>
     </div>
   </div>
+
+  <div id="supplyAllocSection"></div>
 </div>
 
 <!-- VIEW: VALUE BREAKDOWN -->
@@ -480,6 +497,7 @@
   <div class="panel" style="animation:none;margin-bottom:14px;overflow:hidden">
     <div class="panel-header">
       <div class="panel-title">Add Expense</div>
+      <div style="display:flex;gap:6px"><label class="btn-secondary" style="font-size:10px;padding:4px 10px;cursor:pointer" title="Import expenses from CSV">📥 Import CSV<input type="file" accept=".csv,.tsv,.txt" style="display:none" onchange="importExpenseCSV(this.files[0]);this.value=''"></label></div>
     </div>
     <div style="padding:16px 18px;display:flex;flex-direction:column;gap:10px;box-sizing:border-box;width:100%;overflow:hidden">
       <div class="fgrp" style="margin:0;width:100%;overflow:hidden">
@@ -584,6 +602,9 @@
 
 <!-- VIEW: SOURCING -->
 <div id="view-sourcing" class="view">
+  <div style="padding:12px 16px;display:flex;gap:8px">
+    <button class="btn-primary" onclick="openSourcingMode()" style="font-size:12px;padding:8px 16px">📷 Sourcing Mode</button>
+  </div>
   <div id="sourcingContent"></div>
 </div>
 
@@ -650,13 +671,19 @@
 </div>
 
 <!-- VERSION FOOTER -->
-<div class="ft-footer">FlipTrack v1.0 · Powered by <a href="https://supabase.com" target="_blank" rel="noopener">Supabase</a></div>
+<div class="ft-footer">FlipTrack v2.0 · Powered by <a href="https://supabase.com" target="_blank" rel="noopener">Supabase</a></div>
 
 </main>
 </div>
 
 <!-- MODALS ROOT (injected by shipping, etc.) -->
 <div id="modals-root"></div>
+
+<!-- SOURCING MODE OVERLAY -->
+<div id="sourcingModeOv" style="display:none"></div>
+
+<!-- POSHMARK SYNC MODAL -->
+<div class="overlay" id="poshmarkSyncOv" role="dialog" aria-modal="true" aria-label="Poshmark Sync"></div>
 
 <!-- LIGHTBOX -->
 <div class="lightbox" id="lightbox" onclick="closeLightbox()" role="dialog" aria-modal="true" aria-label="Image Lightbox">
@@ -679,19 +706,21 @@
     </div>
   </div>
   <div class="d-metrics" id="dMets"></div>
+  <div id="dListingScore"></div>
   <div class="drawer-tabs">
     <button class="drawer-tab active" onclick="drawerTab('details',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">Details</button>
     <button class="drawer-tab" onclick="drawerTab('media',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">Photo &amp; Barcode</button>
     <button class="drawer-tab" onclick="drawerTab('shipping',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">Shipping</button>
     <button class="drawer-tab" onclick="drawerTab('history',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">History</button>
     <button class="drawer-tab" onclick="drawerTab('comps',this);loadDrawerComps()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">📊 Comps</button>
+    <button class="drawer-tab" id="drawerVariantsTab" onclick="drawerTab('variants',this);renderDrawerVariants()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" style="display:none">Variants</button>
   </div>
-  <div class="drawer-bd">
+  <div class="drawer-bd" oninput="markDrawerDirty()">
 
     <!-- TAB: Details -->
     <div class="drawer-tab-panel active" id="dtab-details">
       <div class="edit-grid">
-        <div class="edit-grp full"><label for="d_name" class="edit-lbl">Item Name</label><input class="edit-inp" id="d_name" type="text"></div>
+        <div class="edit-grp full"><label for="d_name" class="edit-lbl">Item Name</label><input class="edit-inp" id="d_name" type="text" maxlength="200"></div>
         <div class="edit-grp"><label for="d_sku" class="edit-lbl">SKU</label><input class="edit-inp" id="d_sku" type="text"></div>
         <div class="edit-grp">
           <label for="d_upc" class="edit-lbl">UPC / Barcode</label>
@@ -701,9 +730,9 @@
           </div>
         </div>
         <div class="edit-grp"><label for="d_cat" class="edit-lbl">Category</label><input class="edit-inp" id="d_cat" type="text" placeholder="e.g. Clothing" oninput="syncDrawerSubcat()"></div>
-        <div class="edit-grp"><label for="d_subcat_txt" class="edit-lbl">Subcategory</label><input class="edit-inp" id="d_subcat_txt" type="text" placeholder="e.g. Sneakers, Men's…" list="d_subcat_dl"><datalist id="d_subcat_dl"></datalist></div>
+        <div class="edit-grp"><label for="d_subcat_txt" class="edit-lbl">Subcategory</label><input class="edit-inp" id="d_subcat_txt" type="text" placeholder="e.g. Sneakers, Men's…"></div>
         <select id="d_subcat" style="display:none"></select>
-        <div class="edit-grp" id="d_subtype_grp"><label for="d_subtype_txt" class="edit-lbl" id="d_subtype_lbl">Type</label><input class="edit-inp" id="d_subtype_txt" type="text" placeholder="e.g. Shirts, Sci-Fi…" list="d_subtype_dl" oninput="syncDrawerSubtype()"><datalist id="d_subtype_dl"></datalist></div>
+        <div class="edit-grp" id="d_subtype_grp"><label for="d_subtype_txt" class="edit-lbl" id="d_subtype_lbl">Type</label><input class="edit-inp" id="d_subtype_txt" type="text" placeholder="e.g. Shirts, Sci-Fi…" oninput="syncDrawerSubtype()"></div>
         <div class="edit-grp full">
           <div class="edit-lbl">Platforms <span style="color:var(--muted);font-weight:400;font-size:9px">— select all that apply</span></div>
           <div class="plat-picker" id="d_plat_picker"></div>
@@ -716,15 +745,22 @@
         <div class="edit-grp"><label for="d_price" class="edit-lbl">List Price ($)</label><input class="edit-inp" id="d_price" type="number" step="0.01"></div>
         <div class="edit-grp"><label for="d_fees" class="edit-lbl">Fees ($)</label><input class="edit-inp" id="d_fees" type="number" step="0.01"></div>
         <div class="edit-grp"><label for="d_ship" class="edit-lbl">Shipping ($)</label><input class="edit-inp" id="d_ship" type="number" step="0.01"></div>
+        <div class="edit-grp"><label for="d_qty" class="edit-lbl">Quantity</label><input class="edit-inp" id="d_qty" type="number" min="0" step="1"></div>
         <div class="edit-grp full" style="align-items:flex-start">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;margin-top:2px">
             <input type="checkbox" id="d_bulk" onchange="toggleBulkFields('d')" style="width:15px;height:15px;accent-color:var(--accent);flex-shrink:0">
             <span class="edit-lbl" style="margin:0">Bulk Item — multiple units</span>
           </label>
         </div>
-        <div class="edit-grp" id="d_alert_grp"><label for="d_alert" class="edit-lbl">Low Stock Alert</label><input class="edit-inp" id="d_alert" type="number" min="0"></div>
+        <div class="edit-grp" id="d_alert_grp">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">
+            <input type="checkbox" id="d_alert_on" onchange="toggleAlertField('d')" style="width:15px;height:15px;accent-color:var(--accent);flex-shrink:0">
+            <span class="edit-lbl" style="margin:0">Low Stock Alert</span>
+          </label>
+          <input class="edit-inp" id="d_alert" type="number" min="1" placeholder="Alert when qty drops below..." style="margin-top:4px">
+        </div>
         <div class="edit-grp"><label for="d_url" class="edit-lbl">Restock URL</label><input class="edit-inp" id="d_url" type="text" placeholder="Source link"></div>
-        <div class="edit-grp"><label for="d_source" class="edit-lbl">Source</label><input class="edit-inp" id="d_source" type="text" placeholder="e.g. Goodwill" list="sourceList"></div>
+        <div class="edit-grp"><label for="d_source" class="edit-lbl">Source</label><input class="edit-inp" id="d_source" type="text" placeholder="e.g. Goodwill"></div>
         <div class="edit-grp full">
           <div class="edit-lbl">Condition</div>
           <div id="d_cond_picker" style="display:flex;gap:6px;flex-wrap:wrap">
@@ -794,36 +830,124 @@
             </div>
           </div>
         </div>
-        <!-- eBay Listing Details -->
+        <!-- eBay Listing Details — Tabbed -->
         <div class="edit-grp full" id="d_ebay_fields" style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
-          <div class="edit-lbl" style="color:var(--accent);margin-bottom:8px">eBay Listing Details</div>
-          <div class="form-grid" style="margin-top:0">
-            <div class="edit-grp"><div class="edit-lbl">Brand</div><input class="edit-inp" type="text" id="d_brand" placeholder="e.g. Nike, Unbranded" list="brandList"></div>
-            <div class="edit-grp"><div class="edit-lbl">Color</div><input class="edit-inp" type="text" id="d_color" placeholder="e.g. Black, Red/Blue" list="colorList"></div>
-            <div class="edit-grp"><div class="edit-lbl">Size</div><input class="edit-inp" type="text" id="d_size" placeholder="e.g. Large, 10, 32x30"></div>
-            <div class="edit-grp"><div class="edit-lbl">Size Type</div>
-              <select class="edit-inp" id="d_sizeType">
-                <option value="">—</option><option value="Regular">Regular</option><option value="Plus">Plus</option>
-                <option value="Petite">Petite</option><option value="Big">Big</option><option value="Tall">Tall</option>
-                <option value="Big & Tall">Big & Tall</option><option value="Junior">Junior</option><option value="Husky">Husky</option>
-              </select>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span class="edit-lbl" style="color:var(--accent);margin:0">eBay Listing</span>
+            <div class="ebay-tabs" style="display:flex;gap:4px;margin-left:auto">
+              <button type="button" class="ebay-tab active" onclick="switchEbayTab('quick',this)">Quick</button>
+              <button type="button" class="ebay-tab" onclick="switchEbayTab('more',this)">More</button>
             </div>
-            <div class="edit-grp"><div class="edit-lbl">Department</div>
-              <select class="edit-inp" id="d_department">
-                <option value="">—</option><option value="Men's">Men's</option><option value="Women's">Women's</option>
-                <option value="Boys'">Boys'</option><option value="Girls'">Girls'</option><option value="Unisex Kids">Unisex Kids</option>
-                <option value="Unisex Adults">Unisex Adults</option>
-              </select>
+          </div>
+          <!-- Quick Listing Tab — minimum fields to post -->
+          <div class="ebay-tab-panel" id="ebayTabQuick">
+            <div class="form-grid" style="margin-top:0">
+              <div class="edit-grp"><div class="edit-lbl">Brand</div><input class="edit-inp" type="text" id="d_brand" placeholder="e.g. Nike, Unbranded"></div>
+              <div class="edit-grp"><div class="edit-lbl">Color</div><input class="edit-inp" type="text" id="d_color" placeholder="e.g. Black, Red/Blue"></div>
+              <div class="edit-grp"><div class="edit-lbl">Size</div><input class="edit-inp" type="text" id="d_size" placeholder="e.g. Large, 10, 32x30"></div>
+              <div class="edit-grp"><div class="edit-lbl">Department</div>
+                <select class="edit-inp" id="d_department">
+                  <option value="">—</option><option value="Men's">Men's</option><option value="Women's">Women's</option>
+                  <option value="Boys'">Boys'</option><option value="Girls'">Girls'</option><option value="Unisex Kids">Unisex Kids</option>
+                  <option value="Unisex Adults">Unisex Adults</option>
+                </select>
+              </div>
             </div>
-            <div class="edit-grp"><div class="edit-lbl">Material</div><input class="edit-inp" type="text" id="d_material" placeholder="e.g. Cotton, Leather" list="materialList"></div>
-            <div class="edit-grp"><div class="edit-lbl">MPN</div><input class="edit-inp" type="text" id="d_mpn" placeholder="Mfr Part Number"></div>
-            <div class="edit-grp"><div class="edit-lbl">Model</div><input class="edit-inp" type="text" id="d_model" placeholder="e.g. Air Max 90"></div>
-            <div class="edit-grp"><div class="edit-lbl">Style</div><input class="edit-inp" type="text" id="d_style" placeholder="e.g. Casual, Athletic"></div>
-            <div class="edit-grp"><div class="edit-lbl">Type / Pattern</div><input class="edit-inp" type="text" id="d_pattern" placeholder="e.g. Solid, Striped"></div>
+            <div class="edit-grp full" style="margin-top:8px"><div class="edit-lbl">eBay Description <button type="button" class="btn-sm" style="margin-left:8px;font-size:11px;padding:2px 8px" onclick="window.aiGenerateDesc?.('drawer')" aria-label="Generate eBay description using AI">✨ AI Generate</button></div><textarea class="edit-ta" id="d_ebay_desc" placeholder="Leave blank to auto-generate with AI when listing on eBay" maxlength="5000"></textarea></div>
+            <div class="edit-grp full" style="margin-top:6px"><div class="edit-lbl">Condition Notes <span style="font-size:10px;color:var(--muted)">(visible to buyers)</span></div><textarea class="edit-ta" id="d_cond_desc" rows="2" maxlength="1000" placeholder="e.g. Light scratches on back, missing original box"></textarea></div>
+          </div>
+          <!-- More Tab — additional eBay fields -->
+          <div class="ebay-tab-panel" id="ebayTabMore" style="display:none">
+            <div class="form-grid" style="margin-top:0">
+              <div class="edit-grp"><div class="edit-lbl">Material</div><input class="edit-inp" type="text" id="d_material" placeholder="e.g. Cotton, Leather"></div>
+              <div class="edit-grp"><div class="edit-lbl">MPN</div><input class="edit-inp" type="text" id="d_mpn" placeholder="Mfr Part Number"></div>
+              <div class="edit-grp"><div class="edit-lbl">Model</div><input class="edit-inp" type="text" id="d_model" placeholder="e.g. Air Max 90"></div>
+              <div class="edit-grp"><div class="edit-lbl">Style</div><input class="edit-inp" type="text" id="d_style" placeholder="e.g. Casual, Athletic"></div>
+              <div class="edit-grp"><div class="edit-lbl">Type / Pattern</div><input class="edit-inp" type="text" id="d_pattern" placeholder="e.g. Solid, Striped"></div>
+              <div class="edit-grp"><div class="edit-lbl">Size Type</div>
+                <select class="edit-inp" id="d_sizeType">
+                  <option value="">—</option><option value="Regular">Regular</option><option value="Plus">Plus</option>
+                  <option value="Petite">Petite</option><option value="Big">Big</option><option value="Tall">Tall</option>
+                  <option value="Big & Tall">Big & Tall</option><option value="Junior">Junior</option><option value="Husky">Husky</option>
+                </select>
+              </div>
+            </div>
+            <div class="edit-lbl" style="color:var(--muted);margin:12px 0 6px;font-size:10px;text-transform:uppercase;letter-spacing:0.5px">Apparel Details</div>
+            <div class="form-grid" style="margin-top:0">
+              <div class="edit-grp"><div class="edit-lbl">Fit</div>
+                <select class="edit-inp" id="d_fit">
+                  <option value="">—</option><option value="Regular">Regular</option><option value="Slim">Slim</option>
+                  <option value="Relaxed">Relaxed</option><option value="Loose">Loose</option><option value="Athletic">Athletic</option>
+                  <option value="Oversize">Oversize</option><option value="Custom">Custom</option>
+                </select>
+              </div>
+              <div class="edit-grp"><div class="edit-lbl">Closure</div>
+                <select class="edit-inp" id="d_closure">
+                  <option value="">—</option><option value="Zip">Zip</option><option value="Button">Button</option>
+                  <option value="Pull On">Pull On</option><option value="Snap">Snap</option><option value="Hook & Eye">Hook & Eye</option>
+                  <option value="Buckle">Buckle</option><option value="Velcro">Velcro</option><option value="Drawstring">Drawstring</option>
+                  <option value="Lace Up">Lace Up</option>
+                </select>
+              </div>
+              <div class="edit-grp"><div class="edit-lbl">Neckline</div>
+                <select class="edit-inp" id="d_neckline">
+                  <option value="">—</option><option value="Crew Neck">Crew Neck</option><option value="V-Neck">V-Neck</option>
+                  <option value="Round Neck">Round Neck</option><option value="Scoop Neck">Scoop Neck</option>
+                  <option value="Collared">Collared</option><option value="Hooded">Hooded</option><option value="Mock Neck">Mock Neck</option>
+                  <option value="Turtleneck">Turtleneck</option><option value="Henley">Henley</option><option value="Square Neck">Square Neck</option>
+                </select>
+              </div>
+              <div class="edit-grp"><div class="edit-lbl">Sleeve Length</div>
+                <select class="edit-inp" id="d_sleeveLength">
+                  <option value="">—</option><option value="Sleeveless">Sleeveless</option><option value="Short Sleeve">Short Sleeve</option>
+                  <option value="3/4 Sleeve">3/4 Sleeve</option><option value="Long Sleeve">Long Sleeve</option>
+                </select>
+              </div>
+              <div class="edit-grp"><div class="edit-lbl">Rise</div>
+                <select class="edit-inp" id="d_rise">
+                  <option value="">—</option><option value="Low Rise">Low Rise</option><option value="Mid Rise">Mid Rise</option>
+                  <option value="High Rise">High Rise</option>
+                </select>
+              </div>
+              <div class="edit-grp"><div class="edit-lbl">Inseam</div><input class="edit-inp" type="text" id="d_inseam" placeholder="e.g. 32"></div>
+              <div class="edit-grp"><div class="edit-lbl">Garment Care</div><input class="edit-inp" type="text" id="d_garmentCare" placeholder="e.g. Machine Wash"></div>
+              <div class="edit-grp"><div class="edit-lbl">Occasion</div>
+                <select class="edit-inp" id="d_occasion">
+                  <option value="">—</option><option value="Casual">Casual</option><option value="Formal">Formal</option>
+                  <option value="Athletic">Athletic</option><option value="Business">Business</option><option value="Party">Party</option>
+                  <option value="Outdoor">Outdoor</option><option value="Lounge">Lounge</option>
+                </select>
+              </div>
+            </div>
+            <div class="edit-lbl" style="color:var(--muted);margin:12px 0 6px;font-size:10px;text-transform:uppercase;letter-spacing:0.5px">Footwear</div>
+            <div class="form-grid" style="margin-top:0">
+              <div class="edit-grp"><div class="edit-lbl">US Shoe Size</div><input class="edit-inp" type="text" id="d_shoeSize" placeholder="e.g. 10, 8.5"></div>
+              <div class="edit-grp"><div class="edit-lbl">Shoe Width</div>
+                <select class="edit-inp" id="d_shoeWidth">
+                  <option value="">—</option><option value="Narrow">Narrow (AA)</option><option value="Standard">Standard (D)</option>
+                  <option value="Wide">Wide (EE)</option><option value="Extra Wide">Extra Wide (4E)</option>
+                </select>
+              </div>
+            </div>
+            <div class="edit-lbl" style="color:var(--muted);margin:12px 0 6px;font-size:10px;text-transform:uppercase;letter-spacing:0.5px">Other</div>
+            <div class="form-grid" style="margin-top:0">
+              <div class="edit-grp"><div class="edit-lbl">Season</div>
+                <select class="edit-inp" id="d_season">
+                  <option value="">—</option><option value="Spring">Spring</option><option value="Summer">Summer</option>
+                  <option value="Fall">Fall</option><option value="Winter">Winter</option><option value="All Seasons">All Seasons</option>
+                </select>
+              </div>
+              <div class="edit-grp"><div class="edit-lbl">Theme</div><input class="edit-inp" type="text" id="d_theme" placeholder="e.g. Classic, Retro, Y2K"></div>
+              <div class="edit-grp"><div class="edit-lbl">Vintage</div>
+                <select class="edit-inp" id="d_vintage">
+                  <option value="">—</option><option value="Yes">Yes</option><option value="No">No</option>
+                </select>
+              </div>
+              <div class="edit-grp"><div class="edit-lbl">Country of Manufacture</div><input class="edit-inp" type="text" id="d_countryMfg" placeholder="e.g. USA, China"></div>
+            </div>
           </div>
         </div>
-        <div class="edit-grp full"><div class="edit-lbl">eBay Description <button type="button" class="btn-sm" style="margin-left:8px;font-size:11px;padding:2px 8px" onclick="window.aiGenerateDesc?.('drawer')">✨ AI Generate</button></div><textarea class="edit-ta" id="d_ebay_desc" placeholder="Leave blank to auto-generate with AI when listing on eBay"></textarea></div>
-        <div class="edit-grp full"><div class="edit-lbl">Notes</div><textarea class="edit-ta" id="d_notes"></textarea></div>
+        <div class="edit-grp full"><div class="edit-lbl">Notes</div><textarea class="edit-ta" id="d_notes" maxlength="5000"></textarea></div>
       </div>
       <!-- Fee Calculator -->
       <div class="fee-calc-section">
@@ -836,27 +960,7 @@
     <div class="drawer-tab-panel" id="dtab-media">
       <div class="dsec" id="dImgSec">
         <div class="dsec-ttl">Item Photos <span style="color:var(--muted);font-weight:400;font-size:10px">(up to 3)</span></div>
-        <div id="dImgWrap" class="img-slots">
-          <div class="img-slot" id="dSlot0">
-            <img id="dSlotImg0" src="" alt="Item photo 1" style="display:none" onclick="openLightboxUrl(this.src)" onkeydown="if(event.key==='Enter')openLightboxUrl(this.src)" tabindex="0" role="button">
-            <span class="img-slot-badge" id="dSlotBadge0" style="display:none">MAIN</span>
-            <button type="button" class="img-slot-rm" id="dSlotRm0" style="display:none" onclick="imgSlotRemove(event,'d',0)">×</button>
-            <div class="img-slot-add" id="dSlotAdd0"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
-            <input type="file" id="dSlotInput0" accept="image/*" class="img-slot-input" onchange="imgSlotChange(event,'d',0)">
-          </div>
-          <div class="img-slot img-slot-locked" id="dSlot1">
-            <img id="dSlotImg1" src="" alt="Item photo 2" style="display:none" onclick="openLightboxUrl(this.src)" onkeydown="if(event.key==='Enter')openLightboxUrl(this.src)" tabindex="0" role="button">
-            <button type="button" class="img-slot-rm" id="dSlotRm1" style="display:none" onclick="imgSlotRemove(event,'d',1)">×</button>
-            <div class="img-slot-add" id="dSlotAdd1" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
-            <input type="file" id="dSlotInput1" accept="image/*" class="img-slot-input" style="pointer-events:none;opacity:0" onchange="imgSlotChange(event,'d',1)">
-          </div>
-          <div class="img-slot img-slot-locked" id="dSlot2">
-            <img id="dSlotImg2" src="" alt="Item photo 3" style="display:none" onclick="openLightboxUrl(this.src)" onkeydown="if(event.key==='Enter')openLightboxUrl(this.src)" tabindex="0" role="button">
-            <button type="button" class="img-slot-rm" id="dSlotRm2" style="display:none" onclick="imgSlotRemove(event,'d',2)">×</button>
-            <div class="img-slot-add" id="dSlotAdd2" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
-            <input type="file" id="dSlotInput2" accept="image/*" class="img-slot-input" style="pointer-events:none;opacity:0" onchange="imgSlotChange(event,'d',2)">
-          </div>
-        </div>
+        <div id="dImgWrap" class="img-slots"></div>
       </div>
       <div class="dsec" id="dBarcodeSec">
         <div class="dsec-ttl">Barcode</div>
@@ -922,6 +1026,10 @@
     <!-- TAB: Comps / Market Research -->
     <div class="drawer-tab-panel" id="dtab-comps">
       <div id="dtab-comps-body"></div>
+    </div>
+
+    <div class="drawer-tab-panel" id="dtab-variants">
+      <div id="dtab-variants-body"></div>
     </div>
 
   </div>
@@ -1088,7 +1196,7 @@
       </div>
 
       <button class="btn-primary" onclick="authSubmit()" id="authSubmitBtn"
-        disabled style="width:100%;font-size:14px;padding:12px">Loading…</button>
+        disabled style="width:100%;font-size:14px;padding:12px">Connecting…</button>
 
       <div id="authForgotWrap" style="margin-top:12px;text-align:center">
         <button onclick="authForgotPassword()"
@@ -1127,7 +1235,7 @@
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
       <span id="acctPlanLabel">Free Plan — Upgrade</span>
     </button>
-    <button onclick="closeAccountMenu();window.open('./FlipTrack-User-Guide-v1.6.html','_blank')"
+    <button onclick="closeAccountMenu();window.open('./FlipTrack-User-Guide-v2.0.html','_blank')"
       style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 16px;background:none;border:none;border-bottom:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;text-align:left">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
       User Guide
@@ -1158,7 +1266,7 @@
 <!-- ADD MODAL -->
 <div class="overlay" id="addOv" role="dialog" aria-modal="true" aria-label="Add New Item">
   <div class="modal">
-    <div class="modal-hd"><div class="modal-ttl">Add Inventory Item</div><div style="display:flex;gap:8px;align-items:center"><button class="btn-secondary" onclick="prefillFromLast()" style="font-size:10px;padding:4px 10px" title="Copy source, category, platforms from your last item" aria-label="Repeat last item">⟲ Repeat Last</button><button class="modal-x" onclick="closeAdd()" aria-label="Close add item dialog">×</button></div></div>
+    <div class="modal-hd"><div class="modal-ttl">Add Inventory Item</div><div style="display:flex;gap:8px;align-items:center"><button class="btn-secondary" onclick="quickList()" style="font-size:10px;padding:4px 10px" title="Take a photo to auto-identify and fill this form" aria-label="Snap photo to identify">📸 Snap</button><button class="btn-secondary" onclick="prefillFromLast()" style="font-size:10px;padding:4px 10px" title="Copy source, category, platforms from your last item" aria-label="Repeat last item">⟲ Repeat Last</button><button class="modal-x" onclick="closeAdd()" aria-label="Close add item dialog">×</button></div></div>
     <div class="modal-bd">
       <div class="add-form-tabs" style="display:flex;gap:0;border-bottom:1px solid var(--border);margin:-20px -22px 16px;padding:0 22px">
         <button class="add-form-tab active" onclick="addFormTab('basic',this)" style="flex:1;padding:9px 8px;background:transparent;border:none;color:var(--accent);font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;cursor:pointer;border-bottom:2px solid var(--accent)">Basic</button>
@@ -1166,7 +1274,7 @@
         <button class="add-form-tab" onclick="addFormTab('details',this)" style="flex:1;padding:9px 8px;background:transparent;border:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;cursor:pointer;border-bottom:2px solid transparent">Details</button>
       </div>
       <div class="form-grid">
-        <div class="fgrp full"><label for="f_name">Item Name *</label><input type="text" id="f_name" placeholder="e.g. Vintage Levi's 501 Jeans" onblur="triggerAddComps()"></div>
+        <div class="fgrp full"><label for="f_name">Item Name *</label><input type="text" id="f_name" placeholder="e.g. Vintage Levi's 501 Jeans" maxlength="200" onblur="triggerAddComps()"></div>
         <div class="fgrp"><label for="f_sku">SKU / ID</label><input type="text" id="f_sku" placeholder="auto if blank"></div>
         <div class="fgrp">
           <label for="f_upc">UPC / Barcode</label>
@@ -1176,30 +1284,10 @@
           </div>
         </div>
         <div class="fgrp"><label for="f_cat">Category</label><input type="text" id="f_cat" placeholder="e.g. Clothing" oninput="syncAddSubcat()"></div>
-        <div class="fgrp"><label for="f_source">Source</label><input type="text" id="f_source" placeholder="e.g. Goodwill, Garage Sale" list="sourceList"></div>
-        <datalist id="sourceList">
-          <option value="Goodwill">
-          <option value="Salvation Army">
-          <option value="Thrift Store">
-          <option value="Garage Sale">
-          <option value="Estate Sale">
-          <option value="Flea Market">
-          <option value="Facebook Marketplace">
-          <option value="OfferUp">
-          <option value="Craigslist">
-          <option value="Wholesale">
-          <option value="Liquidation">
-          <option value="Retail Arbitrage">
-          <option value="Online Arbitrage">
-          <option value="Dumpster Dive">
-          <option value="Storage Unit">
-          <option value="Auction">
-          <option value="Personal Collection">
-          <option value="Other">
-        </datalist>
-        <div class="fgrp"><label for="f_subcat_txt">Subcategory</label><input type="text" id="f_subcat_txt" placeholder="e.g. Sneakers, Men's…" list="f_subcat_dl"><datalist id="f_subcat_dl"></datalist></div>
+        <div class="fgrp"><label for="f_source">Source</label><input type="text" id="f_source" placeholder="e.g. Goodwill, Garage Sale"></div>
+        <div class="fgrp"><label for="f_subcat_txt">Subcategory</label><input type="text" id="f_subcat_txt" placeholder="e.g. Sneakers, Men's…"></div>
         <select id="f_subcat" style="display:none"></select>
-        <div class="fgrp" id="f_subtype_grp"><label id="f_subtype_lbl" for="f_subtype_txt">Type</label><input type="text" id="f_subtype_txt" placeholder="e.g. Shirts, Sci-Fi…" list="f_subtype_dl" oninput="syncAddSubtype()"><datalist id="f_subtype_dl"></datalist></div>
+        <div class="fgrp" id="f_subtype_grp"><label id="f_subtype_lbl" for="f_subtype_txt">Type</label><input type="text" id="f_subtype_txt" placeholder="e.g. Shirts, Sci-Fi…" oninput="syncAddSubtype()"></div>
         <div class="fgrp full">
           <label for="f_plat_picker">Platforms * <span style="color:var(--muted);font-weight:400;font-size:10px">— select all that apply</span></label>
           <div class="plat-picker" id="f_plat_picker"></div>
@@ -1213,10 +1301,30 @@
         <div id="f_bulk_fields" style="display:none;grid-column:1/-1;display:none">
           <div class="form-grid" style="margin-top:0">
             <div class="fgrp"><label for="f_qty">Quantity *</label><input type="number" id="f_qty" value="1" min="1"></div>
-            <div class="fgrp"><label for="f_alert">Low Stock Alert</label><input type="number" id="f_alert" placeholder="2" min="0"></div>
+            <div class="fgrp">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
+                <input type="checkbox" id="f_alert_on" onchange="toggleAlertField('f')" style="width:14px;height:14px;accent-color:var(--accent)">
+                <span>Low Stock Alert</span>
+              </label>
+              <input type="number" id="f_alert" min="1" placeholder="2" style="margin-top:4px">
+            </div>
           </div>
         </div>
         <input type="hidden" id="f_qty_single" value="1">
+        <div class="fgrp full" style="margin-top:4px">
+          <button type="button" id="variantToggleBtn" onclick="toggleVariantMode()" class="btn-ghost" style="font-size:10px;padding:4px 10px;border:1px solid var(--border)">+ Variants</button>
+        </div>
+        <div id="variantBuilderSection" style="display:none;grid-column:1/-1;border:1px solid var(--accent3);border-radius:8px;padding:10px;margin-bottom:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:11px;font-weight:600;color:var(--accent3)">Variants <span id="variantCount" style="font-weight:400;color:var(--muted)"></span></span>
+            <button type="button" onclick="presetVariantSizes()" class="btn-ghost" style="font-size:9px;padding:2px 8px;border:1px solid var(--border)">S/M/L/XL</button>
+          </div>
+          <div id="variantList" style="max-height:150px;overflow-y:auto;margin-bottom:8px"></div>
+          <div style="display:flex;gap:6px">
+            <input type="text" id="variantNewLabel" placeholder="e.g. Size XS, Red, etc." style="flex:1;padding:6px 8px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:11px;border-radius:6px" onkeydown="if(event.key==='Enter'){event.preventDefault();addVariantLabel()}">
+            <button type="button" onclick="addVariantLabel()" class="btn-secondary" style="font-size:10px;padding:4px 10px">Add</button>
+          </div>
+        </div>
         <div class="fgrp"><label for="f_cost">Cost ($) *</label><input type="number" id="f_cost" placeholder="0.00" step="0.01" oninput="prevProfit()"></div>
         <div class="fgrp"><label for="f_price">List Price ($) *</label><input type="number" id="f_price" placeholder="0.00" step="0.01" oninput="prevProfit()"></div>
         <div class="fgrp"><label for="f_fees">Fees ($)</label><input type="number" id="f_fees" placeholder="0.00" step="0.01" oninput="prevProfit()"></div>
@@ -1295,8 +1403,8 @@
         <div class="fgrp full" id="f_ebay_fields" style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
           <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:8px;display:block">eBay Listing Details</label>
           <div class="form-grid" style="margin-top:0">
-            <div class="fgrp"><label for="f_brand">Brand</label><input type="text" id="f_brand" placeholder="e.g. Nike, Unbranded" list="brandList"></div>
-            <div class="fgrp"><label for="f_color">Color</label><input type="text" id="f_color" placeholder="e.g. Black, Red/Blue" list="colorList"></div>
+            <div class="fgrp"><label for="f_brand">Brand</label><input type="text" id="f_brand" placeholder="e.g. Nike, Unbranded"></div>
+            <div class="fgrp"><label for="f_color">Color</label><input type="text" id="f_color" placeholder="e.g. Black, Red/Blue"></div>
             <div class="fgrp"><label for="f_size">Size</label><input type="text" id="f_size" placeholder="e.g. Large, 10, 32x30"></div>
             <div class="fgrp"><label for="f_sizeType">Size Type</label>
               <select id="f_sizeType">
@@ -1312,34 +1420,15 @@
                 <option value="Unisex Adults">Unisex Adults</option>
               </select>
             </div>
-            <div class="fgrp"><label for="f_material">Material</label><input type="text" id="f_material" placeholder="e.g. Cotton, Leather" list="materialList"></div>
+            <div class="fgrp"><label for="f_material">Material</label><input type="text" id="f_material" placeholder="e.g. Cotton, Leather"></div>
             <div class="fgrp"><label for="f_mpn">MPN</label><input type="text" id="f_mpn" placeholder="Mfr Part Number"></div>
             <div class="fgrp"><label for="f_model">Model</label><input type="text" id="f_model" placeholder="e.g. Air Max 90"></div>
             <div class="fgrp"><label for="f_style">Style</label><input type="text" id="f_style" placeholder="e.g. Casual, Athletic"></div>
             <div class="fgrp"><label>Type / Pattern</label><input type="text" id="f_pattern" placeholder="e.g. Solid, Striped"></div>
           </div>
-          <datalist id="brandList">
-            <option value="Unbranded"><option value="Nike"><option value="Adidas"><option value="Levi's">
-            <option value="Under Armour"><option value="Champion"><option value="Carhartt"><option value="The North Face">
-            <option value="Patagonia"><option value="Ralph Lauren"><option value="Tommy Hilfiger"><option value="Calvin Klein">
-            <option value="Coach"><option value="Michael Kors"><option value="Gucci"><option value="Louis Vuitton">
-            <option value="Apple"><option value="Samsung"><option value="Sony"><option value="Dell">
-          </datalist>
-          <datalist id="colorList">
-            <option value="Black"><option value="White"><option value="Blue"><option value="Red">
-            <option value="Green"><option value="Gray"><option value="Navy"><option value="Brown">
-            <option value="Pink"><option value="Purple"><option value="Orange"><option value="Yellow">
-            <option value="Beige"><option value="Multicolor">
-          </datalist>
-          <datalist id="materialList">
-            <option value="Cotton"><option value="Polyester"><option value="Leather"><option value="Denim">
-            <option value="Nylon"><option value="Wool"><option value="Silk"><option value="Linen">
-            <option value="Canvas"><option value="Suede"><option value="Rubber"><option value="Metal">
-            <option value="Plastic"><option value="Wood"><option value="Glass"><option value="Ceramic">
-          </datalist>
         </div>
-        <div class="fgrp full"><label>eBay Description <button type="button" class="btn-sm" style="margin-left:8px;font-size:11px;padding:2px 8px" onclick="window.aiGenerateDesc?.('add')" aria-label="Generate eBay description using AI">✨ AI Generate</button></label><textarea id="f_ebay_desc" placeholder="Leave blank to auto-generate with AI when listing on eBay" style="min-height:60px"></textarea></div>
-        <div class="fgrp full"><label>Notes</label><textarea id="f_notes" placeholder="Condition, sourcing, etc."></textarea></div>
+        <div class="fgrp full"><label for="f_ebay_desc">eBay Description</label> <button type="button" class="btn-sm" style="margin-left:8px;font-size:11px;padding:2px 8px" onclick="window.aiGenerateDesc?.('add')" aria-label="Generate eBay description using AI">✨ AI Generate</button><textarea id="f_ebay_desc" placeholder="Leave blank to auto-generate with AI when listing on eBay" maxlength="5000" style="min-height:60px"></textarea></div>
+        <div class="fgrp full"><label>Notes</label><textarea id="f_notes" placeholder="Condition, sourcing, etc." maxlength="5000"></textarea></div>
         <div class="fgrp full" id="f_dim_section">
           <label style="display:flex;align-items:center;justify-content:space-between">
             <span>Package Dimensions</span>
@@ -1374,27 +1463,7 @@
         </div>
         <div class="fgrp full">
           <label>Item Photos <span style="color:var(--muted);font-weight:400;font-size:10px">(up to 3)</span></label>
-          <div id="fImgWrap" class="img-slots">
-            <div class="img-slot" id="fSlot0">
-              <img id="fSlotImg0" src="" alt="Item photo 1" style="display:none" onclick="openLightboxUrl(this.src)" onkeydown="if(event.key==='Enter')openLightboxUrl(this.src)" tabindex="0" role="button">
-              <span class="img-slot-badge" id="fSlotBadge0" style="display:none">MAIN</span>
-              <button type="button" class="img-slot-rm" id="fSlotRm0" style="display:none" onclick="imgSlotRemove(event,'f',0)" aria-label="Remove photo 1">×</button>
-              <div class="img-slot-add" id="fSlotAdd0"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
-              <input type="file" id="fSlotInput0" accept="image/*" class="img-slot-input" onchange="imgSlotChange(event,'f',0)">
-            </div>
-            <div class="img-slot img-slot-locked" id="fSlot1">
-              <img id="fSlotImg1" src="" alt="Item photo 2" style="display:none" onclick="openLightboxUrl(this.src)" onkeydown="if(event.key==='Enter')openLightboxUrl(this.src)" tabindex="0" role="button">
-              <button type="button" class="img-slot-rm" id="fSlotRm1" style="display:none" onclick="imgSlotRemove(event,'f',1)" aria-label="Remove photo 2">×</button>
-              <div class="img-slot-add" id="fSlotAdd1" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
-              <input type="file" id="fSlotInput1" accept="image/*" class="img-slot-input" style="pointer-events:none;opacity:0" onchange="imgSlotChange(event,'f',1)">
-            </div>
-            <div class="img-slot img-slot-locked" id="fSlot2">
-              <img id="fSlotImg2" src="" alt="Item photo 3" style="display:none" onclick="openLightboxUrl(this.src)" onkeydown="if(event.key==='Enter')openLightboxUrl(this.src)" tabindex="0" role="button">
-              <button type="button" class="img-slot-rm" id="fSlotRm2" style="display:none" onclick="imgSlotRemove(event,'f',2)" aria-label="Remove photo 3">×</button>
-              <div class="img-slot-add" id="fSlotAdd2" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
-              <input type="file" id="fSlotInput2" accept="image/*" class="img-slot-input" style="pointer-events:none;opacity:0" onchange="imgSlotChange(event,'f',2)">
-            </div>
-          </div>
+          <div id="fImgWrap" class="img-slots"></div>
         </div>
       </div>
       <div class="profit-prev">
@@ -1408,15 +1477,28 @@
 </div>
 
 <!-- SOLD MODAL -->
-<div class="overlay" id="soldOv" role="dialog" aria-modal="true" aria-label="Record Sale" onclick="if(event.target===this)closeSold()">
+<div class="overlay" id="soldOv" role="dialog" aria-modal="true" aria-label="Record Sale">
   <div class="modal">
-    <div class="modal-hd"><div class="modal-ttl">Record Sale</div><button class="modal-x" onclick="closeSold()" aria-label="Close record sale dialog">×</button></div>
+    <div class="modal-hd">
+      <div class="modal-ttl">Record Sale</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button type="button" id="bundleToggle" onclick="toggleBundleMode()" class="btn-ghost" style="font-size:10px;padding:4px 10px;border:1px solid var(--border)">+ Bundle</button>
+        <button class="modal-x" onclick="closeSold()" aria-label="Close record sale dialog">×</button>
+      </div>
+    </div>
     <div class="modal-bd">
+      <div id="bundleSection" style="display:none;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:600;margin-bottom:6px;color:var(--accent)">Bundle Items <span id="bundleCount" style="color:var(--muted);font-weight:400"></span></div>
+        <input type="text" id="bundleSearch" placeholder="Search items to add..." oninput="filterBundleItems()" style="width:100%;padding:8px 10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:11px;border-radius:6px;margin-bottom:6px;box-sizing:border-box">
+        <div id="bundleItemList" style="max-height:200px;overflow-y:auto;overflow-x:hidden;border:1px solid var(--border);border-radius:6px"></div>
+        <div id="bundleSelected" style="margin-top:6px;font-size:10px;color:var(--muted)"></div>
+      </div>
       <div class="sold-info" id="soldInfo"></div>
       <div class="form-grid">
         <div class="fgrp">
           <label for="s_price">Sold Price ($) *</label>
-          <input type="number" id="s_price" placeholder="0.00" step="0.01" oninput="updateFeeEstimate()">
+          <input type="number" id="s_price" placeholder="0.00" step="0.01" oninput="updateFeeEstimate();if(window._updateBundlePriceHint)_updateBundlePriceHint()">
+          <div id="bundlePriceHint" style="font-size:10px;margin-top:3px;font-family:'DM Mono',monospace;font-weight:600"></div>
         </div>
         <div class="fgrp">
           <label id="s_price_type_label">Price Is</label>
@@ -1442,6 +1524,18 @@
         <div class="fgrp"><label for="s_ship">Shipping Cost ($)</label><input type="number" id="s_ship" placeholder="0.00" step="0.01"></div>
         <div class="fgrp full"><label for="s_date">Date Sold</label><input type="date" id="s_date"></div>
         <div class="fgrp full"><label for="s_buyer">Buyer Name / Handle <span style="color:var(--muted);font-weight:400">(optional)</span></label><input type="text" id="s_buyer" placeholder="e.g. john_resells"></div>
+        <div class="fgrp full"><label for="s_tracking">Tracking Number <span style="color:var(--muted);font-weight:400">(optional)</span></label><input type="text" id="s_tracking" placeholder="e.g. 1Z999AA10123456784" style="font-family:'DM Mono',monospace"></div>
+        <details class="fgrp full" style="border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-top:4px">
+          <summary style="font-size:11px;color:var(--muted);cursor:pointer;user-select:none">Ship-to Address <span style="font-size:10px">(for packing slips)</span></summary>
+          <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px">
+            <input type="text" id="s_address" placeholder="Street address" style="padding:8px 10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;border-radius:6px">
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px">
+              <input type="text" id="s_city" placeholder="City" style="padding:8px 10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;border-radius:6px">
+              <input type="text" id="s_state" placeholder="State" maxlength="2" style="padding:8px 10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;border-radius:6px;text-transform:uppercase">
+              <input type="text" id="s_zip" placeholder="ZIP" maxlength="10" style="padding:8px 10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;border-radius:6px">
+            </div>
+          </div>
+        </details>
       </div>
     </div>
     <div class="modal-ft"><button class="btn-secondary" onclick="closeSold()">Cancel</button><button class="btn-primary" id="recSaleBtn" onclick="recSale()">Record Sale</button></div>
@@ -1468,7 +1562,6 @@
           <button class="btn-secondary" style="font-size:11px" onclick="cropSetAspect(16,9)">16:9</button>
           <span style="width:1px;height:20px;background:var(--border);margin:0 2px"></span>
           <button class="btn-secondary" style="font-size:11px;color:var(--good)" onclick="cropWhiteBg()" title="Place on white square background">⬜ White BG</button>
-          <button class="btn-secondary" style="font-size:11px;color:var(--accent)" onclick="cropRemoveBg()" title="Remove background from product photo">🔲 Remove BG</button>
           <button class="btn-secondary" style="font-size:11px" onclick="cropAutoEnhance()" title="Auto-adjust brightness & contrast">✨ Enhance</button>
           <button class="btn-secondary" style="font-size:11px" onclick="cropRotate()" title="Rotate 90° clockwise">↻ Rotate</button>
         </div>
@@ -1506,6 +1599,56 @@
 
 <div class="toast" id="toast" role="status" aria-live="assertive" aria-atomic="true"></div>
 
+<!-- CONFIRM MODAL (replaces window.confirm for PWA compatibility) -->
+<div class="modal-ov" id="confirmOv" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:24px">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px 24px;max-width:380px;width:100%;text-align:center">
+    <h3 id="confirmTitle" style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:8px"></h3>
+    <p id="confirmMsg" style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:20px"></p>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button id="confirmCancel" class="btn btn-ghost" style="padding:10px 20px;font-size:13px">Cancel</button>
+      <button id="confirmOk" class="btn btn-primary" style="padding:10px 20px;font-size:13px">Confirm</button>
+    </div>
+  </div>
+</div>
+<!-- PROMPT MODAL (replaces window.prompt for PWA compatibility) -->
+<div class="modal-ov" id="promptOv" role="dialog" aria-modal="true" aria-labelledby="promptTitle" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:24px">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px 24px;max-width:380px;width:100%;text-align:center">
+    <h3 id="promptTitle" style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:8px"></h3>
+    <p id="promptMsg" style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:12px"></p>
+    <input id="promptInput" type="text" style="width:100%;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;margin-bottom:16px;box-sizing:border-box" />
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button id="promptCancel" class="btn btn-ghost" style="padding:10px 20px;font-size:13px">Cancel</button>
+      <button id="promptOk" class="btn btn-primary" style="padding:10px 20px;font-size:13px">OK</button>
+    </div>
+  </div>
+</div>
+<!-- ETSY LISTING SETTINGS MODAL -->
+<div class="modal-ov" id="etsyListOv" role="dialog" aria-modal="true" aria-labelledby="etsyListTitle" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:24px">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px 24px;max-width:440px;width:100%">
+    <h3 id="etsyListTitle" style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:4px">Push to Etsy</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:16px">Select a category and shipping profile so the listing goes live (not as a draft).</p>
+    <div style="margin-bottom:12px">
+      <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px">Etsy Category *</label>
+      <select id="etsyTaxonomySelect" style="width:100%;padding:9px 12px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;border-radius:6px;box-sizing:border-box">
+        <option value="">Loading categories...</option>
+      </select>
+    </div>
+    <div style="margin-bottom:16px">
+      <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px">Shipping Profile *</label>
+      <select id="etsyShipProfileSelect" style="width:100%;padding:9px 12px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;border-radius:6px;box-sizing:border-box">
+        <option value="">Loading profiles...</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button id="etsyListCancel" class="btn btn-ghost" style="padding:10px 20px;font-size:13px">Cancel</button>
+      <button id="etsyListOk" class="btn btn-primary" style="padding:10px 20px;font-size:13px">Push to Etsy</button>
+    </div>
+  </div>
+</div>
+<style>
+  #confirmOv.on, #promptOv.on, #etsyListOv.on { display:flex !important; }
+</style>
+
 <!-- BATCH SCAN OVERLAY -->
 <div class="batch-overlay" id="batchOv" role="dialog" aria-modal="true" aria-label="Batch Scan">
   <div class="batch-topbar">
@@ -1522,7 +1665,7 @@
     </div>
     <div class="batch-source-bar">
       <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;white-space:nowrap">Source:</span>
-      <input type="text" id="batchSource" placeholder="e.g. Goodwill, Garage Sale" list="sourceList">
+      <input type="text" id="batchSource" placeholder="e.g. Goodwill, Garage Sale">
     </div>
     <div class="batch-list" id="batchList">
       <div class="batch-empty" id="batchEmpty">Scan barcodes to add items here<br>or tap + Manual to type them in</div>
@@ -1585,6 +1728,11 @@
     <svg viewBox="0 0 24 24"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
     Batch Scan
   </button>
+  <button class="bnav-more-item" id="bn-more-profit"
+    onclick="switchView('profit',null);bnav('bn-more-profit');closeBnavMore()">
+    <svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+    Profit Dashboard
+  </button>
   <button class="bnav-more-item" id="bn-more-expenses" onclick="switchView('expenses',document.querySelectorAll('.nav-tab')[4]);bnav('bn-more-expenses');closeBnavMore()">
     <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
     Expenses
@@ -1637,6 +1785,9 @@
     <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
     Import from CSV
   </button>
+  <button class="bnav-more-item unlimited-gate" onclick="openVoiceAdd();closeBnavMore()">
+    <span class="bnav-more-icon">🎤</span> Voice Add
+  </button>
   <button class="bnav-more-item" onclick="toggleTheme();closeBnavMore()">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
     <span id="mobileThemeLabel">Light Mode</span>
@@ -1658,7 +1809,7 @@
     <span class="bnav-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
     <span class="bnav-lbl">Sales</span>
   </button>
-  <button class="bnav-btn" id="bn-more" onclick="toggleBnavMore(event)">
+  <button class="bnav-btn" id="bn-more" onclick="toggleBnavMore(event)" aria-haspopup="menu" aria-expanded="false">
     <span class="bnav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></span>
     <span class="bnav-lbl">More</span>
   </button>
@@ -1694,8 +1845,9 @@
       </div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:20px">Works offline · Dark &amp; light themes · Dyslexia-friendly fonts · Barcode scanner</div>
     </div>
-    <div class="modal-ft" style="justify-content:center;padding-bottom:24px">
-      <button class="btn-primary" onclick="dismissWelcome()" style="min-width:180px;font-size:14px;padding:12px 24px">Get Started</button>
+    <div class="modal-ft" style="justify-content:center;padding-bottom:24px;flex-direction:column;align-items:center;gap:10px">
+      <button class="btn-primary" onclick="dismissWelcome();openAddModal()" style="min-width:220px;font-size:14px;padding:12px 24px">+ Add Your First Item</button>
+      <button class="btn-ghost" onclick="dismissWelcome()" style="font-size:12px;padding:8px 16px">Just explore for now</button>
     </div>
   </div>
 </div>
@@ -1763,7 +1915,7 @@
   <div style="background:var(--surface);border-radius:12px;padding:20px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <h3 style="margin:0;font-size:15px">Log a Return</h3>
-      <button onclick="closeReturnModal()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted)">✕</button>
+      <button onclick="closeReturnModal()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted)" aria-label="Close return dialog">✕</button>
     </div>
     <div id="returnBody"></div>
   </div>
@@ -1846,6 +1998,47 @@
     <kbd class="gs-kbd">Esc</kbd>
   </div>
   <div id="globalSearchResults" class="gs-results"></div>
-</div>
+</div>
+<!-- Voice Add Overlay -->
+<div class="id-overlay" id="voiceOv" role="dialog" aria-modal="true" aria-label="Voice Add">
+  <div class="id-topbar">
+    <div class="id-title">🎤 Voice <span>Add</span></div>
+    <button class="id-close" onclick="closeVoiceAdd()" aria-label="Close voice add">✕</button>
+  </div>
+  <div class="id-body" style="padding:16px">
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="width:64px;height:64px;border-radius:50%;background:rgba(239,83,80,0.15);border:2px solid var(--danger);display:inline-flex;align-items:center;justify-content:center;font-size:28px;animation:pulse 1.5s infinite">🎤</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:8px">Listening… Say item name + price</div>
+      <div id="voiceInterim" style="font-size:13px;color:var(--accent);min-height:20px;margin-top:4px;font-family:'DM Mono',monospace"></div>
+    </div>
+    <div id="voiceItemList" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;margin-bottom:12px"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-primary" onclick="voiceAddAll()" style="flex:1">Add to Inventory</button>
+      <button class="btn-secondary" onclick="closeVoiceAdd()" style="flex:1">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Gallery Builder Modal -->
+<div class="id-overlay" id="galleryOv" role="dialog" aria-modal="true" aria-label="Social Gallery">
+  <div class="id-topbar">
+    <div class="id-title">📸 Social <span>Gallery</span></div>
+    <button class="id-close" onclick="closeGalleryBuilder()" aria-label="Close gallery builder">✕</button>
+  </div>
+  <div class="id-body" style="padding:16px">
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <button class="btn-secondary" onclick="setGalleryLayout('2x2')" style="font-size:11px;padding:5px 10px">2x2 Grid</button>
+      <button class="btn-secondary" onclick="setGalleryLayout('3x3')" style="font-size:11px;padding:5px 10px">3x3 Grid</button>
+      <button class="btn-secondary" onclick="setGalleryLayout('hero')" style="font-size:11px;padding:5px 10px">Hero</button>
+      <button class="btn-secondary" onclick="setGalleryLayout('stories')" style="font-size:11px;padding:5px 10px">Stories</button>
+    </div>
+    <div id="galleryPreview" style="margin-bottom:12px"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-primary" onclick="downloadCollage()" style="flex:1">Download PNG</button>
+      <button class="btn-secondary" onclick="copyCollage()" style="flex:1">Copy to Clipboard</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

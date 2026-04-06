@@ -130,20 +130,22 @@ export function dupItem(id) {
   const skuDate = localDate().replace(/-/g,'');
   const skuCat = ((src.category||'GEN').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4)).padEnd(3,'X');
   const skuRand = Array.from(crypto.getRandomValues(new Uint8Array(3)),b=>b.toString(36)).join('').slice(0,3).toUpperCase();
+  const srcPlats = src.platforms || [];
   const clone = {
     ...JSON.parse(JSON.stringify(src)),
     id: newId,
     sku: skuCat + '-' + skuDate + '-' + skuRand,
     added: new Date().toISOString(),
-    // Clean slate — no platforms, no statuses, no listing IDs
-    platforms: [],
-    platformStatus: {},
+    // Keep source platforms but reset statuses to draft (not yet listed anywhere)
+    platforms: [...srcPlats],
+    platformStatus: Object.fromEntries(srcPlats.map(p => [p, 'draft'])),
     platformListingDates: {},
     platformListingExpiry: {},
     itemHistory: [],
     priceHistory: [],
     _comps: null,
   };
+  // Clear marketplace IDs — this is a new item, not linked to any existing listing
   delete clone.ebayItemId;
   delete clone.ebayListingId;
   delete clone.etsyListingId;
@@ -151,6 +153,14 @@ export function dupItem(id) {
   markDirty('inv', clone.id);
   save(); refresh(); _sfx.create();
   toast('Duplicated: ' + clone.name + ' \u2713');
+
+  // Auto-list to eBay if source had eBay and user is connected
+  if (srcPlats.includes('eBay') && isEBayConnected()) {
+    _autoListEBay(newId).catch(e => {
+      console.warn('[eBay] Auto-list duplicate failed:', e.message);
+      toast('eBay auto-list failed \u2014 try manually from Crosslist', true);
+    });
+  }
 }
 
 export function addFormTab(tab, btn) {

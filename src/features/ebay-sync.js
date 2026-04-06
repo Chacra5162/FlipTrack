@@ -1057,9 +1057,12 @@ export async function updateEBayListing(itemId) {
       const offerId = offer.offerId;
       const currentPrice = item.price || 0;
 
-      // Update the offer with current price and quantity
+      // eBay PUT /offer requires a FULL offer body — merge updated fields into existing
       if (currentPrice > 0) {
+        // Strip read-only fields eBay returns but rejects on update
+        const { sku: _s, marketplaceId: _m, offerId: _oid, status: _st, listing: _l, ...offerBase } = offer;
         const offerUpdate = {
+          ...offerBase,
           pricingSummary: {
             price: {
               value: currentPrice.toFixed(2),
@@ -1068,13 +1071,6 @@ export async function updateEBayListing(itemId) {
           },
           availableQuantity: item.qty || 1,
         };
-
-        // Preserve existing offer fields that eBay requires
-        if (offer.categoryId) offerUpdate.categoryId = offer.categoryId;
-        if (offer.listingPolicies) offerUpdate.listingPolicies = offer.listingPolicies;
-        if (offer.merchantLocationKey) offerUpdate.merchantLocationKey = offer.merchantLocationKey;
-        if (offer.format) offerUpdate.format = offer.format;
-        if (offer.listingDuration) offerUpdate.listingDuration = offer.listingDuration;
 
         console.log('[eBay] Updating offer price to $' + currentPrice.toFixed(2));
         await ebayAPI('PUT', `${INVENTORY_API}/offer/${offerId}`, offerUpdate);
@@ -1087,8 +1083,9 @@ export async function updateEBayListing(itemId) {
       console.log('[eBay] No offer found — inventory item updated but listing may need manual publish');
     }
   } catch (pubErr) {
-    // Publish can fail if listing is already up-to-date or other reasons
-    console.warn('[eBay] Re-publish note:', pubErr.message);
+    console.warn('[eBay] Offer update/re-publish failed:', pubErr.message);
+    logItemEvent(itemId, 'ebay-update', `eBay offer update failed: ${pubErr.message}`);
+    throw new Error(`eBay listing update failed: ${pubErr.message}`);
   }
 
   logItemEvent(itemId, 'ebay-update', 'eBay listing updated with latest details');
