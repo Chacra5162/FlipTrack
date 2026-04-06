@@ -277,12 +277,13 @@ export async function pullEBayListings() {
       console.warn('[eBay] GetMyeBaySelling failed:', e.message);
     }
 
-    // ── FALLBACK 1: Offer API scan (if Trading API failed) ──────────
-    // GET /offer without SKU returns ALL offers — works for API-managed listings
-    if (!tradingWorked) {
+    // ── SUPPLEMENT / FALLBACK: Offer API scan ─────────────────────────
+    // Always run: enriches items with listingId, price, and format that
+    // the Trading API may not provide (or fills everything if Trading failed)
+    {
       try {
-        toast('Scanning eBay offers…');
-        console.log('[eBay] Trying Offer API scan (no SKU filter)…');
+        if (!tradingWorked) toast('Scanning eBay offers…');
+        console.log('[eBay] Running Offer API scan…');
         let offerOffset = 0;
         let offerHasMore = true;
 
@@ -294,16 +295,28 @@ export async function pullEBayListings() {
           console.log(`[eBay] Offer API page: ${offers.length} offers at offset ${offerOffset}`);
           if (offers.length < 200) offerHasMore = false;
           if (offers.length === 0 && offerOffset === 0) break;
+          // Log first offer shape for debugging
+          if (offerOffset === 0 && offers.length > 0) {
+            const sample = offers[0];
+            console.log('[eBay] Offer sample:', JSON.stringify({
+              sku: sample.sku, status: sample.status, format: sample.format,
+              listingId: sample.listing?.listingId || sample.listingId,
+              price: sample.pricingSummary?.price?.value,
+              offerId: sample.offerId,
+              keys: Object.keys(sample),
+            }));
+          }
 
           for (const offer of offers) {
             const sku = offer.sku || '';
-            const lid = offer.listing?.listingId || '';
+            const lid = offer.listing?.listingId || offer.listingId || '';
             const status = offer.status;
-            const format = offer.format || 'FIXED_PRICE';
+            const format = offer.format || offer.listingPolicies?.listingFormat || 'FIXED_PRICE';
             const isAuction = format === 'AUCTION';
             const price = parseFloat(
               offer.pricingSummary?.price?.value
-              || offer.pricingSummary?.auctionStartPrice?.value || '0'
+              || offer.pricingSummary?.auctionStartPrice?.value
+              || offer.pricingSummary?.minimumAdvertisedPrice?.value || '0'
             );
 
             if (lid) seenListingIds.add(lid);
@@ -392,8 +405,10 @@ export async function pullEBayListings() {
       }
     }
 
-    // ── FALLBACK 2: Browse API seller search ──────────────────────────
-    if (!tradingWorked) {
+    // ── SUPPLEMENT 2: Browse API seller search ─────────────────────────
+    // Run if Trading API failed OR if there are items still missing ebayListingId
+    const hasMissingListingIds = inv.some(i => i.platforms?.includes('eBay') && !i.ebayListingId);
+    if (!tradingWorked || hasMissingListingIds) {
       try {
         const username = getEBayUsername();
         console.log('[eBay] Browse API: username =', username || '(none)');
@@ -424,7 +439,9 @@ export async function pullEBayListings() {
                 const imageUrl = summary.image?.imageUrl || '';
                 const isAuction = (summary.buyingOptions || []).includes('AUCTION');
 
-                let local = byListingId.get(legacyId);
+                let local = byListingId.get(legacyId)
+                  || byEbayId.get(`ebay-${legacyId}`)
+                  || null;
                 if (local) {
                   matched++;
                   let changed = false;
@@ -436,6 +453,17 @@ export async function pullEBayListings() {
                   if (!local.platformStatus) local.platformStatus = {};
                   if (local.platformStatus.eBay !== 'active') {
                     markPlatformStatus(local.id, 'eBay', 'active'); changed = true;
+                  }
+                  // Enrich missing data from Browse API
+                  const fmt = isAuction ? 'AUCTION' : 'FIXED_PRICE';
+                  if (local.ebayListingFormat !== fmt) { local.ebayListingFormat = fmt; changed = true; }
+                  if ((!local.price || local.price <= 0) && price > 0) { local.price = price; changed = true; }
+                  if (title && (!local.name || local.name === 'eBay Import')) { local.name = title; changed = true; }
+                  if (imageUrl && (!local.images || !local.images.length)) {
+                    local.images = [imageUrl]; local.image = imageUrl; changed = true;
+                  }
+                  if (!local.url || !local.url.includes(legacyId)) {
+                    local.url = `https://www.ebay.com/itm/${legacyId}`; changed = true;
                   }
                   if (changed) { markDirty('inv', local.id); updated++; }
                 } else if (!_isDismissed(legacyId)) {
@@ -554,10 +582,10 @@ export async function pullEBayListings() {
           const local = bySku.get(sku) || byEbayId.get(sku);
           if (!local) continue;
           let changed = false;
-          const lid = offer.listing?.listingId;
+          const lid = offer.listing?.listingId || offer.listingId || '';
           if (lid && local.ebayListingId !== lid) { local.ebayListingId = lid; changed = true; }
           if (lid) seenListingIds.add(lid);
-          const fmt = offer.format === 'AUCTION' ? 'AUCTION' : 'FIXED_PRICE';
+          const fmt = (offer.format || offer.listingPolicies?.listingFormat || 'FIXED_PRICE') === 'AUCTION' ? 'AUCTION' : 'FIXED_PRICE';
           if (local.ebayListingFormat !== fmt) { local.ebayListingFormat = fmt; changed = true; }
           if (!local.url && lid) { local.url = `https://www.ebay.com/itm/${lid}`; changed = true; }
           // Grab price from offer if item has none
