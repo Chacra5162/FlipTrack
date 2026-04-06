@@ -289,6 +289,8 @@ export function checkExpiredListings() {
   const expired = getExpiredListings(inv);
   let count = 0;
   for (const { item, platform } of expired) {
+    // Skip eBay — its lifecycle is managed by ebay-sync, not expiry rules
+    if (platform === 'eBay') continue;
     if (!item.platformStatus) item.platformStatus = {};
     if (item.platformStatus[platform] !== 'expired') {
       item.platformStatus[platform] = 'expired';
@@ -364,8 +366,11 @@ export function initListingDates() {
         const fallback = item.added ? localDate(new Date(item.added))
                                     : localDate();
         item.platformListingDates[p] = fallback;
-        const expiry = determinePlatformExpiry(p, fallback);
-        if (expiry) item.platformListingExpiry[p] = expiry;
+        // Skip eBay expiry — GTC listings auto-renew; eBay sync manages status
+        if (p !== 'eBay') {
+          const expiry = determinePlatformExpiry(p, fallback);
+          if (expiry) item.platformListingExpiry[p] = expiry;
+        }
         patched++;
       }
       // Ensure status exists — but skip API-managed platforms (eBay, Etsy)
