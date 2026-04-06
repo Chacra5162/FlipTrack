@@ -78,7 +78,7 @@ export function startEBaySyncInterval() {
   if (_returnCheckInterval) clearInterval(_returnCheckInterval);
   _syncInterval = setInterval(() => {
     if (isEBayConnected() && !_syncing) {
-      pullEBayListings().catch(e => { console.warn('eBay sync error:', e.message); toast('eBay sync failed — will retry', true); });
+      pullEBayListings().catch(e => console.warn('eBay sync error:', e.message));
     }
   }, 300000); // 5 minutes
   // Return/cancel check — less frequent, broader window
@@ -105,9 +105,10 @@ export function stopEBaySyncInterval() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Pull all active eBay inventory items and sync status to local inventory.
- * Matches by SKU (primary) or eBay item ID (secondary).
- * @returns {{ matched: number, unmatched: number, updated: number }}
+ * Pull all active eBay listings and sync status to local inventory.
+ * Uses Trading API GetMyeBaySelling as primary source (catches ALL listings),
+ * with Inventory API as secondary for product details.
+ * @returns {{ matched: number, imported: number, updated: number }}
  */
 export async function pullEBayListings() {
   if (!isEBayConnected()) throw new Error('eBay not connected');
@@ -115,103 +116,269 @@ export async function pullEBayListings() {
   _syncing = true;
 
   try {
-    let matched = 0, unmatched = 0, updated = 0;
-    let offset = 0;
-    const limit = 100;
-    let hasMore = true;
-    const seenSkus = new Set(); // Track SKUs found on eBay for reconciliation
+    toast('Syncing eBay listings…');
+    let matched = 0, imported = 0, updated = 0;
+    const seenListingIds = new Set(); // Track eBay listing IDs for reconciliation
 
-    // Build O(1) lookup maps to avoid O(n²) inv.find() inside the loop
+    // Build O(1) lookup maps
     const bySku = new Map();
     const byEbayId = new Map();
+    const byListingId = new Map();
     for (const item of inv) {
       if (item.sku) bySku.set(item.sku, item);
       if (item.ebayItemId) byEbayId.set(item.ebayItemId, item);
+      if (item.ebayListingId) byListingId.set(item.ebayListingId, item);
     }
 
-    while (hasMore) {
-      const resp = await ebayAPI('GET',
-        `${INVENTORY_API}/inventory_item?limit=${limit}&offset=${offset}`
-      );
+    // ── PRIMARY: Trading API GetMyeBaySelling ──────────────────────────
+    // This returns ALL active listings regardless of how they were created
+    let tradingWorked = false;
+    try {
+      let pageNum = 1;
+      let totalPages = 1;
 
-      const items = resp.inventoryItems || [];
-      if (items.length < limit) hasMore = false;
+      while (pageNum <= totalPages) {
+        const resp = await ebayAPI('POST', TRADING_API, {
+          _tradingCall: 'GetMyeBaySelling',
+          ActiveList: {
+            Include: true,
+            Pagination: { EntriesPerPage: 200, PageNumber: pageNum },
+          },
+          DetailLevel: 'ReturnAll',
+        });
 
-      for (const ebayItem of items) {
-        const sku = ebayItem.sku;
-        seenSkus.add(sku);
-        // O(1) match by SKU first, then by stored eBay item ID
-        let local = bySku.get(sku) || byEbayId.get(sku);
+        const activeList = resp?.ActiveList || resp?.GetMyeBaySellingResponse?.ActiveList;
+        if (!activeList) break;
 
-        if (local) {
-          matched++;
-          let changed = false;
+        totalPages = parseInt(activeList?.PaginationResult?.TotalNumberOfPages || '1', 10);
+        const items = activeList?.ItemArray?.Item || [];
+        // Handle single-item response (XML→JSON can collapse array to object)
+        const itemArr = Array.isArray(items) ? items : (items.ItemID ? [items] : []);
 
-          // Store eBay SKU reference
-          if (!local.ebayItemId || local.ebayItemId !== sku) {
-            local.ebayItemId = sku;
-            changed = true;
-          }
+        for (const ebayItem of itemArr) {
+          const listingId = String(ebayItem.ItemID || '');
+          const sku = ebayItem.SKU || '';
+          const title = ebayItem.Title || '';
+          const price = parseFloat(
+            ebayItem.SellingStatus?.CurrentPrice?.Value
+            || ebayItem.SellingStatus?.CurrentPrice
+            || ebayItem.BuyItNowPrice?.Value
+            || ebayItem.StartPrice?.Value
+            || '0'
+          );
+          const qty = parseInt(ebayItem.Quantity || '1', 10)
+            - parseInt(ebayItem.SellingStatus?.QuantitySold || '0', 10);
+          const listingType = ebayItem.ListingType || 'FixedPriceItem'; // Chinese = auction
+          const isAuction = listingType === 'Chinese';
+          const imageUrl = ebayItem.PictureDetails?.PictureURL;
+          const images = Array.isArray(imageUrl) ? imageUrl : (imageUrl ? [imageUrl] : []);
 
-          // Update eBay availability status
-          const avail = ebayItem.availability?.shipToLocationAvailability;
-          if (avail) {
-            const ebayQty = avail.quantity || 0;
-            if (ebayQty === 0 && local.platformStatus?.eBay === 'active') {
-              markPlatformStatus(local.id, 'eBay', 'sold');
-              logItemEvent(local.id, 'ebay-sync', 'eBay sync: quantity reached 0 — marked sold');
+          if (listingId) seenListingIds.add(listingId);
+
+          // Match to local item by listingId, SKU, or ebayItemId
+          let local = byListingId.get(listingId)
+            || (sku && (bySku.get(sku) || byEbayId.get(sku)))
+            || null;
+
+          if (local) {
+            matched++;
+            let changed = false;
+
+            // Store eBay references
+            if (local.ebayListingId !== listingId) { local.ebayListingId = listingId; changed = true; }
+            if (sku && local.ebayItemId !== sku) { local.ebayItemId = sku; changed = true; }
+            if (!local.url || !local.url.includes(listingId)) {
+              local.url = `https://www.ebay.com/itm/${listingId}`;
               changed = true;
-            } else if (ebayQty > 0 && local.platformStatus?.eBay !== 'active') {
-              // Mark as active when eBay has stock (handles items listed outside FlipTrack)
+            }
+
+            // Sync listing format
+            const fmt = isAuction ? 'AUCTION' : 'FIXED_PRICE';
+            if (local.ebayListingFormat !== fmt) { local.ebayListingFormat = fmt; changed = true; }
+
+            // Ensure eBay is in platforms and marked active
+            if (!local.platforms) local.platforms = [];
+            if (!local.platforms.includes('eBay')) { local.platforms.push('eBay'); changed = true; }
+            if (!local.platformStatus) local.platformStatus = {};
+            if (local.platformStatus.eBay !== 'active') {
               markPlatformStatus(local.id, 'eBay', 'active');
-              logItemEvent(local.id, 'ebay-sync', 'eBay sync: listing detected as active');
               changed = true;
             }
-          }
 
-          // Sync product details if local is missing them
-          const product = ebayItem.product;
-          if (product) {
-            if (!local.name && product.title) { local.name = product.title; changed = true; }
-            if (!local.upc && product.upc?.length) { local.upc = product.upc[0]; changed = true; }
-            if (product.imageUrls?.length && (!local.images || !local.images.length)) {
-              local.images = product.imageUrls;
-              local.image = product.imageUrls[0];
-              changed = true;
+            // Sync product details if local is missing them
+            if (!local.name && title) { local.name = title; changed = true; }
+            if (images.length && (!local.images || !local.images.length)) {
+              local.images = images; local.image = images[0]; changed = true;
             }
-          }
 
-          if (changed) {
-            markDirty('inv', local.id);
-            updated++;
+            if (changed) { markDirty('inv', local.id); updated++; }
+          } else {
+            // Import as new FlipTrack item
+            const newId = uid();
+            const newItem = {
+              id: newId,
+              name: title || 'eBay Import',
+              sku: sku || '',
+              price: price || 0,
+              qty: Math.max(qty, 1),
+              cost: 0,
+              condition: 'good',
+              category: '',
+              platforms: ['eBay'],
+              platformStatus: { eBay: 'active' },
+              platformListingDates: { eBay: localDate() },
+              platformListingExpiry: {},
+              ebayItemId: sku || `ebay-${listingId}`,
+              ebayListingId: listingId,
+              ebayListingFormat: isAuction ? 'AUCTION' : 'FIXED_PRICE',
+              url: `https://www.ebay.com/itm/${listingId}`,
+              images: images,
+              image: images[0] || '',
+              notes: '',
+              tags: [],
+              dateAdded: new Date().toISOString(),
+              _notifiedOfferIds: [],
+            };
+            inv.push(newItem);
+            markDirty('inv', newId);
+            // Update lookup maps for subsequent matches
+            if (sku) bySku.set(sku, newItem);
+            byEbayId.set(newItem.ebayItemId, newItem);
+            byListingId.set(listingId, newItem);
+            imported++;
+            logItemEvent(newId, 'ebay-import', `Imported from eBay: "${title}" (#${listingId})`);
           }
-        } else {
-          unmatched++;
+        }
+
+        pageNum++;
+      }
+
+      tradingWorked = true;
+      console.log(`[eBay] Trading API: matched=${matched}, imported=${imported}, updated=${updated}`);
+    } catch (e) {
+      console.warn('[eBay] GetMyeBaySelling failed:', e.message, '— falling back to Inventory API');
+      toast('eBay Trading API unavailable — using Inventory API', true);
+    }
+
+    // ── FALLBACK: Inventory API (only if Trading API failed) ───────────
+    if (!tradingWorked) {
+      let offset = 0;
+      const limit = 100;
+      let hasMore = true;
+
+      while (hasMore) {
+        const resp = await ebayAPI('GET',
+          `${INVENTORY_API}/inventory_item?limit=${limit}&offset=${offset}`
+        );
+        const items = resp.inventoryItems || [];
+        if (items.length < limit) hasMore = false;
+
+        for (const ebayItem of items) {
+          const sku = ebayItem.sku;
+          let local = bySku.get(sku) || byEbayId.get(sku);
+
+          if (local) {
+            matched++;
+            let changed = false;
+            if (!local.ebayItemId || local.ebayItemId !== sku) { local.ebayItemId = sku; changed = true; }
+
+            const avail = ebayItem.availability?.shipToLocationAvailability;
+            if (avail) {
+              const ebayQty = avail.quantity || 0;
+              if (ebayQty === 0 && local.platformStatus?.eBay === 'active') {
+                markPlatformStatus(local.id, 'eBay', 'sold');
+                changed = true;
+              } else if (ebayQty > 0 && local.platformStatus?.eBay !== 'active') {
+                markPlatformStatus(local.id, 'eBay', 'active');
+                changed = true;
+              }
+            }
+
+            const product = ebayItem.product;
+            if (product) {
+              if (!local.name && product.title) { local.name = product.title; changed = true; }
+              if (product.imageUrls?.length && (!local.images || !local.images.length)) {
+                local.images = product.imageUrls; local.image = product.imageUrls[0]; changed = true;
+              }
+            }
+
+            if (changed) { markDirty('inv', local.id); updated++; }
+          } else {
+            // Import unmatched Inventory API items
+            const product = ebayItem.product || {};
+            const newId = uid();
+            const newItem = {
+              id: newId,
+              name: product.title || sku || 'eBay Import',
+              sku: sku,
+              price: 0,
+              qty: ebayItem.availability?.shipToLocationAvailability?.quantity || 1,
+              cost: 0,
+              condition: 'good',
+              category: '',
+              platforms: ['eBay'],
+              platformStatus: { eBay: 'active' },
+              platformListingDates: { eBay: localDate() },
+              platformListingExpiry: {},
+              ebayItemId: sku,
+              ebayListingId: '',
+              images: product.imageUrls || [],
+              image: product.imageUrls?.[0] || '',
+              notes: '',
+              tags: [],
+              dateAdded: new Date().toISOString(),
+              _notifiedOfferIds: [],
+            };
+            inv.push(newItem);
+            markDirty('inv', newId);
+            bySku.set(sku, newItem);
+            byEbayId.set(sku, newItem);
+            imported++;
+            logItemEvent(newId, 'ebay-import', `Imported from eBay inventory (SKU: ${sku})`);
+          }
+        }
+        offset += limit;
+      }
+
+      // Also scan offers to pick up listing IDs and formats
+      try {
+        const offerResp = await ebayAPI('GET', `${INVENTORY_API}/offer?limit=200`);
+        for (const offer of (offerResp?.offers || [])) {
+          const sku = offer.sku;
+          const local = bySku.get(sku) || byEbayId.get(sku);
+          if (!local) continue;
+          let changed = false;
+          const lid = offer.listing?.listingId;
+          if (lid && local.ebayListingId !== lid) { local.ebayListingId = lid; changed = true; }
+          if (lid) seenListingIds.add(lid);
+          const fmt = offer.format === 'AUCTION' ? 'AUCTION' : 'FIXED_PRICE';
+          if (local.ebayListingFormat !== fmt) { local.ebayListingFormat = fmt; changed = true; }
+          if (!local.url && lid) { local.url = `https://www.ebay.com/itm/${lid}`; changed = true; }
+          if (changed) { markDirty('inv', local.id); updated++; }
+        }
+      } catch (e) {
+        console.warn('[eBay] Offer scan failed:', e.message);
+      }
+    }
+
+    // ── RECONCILE: Mark items removed if no longer on eBay ────────────
+    // Only reconcile if we actually found listings (prevents false mass-removal)
+    if (seenListingIds.size > 0) {
+      const activeEbayItems = inv.filter(i =>
+        i.ebayListingId && i.platformStatus?.eBay === 'active'
+      );
+      for (const item of activeEbayItems) {
+        if (!seenListingIds.has(item.ebayListingId)) {
+          console.warn(`[eBay] Listing removed: "${item.name}" (#${item.ebayListingId})`);
+          markPlatformStatus(item.id, 'eBay', 'removed');
+          logItemEvent(item.id, 'ebay-sync', 'eBay removed this listing — check Seller Hub');
+          markDirty('inv', item.id);
+          updated++;
+          const label = item.name || item.sku || 'Item';
+          addNotification('warning', 'eBay Removed Listing', `"${label}" was removed by eBay.`, item.id);
         }
       }
-
-      offset += limit;
     }
-
-    // Reconcile: mark local items as ended if they were active but no longer on eBay
-    const activeEbayItems = inv.filter(i =>
-      i.ebayItemId && i.platformStatus?.eBay === 'active'
-    );
-    for (const item of activeEbayItems) {
-      if (!seenSkus.has(item.ebayItemId)) {
-        console.warn(`[eBay] Listing removed by eBay: "${item.name}" (SKU: ${item.ebayItemId})`);
-        markPlatformStatus(item.id, 'eBay', 'removed');
-        logItemEvent(item.id, 'ebay-sync', 'eBay removed this listing — check eBay Seller Hub for details');
-        markDirty('inv', item.id);
-        updated++;
-        const label = item.name || item.sku || 'Item';
-        toast(`⚠ eBay removed: ${label}`, true);
-        addNotification('warning', 'eBay Removed Listing', `"${label}" was removed by eBay. Check Seller Hub for the reason.`, item.id);
-      }
-    }
-
-    // FlipTrack is the source of truth for prices — push outward only.
-    // Price pull from eBay removed; local edits & repricing rules push to eBay.
 
     // Check recent orders for sold items
     await _syncEBayOrders();
@@ -223,9 +390,23 @@ export async function pullEBayListings() {
     _lastSyncTime = new Date().toISOString();
     await setMeta('ebay_last_sync', _lastSyncTime);
 
-    if (updated > 0) { save(); refresh(); }
+    if (updated > 0 || imported > 0) { save(); refresh(); }
 
-    return { matched, unmatched, updated };
+    // User feedback
+    if (imported > 0) {
+      toast(`eBay sync: ${imported} listing${imported > 1 ? 's' : ''} imported, ${matched} matched`);
+    } else if (updated > 0) {
+      toast(`eBay sync: ${updated} item${updated > 1 ? 's' : ''} updated`);
+    } else if (matched > 0) {
+      toast(`eBay sync complete — ${matched} listing${matched > 1 ? 's' : ''} in sync`);
+    } else {
+      toast('eBay sync complete — no active listings found');
+    }
+
+    return { matched, imported, updated };
+  } catch (e) {
+    toast(`eBay sync failed: ${e.message}`, true);
+    throw e;
   } finally {
     _syncing = false;
   }
@@ -700,7 +881,8 @@ async function _syncEBayOffers() {
 
 /**
  * Check for ended auctions and notify the user.
- * Compares local auction items against eBay's active listings.
+ * Uses Trading API GetItem to check individual auction status.
+ * Only runs for auctions that pullEBayListings didn't already handle.
  */
 async function _syncEBayAuctions() {
   const auctionItems = inv.filter(i =>
@@ -713,36 +895,41 @@ async function _syncEBayAuctions() {
   let updated = 0;
   for (const item of auctionItems) {
     try {
-      // Check if the listing still has an active offer on eBay
-      const resp = await ebayAPI('GET',
-        `${INVENTORY_API}/offer?sku=${encodeURIComponent(item.ebayItemId)}`
-      );
-      const offer = resp?.offers?.[0];
-      if (!offer) {
-        // Offer gone — auction ended (sold or expired)
-        const label = item.name || item.sku || 'Item';
-        // Check if there's a matching sale from _syncEBayOrders
-        const recentSale = sales.find(s =>
-          s.itemId === item.id && s.platform === 'eBay' &&
-          new Date(s.date) > new Date(Date.now() - 7 * 86400000)
-        );
-        if (recentSale) {
-          addNotification('sale', 'Auction Sold!',
-            `"${label}" sold for $${recentSale.price?.toFixed(2) || '?'}`, item.id);
-          logItemEvent(item.id, 'auction-end',
-            `Auction ended — sold for $${recentSale.price?.toFixed(2) || '?'}`);
-        } else {
-          // Auction ended without a sale
-          markPlatformStatus(item.id, 'eBay', 'expired');
-          markDirty('inv', item.id);
-          addNotification('info', 'Auction Ended',
-            `"${label}" auction ended without a sale`, item.id);
-          logItemEvent(item.id, 'auction-end',
-            'Auction ended without a sale');
-        }
+      // Use Trading API GetItem to check actual listing status
+      const resp = await ebayAPI('POST', TRADING_API, {
+        _tradingCall: 'GetItem',
+        ItemID: item.ebayListingId,
+        DetailLevel: 'ReturnAll',
+      });
+
+      const ebayItem = resp?.Item || resp?.GetItemResponse?.Item;
+      if (!ebayItem) continue; // can't determine status — skip
+
+      const listingStatus = ebayItem.SellingStatus?.ListingStatus;
+      // Active/pending listings — nothing to do
+      if (listingStatus === 'Active') continue;
+
+      // Auction completed or ended
+      const label = item.name || item.sku || 'Item';
+      const soldQty = parseInt(ebayItem.SellingStatus?.QuantitySold || '0', 10);
+
+      if (listingStatus === 'Completed' && soldQty > 0) {
+        const soldPrice = parseFloat(ebayItem.SellingStatus?.CurrentPrice?.Value || '0');
+        addNotification('sale', 'Auction Sold!',
+          `"${label}" sold for $${soldPrice.toFixed(2)}`, item.id);
+        logItemEvent(item.id, 'auction-end',
+          `Auction ended — sold for $${soldPrice.toFixed(2)}`);
+        updated++;
+      } else if (listingStatus === 'Completed' || listingStatus === 'Ended') {
+        markPlatformStatus(item.id, 'eBay', 'expired');
+        markDirty('inv', item.id);
+        addNotification('info', 'Auction Ended',
+          `"${label}" auction ended without a sale`, item.id);
+        logItemEvent(item.id, 'auction-end', 'Auction ended without a sale');
         updated++;
       }
     } catch (e) {
+      // If Trading API not available, skip silently — pullEBayListings handles discovery
       console.warn('[eBay] Auction check failed for', item.name, ':', e.message);
     }
   }
