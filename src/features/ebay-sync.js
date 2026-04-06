@@ -282,7 +282,6 @@ export async function pullEBayListings() {
     // the Trading API may not provide (or fills everything if Trading failed)
     {
       try {
-        toast('DEBUG: Offer API starting…');
         console.warn('[eBay] Running Offer API scan…');
         let offerOffset = 0;
         let offerHasMore = true;
@@ -318,12 +317,6 @@ export async function pullEBayListings() {
               || offer.pricingSummary?.auctionStartPrice?.value
               || offer.pricingSummary?.minimumAdvertisedPrice?.value || '0'
             );
-            // VISIBLE DEBUG: Show first offer data as toast
-            if (!window._ebayDebugShown) {
-              window._ebayDebugShown = true;
-              toast(`OFFER[${sku}] st=${status} fmt=${format} lid=${lid} price=${price} keys=${Object.keys(offer).join(',')} ps=${JSON.stringify(offer.pricingSummary||'none').slice(0,200)}`, false, 30000);
-            }
-
             if (lid) seenListingIds.add(lid);
 
             // Match to existing local item
@@ -410,7 +403,6 @@ export async function pullEBayListings() {
           offerOffset += 200;
         }
         if (imported > 0 || matched > 0) tradingWorked = true;
-        toast(`DEBUG: Offers done. matched=${matched} imported=${imported} updated=${updated}`, false, 15000);
         console.warn(`[eBay] Offer API: matched=${matched}, imported=${imported}`);
       } catch (e) {
         console.warn('[eBay] Offer API scan failed:', e.message);
@@ -479,14 +471,14 @@ export async function pullEBayListings() {
                   if (local.platformStatus.eBay !== 'active') {
                     markPlatformStatus(local.id, 'eBay', 'active'); changed = true;
                   }
-                  // Enrich missing data from Browse API
+                  // Browse API = LIVE data — always overrides stale Offer API values
                   const fmt = isAuction ? 'AUCTION' : 'FIXED_PRICE';
                   if (local.ebayListingFormat !== fmt) { local.ebayListingFormat = fmt; changed = true; }
-                  if ((!local.price || local.price <= 0) && price > 0) { local.price = price; changed = true; }
+                  if (price > 0 && local.price !== price) { local.price = price; changed = true; }
                   // Auction details: store BIN and start bid
                   if (isAuction) {
-                    if (binPrice > 0) { local.ebayBuyItNowPrice = binPrice; changed = true; }
-                    if (bidPrice > 0) { local.ebayStartBid = bidPrice; changed = true; }
+                    if (binPrice > 0 && local.ebayBuyItNowPrice !== binPrice) { local.ebayBuyItNowPrice = binPrice; changed = true; }
+                    if (bidPrice > 0 && local.ebayStartBid !== bidPrice) { local.ebayStartBid = bidPrice; changed = true; }
                   }
                   if (buyOpts.includes('BEST_OFFER') && !local.ebayBestOffer) {
                     local.ebayBestOffer = true; changed = true;
@@ -560,7 +552,7 @@ export async function pullEBayListings() {
                   markPlatformStatus(item.id, 'eBay', 'active'); changed = true;
                 }
                 const sPrice = parseFloat(summary.price?.value || '0');
-                if (sPrice > 0 && (!item.price || item.price <= 0)) { item.price = sPrice; changed = true; }
+                if (sPrice > 0 && item.price !== sPrice) { item.price = sPrice; changed = true; }
                 const sAuction = (summary.buyingOptions || []).includes('AUCTION');
                 const sFmt = sAuction ? 'AUCTION' : 'FIXED_PRICE';
                 if (item.ebayListingFormat !== sFmt) { item.ebayListingFormat = sFmt; changed = true; }
@@ -580,90 +572,91 @@ export async function pullEBayListings() {
           if (imported > 0 || matched > 0) tradingWorked = true;
           console.warn(`[eBay] Browse API: matched=${matched}, imported=${imported}, updated=${updated}`);
         } else {
-          console.warn('[eBay] No eBay username — trying per-SKU offer detail for prices');
-          // Fallback: fetch individual offers by SKU to get full offer data including price
-          const needsPrice = inv.filter(i =>
-            i.platforms?.includes('eBay') && (i.ebayItemId || i.sku) &&
-            (!i.price || i.price <= 0 || !i.ebayListingId)
-          );
-          for (const item of needsPrice.slice(0, 30)) {
-            try {
-              const sku = item.ebayItemId || item.sku;
-              if (!sku) continue;
-              const resp = await ebayAPI('GET',
-                `${INVENTORY_API}/offer?sku=${encodeURIComponent(sku)}&limit=10`
-              );
-              const offers = resp?.offers || [];
-              console.warn(`[eBay] Offer detail for SKU ${sku}: ${offers.length} offers, keys=${offers[0] ? Object.keys(offers[0]).join(',') : 'none'}`);
-              if (offers.length > 0) {
-                // Log full first offer for debugging
-                console.warn(`[eBay] Full offer data:`, JSON.stringify(offers[0]).slice(0, 500));
-              }
-              for (const offer of offers) {
-                let changed = false;
-                const lid = offer.listing?.listingId || offer.listingId || '';
-                const offerStatus = offer.status;
-                const oPrice = parseFloat(
-                  offer.pricingSummary?.price?.value
-                  || offer.pricingSummary?.auctionStartPrice?.value
-                  || offer.price?.value || '0'
-                );
-                if (lid && item.ebayListingId !== lid) {
-                  item.ebayListingId = lid; changed = true;
-                  byListingId.set(lid, item);
-                  seenListingIds.add(lid);
-                }
-                if (lid && (!item.url || !item.url.includes(lid))) {
-                  item.url = `https://www.ebay.com/itm/${lid}`; changed = true;
-                }
-                if (oPrice > 0 && (!item.price || item.price <= 0)) {
-                  item.price = oPrice; changed = true;
-                }
-                const oFmt = (offer.format || offer.listingPolicies?.listingFormat || 'FIXED_PRICE');
-                const fmt = oFmt === 'AUCTION' ? 'AUCTION' : 'FIXED_PRICE';
-                if (item.ebayListingFormat !== fmt) { item.ebayListingFormat = fmt; changed = true; }
-                const isLive = offerStatus && offerStatus !== 'ENDED' && offerStatus !== 'WITHDRAWN';
-                if (isLive && item.platformStatus?.eBay !== 'active') {
-                  markPlatformStatus(item.id, 'eBay', 'active'); changed = true;
-                }
-                if (changed) { markDirty('inv', item.id); updated++; }
-                break;
-              }
-            } catch (e) {
-              console.warn(`[eBay] Offer detail for "${item.name}":`, e.message);
-            }
-          }
-
-          // Also try Browse API getItem for items that now have listingId but no price
-          const needsBrowsePrice = inv.filter(i =>
-            i.platforms?.includes('eBay') && i.ebayListingId &&
-            (!i.price || i.price <= 0)
-          );
-          for (const item of needsBrowsePrice.slice(0, 20)) {
-            try {
-              const resp = await ebayAPI('GET',
-                `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${item.ebayListingId}`
-              );
-              if (!resp) continue;
-              let changed = false;
-              const p = parseFloat(resp.price?.value || resp.currentBidPrice?.value || '0');
-              if (p > 0) { item.price = p; changed = true; }
-              const buyOpts = resp.buyingOptions || [];
-              if (buyOpts.includes('AUCTION') && item.ebayListingFormat !== 'AUCTION') {
-                item.ebayListingFormat = 'AUCTION'; changed = true;
-              }
-              if (resp.title && (!item.name || item.name === 'eBay Import')) {
-                item.name = resp.title; changed = true;
-              }
-              if (changed) { markDirty('inv', item.id); updated++; }
-            } catch (e) {
-              console.warn(`[eBay] Browse item detail for "${item.name}":`, e.message);
-            }
-          }
+          console.warn('[eBay] No eBay username — skipping seller search, will use per-item lookup');
         }
       } catch (e) {
         console.warn('[eBay] Browse API search failed:', e.message);
       }
+    }
+
+    // ── ALWAYS RUN: Browse API getItemByLegacyId for LIVE data ──────────
+    // This is the only reliable source of current price, format, and auction
+    // data. Works without username — just needs the listingId. Runs for ALL
+    // eBay items, overriding stale Offer API data with live values.
+    {
+      const needsLiveData = inv.filter(i =>
+        i.platforms?.includes('eBay') && i.ebayListingId
+      );
+      console.warn(`[eBay] Live data enrichment: ${needsLiveData.length} items with listingId`);
+      let liveUpdated = 0;
+      for (const item of needsLiveData.slice(0, 50)) {
+        try {
+          const resp = await ebayAPI('GET',
+            `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${item.ebayListingId}`
+          );
+          if (!resp) continue;
+          let changed = false;
+          const buyOpts = resp.buyingOptions || [];
+          const isAuction = buyOpts.includes('AUCTION');
+          const fmt = isAuction ? 'AUCTION' : 'FIXED_PRICE';
+
+          // Price: for auctions, prefer BIN as display price; store bid separately
+          const browsePrice = parseFloat(resp.price?.value || '0');
+          const browseBid = parseFloat(resp.currentBidPrice?.value || '0');
+          const displayPrice = browsePrice || browseBid;
+
+          if (displayPrice > 0 && item.price !== displayPrice) {
+            item.price = displayPrice; changed = true;
+          }
+          if (item.ebayListingFormat !== fmt) {
+            item.ebayListingFormat = fmt; changed = true;
+          }
+          if (isAuction) {
+            if (browsePrice > 0 && item.ebayBuyItNowPrice !== browsePrice) {
+              item.ebayBuyItNowPrice = browsePrice; changed = true;
+            }
+            if (browseBid > 0 && item.ebayStartBid !== browseBid) {
+              item.ebayStartBid = browseBid; changed = true;
+            }
+          }
+          if (buyOpts.includes('BEST_OFFER') && !item.ebayBestOffer) {
+            item.ebayBestOffer = true; changed = true;
+          }
+          // Title enrichment (only if generic)
+          if (resp.title && (!item.name || item.name === 'eBay Import' || item.name === item.ebayItemId)) {
+            item.name = resp.title; changed = true;
+          }
+          // Image enrichment (only if missing)
+          const imgUrl = resp.image?.imageUrl || '';
+          if (imgUrl && (!item.images || !item.images.length)) {
+            item.images = [imgUrl]; item.image = imgUrl; changed = true;
+          }
+          // Additional images from the listing
+          if (resp.additionalImages?.length && (!item.images || item.images.length <= 1)) {
+            const allImgs = [imgUrl, ...resp.additionalImages.map(i => i.imageUrl)].filter(Boolean);
+            if (allImgs.length > (item.images?.length || 0)) {
+              item.images = allImgs; item.image = allImgs[0]; changed = true;
+            }
+          }
+          // Description enrichment
+          if (resp.shortDescription && !item.notes) {
+            item.notes = resp.shortDescription; changed = true;
+          }
+          // Status: if Browse API found it, it's live
+          if (!item.platformStatus) item.platformStatus = {};
+          if (item.platformStatus.eBay !== 'active') {
+            markPlatformStatus(item.id, 'eBay', 'active'); changed = true;
+          }
+
+          if (changed) { markDirty('inv', item.id); updated++; liveUpdated++; }
+        } catch (e) {
+          // 404 = listing ended/not found — not an error
+          if (!e.message?.includes('404')) {
+            console.warn(`[eBay] Live data for "${item.name}":`, e.message);
+          }
+        }
+      }
+      console.warn(`[eBay] Live data enrichment: ${liveUpdated} items updated`);
     }
 
     // ── FALLBACK 3: Inventory API (item discovery without offers) ─────
