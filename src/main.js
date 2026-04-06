@@ -257,7 +257,7 @@ import {
   triggerAddComps, compsUsePrice
 } from './features/comps.js';
 import {
-  initPhotoSettings, autoCrop, addWatermark, squarePad,
+  initPhotoSettings, autoCrop, addWatermark, squarePad, removeBackground,
   adjustImage, batchProcess, renderPhotoToolsPanel, getPhotoSettings, savePhotoSettings
 } from './features/photo-tools.js';
 import { calculateProfit, renderProfitCalc, quickProfitEstimate } from './features/profit-calc.js';
@@ -736,7 +736,7 @@ Object.assign(window, {
   loadDrawerComps, resetDrawerComps,
   triggerAddComps, compsUsePrice,
   // Photo Tools
-  autoCrop, addWatermark, squarePad, adjustImage,
+  autoCrop, addWatermark, squarePad, adjustImage, removeBackground,
   renderPhotoToolsPanel, savePhotoSettings,
   // Profit Calculator
   calculateProfit, renderProfitCalc, quickProfitEstimate,

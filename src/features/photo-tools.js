@@ -55,6 +55,12 @@ export async function savePhotoSettings(settings) {
  * @param {number} [opts.threshold=250] - What counts as "white/empty"
  * @returns {Promise<string>} Data URL of cropped image
  */
+export async function removeBackground(imgSrc) {
+  // Background removal requires a server-side AI model (e.g., rembg).
+  // For now, return the original image — can be wired to an API endpoint later.
+  return imgSrc;
+}
+
 export async function autoCrop(imgSrc, opts = {}) {
   const padding = opts.padding ?? _autoCropPadding;
   const threshold = opts.threshold ?? 250;
