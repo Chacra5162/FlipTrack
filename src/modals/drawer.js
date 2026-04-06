@@ -316,7 +316,7 @@ export function renderListingStatus(item) {
     let st = ps[p] || 'active';
     // For API-managed platforms, derive real status from actual push state
     if (p === 'eBay' && !ps[p]) {
-      st = item.ebayItemId ? (item.ebayListingId ? 'active' : 'draft') : 'draft';
+      st = item.ebayItemId ? (item.ebayListingId ? 'active' : 'unlisted') : 'unlisted';
     } else if (p === 'Etsy' && !ps[p]) {
       st = 'draft';
     }
