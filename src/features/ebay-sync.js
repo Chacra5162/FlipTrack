@@ -269,7 +269,7 @@ export async function pullEBayListings() {
       // Only count as working if we actually found listings
       if (matched > 0 || imported > 0) {
         tradingWorked = true;
-        console.log(`[eBay] Trading API: matched=${matched}, imported=${imported}, updated=${updated}`);
+        console.warn(`[eBay] Trading API: matched=${matched}, imported=${imported}, updated=${updated}`);
       } else {
         console.warn('[eBay] Trading API returned 0 listings — trying fallbacks');
       }
@@ -283,7 +283,7 @@ export async function pullEBayListings() {
     {
       try {
         if (!tradingWorked) toast('Scanning eBay offers…');
-        console.log('[eBay] Running Offer API scan…');
+        console.warn('[eBay] Running Offer API scan…');
         let offerOffset = 0;
         let offerHasMore = true;
 
@@ -292,13 +292,13 @@ export async function pullEBayListings() {
             `${INVENTORY_API}/offer?limit=200&offset=${offerOffset}`
           );
           const offers = resp?.offers || [];
-          console.log(`[eBay] Offer API page: ${offers.length} offers at offset ${offerOffset}`);
+          console.warn(`[eBay] Offer API page: ${offers.length} offers at offset ${offerOffset}`);
           if (offers.length < 200) offerHasMore = false;
           if (offers.length === 0 && offerOffset === 0) break;
           // Log first offer shape for debugging
           if (offerOffset === 0 && offers.length > 0) {
             const sample = offers[0];
-            console.log('[eBay] Offer sample:', JSON.stringify({
+            console.warn('[eBay] Offer sample:', JSON.stringify({
               sku: sample.sku, status: sample.status, format: sample.format,
               listingId: sample.listing?.listingId || sample.listingId,
               price: sample.pricingSummary?.price?.value,
@@ -399,7 +399,7 @@ export async function pullEBayListings() {
           offerOffset += 200;
         }
         if (imported > 0 || matched > 0) tradingWorked = true;
-        console.log(`[eBay] Offer API: matched=${matched}, imported=${imported}`);
+        console.warn(`[eBay] Offer API: matched=${matched}, imported=${imported}`);
       } catch (e) {
         console.warn('[eBay] Offer API scan failed:', e.message);
       }
@@ -411,7 +411,7 @@ export async function pullEBayListings() {
     if (!tradingWorked || hasMissingListingIds) {
       try {
         const username = getEBayUsername();
-        console.log('[eBay] Browse API: username =', username || '(none)');
+        console.warn('[eBay] Browse API: username =', username || '(none)');
         if (username) {
           toast('Searching your eBay store…');
           const sellerFilter = `sellers:%7B${encodeURIComponent(username)}%7D`;
@@ -426,7 +426,7 @@ export async function pullEBayListings() {
                 `${BROWSE_API}/item_summary/search?${qParam}filter=${sellerFilter}&limit=200`
               );
               const summaries = resp?.itemSummaries || [];
-              console.log(`[eBay] Browse q="${q}": ${summaries.length} results`);
+              console.warn(`[eBay] Browse q="${q}": ${summaries.length} results`);
 
               for (const summary of summaries) {
                 const legacyId = summary.legacyItemId || '';
@@ -495,7 +495,7 @@ export async function pullEBayListings() {
             }
           }
           if (imported > 0 || matched > 0) tradingWorked = true;
-          console.log(`[eBay] Browse API: matched=${matched}, imported=${imported}`);
+          console.warn(`[eBay] Browse API: matched=${matched}, imported=${imported}`);
         } else {
           console.warn('[eBay] No eBay username available — Browse API skipped');
         }
@@ -598,6 +598,45 @@ export async function pullEBayListings() {
         }
       } catch (e) {
         console.warn('[eBay] Offer scan failed:', e.message);
+      }
+    }
+
+    // ── ENRICH: Fetch individual offers for items still missing price/format ──
+    const needsEnrich = inv.filter(i =>
+      i.platforms?.includes('eBay') && i.ebayItemId &&
+      ((!i.price || i.price <= 0) || !i.ebayListingFormat || !i.ebayListingId)
+    );
+    if (needsEnrich.length > 0) {
+      console.warn(`[eBay] Enriching ${needsEnrich.length} items missing price/format/listingId`);
+      for (const item of needsEnrich.slice(0, 20)) { // Cap at 20 to avoid rate limits
+        try {
+          const sku = item.ebayItemId || item.sku;
+          if (!sku) continue;
+          const resp = await ebayAPI('GET',
+            `${INVENTORY_API}/offer?sku=${encodeURIComponent(sku)}&limit=10`
+          );
+          const offers = resp?.offers || [];
+          for (const offer of offers) {
+            let changed = false;
+            const lid = offer.listing?.listingId || offer.listingId || '';
+            const status = offer.status;
+            if (lid && item.ebayListingId !== lid) { item.ebayListingId = lid; changed = true; }
+            if (lid) seenListingIds.add(lid);
+            if (!item.url && lid) { item.url = `https://www.ebay.com/itm/${lid}`; changed = true; }
+            const fmt = (offer.format || offer.listingPolicies?.listingFormat || '') === 'AUCTION' ? 'AUCTION' : 'FIXED_PRICE';
+            if (item.ebayListingFormat !== fmt) { item.ebayListingFormat = fmt; changed = true; }
+            const p = parseFloat(offer.pricingSummary?.price?.value
+              || offer.pricingSummary?.auctionStartPrice?.value || '0');
+            if ((!item.price || item.price <= 0) && p > 0) { item.price = p; changed = true; }
+            if ((status === 'ACTIVE' || status === 'PUBLISHED') && item.platformStatus?.eBay !== 'active') {
+              markPlatformStatus(item.id, 'eBay', 'active'); changed = true;
+            }
+            if (changed) { markDirty('inv', item.id); updated++; }
+            break; // Use first offer
+          }
+        } catch (e) {
+          console.warn(`[eBay] Enrich ${item.name}:`, e.message);
+        }
       }
     }
 

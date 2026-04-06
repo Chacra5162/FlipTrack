@@ -13,7 +13,7 @@ import { addNotification } from './notification-center.js';
 // ── PLATFORM EXPIRY RULES ──────────────────────────────────────────────────
 // Days until a listing naturally expires on each platform (0 = never/GTC)
 export const PLATFORM_EXPIRY_RULES = {
-  'eBay':                  { days: 30,  label: '30-day or GTC', renewable: true },
+  'eBay':                  { days: 0,   label: 'GTC (auto-renew)', renewable: false },
   'Amazon':                { days: 0,   label: 'Until sold/removed', renewable: false },
   'Etsy':                  { days: 120, label: '4-month listing', renewable: true },
   'Facebook Marketplace':  { days: 7,   label: '7-day listing', renewable: true },
