@@ -7,7 +7,7 @@
  */
 
 import { inv, sales, save, refresh, markDirty, getInvItem, getSalesForItem } from '../data/store.js';
-import { ebayAPI, isEBayConnected } from './ebay-auth.js';
+import { ebayAPI, isEBayConnected, getEBayUsername } from './ebay-auth.js';
 import { markPlatformStatus, setListingDate } from './crosslist.js';
 import { autoDlistOnSale } from './crosslist.js';
 import { getOrCreateBuyer } from '../views/buyers.js';
@@ -266,6 +266,14 @@ export async function pullEBayListings() {
 
       offset += limit;
     }
+
+    // Browse API fallback — catches listings created on eBay.com directly
+    // (Inventory API only returns items pushed through it)
+    const browseImported = await _importFromBrowseAPI(seenSkus).catch(e => {
+      console.warn('[eBay] Browse API import:', e.message);
+      return 0;
+    });
+    updated += browseImported;
 
     // Reconcile: mark local items as ended if they were active but no longer on eBay
     const activeEbayItems = inv.filter(i =>
@@ -706,6 +714,125 @@ async function _syncEBayPrices() {
     console.warn('[eBay] Price sync error:', e.message);
   }
   return updated;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BROWSE API: Import seller's active listings (catches items not in Inventory API)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const BROWSE_API = '/buy/browse/v1';
+
+/**
+ * Search the seller's own active eBay listings via the Browse API.
+ * This catches listings created directly on eBay.com that the
+ * Inventory API doesn't know about.
+ */
+async function _importFromBrowseAPI(seenSkus) {
+  const seller = getEBayUsername();
+  if (!seller) {
+    console.log('[eBay] No seller username — skipping Browse API import');
+    return 0;
+  }
+
+  // Build lookup by ebayListingId for dedup
+  const byListingId = new Map();
+  for (const item of inv) {
+    if (item.ebayListingId) byListingId.set(item.ebayListingId, item);
+  }
+
+  let imported = 0;
+  let browseOffset = 0;
+  const browseLimit = 50;
+  let hasMore = true;
+
+  while (hasMore) {
+    let resp;
+    try {
+      resp = await ebayAPI('GET',
+        `${BROWSE_API}/item_summary/search?q=&filter=sellers:{${encodeURIComponent(seller)}}&limit=${browseLimit}&offset=${browseOffset}`
+      );
+    } catch (e) {
+      console.warn('[eBay] Browse API search failed:', e.message);
+      break;
+    }
+
+    const summaries = resp?.itemSummaries || [];
+    if (summaries.length < browseLimit) hasMore = false;
+
+    for (const summary of summaries) {
+      const itemId = summary.itemId || ''; // eBay item ID like "v1|123456|0"
+      const legacyId = summary.legacyItemId || ''; // e.g., "123456789"
+      if (!legacyId) continue;
+
+      // Skip if already tracked
+      if (byListingId.has(legacyId)) {
+        seenSkus.add(byListingId.get(legacyId).ebayItemId || legacyId);
+        continue;
+      }
+      // Check by SKU too
+      const matchBySku = inv.find(i => i.ebayItemId === legacyId || i.ebayListingId === legacyId);
+      if (matchBySku) {
+        seenSkus.add(matchBySku.ebayItemId || legacyId);
+        continue;
+      }
+
+      // New listing — import it
+      const title = summary.title || 'eBay Item';
+      const price = parseFloat(summary.price?.value || 0);
+      const imageUrl = summary.thumbnailImages?.[0]?.imageUrl
+        || summary.image?.imageUrl || '';
+      const images = imageUrl ? [imageUrl] : [];
+      const isAuction = (summary.buyingOptions || []).includes('AUCTION');
+      const condition = summary.condition || '';
+
+      const newId = uid();
+      const newItem = {
+        id: newId,
+        name: title,
+        sku: legacyId,
+        upc: '',
+        category: '',
+        platforms: ['eBay'],
+        platformStatus: { eBay: 'active' },
+        platformListingDates: { eBay: localDate() },
+        platformListingExpiry: {},
+        cost: 0,
+        price: price,
+        qty: 1,
+        fees: 0,
+        ship: 0,
+        brand: '',
+        color: '',
+        size: '',
+        images,
+        image: images[0] || null,
+        ebayItemId: legacyId,
+        ebayListingId: legacyId,
+        ebayListingFormat: isAuction ? 'AUCTION' : 'FIXED_PRICE',
+        ebayBestOffer: false,
+        url: `https://www.ebay.com/itm/${legacyId}`,
+        condition: condition.toLowerCase() || '',
+        added: new Date().toISOString(),
+        itemHistory: [],
+        priceHistory: [],
+        notes: 'Imported from eBay',
+      };
+      inv.push(newItem);
+      markDirty('inv', newId);
+      byListingId.set(legacyId, newItem);
+      seenSkus.add(legacyId);
+
+      const label = title.length > 40 ? title.slice(0, 40) + '…' : title;
+      logItemEvent(newId, 'ebay-sync', `Imported from eBay (${isAuction ? 'Auction' : 'Fixed Price'})`);
+      addNotification('sync', 'eBay Import', `"${label}" imported from eBay`, newId);
+      console.log('[eBay] Browse import:', title, isAuction ? '(Auction)' : '');
+      imported++;
+    }
+    browseOffset += browseLimit;
+  }
+
+  if (imported > 0) save();
+  return imported;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
