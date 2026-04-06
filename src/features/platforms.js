@@ -102,7 +102,9 @@ export function renderPlatTags(item) {
     const dot = st === 'sold' ? '<span style="color:var(--good);font-size:8px;margin-left:2px" title="Sold">●</span>'
               : st === 'delisted' ? '<span style="color:var(--muted);font-size:8px;margin-left:2px;text-decoration:line-through" title="Delisted">●</span>'
               : '';
-    return `<span class="platform-tag ${platCls(p)}">${escHtml(p)}${dot}</span>`;
+    const fmtBadge = (p === 'eBay' && item.ebayListingFormat === 'AUCTION')
+      ? '<span style="color:var(--warn);font-size:9px;margin-left:2px" title="Auction">⚡</span>' : '';
+    return `<span class="platform-tag ${platCls(p)}">${escHtml(p)}${dot}${fmtBadge}</span>`;
   }).join(' ');
   if (overflow > 0) html += ` <span class="cross-listed-badge" title="${escHtml(plats.slice(2).join(', '))}">+${overflow}</span>`;
   return html;
