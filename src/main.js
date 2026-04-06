@@ -31,7 +31,8 @@ import {
   softDeleteItem, restoreItem, calc, sc, mkc, margCls,
   markDirty, markDeleted,
   _debouncedRenderInv,
-  normalizeAllCategories
+  normalizeAllCategories,
+  registerEBayDismiss
 } from './data/store.js';
 import {
   initAuth, authSubmit, authForgotPassword, authSignOut,
@@ -174,7 +175,7 @@ import {
   wnCopyRecap, wnSetCompareA, wnSetCompareB, wnMarkShipped, wnBulkMarkShipped
 } from './views/whatnot-dashboard.js';
 import { initEBayAuth, handleEBayCallback, isEBayConnected } from './features/ebay-auth.js';
-import { initEBaySync, startEBaySyncInterval, stopEBaySyncInterval, resyncEBayOrders, backfillEBayData } from './features/ebay-sync.js';
+import { initEBaySync, startEBaySyncInterval, stopEBaySyncInterval, resyncEBayOrders, backfillEBayData, dismissEBayItem, undismissEBayItem } from './features/ebay-sync.js';
 import { initEtsyAuth, handleEtsyCallback, isEtsyConnected } from './features/etsy-auth.js';
 import { initEtsySync, startEtsySyncInterval, stopEtsySyncInterval, syncEtsyExpenses } from './features/etsy-sync.js';
 import { initWhatnotShows, getTodayShows } from './features/whatnot-show.js';
@@ -1358,6 +1359,7 @@ setTimeout(_killSplash, 3000);
   const _tier = window.getUserTier?.() || 'free';
   try {
     // Core features — always init (buyers needed for sale→CRM linking at all tiers)
+    registerEBayDismiss(dismissEBayItem, undismissEBayItem);
     const coreInits = [initEBaySync(), initEtsySync(), initBuyers()];
     // Pro+ features — only init for paid tiers
     if (_tier !== 'free') {

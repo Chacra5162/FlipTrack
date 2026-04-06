@@ -11,6 +11,14 @@ import { initDB, getAll, putAll, putOne, deleteOne, getMeta, setMeta } from './i
 let _autoSyncCallback = () => {};
 export function registerAutoSync(fn) { _autoSyncCallback = fn; }
 
+// ── EBAY DISMISS CALLBACK (registered by ebay-sync.js to prevent re-import of deleted items) ──
+let _ebayDismissCallback = () => {};
+let _ebayUndismissCallback = () => {};
+export function registerEBayDismiss(dismissFn, undismissFn) {
+  _ebayDismissCallback = dismissFn;
+  _ebayUndismissCallback = undismissFn;
+}
+
 // ── DATA ARRAYS (in-memory, loaded from IDB on boot) ─────────────────────
 export let inv = [];
 export let sales = [];
@@ -486,6 +494,7 @@ export function softDeleteItem(id) {
   const item = inv.find(i => i.id === id);
   if (!item) return;
   pushUndo('delete', { ...item });
+  if (item.ebayListingId || item.ebayItemId) _ebayDismissCallback(item);
   _trash.push({ ...structuredClone(item), deletedAt: Date.now() });
   saveTrash();
   inv.splice(inv.indexOf(item), 1);
@@ -499,6 +508,7 @@ export function restoreItem(trashIdxOrId) {
   const item = _trash[idx];
   if (!item) return;
   const { deletedAt, ...restored } = item;
+  if (restored.ebayListingId || restored.ebayItemId) _ebayUndismissCallback(restored);
   inv.push(restored);
   markDirty('inv', restored.id);
   _trash.splice(idx, 1);
