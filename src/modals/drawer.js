@@ -544,12 +544,17 @@ export async function saveDrawer(){
     return (f in _drawerSnapshotForEbay) && String(_drawerSnapshotForEbay[f] ?? '') !== String(item[f] ?? '');
   });
   if (item.ebayItemId && isEBayConnected() && ebayChanged) {
+    toast('Syncing to eBay…');
     updateEBayListing(item.id).then(() => {
       toast('eBay listing updated ✓');
     }).catch(e => {
       console.warn('[eBay] Auto-update failed:', e.message);
-      toast('eBay sync failed — will retry next sync', true);
+      toast('eBay sync failed: ' + e.message, true);
     });
+  } else if (item.platforms?.includes('eBay') && ebayChanged) {
+    // eBay field changed but can't sync — tell user why
+    if (!item.ebayItemId) toast('eBay item ID missing — sync manually', true);
+    else if (!isEBayConnected()) toast('eBay not connected — reconnect to sync', true);
   } else if (!item.ebayItemId && isEBayConnected() && item.platforms.includes('eBay') && !oldPlatforms.has('eBay')) {
     // eBay was just added as a platform — auto-push + publish
     (async () => {
