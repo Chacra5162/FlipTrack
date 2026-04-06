@@ -427,7 +427,45 @@ export async function pullEBayListings() {
     // (Offer API often returns no pricingSummary for eBay.com-created listings)
     {
       try {
-        const username = getEBayUsername();
+        let username = getEBayUsername();
+        // If no username cached, try fetching it from eBay API
+        if (!username) {
+          try {
+            console.warn('[eBay] No username cached — fetching from eBay API…');
+            const userResp = await ebayAPI('GET', '/sell/account/v1/privilege');
+            // The privilege endpoint doesn't return username directly, try Trading API
+          } catch (_) {}
+          // Try GetUser via Trading API proxy
+          try {
+            const userResp = await ebayAPI('POST', '/trading/GetUser', {
+              DetailLevel: 'ReturnAll'
+            });
+            const uname = userResp?.User?.UserID || userResp?.UserID || '';
+            if (uname) {
+              username = uname;
+              console.warn('[eBay] Got username from Trading API:', username);
+            }
+          } catch (_) {}
+          // Fallback: extract from any existing offer's marketplaceId or listing URL
+          if (!username) {
+            try {
+              const offerCheck = await ebayAPI('GET', `${INVENTORY_API}/offer?limit=1`);
+              const firstOffer = offerCheck?.offers?.[0];
+              const lid = firstOffer?.listing?.listingId || firstOffer?.listingId || '';
+              if (lid) {
+                // Try Browse API getItem to extract seller info
+                const itemResp = await ebayAPI('GET',
+                  `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${lid}`
+                );
+                const sellerName = itemResp?.seller?.username || itemResp?.seller?.userId || '';
+                if (sellerName) {
+                  username = sellerName;
+                  console.warn('[eBay] Got username from Browse item:', username);
+                }
+              }
+            } catch (_) {}
+          }
+        }
         console.warn('[eBay] Browse API: username =', username || '(none)');
         if (username) {
           toast('Searching your eBay store…');
