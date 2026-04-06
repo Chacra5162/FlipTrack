@@ -244,6 +244,7 @@ export function getExpiredListings(items) {
     const dates = item.platformListingDates || {};
     const expiry = item.platformListingExpiry || {};
     for (const p of plats) {
+      if (p === 'eBay') continue; // eBay GTC auto-renews; lifecycle managed by ebay-sync
       if (ps[p] && ps[p] !== 'active') continue; // Skip non-active
       const exp = expiry[p];
       if (exp && new Date(exp) < now) {
@@ -267,6 +268,7 @@ export function getExpiringListings(items, daysWarning = 7) {
     const dates = item.platformListingDates || {};
     const expiry = item.platformListingExpiry || {};
     for (const p of plats) {
+      if (p === 'eBay') continue; // eBay GTC auto-renews; lifecycle managed by ebay-sync
       if (ps[p] && ps[p] !== 'active') continue;
       const exp = expiry[p];
       if (exp) {
