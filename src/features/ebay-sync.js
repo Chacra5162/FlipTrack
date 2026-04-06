@@ -282,7 +282,7 @@ export async function pullEBayListings() {
     // the Trading API may not provide (or fills everything if Trading failed)
     {
       try {
-        if (!tradingWorked) toast('Scanning eBay offers…');
+        toast('DEBUG: Offer API starting…');
         console.warn('[eBay] Running Offer API scan…');
         let offerOffset = 0;
         let offerHasMore = true;
@@ -318,11 +318,10 @@ export async function pullEBayListings() {
               || offer.pricingSummary?.auctionStartPrice?.value
               || offer.pricingSummary?.minimumAdvertisedPrice?.value || '0'
             );
-            // VISIBLE DEBUG: Show first zero-price offer data as toast so user can screenshot
-            if (price <= 0 && !window._ebayDebugShown) {
+            // VISIBLE DEBUG: Show first offer data as toast
+            if (!window._ebayDebugShown) {
               window._ebayDebugShown = true;
-              const debugInfo = JSON.stringify(offer, null, 0).slice(0, 600);
-              toast(`DEBUG OFFER (${sku}): ${debugInfo}`, false, 30000);
+              toast(`OFFER[${sku}] st=${status} fmt=${format} lid=${lid} price=${price} keys=${Object.keys(offer).join(',')} ps=${JSON.stringify(offer.pricingSummary||'none').slice(0,200)}`, false, 30000);
             }
 
             if (lid) seenListingIds.add(lid);
@@ -411,6 +410,7 @@ export async function pullEBayListings() {
           offerOffset += 200;
         }
         if (imported > 0 || matched > 0) tradingWorked = true;
+        toast(`DEBUG: Offers done. matched=${matched} imported=${imported} updated=${updated}`, false, 15000);
         console.warn(`[eBay] Offer API: matched=${matched}, imported=${imported}`);
       } catch (e) {
         console.warn('[eBay] Offer API scan failed:', e.message);
