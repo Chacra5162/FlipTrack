@@ -30,14 +30,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
-        run: npm test
-
       - name: Build
         run: npm run build
         env:
           VITE_SB_URL: ${{ secrets.VITE_SB_URL }}
           VITE_SB_KEY: ${{ secrets.VITE_SB_KEY }}
+
+      - name: Run tests
+        run: npm test
 
       - name: Copy static files to dist
         run: |
