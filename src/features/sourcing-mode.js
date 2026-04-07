@@ -376,17 +376,44 @@ function _renderSourcingUI(state, errorMsg) {
       ${comps.length ? `
         <div style="margin-bottom:16px">
           <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:8px">Recent Sold Comps</div>
-          ${comps.map(c => `
-            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
-              ${c.image ? `<img src="${escHtml(c.image)}" style="width:40px;height:40px;object-fit:cover;border-radius:6px" loading="lazy" alt="">` : ''}
+          ${comps.map(c => {
+            const safeUrl = (() => {
+              if (!c.itemUrl) return '';
+              try { const u = new URL(c.itemUrl); return (u.protocol === 'https:' || u.protocol === 'http:') ? c.itemUrl : ''; } catch { return ''; }
+            })();
+            const clickAttr = safeUrl ? ` onclick="window.open('${escAttr(safeUrl)}','_blank')" style="display:flex;align-items:center;gap:8px;padding:8px 6px;border-bottom:1px solid var(--border);cursor:pointer;border-radius:6px;transition:background 0.15s"` : ` style="display:flex;align-items:center;gap:8px;padding:8px 6px;border-bottom:1px solid var(--border)"`;
+            return `
+            <div${clickAttr}>
+              ${c.image ? `<img src="${escHtml(c.image)}" style="width:44px;height:44px;object-fit:cover;border-radius:6px;flex-shrink:0" loading="lazy" alt="">` : ''}
               <div style="flex:1;overflow:hidden">
                 <div style="font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(c.title || '')}</div>
+                <div style="font-size:10px;color:var(--muted)">${escHtml(c.condition || '')}${c.sold ? ' · ' + escHtml(c.sold) : ''}${safeUrl ? ' · tap to view' : ''}</div>
               </div>
-              <span style="font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--good)">${fmt(c.price || 0)}</span>
-            </div>
-          `).join('')}
+              <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:var(--good)">${fmt(c.price || 0)}</span>
+            </div>`;
+          }).join('')}
         </div>
       ` : ''}
+
+      ${(() => {
+        const keyword = _aiResult?.name || _aiResult?.keyword || '';
+        if (!keyword) return '';
+        const q = encodeURIComponent(keyword);
+        return `
+        <div style="margin-bottom:16px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:8px">Search Marketplaces</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            <a href="https://www.ebay.com/sch/i.html?_nkw=${q}&LH_Sold=1&LH_Complete=1" target="_blank" rel="noopener"
+              style="padding:6px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--accent);font-size:11px;font-weight:600;text-decoration:none">eBay Sold</a>
+            <a href="https://www.ebay.com/sch/i.html?_nkw=${q}" target="_blank" rel="noopener"
+              style="padding:6px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:11px;font-weight:600;text-decoration:none">eBay Active</a>
+            <a href="https://www.mercari.com/search/?keyword=${q}" target="_blank" rel="noopener"
+              style="padding:6px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:11px;font-weight:600;text-decoration:none">Mercari</a>
+            <a href="https://poshmark.com/search?query=${q}" target="_blank" rel="noopener"
+              style="padding:6px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:11px;font-weight:600;text-decoration:none">Poshmark</a>
+          </div>
+        </div>`;
+      })()}
 
       <div style="margin-bottom:16px;background:var(--surface);border-radius:8px;padding:10px 12px">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px">
