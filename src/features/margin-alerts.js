@@ -47,6 +47,9 @@ export function scanMarginAlerts() {
 
   for (const item of unsold) {
     const isAuction = item.ebayListingFormat === 'AUCTION';
+    // Skip live auctions — final price is unknown until auction ends
+    const isLiveAuction = isAuction && item.platformStatus?.eBay === 'active' && item.ebayListingId;
+    if (isLiveAuction) continue;
     const price = item.price || (isAuction ? (item.ebayAuctionStart || 0) : 0);
     const cost = item.cost || 0;
     const fees = item.fees || 0;

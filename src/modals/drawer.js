@@ -172,16 +172,18 @@ export function openDrawer(id) {
   const dQty = document.getElementById('d_qty');
   if (dQty) dQty.value = item.qty ?? 1;
   // Populate eBay auction/best-offer fields
+  const isLiveAuction = item.ebayListingFormat === 'AUCTION'
+    && item.platformStatus?.eBay === 'active' && item.ebayListingId;
   const dFmt = document.getElementById('d_ebayFormat');
-  if (dFmt) dFmt.value = item.ebayListingFormat || 'FIXED_PRICE';
+  if (dFmt) { dFmt.value = item.ebayListingFormat || 'FIXED_PRICE'; if (isLiveAuction) dFmt.disabled = true; }
   const dBO = document.getElementById('d_bestOffer');
   if (dBO) dBO.checked = !!item.ebayBestOffer;
   const dAS = document.getElementById('d_auctionStart');
-  if (dAS) dAS.value = item.ebayAuctionStart || '';
+  if (dAS) { dAS.value = item.ebayAuctionStart || ''; if (isLiveAuction) dAS.disabled = true; }
   const dAR = document.getElementById('d_auctionReserve');
-  if (dAR) dAR.value = item.ebayAuctionReserve || '';
+  if (dAR) { dAR.value = item.ebayAuctionReserve || ''; if (isLiveAuction) dAR.disabled = true; }
   const dAD = document.getElementById('d_auctionDuration');
-  if (dAD) dAD.value = item.ebayAuctionDuration || 'DAYS_7';
+  if (dAD) { dAD.value = item.ebayAuctionDuration || 'DAYS_7'; if (isLiveAuction) dAD.disabled = true; }
   const dAA = document.getElementById('d_autoAccept');
   if (dAA) dAA.value = item.ebayAutoAccept || '';
   const dADc = document.getElementById('d_autoDecline');
@@ -275,6 +277,10 @@ export async function closeDrawer(){
   if (defaultTab) defaultTab.classList.add('active');
   // Reset comps tab content
   if (window.resetDrawerComps) window.resetDrawerComps();
+  // Re-enable auction fields that may have been locked for live auctions
+  ['d_ebayFormat','d_auctionStart','d_auctionReserve','d_auctionDuration'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.disabled = false;
+  });
   setActiveDrawId(null);
 }
 
