@@ -969,6 +969,13 @@ export async function publishEBayListing(itemId, options = {}, _isRetry = false)
               currency: 'USD',
             },
           } : {}),
+          // Buy It Now price — required when payment policy has immediate payment enabled
+          ...((item.ebayBuyItNowPrice || price) > 0 ? {
+            price: {
+              value: (item.ebayBuyItNowPrice || price).toFixed(2),
+              currency: 'USD',
+            },
+          } : {}),
         }
       : {
           price: {
