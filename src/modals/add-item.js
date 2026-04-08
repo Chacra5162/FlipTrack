@@ -164,6 +164,23 @@ export function dupItem(id) {
   }
 }
 
+/** Update tab badges showing how many recommended fields are empty on each tab */
+export function updateAddFormBadges() {
+  const v = id => (document.getElementById(id)?.value || '').trim();
+  const pricingEmpty = (!v('f_cost') ? 1 : 0) + (!v('f_price') ? 1 : 0) + (!v('f_condition') ? 1 : 0);
+  const detailsEmpty = (!v('f_brand') ? 1 : 0) + (!v('f_color') ? 1 : 0)
+    + (!v('f_size') ? 1 : 0) + ((document.querySelectorAll('#fImgWrap .img-slot img')?.length || 0) === 0 ? 1 : 0);
+  const tabs = document.querySelectorAll('.add-form-tab');
+  tabs.forEach(t => {
+    const badge = t.querySelector('.tab-badge');
+    if (!badge) return;
+    const tab = t.dataset.tab;
+    const count = tab === 'pricing' ? pricingEmpty : tab === 'details' ? detailsEmpty : 0;
+    badge.textContent = count > 0 ? count : '';
+    badge.style.display = count > 0 ? '' : 'none';
+  });
+}
+
 export function addFormTab(tab, btn) {
   document.querySelectorAll('.add-form-tab').forEach(b => { b.style.color='var(--muted)'; b.style.borderBottomColor='transparent'; b.classList.remove('active'); });
   if(btn) { btn.style.color='var(--accent)'; btn.style.borderBottomColor='var(--accent)'; btn.classList.add('active'); }
@@ -200,9 +217,11 @@ export function addFormTab(tab, btn) {
     if(profitPrev) profitPrev.style.display='none';
     if(dimSection) dimSection.style.display='';
   }
+  updateAddFormBadges();
 }
 
 export function openAddModal(){
+  _skipCompleteness = false;
   const ov = document.getElementById('addOv');
   ov.classList.add('on');
   clearPendingAddImages();
@@ -351,10 +370,29 @@ function _renderVariantBuilder() {
   if (count) count.textContent = `${_variantLabels.length} variant${_variantLabels.length !== 1 ? 's' : ''}`;
 }
 
+let _skipCompleteness = false;
 export async function addItem(){
   const name=document.getElementById('f_name').value.trim();
   if(!name){toast('Name required',true);return;}
   if(name.length>200){toast('Name is too long (max 200 characters)',true);return;}
+
+  // On mobile, warn about empty recommended fields before saving
+  if (!_skipCompleteness && window.innerWidth <= 768) {
+    const missing = [];
+    if (!(document.getElementById('f_cost')?.value||'').trim()) missing.push('Cost (Pricing tab)');
+    if (!(document.getElementById('f_condition')?.value||'').trim()) missing.push('Condition (Pricing tab)');
+    if (!(document.getElementById('f_brand')?.value||'').trim()) missing.push('Brand (Details tab)');
+    const hasPhotos = document.querySelectorAll('#fImgWrap .img-slot img')?.length > 0;
+    if (!hasPhotos) missing.push('Photos (Details tab)');
+    if (missing.length >= 2) {
+      const proceed = await appConfirm({
+        title: 'Missing Recommended Fields',
+        message: `${missing.join(', ')} — save anyway?`
+      });
+      if (!proceed) return;
+      _skipCompleteness = true;
+    }
+  }
 
   const _notes=document.getElementById('f_notes').value.trim();
   if(_notes.length>5000){toast('Notes are too long (max 5000 characters)',true);return;}

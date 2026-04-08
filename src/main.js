@@ -115,7 +115,7 @@ import {
   markDrawerDirty
 } from './modals/drawer.js';
 import {
-  dupCurrent, dupItem, addFormTab,
+  dupCurrent, dupItem, addFormTab, updateAddFormBadges,
   openAddModal, closeAdd,
   toggleBulkFields, toggleAlertField, prevProfit, prefillFromLast,
   addItem, updateSmokeSlider, updateCoverSlider,
@@ -521,7 +521,7 @@ Object.assign(window, {
 // Add item
 Object.assign(window, {
   openAddModal, closeAdd, addItem,
-  dupCurrent, dupItem, addFormTab,
+  dupCurrent, dupItem, addFormTab, updateAddFormBadges,
   prevProfit, prefillFromLast, updateSmokeSlider, updateCoverSlider,
   toggleVariantMode, addVariantLabel, removeVariantLabel, presetVariantSizes
 });
