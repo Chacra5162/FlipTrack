@@ -364,7 +364,9 @@ export async function pushItemToEBay(itemId) {
   if (!item) throw new Error('Item not found');
 
   // Use existing eBay SKU or FlipTrack SKU or generate one
-  const sku = item.ebayItemId || item.sku || `FT-${itemId.slice(0, 12)}`;
+  // eBay SKUs must be alphanumeric only, max 50 chars
+  const rawSku = item.ebayItemId || item.sku || `FT${itemId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12)}`;
+  const sku = rawSku.replace(/[^a-zA-Z0-9]/g, '').slice(0, 50) || `FT${itemId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12)}`;
 
   // Generate AI description if user left it blank
   await _ensureDescription(item);

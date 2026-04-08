@@ -603,7 +603,8 @@ export function calc(item) {
 }
 
 export function sc(qty, alert, bulk, alertEnabled) {
-  if (!alertEnabled && !bulk) return 'ok';
+  if (!bulk) return qty === 0 ? 'low' : 'ok';
+  if (!alertEnabled) return qty === 0 ? 'low' : 'ok';
   return qty === 0 ? 'low' : qty <= (alert || 2) ? 'warn' : 'ok';
 }
 
