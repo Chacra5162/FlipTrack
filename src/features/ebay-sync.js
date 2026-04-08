@@ -7,6 +7,7 @@
  */
 
 import { inv, sales, save, refresh, markDirty, getInvItem, getSalesForItem, isInvDirty } from '../data/store.js';
+import { EBAY_SYNC_INTERVAL } from '../config/timing.js';
 import { ebayAPI, isEBayConnected, getEBayUsername } from './ebay-auth.js';
 import { markPlatformStatus } from './crosslist.js';
 import { autoDlistOnSale } from './crosslist.js';
@@ -77,7 +78,7 @@ function _isDismissed(listingId, sku, ebayItemId) {
 }
 
 /**
- * Start periodic eBay sync (every 5 minutes).
+ * Start periodic eBay sync (uses EBAY_SYNC_INTERVAL from timing.js).
  * Return/cancel checks run every 30 minutes.
  */
 export function startEBaySyncInterval() {
@@ -85,9 +86,9 @@ export function startEBaySyncInterval() {
   if (_returnCheckInterval) clearInterval(_returnCheckInterval);
   _syncInterval = setInterval(() => {
     if (isEBayConnected() && !_syncing) {
-      pullEBayListings().catch(e => console.warn('eBay sync error:', e.message));
+      pullEBayListings({ silent: true }).catch(e => console.warn('eBay sync error:', e.message));
     }
-  }, 300000); // 5 minutes
+  }, EBAY_SYNC_INTERVAL);
   // Return/cancel check — less frequent, broader window
   _returnCheckInterval = setInterval(() => {
     if (isEBayConnected() && !_syncing) {
@@ -100,6 +101,21 @@ export function startEBaySyncInterval() {
       _syncEBayReturns().catch(e => console.warn('eBay return check error:', e.message));
     }
   }, 15000);
+}
+
+/**
+ * Trigger an eBay sync on demand (e.g. after a local change).
+ * Debounced to avoid rapid-fire syncs — waits 5s after last call.
+ */
+let _onDemandTimer = null;
+export function triggerEBaySync() {
+  if (!isEBayConnected() || _syncing) return;
+  clearTimeout(_onDemandTimer);
+  _onDemandTimer = setTimeout(() => {
+    if (isEBayConnected() && !_syncing) {
+      pullEBayListings({ silent: true }).catch(e => console.warn('eBay on-demand sync error:', e.message));
+    }
+  }, 5000);
 }
 
 export function stopEBaySyncInterval() {
@@ -117,13 +133,13 @@ export function stopEBaySyncInterval() {
  * with Inventory API as secondary for product details.
  * @returns {{ matched: number, imported: number, updated: number }}
  */
-export async function pullEBayListings() {
+export async function pullEBayListings({ silent = false } = {}) {
   if (!isEBayConnected()) throw new Error('eBay not connected');
   if (_syncing) throw new Error('Sync already in progress');
   _syncing = true;
 
   try {
-    toast('Syncing eBay listings…');
+    if (!silent) toast('Syncing eBay listings…');
     let matched = 0, imported = 0, updated = 0;
     const seenListingIds = new Set(); // Track eBay listing IDs for reconciliation
 
@@ -638,17 +654,18 @@ export async function pullEBayListings() {
       }
     }
 
-    // ── ALWAYS RUN: Browse API getItemByLegacyId for LIVE data ──────────
-    // This is the only reliable source of current price, format, and auction
-    // data. Works without username — just needs the listingId. Runs for ALL
-    // eBay items, overriding stale Offer API data with live values.
+    // ── Browse API getItemByLegacyId for LIVE data ──────────────────────
+    // Only queries items NOT already covered by Trading API or Browse API
+    // search earlier in this sync. Skips items whose listingId was already
+    // seen — those already have fresh data.
     {
       const needsLiveData = inv.filter(i =>
         i.platforms?.includes('eBay') && i.ebayListingId
+        && !seenListingIds.has(i.ebayListingId)
       );
-      console.warn(`[eBay] Live data enrichment: ${needsLiveData.length} items with listingId`);
+      console.warn(`[eBay] Live data enrichment: ${needsLiveData.length} items need lookup (${seenListingIds.size} already synced)`);
       let liveUpdated = 0;
-      for (const item of needsLiveData.slice(0, 50)) {
+      for (const item of needsLiveData.slice(0, 15)) {
         try {
           const resp = await ebayAPI('GET',
             `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${item.ebayListingId}`

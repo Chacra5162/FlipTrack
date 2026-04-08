@@ -29,7 +29,7 @@ let _drawerSnapshot = null;
 let _drawerTrigger = null;
 let _drawerDirty = false;
 import { pushEtsyPrice } from '../features/etsy-sync.js';
-import { updateEBayListing, pushItemToEBay, publishEBayListing, endEBayListing } from '../features/ebay-sync.js';
+import { updateEBayListing, pushItemToEBay, publishEBayListing, endEBayListing, triggerEBaySync } from '../features/ebay-sync.js';
 import { isEBayConnected } from '../features/ebay-auth.js';
 import { getPlatforms, buildPlatPicker, getSelectedPlats } from '../features/platforms.js';
 import { PLATFORM_FEES, calcPlatformFee } from '../config/platforms.js';
