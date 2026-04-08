@@ -976,7 +976,7 @@ export async function publishEBayListing(itemId, options = {}, _isRetry = false)
             currency: 'USD',
           },
         },
-    availableQuantity: isAuction ? 1 : (item.qty || 1),
+    ...(isAuction ? {} : { availableQuantity: item.qty || 1 }),
   };
 
   // Best Offer terms (fixed-price only)
