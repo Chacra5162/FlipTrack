@@ -491,7 +491,7 @@ export async function pullEBayListings() {
 
                 const title = summary.title || '';
                 const buyOpts = summary.buyingOptions || [];
-                const isAuction = buyOpts.includes('AUCTION');
+                const isAuction = buyOpts.includes('AUCTION') && !buyOpts.includes('FIXED_PRICE');
                 // For auctions: price = BIN price, currentBidPrice = current/start bid
                 const binPrice = parseFloat(summary.price?.value || '0');
                 const bidPrice = parseFloat(summary.currentBidPrice?.value || '0');
@@ -604,7 +604,8 @@ export async function pullEBayListings() {
                 }
                 const sPrice = parseFloat(summary.price?.value || '0');
                 if (sPrice > 0 && item.price !== sPrice) { item.price = sPrice; changed = true; }
-                const sAuction = (summary.buyingOptions || []).includes('AUCTION');
+                const sBuyOpts = summary.buyingOptions || [];
+                const sAuction = sBuyOpts.includes('AUCTION') && !sBuyOpts.includes('FIXED_PRICE');
                 const sFmt = sAuction ? 'AUCTION' : 'FIXED_PRICE';
                 if (item.ebayListingFormat !== sFmt) { item.ebayListingFormat = sFmt; changed = true; }
                 if (!item.url || !item.url.includes(legacyId)) {
@@ -648,7 +649,7 @@ export async function pullEBayListings() {
           if (!resp) continue;
           let changed = false;
           const buyOpts = resp.buyingOptions || [];
-          const isAuction = buyOpts.includes('AUCTION');
+          const isAuction = buyOpts.includes('AUCTION') && !buyOpts.includes('FIXED_PRICE');
           const fmt = isAuction ? 'AUCTION' : 'FIXED_PRICE';
 
           // Price: for auctions, prefer BIN as display price; store bid separately
@@ -1455,7 +1456,7 @@ export async function importEBayItem(input) {
 
     const title = resp.title || 'eBay Import';
     const buyOpts = resp.buyingOptions || [];
-    const isAuction = buyOpts.includes('AUCTION');
+    const isAuction = buyOpts.includes('AUCTION') && !buyOpts.includes('FIXED_PRICE');
     const browsePrice = parseFloat(resp.price?.value || '0');
     const browseBid = parseFloat(resp.currentBidPrice?.value || '0');
     const price = browsePrice || browseBid;
