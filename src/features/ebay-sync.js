@@ -6,7 +6,7 @@
  * Uses the ebay-auth.js proxy for all API calls.
  */
 
-import { inv, sales, save, refresh, markDirty, getInvItem, getSalesForItem } from '../data/store.js';
+import { inv, sales, save, refresh, markDirty, getInvItem, getSalesForItem, isInvDirty } from '../data/store.js';
 import { ebayAPI, isEBayConnected, getEBayUsername } from './ebay-auth.js';
 import { markPlatformStatus } from './crosslist.js';
 import { autoDlistOnSale } from './crosslist.js';
@@ -533,7 +533,7 @@ export async function pullEBayListings() {
                   // Browse API = LIVE data — always overrides stale Offer API values
                   const fmt = isAuction ? 'AUCTION' : 'FIXED_PRICE';
                   if (local.ebayListingFormat !== fmt) { local.ebayListingFormat = fmt; changed = true; }
-                  if (price > 0 && local.price !== price) { local.price = price; changed = true; }
+                  if (price > 0 && local.price !== price && !isInvDirty(local.id)) { local.price = price; changed = true; }
                   // Auction details: store BIN and start bid
                   if (isAuction) {
                     if (binPrice > 0 && local.ebayBuyItNowPrice !== binPrice) { local.ebayBuyItNowPrice = binPrice; changed = true; }
@@ -611,7 +611,7 @@ export async function pullEBayListings() {
                   markPlatformStatus(item.id, 'eBay', 'active'); changed = true;
                 }
                 const sPrice = parseFloat(summary.price?.value || '0');
-                if (sPrice > 0 && item.price !== sPrice) { item.price = sPrice; changed = true; }
+                if (sPrice > 0 && item.price !== sPrice && !isInvDirty(item.id)) { item.price = sPrice; changed = true; }
                 const sAuction = (summary.buyingOptions || []).includes('AUCTION');
                 const sFmt = sAuction ? 'AUCTION' : 'FIXED_PRICE';
                 if (item.ebayListingFormat !== sFmt) { item.ebayListingFormat = sFmt; changed = true; }
@@ -664,7 +664,7 @@ export async function pullEBayListings() {
           const browseBid = parseFloat(resp.currentBidPrice?.value || '0');
           const displayPrice = browsePrice || browseBid;
 
-          if (displayPrice > 0 && item.price !== displayPrice) {
+          if (displayPrice > 0 && item.price !== displayPrice && !isInvDirty(item.id)) {
             item.price = displayPrice; changed = true;
           }
           if (item.ebayListingFormat !== fmt) {

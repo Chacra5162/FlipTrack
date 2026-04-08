@@ -3,6 +3,8 @@ import { fmt, pct, ds, escHtml, escAttr, localDate} from '../utils/format.js';
 import { getPlatforms, renderPlatTags } from '../features/platforms.js';
 import { toast } from '../utils/dom.js';
 import { openDrawer } from '../modals/drawer.js';
+import { pushEBayPrice } from '../features/ebay-listing.js';
+import { isEBayConnected } from '../features/ebay-auth.js';
 import { getDeathPileStats, getUrgencyLevel } from '../features/death-pile.js';
 import { getOffers } from '../features/offers.js';
 import { animateStatCounters } from '../features/animated-counters.js';
@@ -272,6 +274,10 @@ export function quickReprice(itemId, newPrice) {
   save();
   refresh();
   toast(`${item.name} repriced: ${fmt(oldPrice)} → ${fmt(newPrice)} ✓`);
+  // Push new price to eBay if connected
+  if (item.ebayItemId && isEBayConnected()) {
+    pushEBayPrice(item.id).catch(e => console.warn('[Dashboard] eBay price push:', e.message));
+  }
 }
 
 export function renderDash() {

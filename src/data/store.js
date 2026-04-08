@@ -64,6 +64,9 @@ export function clearDeletedId(table, id) {
   if (_deletedIds[table]) _deletedIds[table].delete(id);
 }
 
+/** Check if an inventory item has pending local changes not yet synced */
+export function isInvDirty(id) { return _dirtyInv.has(id); }
+
 export function clearDirtyTracking() {
   _dirtyInv.clear();
   _dirtySales.clear();
