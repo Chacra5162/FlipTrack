@@ -842,7 +842,10 @@ export async function publishEBayListing(itemId, options = {}, _isRetry = false)
 
   const sku = item.ebayItemId;
   const price = item.price || 0;
-  if (price <= 0) throw new Error('Item needs a price before listing');
+  const isAuction = item.ebayListingFormat === 'AUCTION';
+  const auctionStart = item.ebayAuctionStart || 0;
+  if (!isAuction && price <= 0) throw new Error('Item needs a price before listing');
+  if (isAuction && auctionStart <= 0 && price <= 0) throw new Error('Auction needs a starting price before listing');
 
   // Auto-detect category first — we need it for condition validation
   let categoryId = options.categoryId || null;
@@ -944,7 +947,6 @@ export async function publishEBayListing(itemId, options = {}, _isRetry = false)
     throw new Error('Could not set up eBay inventory location. Go to eBay Seller Hub → Shipping → Locations and add one.');
   }
 
-  const isAuction = item.ebayListingFormat === 'AUCTION';
   const offerPayload = {
     sku,
     marketplaceId: 'EBAY_US',
