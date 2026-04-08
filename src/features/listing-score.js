@@ -171,6 +171,11 @@ export function computeListingScores() {
  * Append missing attribute values (color, size, brand, material) to an item's title.
  * Only adds values that exist on the item but are not already in the title.
  */
+export function lsToggleDetail(itemId) {
+  const el = document.getElementById(`ls-detail-${itemId}`);
+  if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
 export function lsAutoFixTitle(itemId) {
   const item = getInvItem(itemId);
   if (!item) return;
@@ -278,17 +283,26 @@ export function renderListingScores() {
     <div class="ih-section">
       <div class="ih-section-hdr">🔧 Needs Improvement (Lowest Scores)</div>
       <div class="comps-list" style="max-height:400px">
-        ${d.scored.filter(i => i.suggestions.length > 0).slice(0, 15).map(item => `
-          <div class="comps-item" onclick="openDrawer('${escAttr(item.id)}')" style="cursor:pointer">
-            <div class="ls-item-grade" style="background:${gradeColors[item.grade]}">${item.grade}</div>
-            <div class="comps-item-info">
-              <div class="comps-item-title">${escHtml(item.name)}</div>
-              <div class="comps-item-meta">${item.total}/100 · ${escHtml(item.category)}${item.price ? ' · ' + fmt(item.price) : ''}</div>
-              ${item.suggestions.length ? `<div class="ls-suggestion">💡 ${escHtml(item.suggestions[0])}</div>` : ''}
-              ${item.fixes && item.fixes.length ? `<button class="btn-xs btn-accent ls-autofix-btn" onclick="event.stopPropagation();lsAutoFixTitle('${escAttr(item.id)}')">Auto-fix title</button>` : ''}
+        ${d.scored.filter(i => i.suggestions.length > 0).slice(0, 15).map(item => {
+          const eid = escAttr(item.id);
+          const allSuggestions = item.suggestions.map(s => `<div class="ls-suggestion">💡 ${escHtml(s)}</div>`).join('');
+          return `
+          <div class="comps-item" style="cursor:pointer;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:10px;width:100%" onclick="openDrawer('${eid}')">
+              <div class="ls-item-grade" style="background:${gradeColors[item.grade]}">${item.grade}</div>
+              <div class="comps-item-info" style="flex:1;min-width:0">
+                <div class="comps-item-title">${escHtml(item.name)}</div>
+                <div class="comps-item-meta">${item.total}/100 · ${escHtml(item.category)}${item.price ? ' · ' + fmt(item.price) : ''}</div>
+              </div>
+              <button class="btn-xs" style="flex-shrink:0;font-size:10px" onclick="event.stopPropagation();lsToggleDetail('${eid}')">Details ▾</button>
             </div>
-          </div>
-        `).join('')}
+            <div id="ls-detail-${eid}" style="display:none;width:100%;padding:6px 0 2px 36px">
+              ${allSuggestions}
+              ${item.fixes && item.fixes.length ? `<button class="btn-xs btn-accent ls-autofix-btn" style="margin-top:6px" onclick="event.stopPropagation();lsAutoFixTitle('${eid}')">Auto-fix title</button>` : ''}
+              <button class="btn-xs" style="margin-top:6px;margin-left:4px" onclick="event.stopPropagation();openDrawer('${eid}')">Edit Item →</button>
+            </div>
+          </div>`;
+        }).join('')}
       </div>
     </div>`;
 

@@ -46,13 +46,14 @@ export function scanMarginAlerts() {
   const alerts = [];
 
   for (const item of unsold) {
-    const price = item.price || 0;
+    const isAuction = item.ebayListingFormat === 'AUCTION';
+    const price = item.price || (isAuction ? (item.ebayAuctionStart || 0) : 0);
     const cost = item.cost || 0;
     const fees = item.fees || 0;
     const ship = item.ship || 0;
     const profit = price - cost - fees - ship;
     const margin = price > 0 ? (profit / price) * 100 : 0;
-    const days = _daysSince(item.added);
+    const days = _daysSince(item.added || item.dateAdded);
 
     // Low margin alert
     if (price > 0 && cost > 0 && margin < _thresholds.minMarginPct) {
@@ -95,8 +96,8 @@ export function scanMarginAlerts() {
       });
     }
 
-    // No price set
-    if (!price && cost > 0) {
+    // No price set (skip auctions with a starting bid)
+    if (!price && cost > 0 && !(isAuction && item.ebayAuctionStart > 0)) {
       alerts.push({
         type: 'no-price',
         severity: 'high',

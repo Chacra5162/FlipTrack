@@ -1,8 +1,11 @@
-import { inv, sales, expenses, getInvItem, getSalesForItem } from '../data/store.js';
+import { inv, sales, expenses, getInvItem, getSalesForItem, markDirty, save, refresh } from '../data/store.js';
 import { fmt, pct, ds, escHtml, escAttr } from '../utils/format.js';
 import { getPlatforms } from '../features/platforms.js';
 import { scanArbitrageOpportunities } from '../features/arbitrage-alerts.js';
 import { renderSeasonalCalendar } from '../features/seasonal-calendar.js';
+import { pushEBayPrice } from '../features/ebay-listing.js';
+import { isEBayConnected } from '../features/ebay-auth.js';
+import { toast } from '../utils/dom.js';
 
 // Cache: always recompute on render to avoid stale data
 let _insightsCache = null;
@@ -1119,6 +1122,25 @@ function _buildWeeklyTrend(salesData, getItem) {
   </div>`;
 }
 
+// ── Arbitrage: apply suggested price ─────────────────────────────────────────
+export function arbApplyPrice(itemId, suggestedPrice) {
+  const item = getInvItem(itemId);
+  if (!item) return;
+  const oldPrice = item.price;
+  const rounded = Math.round(suggestedPrice * 100) / 100;
+  item.price = rounded;
+  markDirty('inv', item.id);
+  save();
+  refresh();
+  toast(`${item.name}: ${fmt(oldPrice)} → ${fmt(rounded)} ✓`);
+  if (item.ebayItemId && isEBayConnected()) {
+    pushEBayPrice(item.id).catch(e => console.warn('[Arbitrage] eBay price push:', e.message));
+  }
+  // Remove the row from the UI
+  const row = document.querySelector(`[onclick*="arbApplyPrice('${itemId}'"]`)?.closest('div[style*="border-bottom"]');
+  if (row) row.remove();
+}
+
 // ── Arbitrage Alerts (async) ─────────────────────────────────────────────────
 async function _loadArbitrageSection() {
   const slot = document.getElementById('arbitrageSlot');
@@ -1130,16 +1152,18 @@ async function _loadArbitrageSection() {
     const rows = opps.slice(0, 10).map(o => {
       const color = o.type === 'underpriced' ? 'var(--good)' : 'var(--warn)';
       const icon = o.type === 'underpriced' ? '📈' : '📉';
+      const eid = escAttr(o.item.id);
       return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
         <span>${icon}</span>
         <div style="flex:1;min-width:0">
-          <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer" onclick="openDrawer('${escAttr(o.item.id)}')">${escHtml(o.item.name)}</div>
+          <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer" onclick="openDrawer('${eid}')">${escHtml(o.item.name)}</div>
           <div style="font-size:10px;color:var(--muted)">${escHtml(o.suggestedAction)}</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div style="font-size:12px;font-family:'DM Mono',monospace;color:${color}">${fmt(o.currentPrice)} → ${fmt(o.compMedian)}</div>
           <div style="font-size:9px;color:var(--muted)">${o.compCount} comps</div>
         </div>
+        ${o.suggestedPrice > 0 ? `<button class="btn-xs btn-accent" style="flex-shrink:0;font-size:9px;padding:3px 8px" onclick="arbApplyPrice('${eid}',${o.suggestedPrice})">${fmt(o.suggestedPrice)}</button>` : ''}
       </div>`;
     }).join('');
     slot.innerHTML = `

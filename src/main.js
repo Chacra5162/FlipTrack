@@ -80,7 +80,7 @@ import {
   toggleBundleMode, filterBundleItems, toggleBundleItem, _updateBundlePriceHint,
   setSalesSearch, setSalesDateFrom, setSalesDateTo, clearSalesFilters
 } from './views/sales.js';
-import { renderInsights } from './views/insights.js';
+import { renderInsights, arbApplyPrice } from './views/insights.js';
 import {
   renderProfitDashboard,
   setProfitDateRange, setProfitSearch, setProfitPlatFilter,
@@ -295,7 +295,7 @@ import { renderSourcingAnalytics, showSourceItems } from './features/sourcing-an
 import { renderPlatformROI } from './features/platform-roi.js';
 import { renderPeriodCompare } from './features/period-compare.js';
 import { renderReturns, openReturnModal, closeReturnModal, submitReturn } from './features/returns.js';
-import { renderListingScores, scoreItem, lsAutoFixTitle, renderDrawerScore } from './features/listing-score.js';
+import { renderListingScores, scoreItem, lsAutoFixTitle, lsToggleDetail, renderDrawerScore } from './features/listing-score.js';
 import { computeFlipScore } from './features/flip-score.js';
 import { computeSourceScore } from './features/source-score.js';
 import { scanArbitrageOpportunities } from './features/arbitrage-alerts.js';
@@ -864,8 +864,9 @@ Object.assign(window, {
   renderPlatformROI,
   renderPeriodCompare,
   renderReturns, openReturnModal, closeReturnModal, submitReturn,
-  renderListingScores, scoreItem, lsAutoFixTitle, renderDrawerScore,
+  renderListingScores, scoreItem, lsAutoFixTitle, lsToggleDetail, renderDrawerScore,
   renderMarginAlerts, updateMarginThreshold, initMarginAlerts,
+  arbApplyPrice,
 });
 
 // Relist from within the drawer modal
