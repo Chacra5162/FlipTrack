@@ -470,15 +470,35 @@ export async function updateEBayListing(itemId) {
       if (currentPrice > 0) {
         // Strip read-only fields eBay returns but rejects on update
         const { sku: _s, marketplaceId: _m, offerId: _oid, status: _st, listing: _l, ...offerBase } = offer;
+        const isAuctionOffer = (offer.format === 'AUCTION' || item.ebayListingFormat === 'AUCTION');
         const offerUpdate = {
           ...offerBase,
-          pricingSummary: {
-            price: {
-              value: currentPrice.toFixed(2),
-              currency: 'USD',
-            },
-          },
-          availableQuantity: item.qty || 1,
+          pricingSummary: isAuctionOffer
+            ? {
+                auctionStartPrice: {
+                  value: (item.ebayAuctionStart || currentPrice).toFixed(2),
+                  currency: 'USD',
+                },
+                ...(item.ebayAuctionReserve > 0 ? {
+                  auctionReservePrice: {
+                    value: item.ebayAuctionReserve.toFixed(2),
+                    currency: 'USD',
+                  },
+                } : {}),
+                ...(currentPrice > 0 ? {
+                  price: {
+                    value: currentPrice.toFixed(2),
+                    currency: 'USD',
+                  },
+                } : {}),
+              }
+            : {
+                price: {
+                  value: currentPrice.toFixed(2),
+                  currency: 'USD',
+                },
+              },
+          ...(isAuctionOffer ? {} : { availableQuantity: item.qty || 1 }),
         };
 
         console.log('[eBay] Updating offer price to $' + currentPrice.toFixed(2));
