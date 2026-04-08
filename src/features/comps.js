@@ -11,7 +11,7 @@ import { fmt, escHtml, escAttr, ds } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { logPriceChange } from './price-history.js';
 import { pushEBayPrice } from './ebay-sync.js';
-import { isEBayConnected, ebayAPI } from './ebay-auth.js';
+import { isEBayConnected, ebayAPI, getEBayUsername } from './ebay-auth.js';
 
 // ── CACHE ─────────────────────────────────────────────────────────────────
 const CACHE_TTL = 1800000; // 30 minutes
@@ -95,7 +95,7 @@ async function _fetchFromEdge(keyword, opts) {
   if (parsed.error) throw new Error(parsed.error);
 
   // Normalize edge function response
-  const comps = (parsed.comps || []).map(c => ({
+  const rawComps = (parsed.comps || []).map(c => ({
     title: c.title || '',
     price: c.price || 0,
     currency: c.currency || 'USD',
@@ -105,17 +105,24 @@ async function _fetchFromEdge(keyword, opts) {
     sold: c.soldType || 'Buy It Now',
     date: c.soldDate || null,
     shippingCost: c.shippingCost || 0,
+    seller: c.seller || '',
   }));
 
-  return {
-    comps,
-    source: 'eBay',
-    avgPrice: parsed.avgPrice || 0,
-    medianPrice: parsed.medianPrice || 0,
-    lowPrice: parsed.lowPrice || 0,
-    highPrice: parsed.highPrice || 0,
-    count: parsed.count || 0,
-  };
+  // Exclude user's own listings so stats reflect the broader market
+  const myUsername = (getEBayUsername() || '').toLowerCase();
+  const myListingIds = new Set(inv.filter(i => i.ebayListingId).map(i => i.ebayListingId));
+
+  const comps = rawComps.filter(c => {
+    if (myUsername && c.seller && c.seller.toLowerCase() === myUsername) return false;
+    if (c.itemUrl) {
+      const m = c.itemUrl.match(/\/itm\/(\d+)/);
+      if (m && myListingIds.has(m[1])) return false;
+    }
+    return true;
+  });
+
+  // Recalculate stats after filtering
+  return _buildResult(comps, 'eBay');
 }
 
 /**
@@ -129,17 +136,29 @@ async function _fetchViaBrowseAPI(keyword, opts) {
   const data = await ebayAPI('GET', path);
   const items = data?.itemSummaries || [];
 
-  const comps = items.map(item => ({
-    title: item.title || '',
-    price: parseFloat(item.price?.value) || 0,
-    currency: item.price?.currency || 'USD',
-    condition: item.condition || 'Unknown',
-    imageUrl: item.thumbnailImages?.[0]?.imageUrl || item.image?.imageUrl || '',
-    itemUrl: item.itemWebUrl || '',
-    sold: 'eBay Active',
-    date: item.itemCreationDate || '',
-    shippingCost: parseFloat(item.shippingOptions?.[0]?.shippingCost?.value) || 0,
-  })).filter(c => c.price > 0);
+  // Exclude user's own listings so comps reflect other sellers' prices
+  const myUsername = (getEBayUsername() || '').toLowerCase();
+  const myListingIds = new Set(inv.filter(i => i.ebayListingId).map(i => i.ebayListingId));
+
+  const comps = items
+    .filter(item => {
+      const sellerName = (item.seller?.username || '').toLowerCase();
+      if (myUsername && sellerName === myUsername) return false;
+      const legacyId = item.legacyItemId || item.itemId || '';
+      if (legacyId && myListingIds.has(legacyId)) return false;
+      return true;
+    })
+    .map(item => ({
+      title: item.title || '',
+      price: parseFloat(item.price?.value) || 0,
+      currency: item.price?.currency || 'USD',
+      condition: item.condition || 'Unknown',
+      imageUrl: item.thumbnailImages?.[0]?.imageUrl || item.image?.imageUrl || '',
+      itemUrl: item.itemWebUrl || '',
+      sold: 'eBay Active',
+      date: item.itemCreationDate || '',
+      shippingCost: parseFloat(item.shippingOptions?.[0]?.shippingCost?.value) || 0,
+    })).filter(c => c.price > 0);
 
   return _buildResult(comps, 'eBay');
 }
