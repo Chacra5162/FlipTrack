@@ -689,13 +689,22 @@ export function renderInsights() {
   };
   const totalIssues = Object.values(readyChecks).reduce((a, arr) => a + arr.length, 0);
 
-  const checkRow = (icon, label, items, color) => items.length ? `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-    <span style="font-size:14px">${icon}</span>
-    <div style="flex:1">
-      <div style="font-size:12px;font-weight:600;color:${color}">${items.length} item${items.length!==1?'s':''} ${label}</div>
-      <div style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${items.slice(0,3).map(i=>escHtml(i.name)).join(', ')}${items.length>3?'...':''}</div>
-    </div>
-  </div>` : '';
+  const checkRow = (icon, label, items, color) => {
+    if (!items.length) return '';
+    const firstId = escAttr(items[0].id);
+    const fixBtn = `<button class="btn-xs" style="flex-shrink:0;font-size:9px;padding:3px 8px" onclick="openDrawer('${firstId}')">Fix</button>`;
+    const allBtns = items.length > 1
+      ? `<button class="btn-xs" style="flex-shrink:0;font-size:9px;padding:3px 8px;margin-left:3px" onclick="readinessFixAll('${escAttr(label)}')">All ${items.length}</button>`
+      : '';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+      <span style="font-size:14px">${icon}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:600;color:${color}">${items.length} item${items.length!==1?'s':''} ${label}</div>
+        <div style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${items.slice(0,3).map(i=>escHtml(i.name)).join(', ')}${items.length>3?'...':''}</div>
+      </div>
+      ${fixBtn}${allBtns}
+    </div>`;
+  };
 
   const readyContent = checkRow('📷', 'missing photos', readyChecks.noPhoto, 'var(--accent2)') +
     checkRow('💰', 'missing price', readyChecks.noPrice, 'var(--danger)') +
@@ -1120,6 +1129,39 @@ function _buildWeeklyTrend(salesData, getItem) {
       <span style="color:var(--muted)">Total: ${weeks.reduce((a, w) => a + w.units, 0)} units · $${weeks.reduce((a, w) => a + w.revenue, 0).toFixed(0)} rev</span>
     </div>
   </div>`;
+}
+
+// ── Listing Readiness: fix all items with a specific issue ───────────────────
+let _readinessQueue = [];
+let _readinessIdx = 0;
+
+export function readinessFixAll(label) {
+  const inStock = inv.filter(i => (i.qty != null ? i.qty : 1) > 0);
+  let items = [];
+  if (label.includes('photos')) items = inStock.filter(i => !i.images || !i.images.length);
+  else if (label.includes('price')) items = inStock.filter(i => !i.price);
+  else if (label.includes('platform')) items = inStock.filter(i => { const p = getPlatforms(i); return !p.length || (p.length === 1 && (p[0] === 'Unlisted' || p[0] === 'Other')); });
+  else if (label.includes('cost')) items = inStock.filter(i => !i.cost);
+  else if (label.includes('category')) items = inStock.filter(i => !i.category);
+  else if (label.includes('condition')) items = inStock.filter(i => !i.condition);
+  if (!items.length) { toast('All fixed!'); return; }
+  _readinessQueue = items.map(i => i.id);
+  _readinessIdx = 0;
+  toast(`Fix ${_readinessQueue.length} items — save & close each to advance`);
+  window.openDrawer(_readinessQueue[0]);
+}
+
+export function readinessNext() {
+  if (!_readinessQueue.length) return;
+  _readinessIdx++;
+  if (_readinessIdx < _readinessQueue.length) {
+    toast(`${_readinessIdx + 1} of ${_readinessQueue.length} — keep going!`);
+    window.openDrawer(_readinessQueue[_readinessIdx]);
+  } else {
+    toast(`Done! Fixed ${_readinessQueue.length} items ✓`);
+    _readinessQueue = [];
+    _readinessIdx = 0;
+  }
 }
 
 // ── Arbitrage: apply suggested price ─────────────────────────────────────────

@@ -535,6 +535,9 @@ export async function saveDrawer(){
   _drawerDirty = false;
   save(); closeDrawer(); refresh(); _sfx.edit(); toast('Changes saved ✓');
 
+  // Advance readiness fix queue if active
+  if (window.readinessNext) window.readinessNext();
+
   // Fire marketplace syncs in background (non-blocking)
   if (priceChanged && item.etsyListingId) {
     pushEtsyPrice(item.id).then(() => {

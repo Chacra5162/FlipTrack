@@ -80,7 +80,7 @@ import {
   toggleBundleMode, filterBundleItems, toggleBundleItem, _updateBundlePriceHint,
   setSalesSearch, setSalesDateFrom, setSalesDateTo, clearSalesFilters
 } from './views/sales.js';
-import { renderInsights, arbApplyPrice } from './views/insights.js';
+import { renderInsights, arbApplyPrice, readinessFixAll, readinessNext } from './views/insights.js';
 import {
   renderProfitDashboard,
   setProfitDateRange, setProfitSearch, setProfitPlatFilter,
@@ -867,6 +867,7 @@ Object.assign(window, {
   renderListingScores, scoreItem, lsAutoFixTitle, lsToggleDetail, renderDrawerScore,
   renderMarginAlerts, updateMarginThreshold, initMarginAlerts,
   arbApplyPrice,
+  readinessFixAll, readinessNext,
 });
 
 // Relist from within the drawer modal
