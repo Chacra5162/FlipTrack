@@ -47,6 +47,7 @@ import { PLATFORMS, PLATFORM_GROUPS, platCls } from '../config/platforms.js';
 import { SUBCATS, SUBSUBCATS } from '../config/categories.js';
 import { toast, appConfirm } from '../utils/dom.js';
 import { pushDeleteToCloud, autoSync } from '../data/sync.js';
+import { thumbUrl } from '../data/storage.js';
 import { getPlatforms, renderPlatTags, sanitizePlatforms } from '../features/platforms.js';
 import { getDaysUntilExpiry } from '../features/crosslist.js';
 import { getItemImages } from '../features/images.js';
@@ -458,16 +459,17 @@ export function renderInv() {
       const eid = escAttr(item.id);
       const _imgs = getItemImages(item);
       const _img0 = _imgs[0];
+      const _thumb0 = thumbUrl(_img0, 150);
       return `<tr data-id="${eid}" class="${isSel?'sel':''}">
         <td class="cb-col"><input type="checkbox" ${isSel?'checked':''} onchange="toggleSel('${eid}',this)"></td>
         <td><span class="drag-handle" draggable="true" ondragstart="dStart(event,'${eid}')" ondragover="dOver(event)" ondrop="dDrop(event,'${eid}')">⠿</span></td>
         <td>${_img0
-          ? `<img class="item-thumb" loading="lazy" src="${escAttr(_img0)}" alt="${escHtml(item.name)}" onclick="openLightbox('${eid}')">`
+          ? `<img class="item-thumb" loading="lazy" src="${escAttr(_thumb0)}" alt="${escHtml(item.name)}" onclick="openLightbox('${eid}')">`
           : `<div class="item-thumb-placeholder" title="Add photo" onclick="openDrawer('${eid}')">＋</div>`
         }</td>
         <td>
           <div class="item-name-row">${_img0
-            ? `<img class="item-thumb-inline" loading="lazy" src="${escAttr(_img0)}" alt="" onclick="event.stopPropagation();openLightbox('${eid}')">`
+            ? `<img class="item-thumb-inline" loading="lazy" src="${escAttr(_thumb0)}" alt="" onclick="event.stopPropagation();openLightbox('${eid}')">`
             : ''}<div class="item-name" onclick="openDrawer('${eid}')">${escHtml(item.name)}</div></div>
           <div class="item-meta"><span class="item-sku">${escHtml(item.sku||'—')}</span>${item.upc?`<span class="upc-tag">${escHtml(item.upc)}</span>`:''}${item.category?`<span class="cat-tag">${escHtml(item.category)}</span>`:''} ${item.subcategory?`<span class="cat-tag" style="background:rgba(87,200,255,0.1);color:var(--accent)">${escHtml(item.subcategory)}</span>`:''} ${item.subtype?`<span class="cat-tag" style="background:rgba(123,97,255,0.15);color:var(--accent3)">${escHtml(item.subtype)}</span>`:''} ${item.condition?`<span class="cat-tag" style="background:rgba(87,255,154,0.08);color:var(--good)">${escHtml(item.condition)}</span>`:''} ${item.source?`<span class="cat-tag" style="background:rgba(255,107,53,0.1);color:var(--accent2)">📍${escHtml(item.source)}</span>`:''}${item.author?`<span class="book-meta-tag">✍ ${escHtml(item.author)}</span>`:''}${item.edition?`<span class="book-meta-tag">${escHtml(item.edition)} ed.</span>`:''}${item.signed?`<span class="book-meta-tag" style="background:rgba(255,215,0,0.15);color:#d4a017;border-color:rgba(255,215,0,0.3)">✒ Signed</span>`:''}</div>
         </td>
@@ -533,10 +535,11 @@ function _renderCardView(pageItems) {
     const eid = escAttr(item.id);
     const _imgs = getItemImages(item);
     const _img0 = _imgs[0];
+    const _thumb0 = thumbUrl(_img0, 300);
     const variantBadge = _isParent ? `<span style="font-size:9px;color:var(--accent3);font-family:'DM Mono',monospace">${getVariants(item.id).length} variants</span>` : '';
     return `<div class="inv-card" data-id="${eid}">
       ${_img0
-        ? `<img class="inv-card-img" loading="lazy" src="${escAttr(_img0)}" alt="${escHtml(item.name)}" onclick="openLightbox('${eid}')">`
+        ? `<img class="inv-card-img" loading="lazy" src="${escAttr(_thumb0)}" alt="${escHtml(item.name)}" onclick="openLightbox('${eid}')">`
         : `<div class="inv-card-img-placeholder" onclick="openDrawer('${eid}')">+</div>`
       }
       <div class="inv-card-body">

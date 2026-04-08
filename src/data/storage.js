@@ -74,6 +74,18 @@ export async function deleteImageFromStorage(url) {
 // Only treat URLs from our own Supabase storage as valid storage URLs
 export const isStorageUrl = s => typeof s === 'string' && s.startsWith(SB_URL + '/storage/');
 
+// ── THUMBNAIL URL — serve smaller images via Supabase Image Transformation ──
+// Replaces /object/public/ with /object/public/ + render/image/... to request
+// a resized version, drastically reducing bandwidth for list views.
+export function thumbUrl(url, width = 150) {
+  if (!url || !isStorageUrl(url)) return url || '';
+  // Supabase transform: /render/image appended before /public/ path
+  return url.replace(
+    '/storage/v1/object/public/',
+    `/storage/v1/render/image/public/`
+  ) + `?width=${width}&resize=contain`;
+}
+
 // ── MIGRATE BASE64 IMAGES TO STORAGE ───────────────────────────────────────
 export async function migrateImagesToStorage() {
   const _sb = getSupabaseClient();
