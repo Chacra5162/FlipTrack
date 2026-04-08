@@ -156,7 +156,7 @@ export function generateStockAlerts() {
   localStorage.setItem('ft_notif_stock_check', now.toString());
 
   const outOfStock = inv.filter(i => i.bulk && i.qty === 0);
-  const lowStock = inv.filter(i => i.bulk && i.qty > 0 && i.qty <= (i.lowAlert || 2));
+  const lowStock = inv.filter(i => i.bulk && i.lowAlertEnabled && i.qty > 0 && i.qty <= (i.lowAlert || 2));
   const stale = inv.filter(i => {
     if ((i.qty || 0) <= 0) return false;
     const days = Math.floor((now - new Date(i.added || now).getTime()) / 86400000);

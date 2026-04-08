@@ -77,7 +77,7 @@ export function checkStockAlerts() {
   if (now - parseInt(lastCheck) < 3600000) return;
 
   const outOfStock = inv.filter(i => (i.qty || 0) === 0 && i.bulk);
-  const lowStock = inv.filter(i => i.bulk && (i.qty || 0) > 0 && (i.qty || 0) <= (i.lowAlert || 2));
+  const lowStock = inv.filter(i => i.bulk && i.lowAlertEnabled && (i.qty || 0) > 0 && (i.qty || 0) <= (i.lowAlert || 2));
 
   // Check supplies too
   const lowSupplies = supplies.filter(s => (s.qty || 0) > 0 && (s.qty || 0) <= (s.lowAlert || 5));
