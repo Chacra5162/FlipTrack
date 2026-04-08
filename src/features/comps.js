@@ -29,6 +29,19 @@ let _compsCache = {}; // key → { results, ts }
  * @param {number} [opts.limit=25]
  * @returns {Promise<{ comps: Array, source: string, avgPrice: number, medianPrice: number, lowPrice: number, highPrice: number, count: number }>}
  */
+/**
+ * Shorten a verbose listing title to key search terms for better comp matching.
+ * Keeps brand, key nouns, and drops filler words. Max ~8 meaningful words.
+ */
+function _simplifyKeyword(keyword) {
+  const stop = new Set(['the','a','an','and','or','for','with','in','on','of','to','is','it',
+    'this','that','new','brand','free','shipping','fast','lot','set','by','from','nwt','nib',
+    'bnwt','bnib','authentic','genuine','original','official','sealed','pack','item']);
+  const words = keyword.replace(/[^\w\s]/g, ' ').split(/\s+/).filter(w => w.length > 1 && !stop.has(w.toLowerCase()));
+  // Keep first 8 meaningful words — enough for specificity without over-constraining
+  return words.slice(0, 8).join(' ');
+}
+
 export async function fetchComps(keyword, opts = {}) {
   if (!keyword || keyword.trim().length < 2) return _emptyResult();
 
@@ -39,7 +52,7 @@ export async function fetchComps(keyword, opts = {}) {
     return _compsCache[cacheKey].results;
   }
 
-  // Try edge function (app-level eBay Browse API)
+  // Try edge function (app-level eBay Browse API — searches SOLD listings)
   try {
     const result = await _fetchFromEdge(keyword.trim(), opts);
     if (result.count > 0) {
@@ -50,10 +63,17 @@ export async function fetchComps(keyword, opts = {}) {
     console.warn('FlipTrack: comps-lookup edge error:', e.message);
   }
 
-  // Fallback: use user's own eBay OAuth to search sold listings via Browse API
+  // Fallback: use user's own eBay OAuth to search active listings via Browse API
+  // Try full keyword first, then simplified version for broader results
   if (isEBayConnected()) {
     try {
-      const result = await _fetchViaBrowseAPI(keyword.trim(), opts);
+      let result = await _fetchViaBrowseAPI(keyword.trim(), opts);
+      if (result.count === 0) {
+        const simplified = _simplifyKeyword(keyword.trim());
+        if (simplified !== keyword.trim() && simplified.length >= 3) {
+          result = await _fetchViaBrowseAPI(simplified, opts);
+        }
+      }
       if (result.count > 0) {
         _compsCache[cacheKey] = { results: result, ts: Date.now() };
         return result;
@@ -131,7 +151,13 @@ async function _fetchFromEdge(keyword, opts) {
 async function _fetchViaBrowseAPI(keyword, opts) {
   const limit = opts.limit || 25;
   const q = encodeURIComponent(keyword);
-  const path = `/buy/browse/v1/item_summary/search?q=${q}&sort=price&limit=${limit}`;
+  // Search active listings sorted by price, with condition filter if available
+  let path = `/buy/browse/v1/item_summary/search?q=${q}&sort=price&limit=${limit}`;
+  if (opts.condition) {
+    const condMap = { 'new': 'NEW', 'like new': 'LIKE_NEW', 'good': 'GOOD', 'fair': 'ACCEPTABLE', 'poor': 'FOR_PARTS_OR_NOT_WORKING' };
+    const ebayCondition = condMap[(opts.condition || '').toLowerCase()];
+    if (ebayCondition) path += `&filter=conditions:{${ebayCondition}}`;
+  }
 
   const data = await ebayAPI('GET', path);
   const items = data?.itemSummaries || [];
