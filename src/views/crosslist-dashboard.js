@@ -561,7 +561,7 @@ Category: {category}
     </div>
   </div>`;
   document.body.insertAdjacentHTML('beforeend', html);
-  document.getElementById('clTplName').focus();
+  document.getElementById('clTplName')?.focus();
 }
 
 export async function clSaveTemplate(modalId) {

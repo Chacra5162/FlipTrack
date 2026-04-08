@@ -137,7 +137,7 @@ export function openEditSaleModal(saleId) {
   const infoEl = document.getElementById('soldInfo');
   infoEl.innerHTML = `
     <div class="sir"><span class="k">Item</span><span>${escHtml(item.name)}</span></div>
-    <div class="sir"><span class="k">Platforms</span><span>${getPlatforms(item).join(', ') || '—'}</span></div>
+    <div class="sir"><span class="k">Platforms</span><span>${getPlatforms(item).map(p => escHtml(p)).join(', ') || '—'}</span></div>
     <div class="sir"><span class="k">Cost</span><span>${fmt(item.cost)}</span></div>
     <div class="sir"><span class="k">List Price</span><span>${fmt(item.price)}</span></div>
     <div class="sir"><span class="k">Expected Profit</span><span style="color:var(--good)">${fmt(pu)} (${pct(m)})</span></div>
@@ -155,9 +155,9 @@ export function openEditSaleModal(saleId) {
   const others = PLATFORMS.filter(p => !itemPlats.includes(p));
   const sel = document.getElementById('s_platform');
   sel.innerHTML = [
-    ...itemPlats.map(p => `<option value="${p}">${escHtml(p)} ★</option>`),
+    ...itemPlats.map(p => `<option value="${escAttr(p)}">${escHtml(p)} ★</option>`),
     `<option value="" disabled>${itemPlats.length ? '── Other platforms ──' : '── Select platform ──'}</option>`,
-    ...others.map(p => `<option value="${p}">${escHtml(p)}</option>`)
+    ...others.map(p => `<option value="${escAttr(p)}">${escHtml(p)}</option>`)
   ].join('');
   sel.value = sale.platform || (itemPlats.length ? itemPlats[0] : '');
 
@@ -202,7 +202,7 @@ function _populateSoldModal(item) {
   const pickerHtml = pickerEl ? pickerEl.parentElement.outerHTML : '';
   infoEl.innerHTML = pickerHtml + `
     <div class="sir"><span class="k">Item</span><span>${escHtml(item.name)}</span></div>
-    <div class="sir"><span class="k">Platforms</span><span>${getPlatforms(item).join(', ') || '—'}</span></div>
+    <div class="sir"><span class="k">Platforms</span><span>${getPlatforms(item).map(p => escHtml(p)).join(', ') || '—'}</span></div>
     <div class="sir"><span class="k">Cost</span><span>${fmt(item.cost)}</span></div>
     <div class="sir"><span class="k">List Price</span><span>${fmt(item.price)}</span></div>
     <div class="sir"><span class="k">Expected Profit</span><span style="color:var(--good)">${fmt(pu)} (${pct(m)})</span></div>
@@ -224,7 +224,7 @@ function _populateSoldModal(item) {
   sel.innerHTML = [
     ...itemPlats.map(p => `<option value="${p}" selected>${escHtml(p)} ★</option>`),
     `<option value="" disabled>${itemPlats.length ? '── Other platforms ──' : '── Select platform ──'}</option>`,
-    ...others.map(p => `<option value="${p}">${escHtml(p)}</option>`)
+    ...others.map(p => `<option value="${escAttr(p)}">${escHtml(p)}</option>`)
   ].join('');
   if (itemPlats.length) sel.value = itemPlats[0];
   sPriceType('each');

@@ -285,9 +285,9 @@ export function renderPhotoToolsPanel(imgSrc, itemId) {
   }
 
   return `
-    <div class="pt-panel" data-item="${escHtml(itemId)}">
+    <div class="pt-panel" data-item="${escAttr(itemId)}">
       <div class="pt-preview">
-        <img src="${escHtml(imgSrc)}" id="ptPreview" class="pt-img" alt="Preview">
+        <img src="${escAttr(imgSrc)}" id="ptPreview" class="pt-img" alt="Preview">
       </div>
       <div class="pt-tools">
         <button class="pt-btn" onclick="ptAutoCrop('${escAttr(itemId)}')" title="Auto-crop whitespace">

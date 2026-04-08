@@ -1098,7 +1098,7 @@ function applyFontSize(val, doSave = true) {
   document.querySelectorAll('.view, .drawer-bd, .modal-bd').forEach(el => {
     el.style.zoom = scale;
   });
-  document.getElementById('fsSlider').value = v;
+  const fsEl = document.getElementById('fsSlider'); if (fsEl) fsEl.value = v;
   document.querySelectorAll('.fs-preset').forEach(b => {
     b.classList.toggle('active', parseInt(b.textContent === 'Small' ? 80 : b.textContent === 'Default' ? 100 : b.textContent === 'Large' ? 115 : 130) === v);
   });
@@ -1145,7 +1145,7 @@ function openGlobalSearch() {
   document.getElementById('gsBackdrop')?.classList.add('on');
   const inp = document.getElementById('globalSearchInput');
   if (inp) { inp.value = ''; inp.focus(); }
-  document.getElementById('globalSearchResults').innerHTML = '';
+  const gsr = document.getElementById('globalSearchResults'); if (gsr) gsr.innerHTML = '';
 }
 
 function closeGlobalSearch() {
@@ -1285,7 +1285,7 @@ setTimeout(_killSplash, 3000);
   try {
 
   // Normalize category names to prevent duplicates (e.g., "Men's Clothing" vs "Men's clothing")
-  try { const n = normalizeAllCategories(); if (n > 0) { save(); console.log(`FlipTrack: Normalized ${n} category names`); } } catch(e) {}
+  try { const n = normalizeAllCategories(); if (n > 0) { save(); console.warn(`FlipTrack: Normalized ${n} category names`); } } catch(e) {}
 
   // Build initial state — restore last viewed page on refresh
   try {
@@ -1346,7 +1346,7 @@ setTimeout(_killSplash, 3000);
         applyNavLocks();
         const tier = getUserTier();
         const names = { pro: 'Pro', unlimited: 'Unlimited' };
-        toast(`Welcome to FlipTrack ${names[tier] || tier}! All features are now unlocked.`);
+        toast(`Welcome to FlipTrack ${names[tier] || tier}! All features are ready.`);
         // Initialize Pro features that were deferred for Free tier
         if (tier !== 'free') {
           try {

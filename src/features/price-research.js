@@ -242,7 +242,7 @@ export function renderPriceResults(upc, product) {
 
   // Product card
   const productCard = `<div class="pr-product-card">
-    ${img ? `<img class="pr-product-img" src="${img}" alt="" onerror="this.style.display='none'">` : ''}
+    ${img ? `<img class="pr-product-img" src="${escAttr(img)}" alt="" onerror="this.style.display='none'">` : ''}
     <div>
       <div class="pr-product-name">${escHtml(name)}</div>
       <div class="pr-product-meta">

@@ -264,7 +264,7 @@ export function renderSourcingView() {
                       <div style="color:var(--muted);font-size:11px">${ds(haul.date)} · ${haulItems.length} item${haulItems.length !== 1 ? 's' : ''}</div>
                     </div>
                     <div style="text-align:right;display:flex;align-items:center;gap:8px">
-                      ${haul.receiptImage ? `<img src="${haul.receiptImage}" style="width:40px;height:40px;object-fit:cover;border-radius:2px;cursor:pointer" onclick="event.stopPropagation();window.open(this.src)" alt="Receipt">` : ''}
+                      ${haul.receiptImage ? `<img src="${escAttr(haul.receiptImage)}" style="width:40px;height:40px;object-fit:cover;border-radius:2px;cursor:pointer" onclick="event.stopPropagation();window.open(this.src)" alt="Receipt">` : ''}
                       <div>
                         <div style="font-weight:700;color:var(--accent2)">${fmt(haul.totalSpent)}</div>
                         <div style="color:${roiColor};font-size:11px;font-weight:700">${pct(haulROI.roi)}</div>

@@ -210,6 +210,11 @@ export async function authSignOut() {
   localStorage.removeItem('etsy_token');
   localStorage.removeItem('ebay_sync_cache');
   localStorage.removeItem('etsy_sync_cache');
+  // Clear push notification and stock alert state
+  localStorage.removeItem('ft_notif_perm');
+  localStorage.removeItem('ft_notif_lastcheck');
+  localStorage.removeItem('ft_notif_stock_check');
+  localStorage.removeItem('ft_vapid_public_key');
 
   // ── CLEAR SYNC METADATA FROM INDEXEDDB ────────────────────────────────
   await deleteMeta('lastSyncPush').catch(e => console.warn('FlipTrack: delete lastSyncPush failed:', e.message));

@@ -10,7 +10,7 @@ import { SB_URL } from '../config/constants.js';
 // ── STORAGE CONFIGURATION ──────────────────────────────────────────────────
 const IMG_BUCKET = 'item-images';
 
-// ── BASE64 → BLOB (robust, works on all browsers including mobile Safari) ──
+// ── BASE64 → BLOB (works on all browsers including mobile Safari) ──
 function dataUrlToBlob(dataUrl) {
   try {
     const [header, b64] = dataUrl.split(',');

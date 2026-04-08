@@ -160,7 +160,7 @@ function _renderWnShowsTab() {
           const isSold = show.soldItems?.[itemId];
           html += `<div class="wn-show-item${isSold ? ' wn-item-sold' : ''}">
             <span class="wn-item-num">${i + 1}</span>
-            ${imgUrl ? `<img class="wn-item-thumb" src="${escHtml(imgUrl)}" alt="">` : `<span class="wn-item-thumb wn-item-nophoto">📦</span>`}
+            ${imgUrl ? `<img class="wn-item-thumb" src="${escAttr(imgUrl)}" alt="">` : `<span class="wn-item-thumb wn-item-nophoto">📦</span>`}
             <div class="wn-item-info">
               <span class="wn-item-name">${escHtml(item.name || 'Untitled')}${isSold ? ' <span class="wn-sold-tag">SOLD</span>' : ''}</span>
               <span class="wn-item-detail">${escHtml(item.condition || '')} ${item.price ? fmt(item.price) : ''}${item.binLocation ? ` · 📍${escHtml(item.binLocation)}` : ''}</span>

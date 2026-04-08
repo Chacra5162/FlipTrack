@@ -43,7 +43,7 @@ export function renderInsights() {
     const addedDate = new Date(item.added || now);
     const daysListed = Math.floor((now - addedDate) / msDay);
     const margin    = revenue > 0 ? profit / revenue : 0;
-    const roi       = item.cost > 0 ? profit / (item.cost * (unitsSold || 1)) : 0;
+    const roi       = item.cost > 0 ? profit / item.cost : 0;
     const recentSales30 = itemSales.filter(s => new Date(s.date) >= day30);
     return { item, itemSales, revenue, unitsSold, profit, lastSale, daysSinceSale, daysListed, margin, roi, recentSales30 };
   });

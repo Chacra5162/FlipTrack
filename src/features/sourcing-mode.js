@@ -4,7 +4,7 @@
  */
 
 import { inv, save, refresh, markDirty } from '../data/store.js';
-import { uid, fmt, pct, escHtml, localDate } from '../utils/format.js';
+import { uid, fmt, pct, escHtml, escAttr, localDate } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { computeSourceScore } from './source-score.js';
 import { setPendingAddImages } from '../modals/add-item.js';
@@ -384,7 +384,7 @@ function _renderSourcingUI(state, errorMsg) {
             const clickAttr = safeUrl ? ` onclick="window.open('${escAttr(safeUrl)}','_blank')" style="display:flex;align-items:center;gap:8px;padding:8px 6px;border-bottom:1px solid var(--border);cursor:pointer;border-radius:6px;transition:background 0.15s"` : ` style="display:flex;align-items:center;gap:8px;padding:8px 6px;border-bottom:1px solid var(--border)"`;
             return `
             <div${clickAttr}>
-              ${c.image ? `<img src="${escHtml(c.image)}" style="width:44px;height:44px;object-fit:cover;border-radius:6px;flex-shrink:0" loading="lazy" alt="">` : ''}
+              ${c.image ? `<img src="${escAttr(c.image)}" style="width:44px;height:44px;object-fit:cover;border-radius:6px;flex-shrink:0" loading="lazy" alt="">` : ''}
               <div style="flex:1;overflow:hidden">
                 <div style="font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(c.title || '')}</div>
                 <div style="font-size:10px;color:var(--muted)">${escHtml(c.condition || '')}${c.sold ? ' · ' + escHtml(c.sold) : ''}${safeUrl ? ' · tap to view' : ''}</div>

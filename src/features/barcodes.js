@@ -75,7 +75,7 @@ export function printStickers(selectedOnly, ids) {
     const val   = makeBarcodeValue(item);
     const price = '$' + Number(item.price||0).toFixed(2);
     const imgHtml = getItemImages(item)[0]
-      ? `<img class="st-photo" src="${getItemImages(item)[0]}" alt="">`
+      ? `<img class="st-photo" src="${escAttr(getItemImages(item)[0])}" alt="">`
       : '';
     const cats = [item.category, item.subcategory, item.subtype].filter(Boolean).join(' › ');
     return `

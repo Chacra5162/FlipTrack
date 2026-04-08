@@ -1,7 +1,7 @@
 /**
  * inventory-health.js — Inventory Health Dashboard
  * Aging breakdown, turnover rates, ROI ranking, composition charts,
- * and actionable insights about where money is stuck.
+ * and highlights where money is stuck.
  */
 
 import { inv, sales, getInvItem, getSalesForItem } from '../data/store.js';
