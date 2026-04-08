@@ -182,9 +182,15 @@ export async function pullEBayListings() {
 
           if (listingId) seenListingIds.add(listingId);
 
-          // Match to local item by listingId, SKU, or ebayItemId
+          // Match to local item by listingId, SKU, ebayItemId, or fuzzy name
+          const titleLower = title.toLowerCase().trim();
           let local = byListingId.get(listingId)
             || (sku && (bySku.get(sku) || byEbayId.get(sku)))
+            || (titleLower && inv.find(i =>
+              i.platforms?.includes('eBay') &&
+              (!i.ebayListingId || !seenListingIds.has(i.ebayListingId)) &&
+              i.name && i.name.toLowerCase().trim() === titleLower
+            ))
             || null;
 
           if (local) {
@@ -499,11 +505,13 @@ export async function pullEBayListings() {
                 const imageUrl = summary.image?.imageUrl || '';
 
                 // Match by listingId first, then by ebayItemId, then fuzzy name match
+                // Name match also catches relisted items whose old listingId is stale
                 const titleLower = title.toLowerCase().trim();
                 let local = byListingId.get(legacyId)
                   || byEbayId.get(`ebay-${legacyId}`)
                   || (titleLower && inv.find(i =>
-                    i.platforms?.includes('eBay') && !i.ebayListingId &&
+                    i.platforms?.includes('eBay') &&
+                    (!i.ebayListingId || !seenListingIds.has(i.ebayListingId)) &&
                     i.name && i.name.toLowerCase().trim() === titleLower
                   ))
                   || null;
