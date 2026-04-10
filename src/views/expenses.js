@@ -43,7 +43,7 @@ export function addExpense() {
   }
 
   if (!date)         { toast('Please enter a date', true); return; }
-  if (new Date(date + 'T23:59:59') > new Date()) { toast('Date cannot be in the future', true); return; }
+  if (date.slice(0, 10) > localDate()) { toast('Date cannot be in the future', true); return; }
   if (!desc)         { toast('Please enter a description', true); return; }
   if (!amt || amt<=0){ toast('Please enter a valid amount', true); return; }
 
