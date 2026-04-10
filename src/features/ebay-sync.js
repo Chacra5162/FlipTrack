@@ -933,8 +933,37 @@ async function _backfillOrderData(order) {
     console.warn('FlipTrack: backfill tracking fetch error:', e.message);
   }
 
+  // Compute fee / shipping breakdown from order pricing summary once
+  // (used to backfill sales recorded before fees were captured)
+  const orderSubtotal = parseFloat(order.pricingSummary?.priceSubtotal?.value || '0');
+  const orderDelivery = parseFloat(order.pricingSummary?.deliveryCost?.value || '0');
+  const orderFee = parseFloat(order.pricingSummary?.fee?.value || '0');
+
   let updated = false;
   for (const sale of existing) {
+    // Backfill fees and shipping label cost if missing
+    if ((!sale.fees || sale.fees === 0) && orderFee > 0) {
+      const lineItem = (order.lineItems || []).find(li => {
+        const lineTotal = parseFloat(li.total?.value || '0');
+        return Math.abs(lineTotal - (sale.price * sale.qty)) < 0.01
+          || Math.abs(lineTotal - sale.listPrice * sale.qty) < 0.01;
+      });
+      const lineItemFees = lineItem
+        ? (lineItem.marketplaceFees || []).reduce((s, f) => s + parseFloat(f.amount?.value || '0'), 0)
+        : 0;
+      const lineItemTotal = parseFloat(lineItem?.total?.value || '0');
+      const lineShare = orderSubtotal > 0 ? lineItemTotal / orderSubtotal : 1;
+      sale.fees = Math.round((lineItemFees > 0 ? lineItemFees : orderFee * lineShare) * 100) / 100;
+      updated = true;
+    }
+    if ((!sale.ship || sale.ship === 0) && orderDelivery > 0) {
+      const lineItemTotal = parseFloat(
+        (order.lineItems || []).find(li => Math.abs(parseFloat(li.total?.value || '0') - sale.price * sale.qty) < 0.01)?.total?.value || '0'
+      );
+      const lineShare = orderSubtotal > 0 ? lineItemTotal / orderSubtotal : 1;
+      sale.ship = Math.round(orderDelivery * lineShare * 100) / 100;
+      updated = true;
+    }
     // Backfill tracking
     if (!sale.tracking && trackCode) {
       sale.tracking = trackCode;
@@ -1027,10 +1056,36 @@ async function _syncEBayOrders(lookbackMs) {
         if (local.qty <= 0) {
           autoDlistOnSale(local.id, 'eBay');
         }
-        // Sale price and fees from order
-        const price = parseFloat(lineItem.total?.value || '0');
-        if (price > 0) {
-          logSalePrice(local.id, price, 'eBay');
+
+        // ── Capture full financial breakdown from eBay Fulfillment API ──
+        // Buyer paid: itemSubtotal + shippingBuyerPaid + tax
+        // Seller receives: itemSubtotal + shippingBuyerPaid (tax remitted by eBay)
+        // Seller pays: marketplaceFees + shippingLabelCost
+        // Net = (itemSubtotal + shippingBuyerPaid) - marketplaceFees - shippingLabelCost
+        const itemSubtotal = parseFloat(lineItem.total?.value || '0');
+        // Line-item marketplace fees (FINAL_VALUE_FEE, etc.)
+        const lineItemFees = (lineItem.marketplaceFees || []).reduce((sum, f) =>
+          sum + parseFloat(f.amount?.value || '0'), 0);
+        // Order-level pricing summary (fallback if line item doesn't have fees)
+        const orderDeliveryCost = parseFloat(order.pricingSummary?.deliveryCost?.value || '0');
+        const orderFee = parseFloat(order.pricingSummary?.fee?.value || '0');
+        const orderSubtotal = parseFloat(order.pricingSummary?.priceSubtotal?.value || '0');
+
+        // Prorate order-level fields by this line's share of the subtotal
+        const lineShare = orderSubtotal > 0 ? itemSubtotal / orderSubtotal : 1;
+        const shippingFromBuyer = orderDeliveryCost * lineShare;
+        // Use line-item fees if available, otherwise prorate order fee
+        const fees = lineItemFees > 0 ? lineItemFees : (orderFee * lineShare);
+        // Assume shipping label cost matches buyer shipping (true when using eBay labels).
+        // User can adjust manually if they bought labels elsewhere.
+        const shippingLabelCost = shippingFromBuyer;
+
+        // FlipTrack sale model: price = total seller received, fees = platform fees,
+        // ship = label cost. profit = price - cost - fees - ship.
+        const sellerReceived = itemSubtotal + shippingFromBuyer;
+        const price = soldQty > 1 ? sellerReceived / soldQty : sellerReceived;
+        if (itemSubtotal > 0) {
+          logSalePrice(local.id, itemSubtotal, 'eBay');
         }
 
         // Extract buyer address from shipping instructions
@@ -1043,9 +1098,10 @@ async function _syncEBayOrders(lookbackMs) {
 
         // Create actual sale record (matching recSale() structure)
         const sale = {
-          id: uid(), itemId: local.id, price: soldQty > 1 ? price / soldQty : price,
+          id: uid(), itemId: local.id, price,
           listPrice: local.price || 0, qty: soldQty, platform: 'eBay',
-          fees: 0, ship: 0,
+          fees: Math.round(fees * 100) / 100,
+          ship: Math.round(shippingLabelCost * 100) / 100,
           date: order.creationDate || new Date().toISOString(),
           tracking: null,
           trackingCarrier: null,
