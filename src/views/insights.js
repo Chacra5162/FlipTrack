@@ -677,7 +677,7 @@ export function renderInsights() {
   // Listing Readiness Checklist
   const readyChecks = {
     noPhoto: inv.filter(i => (i.qty != null ? i.qty : 1) > 0 && (!i.images || !i.images.length)),
-    noPrice: inv.filter(i => (i.qty != null ? i.qty : 1) > 0 && !i.price),
+    noPrice: inv.filter(i => (i.qty != null ? i.qty : 1) > 0 && !i.price && !(i.ebayListingFormat === 'AUCTION' && i.ebayAuctionStart > 0)),
     noPlatform: inv.filter(i => {
       if ((i.qty != null ? i.qty : 1) <= 0) return false;
       const p = getPlatforms(i);
@@ -689,12 +689,12 @@ export function renderInsights() {
   };
   const totalIssues = Object.values(readyChecks).reduce((a, arr) => a + arr.length, 0);
 
-  const checkRow = (icon, label, items, color) => {
+  const checkRow = (icon, label, items, color, key) => {
     if (!items.length) return '';
     const firstId = escAttr(items[0].id);
     const fixBtn = `<button class="btn-xs" style="flex-shrink:0;font-size:9px;padding:3px 8px" onclick="openDrawer('${firstId}')">Fix</button>`;
     const allBtns = items.length > 1
-      ? `<button class="btn-xs" style="flex-shrink:0;font-size:9px;padding:3px 8px;margin-left:3px" onclick="readinessFixAll('${escAttr(label)}')">All ${items.length}</button>`
+      ? `<button class="btn-xs" style="flex-shrink:0;font-size:9px;padding:3px 8px;margin-left:3px" onclick="readinessFixAll('${key}')">All ${items.length}</button>`
       : '';
     return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
       <span style="font-size:14px">${icon}</span>
@@ -706,12 +706,12 @@ export function renderInsights() {
     </div>`;
   };
 
-  const readyContent = checkRow('📷', 'missing photos', readyChecks.noPhoto, 'var(--accent2)') +
-    checkRow('💰', 'missing price', readyChecks.noPrice, 'var(--danger)') +
-    checkRow('🏪', 'not listed on any platform', readyChecks.noPlatform, 'var(--warn)') +
-    checkRow('🧾', 'missing cost (can\'t track profit)', readyChecks.noCost, 'var(--warn)') +
-    checkRow('🗂️', 'missing category', readyChecks.noCategory, 'var(--muted)') +
-    checkRow('🏷', 'missing condition', readyChecks.noCondition, 'var(--muted)');
+  const readyContent = checkRow('📷', 'missing photos', readyChecks.noPhoto, 'var(--accent2)', 'photos') +
+    checkRow('💰', 'missing price', readyChecks.noPrice, 'var(--danger)', 'price') +
+    checkRow('🏪', 'not listed on any platform', readyChecks.noPlatform, 'var(--warn)', 'platform') +
+    checkRow('🧾', 'missing cost (can\'t track profit)', readyChecks.noCost, 'var(--warn)', 'cost') +
+    checkRow('🗂️', 'missing category', readyChecks.noCategory, 'var(--muted)', 'category') +
+    checkRow('🏷', 'missing condition', readyChecks.noCondition, 'var(--muted)', 'condition');
 
   const allComplete = inStockCount > 0 && !totalIssues;
   const readySection = inStockCount > 0 ? insightCard('✅', 'Listing Readiness',
@@ -1135,15 +1135,15 @@ function _buildWeeklyTrend(salesData, getItem) {
 let _readinessQueue = [];
 let _readinessIdx = 0;
 
-export function readinessFixAll(label) {
+export function readinessFixAll(key) {
   const inStock = inv.filter(i => (i.qty != null ? i.qty : 1) > 0);
   let items = [];
-  if (label.includes('photos')) items = inStock.filter(i => !i.images || !i.images.length);
-  else if (label.includes('price')) items = inStock.filter(i => !i.price);
-  else if (label.includes('platform')) items = inStock.filter(i => { const p = getPlatforms(i); return !p.length || (p.length === 1 && (p[0] === 'Unlisted' || p[0] === 'Other')); });
-  else if (label.includes('cost')) items = inStock.filter(i => !i.cost);
-  else if (label.includes('category')) items = inStock.filter(i => !i.category);
-  else if (label.includes('condition')) items = inStock.filter(i => !i.condition);
+  if (key === 'photos') items = inStock.filter(i => !i.images || !i.images.length);
+  else if (key === 'price') items = inStock.filter(i => !i.price);
+  else if (key === 'platform') items = inStock.filter(i => { const p = getPlatforms(i); return !p.length || (p.length === 1 && (p[0] === 'Unlisted' || p[0] === 'Other')); });
+  else if (key === 'cost') items = inStock.filter(i => !i.cost);
+  else if (key === 'category') items = inStock.filter(i => !i.category);
+  else if (key === 'condition') items = inStock.filter(i => !i.condition);
   if (!items.length) { toast('All fixed!'); return; }
   _readinessQueue = items.map(i => i.id);
   _readinessIdx = 0;

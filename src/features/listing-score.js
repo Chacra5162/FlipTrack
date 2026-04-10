@@ -97,20 +97,27 @@ export function scoreItem(item) {
   breakdown.push({ ...CRITERIA[2], score: descScore });
 
   // 4. Pricing (15 pts)
+  const isAuction = item.ebayListingFormat === 'AUCTION';
+  const effectivePrice = item.price || (isAuction ? (item.ebayAuctionStart || 0) : 0);
   let pricingScore = 0;
-  if (item.price && item.price > 0) {
+  if (effectivePrice > 0) {
     pricingScore += 8;
     if (item.cost && item.cost > 0) {
-      const margin = (item.price - item.cost) / item.price;
-      if (margin >= 0.3) pricingScore += 7;
-      else if (margin >= 0.15) pricingScore += 4;
-      else pricingScore += 1;
-      if (margin < 0.15) suggestions.push('Low margin — consider raising price or this item may not be worth listing');
+      // For auctions, margin is unpredictable — just credit having a cost set
+      if (isAuction) {
+        pricingScore += 4;
+      } else {
+        const margin = (effectivePrice - item.cost) / effectivePrice;
+        if (margin >= 0.3) pricingScore += 7;
+        else if (margin >= 0.15) pricingScore += 4;
+        else pricingScore += 1;
+        if (margin < 0.15) suggestions.push('Low margin — consider raising price or this item may not be worth listing');
+      }
     } else {
       suggestions.push('Add cost to track profitability');
     }
   } else {
-    suggestions.push('Set a listing price');
+    suggestions.push(isAuction ? 'Set a starting bid price' : 'Set a listing price');
   }
   breakdown.push({ ...CRITERIA[3], score: pricingScore });
 
