@@ -154,16 +154,18 @@ export function openDrawer(id) {
   document.getElementById('dName').textContent=item.name;
   document.getElementById('dSku').textContent=item.sku?`SKU: ${item.sku}`:'No SKU';
   const {pu,m,roi}=calc(item);
+  const isAuction = item.ebayListingFormat === 'AUCTION';
   const iSales=getSalesForItem(id);
   const totSold=iSales.reduce((a,s)=>a+(s.qty||0),0);
   const totRev =iSales.reduce((a,s)=>a+(s.price||0)*(s.qty||0),0);
   const c=sc(item.qty,item.lowAlert,item.bulk,item.lowAlertEnabled);
   const stockColor = c === 'ok' ? 'var(--good)' : c === 'warn' ? 'var(--warn)' : 'var(--danger)';
+  const bidLabel = isAuction ? `<span style="font-size:9px;color:var(--muted)">bid</span>` : '';
   document.getElementById('dMets').innerHTML=`
     <div class="d-met"><div class="dm-lbl">In Stock</div><div class="dm-val" style="color:${stockColor}">${item.qty||0}</div></div>
-    <div class="d-met"><div class="dm-lbl">Profit/Unit</div><div class="dm-val" style="color:var(--good)">${fmt(pu)}</div></div>
-    <div class="d-met"><div class="dm-lbl">Margin</div><div class="dm-val" style="color:var(--accent)">${pct(m)}</div></div>
-    <div class="d-met"><div class="dm-lbl">ROI</div><div class="dm-val" style="color:var(--accent3)">${pct(roi)}</div></div>
+    <div class="d-met"><div class="dm-lbl">${isAuction ? 'Current Bid' : 'Profit/Unit'}</div><div class="dm-val" style="color:var(--good)">${isAuction ? (item.price > 0 ? fmt(item.price) : 'No bids') : fmt(pu)}</div></div>
+    <div class="d-met"><div class="dm-lbl">${isAuction ? 'Start Bid' : 'Margin'}</div><div class="dm-val" style="color:var(--accent)">${isAuction ? fmt(item.ebayStartBid || item.ebayAuctionStart || item.price || 0) : pct(m)}</div></div>
+    <div class="d-met"><div class="dm-lbl">${isAuction ? 'Reserve' : 'ROI'}</div><div class="dm-val" style="color:var(--accent3)">${isAuction ? (item.ebayReservePrice ? fmt(item.ebayReservePrice) : '—') : pct(roi)}</div></div>
     <div class="d-met"><div class="dm-lbl">Units Sold</div><div class="dm-val">${totSold}</div></div>
     <div class="d-met"><div class="dm-lbl">Total Revenue</div><div class="dm-val">${fmt(totRev)}</div></div>`;
   const fields={d_name:'name',d_sku:'sku',d_upc:'upc',d_cat:'category',d_cost:'cost',d_price:'price',d_fees:'fees',d_ship:'ship',d_notes:'notes',d_url:'url',d_alert:'lowAlert',d_source:'source',d_brand:'brand',d_color:'color',d_size:'size',d_sizeType:'sizeType',d_department:'department',d_material:'material',d_mpn:'mpn',d_model:'model',d_style:'style',d_pattern:'pattern',d_ebay_desc:'ebayDesc',d_cond_desc:'conditionDesc',d_fit:'fit',d_closure:'closure',d_neckline:'neckline',d_sleeveLength:'sleeveLength',d_rise:'rise',d_inseam:'inseam',d_garmentCare:'garmentCare',d_occasion:'occasion',d_shoeSize:'shoeSize',d_shoeWidth:'shoeWidth',d_season:'season',d_theme:'theme',d_vintage:'vintage',d_countryMfg:'countryMfg'};
