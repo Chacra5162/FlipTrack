@@ -156,6 +156,14 @@ After every merge to `master` and push, you **MUST**:
 6. **If FAILED**: investigate the failure, fix it, and re-push until the deploy passes
 7. Never move on to the next task or tell the user work is done until deploy is confirmed green
 
+### Required Update Checklist
+After every feature or flow change, you **MUST** update:
+1. **Subscription Tiers** — Check if the feature is gated to Pro/Unlimited; update tier lists in `src/config/tier.js` and the Subscription Tiers section in the User Guide
+2. **Onboarding Tour** — Add/update tour steps in `src/features/onboarding-tour.js` covering the new feature
+3. **User Guide** — Update the relevant section in `FlipTrack-User-Guide-v2.0.html` AND copy to `public/`
+4. **Release Notes** — Add a feature card to the latest version section under "What's New" in the User Guide
+5. **Developer Docs** — Update `CLAUDE.md` (Key Feature Summary), `MODULES_API.md`, `QUICK_REFERENCE.md`, `src/features/README.md`, and `src/data/README.md` as applicable
+
 ## Do NOT
 - Use `innerHTML` with unescaped user data
 - Add new `_daysSince()` implementations — use `daysSince()` from `utils/format.js`
