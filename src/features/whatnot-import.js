@@ -19,7 +19,6 @@ function _validateFile(file, maxMB = 10) {
   return true;
 }
 
-// ── CSV PARSING ─────────────────────────────────────────────────────────────
 function _parseRow(line, sep = ',') {
   const cells = [];
   let cell = '', inQ = false;
@@ -70,7 +69,6 @@ function _findCol(headers, ...aliases) {
   return -1;
 }
 
-// ── ITEM MATCHING ───────────────────────────────────────────────────────────
 function _buildMatchMaps() {
   const bySku = new Map();
   const byName = new Map();
@@ -88,13 +86,11 @@ function _matchItem(productName, sku, maps) {
     const match = maps.bySku.get(_norm(sku));
     if (match) return match;
   }
-  // 2. Exact normalized name match
   const normName = _norm(productName);
   if (normName) {
     const match = maps.byName.get(normName);
     if (match) return match;
   }
-  // 3. Fuzzy: find inventory item whose name is contained in the product name (or vice versa)
   if (normName && normName.length > 5) {
     for (const item of inv) {
       const itemNorm = _norm(item.name);
@@ -115,9 +111,6 @@ function _isDuplicateSale(itemId, date, price) {
   );
 }
 
-
-// ── IMPORT: ORDER HISTORY CSV ────────────────────────────────────────────────
-
 export function importWhatnotOrderCSV(file) {
   if (!_validateFile(file)) return;
 
@@ -128,7 +121,6 @@ export function importWhatnotOrderCSV(file) {
       if (!parsed) { toast('CSV appears empty', true); return; }
       const { headers, rows } = parsed;
 
-      // Detect columns
       const nameIdx   = _findCol(headers, 'productname', 'product', 'itemname', 'item', 'title', 'name');
       const priceIdx  = _findCol(headers, 'paidout', 'payout', 'itemprice', 'saleprice', 'price', 'amount', 'total');
       const dateIdx   = _findCol(headers, 'processeddate', 'date', 'orderdate', 'solddate');
@@ -152,7 +144,6 @@ export function importWhatnotOrderCSV(file) {
       const seenOrderIds = new Set();
 
       for (const cells of rows) {
-        // Skip non-completed orders
         if (statusIdx !== -1) {
           const status = (cells[statusIdx] || '').toLowerCase();
           if (status && !status.includes('complete') && !status.includes('delivered') && !status.includes('shipped')) {
@@ -161,7 +152,6 @@ export function importWhatnotOrderCSV(file) {
           }
         }
 
-        // Deduplicate by order ID within this import
         if (orderIdx !== -1) {
           const orderId = (cells[orderIdx] || '').trim();
           if (orderId && seenOrderIds.has(orderId)) { skipped++; continue; }
@@ -176,7 +166,6 @@ export function importWhatnotOrderCSV(file) {
         const qty = qtyIdx !== -1 ? Math.max(1, parseInt(cells[qtyIdx], 10) || 1) : 1;
         const price = qty > 1 ? Math.round((rawPrice / qty) * 100) / 100 : rawPrice;
 
-        // Parse date
         let saleDate = localDate();
         if (dateIdx !== -1) {
           const raw = (cells[dateIdx] || '').trim();
@@ -188,7 +177,6 @@ export function importWhatnotOrderCSV(file) {
           }
         }
 
-        // Match to inventory
         const item = _matchItem(productName, sku, maps);
         if (!item) {
           unmatched++;
@@ -196,18 +184,15 @@ export function importWhatnotOrderCSV(file) {
           continue;
         }
 
-        // Duplicate check
         if (_isDuplicateSale(item.id, saleDate, price)) {
           skipped++;
           continue;
         }
 
-        // Calculate fees
         let fees = feeIdx !== -1 ? _parseNum(cells[feeIdx]) : 0;
         if (!fees) fees = calcPlatformFee('Whatnot', price) || 0;
         const ship = shipIdx !== -1 ? _parseNum(cells[shipIdx]) : 0;
 
-        // Create sale record
         const sale = {
           id: uid(),
           itemId: item.id,
@@ -220,7 +205,6 @@ export function importWhatnotOrderCSV(file) {
           date: saleDate,
         };
 
-        // Add buyer info
         if (buyerIdx !== -1) {
           const buyerName = _sanitize(cells[buyerIdx]);
           if (buyerName) sale.buyerName = buyerName;
@@ -234,7 +218,6 @@ export function importWhatnotOrderCSV(file) {
         sales.push(sale);
         markDirty('sales', sale.id);
 
-        // Update inventory
         if (item.qty !== undefined) item.qty = Math.max(0, (item.qty || 1) - qty);
         markPlatformStatus(item.id, 'Whatnot', item.qty <= 0 ? 'sold' : 'active');
         markDirty('inv', item.id);
@@ -248,7 +231,6 @@ export function importWhatnotOrderCSV(file) {
         autoSync();
       }
 
-      // Report results
       let msg = `Imported ${imported} Whatnot sale${imported !== 1 ? 's' : ''}`;
       if (skipped) msg += `, ${skipped} skipped`;
       if (unmatched) msg += `, ${unmatched} unmatched`;
@@ -261,9 +243,6 @@ export function importWhatnotOrderCSV(file) {
   };
   reader.readAsText(file);
 }
-
-
-// ── IMPORT: LIVESTREAM REPORT CSV ────────────────────────────────────────────
 
 export function importLivestreamCSV(file, showId) {
   if (!_validateFile(file)) return;
@@ -295,7 +274,6 @@ export function importLivestreamCSV(file, showId) {
         const productName = (cells[nameIdx] || '').trim();
         if (!productName) continue;
 
-        // Determine if this item sold
         let isSold = true;
         if (statusIdx !== -1) {
           const status = (cells[statusIdx] || '').toLowerCase();
@@ -311,31 +289,25 @@ export function importLivestreamCSV(file, showId) {
         const qty = qtyIdx !== -1 ? Math.max(1, parseInt(cells[qtyIdx], 10) || 1) : 1;
         const price = qty > 1 ? Math.round((rawPrice / qty) * 100) / 100 : rawPrice;
 
-        // Match to inventory
         const item = _matchItem(productName, sku, maps);
         if (!item) { skipped++; continue; }
 
-        // If reconciling with a show, try to match item to show items
         if (show && show.items.includes(item.id)) {
-          // Already marked sold in show?
           if (show.soldItems?.[item.id]) {
             reconciled++;
             continue;
           }
         }
 
-        // Check for duplicate sale
         const saleDate = show?.date || localDate();
         if (_isDuplicateSale(item.id, saleDate, price)) {
           skipped++;
           continue;
         }
 
-        // Calculate fees
         let fees = feeIdx !== -1 ? _parseNum(cells[feeIdx]) : 0;
         if (!fees) fees = calcPlatformFee('Whatnot', price) || 0;
 
-        // Create sale record
         const sale = {
           id: uid(),
           itemId: item.id,
@@ -350,7 +322,6 @@ export function importLivestreamCSV(file, showId) {
         sales.push(sale);
         markDirty('sales', sale.id);
 
-        // Update inventory
         if (item.qty !== undefined) item.qty = Math.max(0, (item.qty || 1) - qty);
         markPlatformStatus(item.id, 'Whatnot', item.qty <= 0 ? 'sold' : 'active');
         markDirty('inv', item.id);
@@ -375,9 +346,6 @@ export function importLivestreamCSV(file, showId) {
   reader.readAsText(file);
 }
 
-
-// ── SHOW → SALE BRIDGE ──────────────────────────────────────────────────────
-
 export function createSaleFromShow(showId, itemId, salePrice) {
   const show = getShow(showId);
   const item = getInvItem(itemId);
@@ -386,7 +354,6 @@ export function createSaleFromShow(showId, itemId, salePrice) {
   const price = salePrice || item.price || 0;
   const date = show.date || localDate();
 
-  // Skip if duplicate
   if (_isDuplicateSale(itemId, date, price)) return null;
 
   const fees = calcPlatformFee('Whatnot', price) || 0;
@@ -410,9 +377,6 @@ export function createSaleFromShow(showId, itemId, salePrice) {
 
   return sale.id;
 }
-
-
-// ── BULK SHOW RECONCILIATION ─────────────────────────────────────────────────
 
 export function reconcileShowSales(showId) {
   const show = getShow(showId);
@@ -462,9 +426,6 @@ export function reconcileShowSales(showId) {
   return { created, alreadyRecorded };
 }
 
-
-// ── PAYOUT RECONCILIATION ────────────────────────────────────────────────────
-
 export function getWhatnotSalesInRange(startDate, endDate) {
   return sales.filter(s => {
     if (s.platform !== 'Whatnot') return false;
@@ -511,7 +472,6 @@ export function reconcilePayout(payoutAmount, startDate, endDate) {
   const discrepancy = Math.round((payoutAmount - expectedPayout) * 100) / 100;
   const discrepancyPct = expectedPayout > 0 ? Math.round((discrepancy / expectedPayout) * 10000) / 100 : 0;
 
-  // Classify discrepancy
   let status = 'match';
   if (Math.abs(discrepancy) > 0.50) {
     status = discrepancy > 0 ? 'overpaid' : 'underpaid';

@@ -368,3 +368,30 @@ Two separate tier systems:
 ### Auction Stats in Drawer (`src/modals/drawer.js`)
 - Auction items show Current Bid / Start Bid / Reserve instead of Profit/Margin/ROI
 - Current bid updated from Browse API `currentBidPrice` on each sync cycle
+
+### Whatnot Show Management (`src/features/whatnot-show.js`)
+- Show lifecycle: `createShow()` → `startShow()` (live) → `endShow()` (ended) → `cloneShow()` (template)
+- Item management: `addItemToShow()`, `removeItemFromShow()`, `reorderShowItems()`
+- Sold tracking: `markShowItemSold(showId, itemId, price)` — marks platform status + decrements qty
+- Lots: `addLot()`, `removeLot()` for auction bundling
+- Goals: `setShowRevenueGoal()`, `getShowGoalProgress()`
+- Shipping: `getGlobalShippingQueue()`, `markItemShipped()`
+- Persistence: IndexedDB via `getMeta('whatnot_shows')` / `setMeta()`
+
+### Whatnot Analytics (`src/features/whatnot-analytics.js`)
+- Per-show: `getShowMetrics(show)` — sellThrough, revenue, profit, revenuePerHour, duration
+- Aggregate: `calcBestShowDay()`, `calcBestShowTime()`, `calcCategoryPerformance()`, `calcOverallStats()`
+- Smart Builder: `suggestShowItems(count)` — scores items by margin, history, category, staleness
+- Pricing: `suggestShowBids(showId)`, `suggestStartingBid(itemId)` — data-driven auction bids
+- Actions: `calcInventoryActions()` — prescriptive suggestions (auction, bundle, crosslist, donate)
+- Whatnot fee: 8% commission + 2.9% processing + $0.30 per transaction
+
+### Whatnot CSV Import & Reconciliation (`src/features/whatnot-import.js`)
+- `importWhatnotOrderCSV(file)` — Import Order History CSV, auto-match to inventory, create sales
+- `importLivestreamCSV(file, showId)` — Import Livestream Report CSV, optionally tied to a show
+- `createSaleFromShow(showId, itemId, price)` — Bridge: create sale record from show sold item
+- `reconcileShowSales(showId)` — Bulk create sale records for all sold items missing from Sales
+- `reconcilePayout(amount, startDate, endDate)` — Compare payout vs recorded sales, show discrepancy
+- `getShowPayoutBreakdown(startDate, endDate)` — Per-show revenue/fees/payout detail
+- Matching: SKU (exact) → name (normalized) → name (fuzzy substring)
+- Deduplication: checks existing sales by itemId + date + price to prevent duplicates

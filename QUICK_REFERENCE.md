@@ -447,3 +447,28 @@ import { openPoshmarkSync, poshMarkSold } from './src/features/poshmark-sync.js'
 openPoshmarkSync();         // Modal listing Poshmark items
 poshMarkSold(itemId);       // Mark sold + record sale with 20% fee
 ```
+
+### Whatnot CSV Import & Reconciliation
+```javascript
+import {
+  importWhatnotOrderCSV, importLivestreamCSV,
+  createSaleFromShow, reconcileShowSales,
+  reconcilePayout, getShowPayoutBreakdown, getWhatnotSalesInRange
+} from './src/features/whatnot-import.js';
+
+// CSV Import — file from <input type="file">
+importWhatnotOrderCSV(file);           // Import Order History CSV (Financials → Ledger → Export)
+importLivestreamCSV(file, showId);     // Import Livestream Report CSV, optionally tied to a show
+
+// Show → Sale Bridge
+createSaleFromShow(showId, itemId, price);  // Create sale record from show sold item
+reconcileShowSales(showId);                 // Bulk: create sale records for all sold show items
+// Returns { created: number, alreadyRecorded: number }
+
+// Payout Reconciliation
+const report = reconcilePayout(125.50, '2026-04-01', '2026-04-07');
+// report = { payoutAmount, expectedPayout, discrepancy, discrepancyPct,
+//            status: 'match'|'overpaid'|'underpaid', possibleReasons[], sales[] }
+getShowPayoutBreakdown('2026-04-01', '2026-04-07'); // Per-show payout detail
+getWhatnotSalesInRange('2026-04-01', '2026-04-07'); // Raw Whatnot sales in range
+```

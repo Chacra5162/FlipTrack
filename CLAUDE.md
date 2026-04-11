@@ -125,6 +125,11 @@ src/
 - **Fee Auto-Estimation:** eBay uses ~13.6% + $0.40 on item+shipping (`feeOnShipping` flag); `calcPlatformFee()` accepts optional shipping parameter
 - **Manual Sync:** Sync button triggers both cloud sync and eBay `pullEBayListings()` when connected
 - **Profit Formula:** `(price × qty) - (cost × qty) - fees - addlFee(s) - ship` — `addlFee()` in `utils/format.js` shared across all views
+- **Whatnot Shows:** `createShow()`/`startShow()`/`endShow()` in whatnot-show.js — full show lifecycle with lots, goals, giveaways, shipping queue
+- **Whatnot Analytics:** `getShowMetrics()`/`suggestShowItems()`/`suggestShowBids()` in whatnot-analytics.js — smart builder, bid recs, category rotation
+- **Whatnot CSV Import:** `importWhatnotOrderCSV()`/`importLivestreamCSV()` in whatnot-import.js — auto-match to inventory, create sales with correct fees
+- **Whatnot Show→Sale Bridge:** `createSaleFromShow()`/`reconcileShowSales()` in whatnot-import.js — marking sold in show now auto-creates sale records
+- **Whatnot Payout Reconcile:** `reconcilePayout()` in whatnot-import.js — compare Whatnot payout vs recorded sales, identify discrepancies
 
 ## JCodeMunch — Token-Saving Default
 - **Always prefer JCodeMunch MCP tools over Read/Grep** for understanding code

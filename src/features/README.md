@@ -264,6 +264,55 @@ Comparable pricing with 3-tier fallback: edge function → eBay Browse API → l
 
 ---
 
+---
+
+### whatnot-show.js
+Whatnot live show prep, lifecycle, and management. Persists show data in IndexedDB.
+
+**Exports:**
+- `initWhatnotShows()` - Load shows from IndexedDB on startup
+- `createShow(name, date, time, notes, opts)` - Create new show (status: prep)
+- `startShow(showId)` / `endShow(showId)` - Lifecycle transitions (live/ended)
+- `markShowItemSold(showId, itemId, price)` - Mark item sold, decrement qty
+- `addItemToShow()` / `removeItemFromShow()` / `reorderShowItems()` - Item management
+- `addLot()` / `removeLot()` - Auction lot bundling
+- `getGlobalShippingQueue()` / `markItemShipped()` - Post-show fulfillment
+- `getShowRecapText(showId)` - Shareable recap with metrics
+
+---
+
+### whatnot-analytics.js
+Pure calculation engine for Whatnot show performance and smart recommendations.
+
+**Exports:**
+- `getShowMetrics(show)` - Per-show: sellThrough, revenue, profit, revenuePerHour
+- `calcBestShowDay()` / `calcBestShowTime()` - Optimal scheduling analysis
+- `suggestShowItems(count)` - AI-scored item suggestions for next show
+- `suggestShowBids(showId)` - Starting bid recommendations with reasoning
+- `calcInventoryActions()` - Prescriptive actions (auction, bundle, donate, crosslist)
+- `compareShows(idA, idB)` - Side-by-side show comparison
+
+---
+
+### whatnot-import.js
+Whatnot CSV import, show-to-sale reconciliation, and payout reconciliation.
+
+**Exports:**
+- `importWhatnotOrderCSV(file)` - Import Order History CSV, auto-match and create sales
+- `importLivestreamCSV(file, showId)` - Import Livestream Report CSV for show reconciliation
+- `createSaleFromShow(showId, itemId, price)` - Create sale record from show sold item
+- `reconcileShowSales(showId)` - Bulk sync: create missing sale records for ended show
+- `reconcilePayout(amount, startDate, endDate)` - Compare Whatnot payout vs recorded sales
+- `getShowPayoutBreakdown(startDate, endDate)` - Per-show payout detail
+
+**Notes:**
+- Matching priority: SKU exact → name normalized → name fuzzy substring
+- Deduplication by itemId + date + price prevents double-recording
+- CSV inputs sanitized against formula injection at import time
+- Fees auto-calculated via `calcPlatformFee('Whatnot', price)` (8% + 2.9% + $0.30)
+
+---
+
 ## Global Dependencies
 
 These modules rely on global variables and functions that should be imported/injected:
