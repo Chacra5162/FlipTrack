@@ -22,7 +22,7 @@ import { clearDimForm, getDimsFromForm } from '../features/dimensions.js';
 import { uploadImageToStorage } from '../data/storage.js';
 import { getSupabaseClient } from '../data/auth.js';
 import { getCurrentUser } from '../data/auth.js';
-import { refreshAutocompleteLists, saveAutocompleteEntry } from '../utils/autocomplete.js';
+import { refreshAutocompleteLists, saveAutocompleteEntry, normalizeSource } from '../utils/autocomplete.js';
 
 import { openDrawer, closeDrawer, loadCondTag, syncAddSubcat } from './drawer.js';
 import { isEBayConnected } from '../features/ebay-auth.js';
@@ -490,7 +490,7 @@ export async function addItem(){
   const ebayAutoAccept = parseFloat(document.getElementById('f_autoAccept')?.value) || 0;
   const ebayAutoDecline = parseFloat(document.getElementById('f_autoDecline')?.value) || 0;
 
-  const baseItem = {id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:subcatVal,subtype:subtypeVal,platform,platforms:selPlats,cost:isNaN(cost)?0:cost,price,qty,bulk:isBulk,fees:isNaN(fees)?0:fees,ship:isNaN(ship)?0:ship,lowAlert,lowAlertEnabled:alertEnabled,notes:_notes,source:document.getElementById('f_source').value.trim(),condition:document.getElementById('f_condition').value.trim(),smoke:smokeVal,coverType:isBookCat(cat)?coverVal:null,brand,color,size,sizeType,department,material,mpn,model,style,pattern,ebayDesc,ebayListingFormat,ebayBestOffer,ebayAuctionStart,ebayAuctionReserve,ebayAuctionDuration,ebayAutoAccept,ebayAutoDecline,images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),...(isBookCat(cat) ? getBookFields('f') : {}),added:new Date().toISOString()};
+  const baseItem = {id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:subcatVal,subtype:subtypeVal,platform,platforms:selPlats,cost:isNaN(cost)?0:cost,price,qty,bulk:isBulk,fees:isNaN(fees)?0:fees,ship:isNaN(ship)?0:ship,lowAlert,lowAlertEnabled:alertEnabled,notes:_notes,source:normalizeSource(document.getElementById('f_source').value),condition:document.getElementById('f_condition').value.trim(),smoke:smokeVal,coverType:isBookCat(cat)?coverVal:null,brand,color,size,sizeType,department,material,mpn,model,style,pattern,ebayDesc,ebayListingFormat,ebayBestOffer,ebayAuctionStart,ebayAuctionReserve,ebayAuctionDuration,ebayAutoAccept,ebayAutoDecline,images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),...(isBookCat(cat) ? getBookFields('f') : {}),added:new Date().toISOString()};
 
   if (_hasVariants && _variantLabels.length > 0) {
     // Create parent (qty=0, holds shared data) + N children

@@ -22,6 +22,40 @@ const DEFAULT_BRANDS = [
   'Apple', 'Samsung', 'Sony', 'Dell',
 ];
 
+// ── SOURCE NORMALIZATION ────────────────────────────────────────────────────
+// Resolve near-duplicates: "Marshall's" → "Marshalls", "good will" → "Goodwill"
+// Strips punctuation/apostrophes and compares; merges if ≤2 char difference.
+
+/** Normalize key for comparison: lowercase, strip apostrophes/punctuation, collapse spaces */
+function _normKey(s) {
+  return s.toLowerCase().replace(/[''`.,\-!]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Match a source name against existing sources. Returns the existing name if
+ * it's a close match (same normalized key), otherwise returns the input trimmed.
+ * @param {string} raw - User-entered source name
+ * @returns {string} Normalized source name
+ */
+export function normalizeSource(raw) {
+  const trimmed = (raw || '').trim();
+  if (!trimmed) return '';
+  const key = _normKey(trimmed);
+  if (!key) return trimmed;
+
+  // Check against all existing sources (inventory + defaults)
+  const existing = new Set();
+  for (const item of inv) {
+    if (item.source) existing.add(item.source.trim());
+  }
+  for (const d of DEFAULT_SOURCES) existing.add(d);
+
+  for (const src of existing) {
+    if (_normKey(src) === key) return src; // exact normalized match → use existing
+  }
+  return trimmed;
+}
+
 // ── PERSIST CUSTOM ENTRIES ───────────────────────────────────────────────────
 
 const IDB_KEY = 'autocomplete_custom';
@@ -92,10 +126,11 @@ export async function refreshAutocompleteLists() {
   const fromInv = collectFromInventory();
   const custom = await loadCustomEntries();
 
-  // Merge: defaults + inventory values + persisted custom entries (deduplicated)
+  // Merge: defaults + inventory values + persisted custom entries
+  // Deduplicate by normalized key (strips apostrophes/punctuation)
   const srcMap = new Map();
   for (const v of [...DEFAULT_SOURCES, ...fromInv.sources, ...custom.sources]) {
-    if (v) srcMap.set(v.toLowerCase(), v);
+    if (v) srcMap.set(_normKey(v), v);
   }
   const brdMap = new Map();
   for (const v of [...DEFAULT_BRANDS, ...fromInv.brands, ...custom.brands]) {

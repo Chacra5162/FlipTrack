@@ -36,7 +36,7 @@ import { PLATFORM_FEES, calcPlatformFee } from '../config/platforms.js';
 import { loadDimsToForm, getDimsFromForm, suggestPackaging } from '../features/dimensions.js';
 import { renderDrawerBarcode } from '../features/barcodes.js';
 import { toggleBulkFields, getSmokeValue, loadSmokeSlider, getCoverValue, loadCoverSlider } from './add-item.js';
-import { refreshAutocompleteLists, saveAutocompleteEntry } from '../utils/autocomplete.js';
+import { refreshAutocompleteLists, saveAutocompleteEntry, normalizeSource } from '../utils/autocomplete.js';
 
 // Case-insensitive SUBCATS lookup — "books" matches "Books", etc.
 function getSubcats(cat) {
@@ -476,7 +476,7 @@ export async function saveDrawer(){
   item.lowAlert = item.lowAlertEnabled && !isNaN(alertVal) ? alertVal : (item.lowAlert || 2);
   item.bulk    =document.getElementById('d_bulk')?.checked||false;
   item.url     =document.getElementById('d_url').value.trim();
-  item.source  =document.getElementById('d_source').value.trim();
+  item.source  =normalizeSource(document.getElementById('d_source').value);
   item.condition=document.getElementById('d_condition').value.trim();
   item.notes   =_notes;
   item.brand   =_brand;
