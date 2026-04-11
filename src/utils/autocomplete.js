@@ -26,9 +26,9 @@ const DEFAULT_BRANDS = [
 // Resolve near-duplicates: "Marshall's" → "Marshalls", "good will" → "Goodwill"
 // Strips punctuation/apostrophes and compares; merges if ≤2 char difference.
 
-/** Normalize key for comparison: lowercase, strip apostrophes/punctuation, collapse spaces */
+/** Normalize key for comparison: lowercase, strip all non-alphanumeric, collapse spaces */
 function _normKey(s) {
-  return s.toLowerCase().replace(/['''`.,\-!]/g, '').replace(/\s+/g, ' ').trim();
+  return s.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
 }
 
 /**
