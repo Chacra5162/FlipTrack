@@ -1498,12 +1498,22 @@
   <p>Build relationships with repeat customers. Access via <strong>More ▾ → Buyers</strong>.</p>
 
   <h3>Buyer Tiers</h3>
+  <p>Two separate badge systems track buyer value:</p>
+  <h4>Loyalty Tiers (Purchase Count)</h4>
   <div class="plat-list">
-    <span class="plat-tag">🆕 New — $0</span>
-    <span class="plat-tag">🔄 Regular — $50+</span>
-    <span class="plat-tag">⭐ VIP — $200+</span>
-    <span class="plat-tag">👑 Elite — $500+</span>
+    <span class="plat-tag">👤 New — 0 orders</span>
+    <span class="plat-tag">⭐ Regular — 3+ orders</span>
+    <span class="plat-tag">💎 VIP — 7+ orders</span>
+    <span class="plat-tag">👑 Elite — 15+ orders</span>
   </div>
+  <h4>Spending Tiers (Total Spent)</h4>
+  <div class="plat-list">
+    <span class="plat-tag">🛒 Shopper — $0+</span>
+    <span class="plat-tag">💵 Regular — $100+</span>
+    <span class="plat-tag">💰 Big Spender — $500+</span>
+    <span class="plat-tag">🏆 Store Sponsor — $1,000+</span>
+  </div>
+  <p>Both badges show side-by-side on buyer cards. A single-purchase buyer shows only the loyalty badge. The spending badge appears once they cross $100.</p>
 
   <p>Each buyer profile tracks: name, email, phone, platform handles, total spent, number of purchases, items bought, and a communication log for notes and conversations. Buyers are automatically created when you record sales.</p>
 
@@ -2552,6 +2562,8 @@
   <p>Items with cost recorded but no listing price set get an automatic "high" alert — money is invested but the item isn't priced for sale.</p>
 
   <div class="warn"><strong>Note:</strong> Margin Alerts use your current listing price, not comp data. If you've repriced an item but the price field hasn't been updated, the alert may not reflect the true margin.</div>
+
+  <div class="tip"><strong>Auction items are excluded</strong> from Margin Alerts since their final selling price is unknown until the auction ends. Only fixed-price listings are scanned.</div>
 </section>
 
 <!-- ═════════════════════════════ AI FEATURES ════════════ -->
@@ -2586,6 +2598,51 @@
   <div class="section-header">
     <div class="section-icon" style="background:rgba(247,129,102,0.12);color:var(--accent2)">🆕</div>
     <h2>What's New in Version 2.0</h2>
+  </div>
+
+  <h3>eBay Sync & Sales Accuracy Overhaul (v2.0.3)</h3>
+  <p>Major improvements to eBay order sync, sale calculations, notifications, and inventory management.</p>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <h4>🔔 eBay Push Notifications</h4>
+      <p>Push notifications now fire for eBay sales, best offers, and auction completions — not just returns and cancellations. Works even when the tab is in the background.</p>
+    </div>
+    <div class="feature-card">
+      <h4>💰 Accurate eBay Sale Pricing</h4>
+      <p>Sale price now matches eBay's displayed Subtotal (item price only). Previously bundled shipping and handling into the price, causing mismatches with eBay's numbers.</p>
+    </div>
+    <div class="feature-card">
+      <h4>📊 Addl Fee % Field</h4>
+      <p>New field on sales for platform surcharges not captured by the API (e.g., eBay's 6% below-standard store performance fee). Calculates on the correct fee basis and shows as an orange badge in the sales table.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🔄 Manual Sync Triggers eBay</h4>
+      <p>The Sync button now runs eBay listing sync alongside cloud sync. No more waiting for the 15-minute auto-cycle — click sync to check for new orders immediately.</p>
+    </div>
+    <div class="feature-card">
+      <h4>📦 Tracking on First Sync</h4>
+      <p>Tracking numbers and shipped status now populate immediately when a sale is first detected, instead of requiring a separate backfill cycle.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🏷 Auction Smart Stats</h4>
+      <p>Auction items show Current Bid, Start Bid, and Reserve Price instead of profit/margin/ROI in the item drawer. Bids update from eBay's Browse API on each sync. Auctions excluded from margin alerts.</p>
+    </div>
+    <div class="feature-card">
+      <h4>👥 Dual Buyer Tiers</h4>
+      <p>Buyers now have two badge systems: Loyalty (by purchase count: New → Regular → VIP → Elite) and Spending (by total spent: Shopper → Regular → Big Spender → Store Sponsor).</p>
+    </div>
+    <div class="feature-card">
+      <h4>🏪 Source Normalization</h4>
+      <p>Source names are automatically deduplicated — "Marshall's" and "Marshalls" merge into one entry. Runs on save and retroactively on startup. Keeps Sourcing Analytics clean.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🚨 Interactive Stale Inventory</h4>
+      <p>The Stale/Stuck cards in Inventory Health are now clickable — expand to see every item 60+ days old with Edit and Quick -10% reprice buttons for immediate action.</p>
+    </div>
+    <div class="feature-card">
+      <h4>⚡ API Error Suppression</h4>
+      <p>eBay Trading API and Offer API errors are detected on first failure and silently skipped on subsequent syncs. Flags persist across sessions via IDB — no more console error spam.</p>
+    </div>
   </div>
 
   <h3>Whatnot Live Selling Suite (v2.0.1)</h3>
