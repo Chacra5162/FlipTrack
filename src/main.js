@@ -175,7 +175,7 @@ import {
   wnCopyRecap, wnSetCompareA, wnSetCompareB, wnMarkShipped, wnBulkMarkShipped
 } from './views/whatnot-dashboard.js';
 import { initEBayAuth, handleEBayCallback, isEBayConnected } from './features/ebay-auth.js';
-import { initEBaySync, startEBaySyncInterval, stopEBaySyncInterval, resyncEBayOrders, backfillEBayData, dismissEBayItem, undismissEBayItem, importEBayItem } from './features/ebay-sync.js';
+import { initEBaySync, startEBaySyncInterval, stopEBaySyncInterval, pullEBayListings, resyncEBayOrders, backfillEBayData, dismissEBayItem, undismissEBayItem, importEBayItem } from './features/ebay-sync.js';
 import { initEtsyAuth, handleEtsyCallback, isEtsyConnected } from './features/etsy-auth.js';
 import { initEtsySync, startEtsySyncInterval, stopEtsySyncInterval, syncEtsyExpenses } from './features/etsy-sync.js';
 import { initWhatnotShows, getTodayShows } from './features/whatnot-show.js';
@@ -451,7 +451,12 @@ Object.assign(window, {
 // Auth
 Object.assign(window, {
   switchAuthTab, authSubmit, authForgotPassword, authSignOut,
-  openAccountMenu, closeAccountMenu, syncNow, mobileSyncNow, resyncEBayOrders, backfillEBayData,
+  openAccountMenu, closeAccountMenu,
+  syncNow: async () => {
+    await syncNow();
+    if (isEBayConnected()) pullEBayListings({ silent: true }).catch(e => console.warn('eBay sync on manual sync:', e.message));
+  },
+  mobileSyncNow, resyncEBayOrders, backfillEBayData,
   importEBayItem: async (input) => {
     const result = await importEBayItem(input);
     if (result.success) {
