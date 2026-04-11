@@ -223,10 +223,26 @@ Bidirectional eBay listing synchronization via Inventory/Trading APIs.
 - Supports `AUCTION` and `FIXED_PRICE` listing formats via `item.ebayListingFormat`
 - Auction fields: `ebayAuctionStart`, `ebayAuctionReserve`, `ebayAuctionDuration` (DAYS_1/3/5/7/10)
 - Best Offer: `ebayBestOffer` toggle, `ebayAutoAccept`/`ebayAutoDecline` price thresholds
-- `_syncEBayOffers()` — checks for pending best offers, notifies user of new ones
-- `_syncEBayAuctions()` — detects ended auctions, notifies on sale or expiry
+- `_syncEBayOffers()` — checks for pending best offers, notifies user of new ones (skipped if Trading API blocked)
+- `_syncEBayAuctions()` — detects ended auctions, notifies on sale or expiry (skipped if Trading API blocked)
+
+**Order Sync & Financial Breakdown:**
+- `_syncEBayOrders()` detects sold items via Fulfillment API with 48h minimum lookback
+- Sale price = `pricingSummary.priceSubtotal` or derived `total - deliveryCost - tax` (matches eBay's "Subtotal")
+- Fees from `lineItem.marketplaceFees` (includes FVF, per-order, store performance surcharges)
+- Ship = $0 (buyer shipping offsets label cost); user adjusts if label > buyer payment
+- `addlFeeBasis` stored on sale = order total (eBay's "Fees based on" amount)
+- Tracking fetched from shipping fulfillment API on initial creation + backfilled on subsequent syncs
+- Push notifications sent for sales, best offers, and auction completions via `sendNotification()`
+
+**API Capability Detection:**
+- `_tradingApiBlocked` — set after 403 from `/ws/api.dll`, skips GetMyeBaySelling/GetBestOffers/GetItem
+- `_offerApiBlocked` — set after SKU validation error, skips all Offer API calls
+- Both flags persisted in IDB across sessions
+- Expected API errors downgraded from `console.error` to `console.warn`
 
 **Behavior:**
+- Manual sync button triggers eBay sync alongside cloud sync
 - External eBay removal detected during `pullEBayListings()` → sets status to `removed`, shows warning notification
 - Delisting or deleting an item in FlipTrack calls `endEBayListing()` automatically
 - eBay errors are logged to `item.itemHistory[]` via `logItemEvent()`

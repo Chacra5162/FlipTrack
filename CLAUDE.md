@@ -105,17 +105,26 @@ src/
 - `supabase/functions/send-push/index.ts` — VAPID push notification Edge Function
 
 ### Key Feature Summary
-- **Sale Editing:** `openEditSaleModal(saleId)` in sales.js — edit any recorded sale in-place
+- **Sale Editing:** `openEditSaleModal(saleId)` in sales.js — edit any recorded sale in-place; does NOT auto-apply fee estimation over stored values
 - **Mobile Card View:** `toggleInvViewMode()` in inventory.js — responsive card grid for phones
 - **Goal-Aware Alerts:** `renderGoalGapWidget()` in kpi-goals.js — actionable gap-closing suggestions
 - **VAPID Push:** `subscribeToPush()`/`togglePush()` in push-notifications.js — background notifications
+- **eBay Sale Notifications:** `sendNotification()` called for sales, best offers, and auction completions
 - **Multi-Variant:** `getVariants()`/`isParent()`/`isVariant()` in store.js — parent/child item model
 - **AI Sourcing:** `openSourcingMode()` in sourcing-mode.js — camera → AI → comps → BUY/PASS verdict
 - **Poshmark Sync:** `openPoshmarkSync()` in poshmark-sync.js — manual sold-status check
 - **eBay Sync:** `pullEBayListings()`/`endEBayListing()`/`pushItemToEBay()` in ebay-sync.js — bidirectional eBay listing sync
+- **eBay Order Sync:** Price from `priceSubtotal || total-delivery-tax`; fees from `lineItem.marketplaceFees`; tracking from shipping fulfillment API; 48h lookback window
+- **eBay Fee Handling:** `addlFeePct` field on sales for surcharges not in API (e.g., 6% store performance); `addlFeeBasis` = order total for correct % calculation
+- **eBay API Flags:** `_tradingApiBlocked`/`_offerApiBlocked` persisted in IDB; skip unsupported APIs silently
 - **eBay Status Sync:** Delisting or deleting an item in FlipTrack auto-ends it on eBay; eBay external removals show as 'removed' status with notification
-- **eBay Auctions:** `ebayListingFormat` AUCTION/FIXED_PRICE, `ebayBestOffer` toggle, `_syncEBayOffers()`/`_syncEBayAuctions()` — auction creation, best offer notifications, auction-end detection
+- **eBay Auctions:** `ebayListingFormat` AUCTION/FIXED_PRICE, `ebayBestOffer` toggle; auction items show Current Bid/Start Bid/Reserve in drawer (not margin/profit); excluded from margin alerts
 - **Listing Statuses:** 7 statuses: `active`, `sold`, `sold-elsewhere`, `delisted`, `expired`, `draft`, `removed` (eBay-controlled only)
+- **Source Normalization:** `normalizeSource()` and `retroNormalizeSources()` in autocomplete.js — strips non-alphanumeric chars, merges "Marshall's" → "Marshalls" on save and startup
+- **Buyer Tiers:** Two systems — Loyalty (New/Regular/VIP/Elite by order count) and Spending (Shopper/Regular/Big Spender/Store Sponsor by total spent)
+- **Fee Auto-Estimation:** eBay uses ~13.6% + $0.40 on item+shipping (`feeOnShipping` flag); `calcPlatformFee()` accepts optional shipping parameter
+- **Manual Sync:** Sync button triggers both cloud sync and eBay `pullEBayListings()` when connected
+- **Profit Formula:** `(price × qty) - (cost × qty) - fees - addlFee(s) - ship` — `addlFee()` in `utils/format.js` shared across all views
 
 ## JCodeMunch — Token-Saving Default
 - **Always prefer JCodeMunch MCP tools over Read/Grep** for understanding code

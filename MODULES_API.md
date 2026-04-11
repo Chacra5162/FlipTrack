@@ -139,13 +139,25 @@ Update the price hint text based on current price type, qty, and price value. Sh
 ```javascript
 export function updateFeeEstimate()
 ```
-Calculate and display the platform fee estimate based on selected platform and sale price. Shows "Apply" button to populate fee field.
+Calculate and display the platform fee estimate based on selected platform, sale price, AND shipping cost. For eBay, fees are calculated on (price + shipping) via the `feeOnShipping` flag. Does NOT run when editing existing sales to avoid overwriting API-sourced fees.
+
+```javascript
+export function updateAddlFeePreview()
+```
+Update tooltip on the Addl Fee % field showing the dollar amount. Uses `addlFeeBasis` (eBay order total) when available.
 
 ### Sale Recording
 ```javascript
 export function recSale()
 ```
-Record a sale transaction. Validates price and qty, creates sale record, decrements item qty, handles undo, triggers sound effect, and prompts for materials modal.
+Record a sale transaction. Validates price and qty, creates sale record (including `addlFeePct` and `addlFeeBasis`), decrements item qty, handles undo, triggers sound effect, and prompts for materials modal.
+
+### Utility: Additional Fee Calculation
+```javascript
+// In src/utils/format.js
+export const addlFee = (sale) => number
+```
+Computes dollar amount of `addlFeePct` on a sale: `pct% × (addlFeeBasis || price×qty+ship)`. Used in all profit calculations across sales, insights, and dashboard views.
 
 ### Rendering
 ```javascript
@@ -328,3 +340,31 @@ export function poshMarkSold(itemId)   // Mark item as sold on Poshmark + record
 export function updateDrawerVariantsTab(item)  // Show/hide tab based on isParent
 export function renderDrawerVariants()         // Render variant children list
 ```
+
+### eBay Sale Sync — Financial Breakdown (`src/features/ebay-sync.js`)
+- **Price**: Derived from `pricingSummary.priceSubtotal` or `total - deliveryCost - tax` (matches eBay's displayed "Subtotal")
+- **Fees**: From `lineItem.marketplaceFees` sum (includes FVF, per-order, store performance fees)
+- **Ship**: $0 (buyer shipping covers label); user adjusts manually when label > buyer payment
+- **addlFeeBasis**: Stored as order total (eBay's "Fees based on" amount) for addlFeePct calc
+- **Tracking**: Fetched from shipping fulfillment API on initial sync + backfilled on 48h lookback
+- **Push notifications**: `sendNotification()` now called for sales, offers, and auction completions
+- **API capability flags**: `_tradingApiBlocked`, `_offerApiBlocked` persisted in IDB to skip unsupported APIs
+
+### Source Normalization (`src/utils/autocomplete.js`)
+```javascript
+export function normalizeSource(raw)          // Match against existing sources, merge near-duplicates
+export function retroNormalizeSources()       // Fix all existing items on startup
+```
+Strips all non-alphanumeric characters for comparison. "Marshall's" → "Marshalls". Runs on boot.
+
+### Buyer Tiers (`src/views/buyers.js`)
+Two separate tier systems:
+- **Loyalty** (purchase count): New (0), Regular (3+), VIP (7+), Elite (15+)
+- **Spending** (total spent): Shopper ($0), Regular ($100+), Big Spender ($500+), Store Sponsor ($1000+)
+
+### Margin Alerts (`src/features/margin-alerts.js`)
+- Auction items (`ebayListingFormat === 'AUCTION'`) are fully excluded from margin alerts
+
+### Auction Stats in Drawer (`src/modals/drawer.js`)
+- Auction items show Current Bid / Start Bid / Reserve instead of Profit/Margin/ROI
+- Current bid updated from Browse API `currentBidPrice` on each sync cycle

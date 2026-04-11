@@ -45,7 +45,7 @@ This directory contains the extracted data layer from the monolithic HTML file, 
 - `pushDeleteToCloud(table, ids)` - Delete records from Supabase
 - `pullFromCloud()` - Pull remote data from Supabase
 - `pullSupplies()` - Pull supplies from cloud
-- `syncNow()` - Full sync: pull → push
+- `syncNow()` - Full sync: pull → push (window wrapper also triggers eBay sync)
 - `autoSync()` - Debounced auto-sync (2s delay after save)
 - `mobileSyncNow()` - Sync action for mobile UI
 - `startRealtime()`, `stopRealtime()` - Real-time subscription management

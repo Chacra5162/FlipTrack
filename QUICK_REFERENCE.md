@@ -101,8 +101,8 @@ performUndo();
 ```javascript
 import { syncNow, autoSync, setSyncStatus } from './src/data/sync.js';
 
-// Manual full sync
-await syncNow();  // pull → push
+// Manual full sync (also triggers eBay sync if connected)
+await syncNow();  // pull → push → eBay sync
 
 // Auto-sync (debounced 2s after save)
 // Called automatically by save()
@@ -258,15 +258,29 @@ _invPageSize = 50; // Items per page
   id: string,                    // Unique ID
   itemId: string,                // Reference to inventory item
   qty: number,                   // Quantity sold
-  price: number,                 // Sale price
+  price: number,                 // Sale price per unit (item only, excludes shipping/tax)
+  listPrice: number,             // Original list price (for variance tracking)
   platform: string,              // e.g., "eBay"
-  fees: number,                  // Platform fees
-  shipping: number,              // Shipping cost
-  profit: number,                // Net profit
-  soldAt: string,                // ISO date
-  soldTo: string,                // Optional buyer name
-  notes: string                  // Optional notes
+  fees: number,                  // Platform fees ($)
+  addlFeePct: number,            // Additional fee percentage (e.g., 6% store performance)
+  addlFeeBasis: number,          // Fee basis for addlFeePct (eBay order total incl. tax+ship)
+  ship: number,                  // Net shipping cost (label - buyer shipping, $0 if buyer covers)
+  date: string,                  // ISO date
+  tracking: string,              // Tracking number
+  trackingCarrier: string,       // Carrier code
+  ebayOrderId: string,           // eBay order ID (auto-synced sales)
+  buyerId: string,               // Buyer CRM link
+  buyerAddress: string,          // Ship-to address
+  buyerCity: string,
+  buyerState: string,
+  buyerZip: string,
+  shipped: boolean,              // Shipped status (auto-tracked from eBay)
+  shippedDate: string            // Ship date
 }
+```
+
+**Profit Formula:** `profit = (price × qty) - (cost × qty) - fees - addlFee - ship`
+where `addlFee = addlFeePct% × (addlFeeBasis || price×qty+ship)`
 ```
 
 ### Expense Record
@@ -297,29 +311,22 @@ _invPageSize = 50; // Items per page
 }
 ```
 
-## Platform Examples
+## Platform Fee Examples
 
 ```javascript
-// eBay
-{ pct: 0.127, fixed: 0.30 }      // 12.7% + $0.30
+// eBay (~13.6% + $0.40, on item + shipping; feeOnShipping: true)
+{ pct: 0.136, flat: 0.40 }
+// Note: eBay fees are auto-synced from lineItem.marketplaceFees API.
+// Additional surcharges (e.g. 6% below-standard) use addlFeePct on sales.
 
 // Amazon
 { pct: 0.15 }                     // 15%
 
 // Etsy
-{ pct: 0.065, fixed: 0.20 }      // 6.5% + $0.20
-
-// Facebook Marketplace
-{ pct: 0 }                        // No fees
-
-// Depop, Mercari
-{ pct: 0.10 }                     // 10%
+{ pct: 0.065, flat: 0.20 }       // 6.5% + $0.20 + 3% processing
 
 // Poshmark
-{ pct: 0.20 }                     // 20%
-
-// StockX, GOAT
-{ pct: 0.09, fixed: 2.75 }       // 9% + $2.75
+{ pct: 0.20 }                     // 20% (or $2.95 if under $15)
 ```
 
 ## File Locations
