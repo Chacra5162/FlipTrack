@@ -966,8 +966,7 @@ async function _backfillOrderData(order) {
   const bfOrderTax = parseFloat(ps.tax?.value || '0');
   const orderSubtotal = parseFloat(ps.priceSubtotal?.value || '0')
     || (bfOrderTotal - bfOrderDelivery - bfOrderTax);
-  const orderFee = parseFloat(order.totalMarketplaceFee?.value
-    || ps.fee?.value || '0');
+  const orderFee = parseFloat(order.totalMarketplaceFee?.value || '0');
 
   let updated = false;
   const lineItems = order.lineItems || [];
@@ -1117,9 +1116,10 @@ async function _syncEBayOrders(lookbackMs) {
       const orderTax = parseFloat(ps.tax?.value || '0');
       const orderSubtotal = parseFloat(ps.priceSubtotal?.value || '0')
         || (orderTotal - orderDelivery - orderTax);
-      // totalMarketplaceFee is the most reliable order-level fee total
-      const orderTotalFee = parseFloat(order.totalMarketplaceFee?.value
-        || ps.fee?.value || '0');
+      // totalMarketplaceFee = eBay's transaction fees (matches their UI).
+      // DO NOT use pricingSummary.fee — it includes regulatory/operating fees
+      // that eBay doesn't show in "Transaction fees", overcounting by ~$0.17.
+      const orderTotalFee = parseFloat(order.totalMarketplaceFee?.value || '0');
 
       for (const lineItem of (order.lineItems || [])) {
         const sku = lineItem.sku;
@@ -1152,15 +1152,13 @@ async function _syncEBayOrders(lookbackMs) {
           ? orderSubtotal
           : (allLineTotals > 0 ? orderSubtotal * (lineTotal / allLineTotals) : lineTotal);
 
-        // Fees: prefer orderTotalFee (includes ALL fees: FVF, promoted listing,
-        // regulatory, etc.). lineItem.marketplaceFees often misses some fee types.
+        // Fees: totalMarketplaceFee matches eBay's "Transaction fees" display.
+        // lineItem.marketplaceFees is a fallback but may miss promoted listing fees.
         const lineShare = orderSubtotal > 0 ? itemSubtotal / orderSubtotal : 1;
         const proratedOrderFee = orderTotalFee * lineShare;
         const lineItemFees = (lineItem.marketplaceFees || []).reduce((sum, f) =>
           sum + parseFloat(f.amount?.value || '0'), 0);
-        // Use whichever is higher — orderTotalFee is more complete
-        const fees = proratedOrderFee > 0
-          ? Math.max(proratedOrderFee, lineItemFees) : lineItemFees;
+        const fees = proratedOrderFee > 0 ? proratedOrderFee : lineItemFees;
 
         // price = item selling price per unit (matches eBay's displayed item price)
         // ship = 0 (buyer's shipping payment covers label cost; user can adjust
