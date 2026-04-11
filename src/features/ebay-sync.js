@@ -959,35 +959,38 @@ async function _backfillOrderData(order) {
     console.warn('FlipTrack: backfill tracking fetch error:', e.message);
   }
 
-  // Compute fee breakdown from order pricing summary once
-  // (used to backfill sales recorded before fees were captured)
-  const orderSubtotal = parseFloat(order.pricingSummary?.priceSubtotal?.value || '0');
+  // Derive order item subtotal (matches eBay's displayed "Subtotal")
+  const ps = order.pricingSummary || {};
+  const bfOrderTotal = parseFloat(ps.total?.value || '0');
+  const bfOrderDelivery = parseFloat(ps.deliveryCost?.value || '0');
+  const bfOrderTax = parseFloat(ps.tax?.value || '0');
+  const orderSubtotal = parseFloat(ps.priceSubtotal?.value || '0')
+    || (bfOrderTotal - bfOrderDelivery - bfOrderTax);
   const orderFee = parseFloat(order.totalMarketplaceFee?.value
-    || order.pricingSummary?.fee?.value || '0');
+    || ps.fee?.value || '0');
 
   let updated = false;
+  const lineItems = order.lineItems || [];
   for (const sale of existing) {
-    // ── Correct price if it was recorded with old inflated logic ──
-    // Old code bundled shipping into price, or used lineItem.total which can
-    // include handling fees. Correct to lineItemCost or prorated priceSubtotal.
-    const matchingLine = (order.lineItems || []).find(li => {
-      const liCost = parseFloat(li.lineItemCost?.value || li.total?.value || '0');
-      const liTotal = parseFloat(li.total?.value || '0');
-      // Match by approximate price (old price may include shipping or adjustments)
-      return Math.abs(liTotal - (sale.price * sale.qty)) < 0.02
-        || Math.abs(liCost - (sale.price * sale.qty)) < 0.02
-        || Math.abs(liTotal - sale.listPrice * sale.qty) < 0.02;
-    });
-    if (matchingLine && orderSubtotal > 0) {
-      const correctCost = parseFloat(matchingLine.lineItemCost?.value || '0');
-      const lineTotal = parseFloat(matchingLine.total?.value || '0');
-      const allLinesTotal = (order.lineItems || []).reduce(
-        (s, li) => s + parseFloat(li.total?.value || '0'), 0);
-      const correctSubtotal = correctCost > 0 ? correctCost
-        : (allLinesTotal > 0 ? orderSubtotal * (lineTotal / allLinesTotal) : lineTotal);
-      const correctPrice = sale.qty > 1 ? correctSubtotal / sale.qty : correctSubtotal;
-      if (Math.abs(sale.price - correctPrice) > 0.01) {
-        sale.price = Math.round(correctPrice * 100) / 100;
+    // ── Correct price to match eBay's Subtotal ──
+    // Use prorated orderSubtotal (= priceSubtotal or total - delivery - tax)
+    if (orderSubtotal > 0) {
+      const correctPrice = lineItems.length === 1
+        ? orderSubtotal
+        : (() => {
+            // For multi-item orders, prorate by this sale's share
+            const allLineTotals = lineItems.reduce(
+              (s, li) => s + parseFloat(li.total?.value || '0'), 0);
+            const matchLine = lineItems.find(li =>
+              Math.abs(parseFloat(li.total?.value || '0') - (sale.price * sale.qty)) < 1
+              || Math.abs(parseFloat(li.total?.value || '0') - (sale.listPrice * sale.qty)) < 1);
+            const lt = parseFloat(matchLine?.total?.value || '0');
+            return allLineTotals > 0 ? orderSubtotal * (lt / allLineTotals) : orderSubtotal;
+          })();
+      const perUnit = sale.qty > 1 ? correctPrice / sale.qty : correctPrice;
+      const rounded = Math.round(perUnit * 100) / 100;
+      if (Math.abs(sale.price - rounded) > 0.01) {
+        sale.price = rounded;
         updated = true;
       }
     }
@@ -1106,11 +1109,17 @@ async function _syncEBayOrders(lookbackMs) {
         }
       } catch (_) { /* Not shipped yet — tracking will be backfilled on next sync */ }
 
-      // Order-level fee totals (used as fallback when line-item fees missing)
-      const orderSubtotal = parseFloat(order.pricingSummary?.priceSubtotal?.value || '0');
+      // Order-level pricing — derive item subtotal (what eBay shows as "Subtotal")
+      // priceSubtotal is the clean item-only amount; if missing, derive from total
+      const ps = order.pricingSummary || {};
+      const orderTotal = parseFloat(ps.total?.value || '0');
+      const orderDelivery = parseFloat(ps.deliveryCost?.value || '0');
+      const orderTax = parseFloat(ps.tax?.value || '0');
+      const orderSubtotal = parseFloat(ps.priceSubtotal?.value || '0')
+        || (orderTotal - orderDelivery - orderTax);
       // totalMarketplaceFee is the most reliable order-level fee total
       const orderTotalFee = parseFloat(order.totalMarketplaceFee?.value
-        || order.pricingSummary?.fee?.value || '0');
+        || ps.fee?.value || '0');
 
       for (const lineItem of (order.lineItems || [])) {
         const sku = lineItem.sku;
@@ -1131,19 +1140,17 @@ async function _syncEBayOrders(lookbackMs) {
           autoDlistOnSale(local.id, 'eBay');
         }
 
-        // ── Capture financial breakdown from eBay Fulfillment API ──
-        // Use lineItemCost (pure price × qty) — lineItem.total can include
-        // handling fees and adjustments that inflate the amount.
-        // Fall back to prorated order subtotal (pricingSummary.priceSubtotal)
-        // which matches eBay's displayed "Subtotal" for the order.
-        const lineItemCost = parseFloat(lineItem.lineItemCost?.value || '0');
+        // ── Item price: use prorated order subtotal ──
+        // lineItem.total can include handling fees/adjustments ($1.08 extra in
+        // user's case). orderSubtotal (= priceSubtotal or total-delivery-tax)
+        // matches eBay's displayed "Subtotal" — prorate for multi-item orders.
         const lineTotal = parseFloat(lineItem.total?.value || '0');
-        const allLineItemsTotal = (order.lineItems || []).reduce(
+        const lineItems = order.lineItems || [];
+        const allLineTotals = lineItems.reduce(
           (s, li) => s + parseFloat(li.total?.value || '0'), 0);
-        const shareOfSubtotal = allLineItemsTotal > 0
-          ? orderSubtotal * (lineTotal / allLineItemsTotal) : orderSubtotal;
-        const itemSubtotal = lineItemCost > 0 ? lineItemCost
-          : (shareOfSubtotal > 0 ? shareOfSubtotal : lineTotal);
+        const itemSubtotal = lineItems.length === 1
+          ? orderSubtotal
+          : (allLineTotals > 0 ? orderSubtotal * (lineTotal / allLineTotals) : lineTotal);
 
         // Fees: prefer orderTotalFee (includes ALL fees: FVF, promoted listing,
         // regulatory, etc.). lineItem.marketplaceFees often misses some fee types.
