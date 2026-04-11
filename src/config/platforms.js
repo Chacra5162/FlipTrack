@@ -36,7 +36,7 @@ export const platCls = p => ({
 // ── PLATFORM FEE SCHEDULES ────────────────────────────────────────────────
 // Fees as percentage (0.13 = 13%). Some have flat fees added.
 export const PLATFORM_FEES = {
-  'eBay':                { pct: 0.1325, flat: 0.30, label: '13.25% + $0.30' },
+  'eBay':                { pct: 0.1325, flat: 0.30, label: '13.25% + $0.30 (on item + shipping)', feeOnShipping: true },
   'Amazon':              { pct: 0.15,   flat: 0,    label: '15% referral' },
   'Etsy':                { pct: 0.065,  flat: 0.20, label: '6.5% + $0.20 + 3% processing', processing: 0.03 },
   'Facebook Marketplace':{ pct: 0.05,   flat: 0,    label: '5% (or $0.40 min)' },
@@ -60,11 +60,13 @@ export const PLATFORM_FEES = {
   'Swappa':              { pct: 0.03,   flat: 0,    label: '3% (buyer pays most)' },
 };
 
-export function calcPlatformFee(platform, salePrice) {
+export function calcPlatformFee(platform, salePrice, shippingCost = 0) {
   const fee = PLATFORM_FEES[platform];
   if (!fee) return null;
-  let total = (salePrice * fee.pct) + (fee.flat || 0);
-  if (fee.processing) total += salePrice * fee.processing;
+  // eBay charges FVF on item + shipping; other platforms on item only
+  const feeBasis = fee.feeOnShipping ? salePrice + shippingCost : salePrice;
+  let total = (feeBasis * fee.pct) + (fee.flat || 0);
+  if (fee.processing) total += feeBasis * fee.processing;
   if (fee.processingFlat) total += fee.processingFlat;
   // Poshmark minimum
   if (platform === 'Poshmark' && salePrice < 15) total = 2.95;

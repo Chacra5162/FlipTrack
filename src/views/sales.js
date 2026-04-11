@@ -271,13 +271,14 @@ export function updateSalePriceHint() {
 export function updateFeeEstimate() {
   const platform = document.getElementById('s_platform').value;
   const price = parseFloat(document.getElementById('s_price').value) || 0;
+  const ship = parseFloat(document.getElementById('s_ship')?.value) || 0;
   const hint = document.getElementById('s_fee_hint');
   if (!hint) return;
   const feeData = PLATFORM_FEES[platform];
   if (!feeData) { hint.style.display = 'none'; return; }
   hint.style.display = '';
   if (price > 0) {
-    const est = calcPlatformFee(platform, price);
+    const est = calcPlatformFee(platform, price, ship);
     document.getElementById('s_fees').value = est;
     hint.innerHTML = `${feeData.label} · est. <strong style="color:var(--accent)">${fmt(est)}</strong> <span style="color:var(--good);font-size:9px;margin-left:4px">Auto-applied ✓</span>`;
   } else {
