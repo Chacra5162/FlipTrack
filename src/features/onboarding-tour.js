@@ -234,6 +234,23 @@ const TOUR_STEPS = [
     position: 'top',
     viewRequirement: 'sales',
   },
+  {
+    section: 'Sales',
+    target: '#s_addl_fee_pct',
+    fallbackTarget: '#s_fees',
+    title: 'Additional Fee %',
+    desc: 'Some platforms charge extra fees not captured by the API — like eBay\'s store performance surcharge. Enter the percentage here and it\'s calculated on the correct fee basis (order total for eBay). Shows as an orange badge in the sales table.',
+    position: 'top',
+  },
+  {
+    section: 'Sales',
+    target: '#salesBody',
+    fallbackTarget: '#view-sales',
+    title: 'eBay Auto-Sync',
+    desc: 'eBay sales are automatically detected and recorded — price, fees, tracking, and buyer info all pulled from the API. Hit the Sync button anytime to check for new orders. Fees include FVF and per-order charges; add store surcharges via the Addl Fee % field.',
+    position: 'top',
+    viewRequirement: 'sales',
+  },
 
   /* ── SECTION 5: FINANCIAL TRACKING ───────────────────────────────────── */
   {
@@ -471,6 +488,15 @@ const TOUR_STEPS = [
     position: 'top',
     viewRequirement: 'sourcing',
   },
+  {
+    section: 'Operations',
+    target: '#view-sourcing',
+    fallbackTarget: '#sourcingContent',
+    title: 'Smart Source Matching',
+    desc: 'Source names are automatically normalized — "Marshall\'s" and "Marshalls" merge into one entry. This keeps your Sourcing Analytics clean with accurate per-source ROI. Existing duplicates are fixed automatically on page load.',
+    position: 'top',
+    viewRequirement: 'sourcing',
+  },
 
   /* ── SECTION 7.8: ADVANCED FEATURES ───────────────────────────────── */
   {
@@ -536,6 +562,15 @@ const TOUR_STEPS = [
     fallbackTarget: '#view-crosslist',
     title: 'Auto-Delist on Sale',
     desc: 'When an item sells and quantity hits 0, FlipTrack automatically ends eBay listings, deactivates Etsy listings, and sends a notification for platforms without API (Depop, Poshmark, Mercari, etc.) so you remember to manually delist.',
+    position: 'top',
+    viewRequirement: 'crosslist',
+  },
+  {
+    section: 'Crosslisting',
+    target: '#crosslistContent',
+    fallbackTarget: '#view-crosslist',
+    title: 'Auction Smart Stats',
+    desc: 'Auction items show Current Bid, Start Bid, and Reserve Price instead of profit/margin/ROI in the item drawer — since the final price is unknown until the auction ends. Bids update from eBay on each sync. Auctions are also excluded from margin alerts.',
     position: 'top',
     viewRequirement: 'crosslist',
   },
@@ -714,6 +749,15 @@ const TOUR_STEPS = [
     fallbackTarget: '#buyersContent',
     title: 'Buyer CRM',
     desc: 'Track your buyers — platform handles, purchase history, total spent, and notes. Build repeat-customer relationships and spot your best buyers.',
+    position: 'top',
+    viewRequirement: 'buyers',
+  },
+  {
+    section: 'Customers',
+    target: '#view-buyers',
+    fallbackTarget: '#buyersContent',
+    title: 'Loyalty & Spending Tiers',
+    desc: 'Two badge systems track buyer value. Loyalty tiers (New → Regular → VIP → Elite) are based on purchase count. Spending tiers (Shopper → Regular → Big Spender → Store Sponsor) track total dollars spent. Both badges show on buyer cards.',
     position: 'top',
     viewRequirement: 'buyers',
   },
