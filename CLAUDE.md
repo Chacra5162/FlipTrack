@@ -17,7 +17,7 @@ node tests/test-suite.cjs  # Run test suite
 - **Frontend:** Vanilla JS (ES modules, no framework), Vite bundler, single-page app
 - **Backend:** Supabase (auth, Postgres with RLS, realtime subscriptions, Edge Functions, Storage)
 - **Deploy:** GitHub Pages via `.github/workflows/deploy.yml` on push to `master`
-- **Version:** 2.0.0
+- **Version:** 2.1.0
 
 ### Directory Structure
 ```
