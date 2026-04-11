@@ -184,7 +184,11 @@ export function openEditSaleModal(saleId) {
   if (zipEl) zipEl.value = sale.buyerZip || '';
 
   sPriceType('each');
-  updateFeeEstimate();
+  // Only show fee hint label — don't overwrite stored fees with auto-estimate
+  const feeHint = document.getElementById('s_fee_hint');
+  const feeData = PLATFORM_FEES[sale.platform];
+  if (feeHint && feeData) { feeHint.style.display = ''; feeHint.textContent = feeData.label; }
+  else if (feeHint) feeHint.style.display = 'none';
 
   // Change modal title and button text
   const ttl = document.querySelector('#soldOv .modal-ttl');
