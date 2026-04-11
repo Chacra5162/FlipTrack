@@ -993,18 +993,22 @@ async function _backfillOrderData(order) {
         updated = true;
       }
     }
-    // Backfill / correct fees — use orderTotalFee (prorated) as source of truth
-    // since lineItem.marketplaceFees often misses promoted listing & regulatory fees
-    if (orderFee > 0) {
-      const lineItem = matchingLine || (order.lineItems || []).find(li => {
-        const lineTotal = parseFloat(li.total?.value || '0');
-        return Math.abs(lineTotal - (sale.price * sale.qty)) < 0.01
-          || Math.abs(lineTotal - sale.listPrice * sale.qty) < 0.01;
-      });
+    // Backfill / correct fees — prefer totalMarketplaceFee, fall back to
+    // lineItem.marketplaceFees sum. Never use pricingSummary.fee (overcounts).
+    {
+      const lineItem = lineItems.length === 1 ? lineItems[0]
+        : (lineItems.find(li =>
+            Math.abs(parseFloat(li.total?.value || '0') - (sale.price * sale.qty)) < 1
+            || Math.abs(parseFloat(li.total?.value || '0') - (sale.listPrice * sale.qty)) < 1));
+      const lineItemFees = lineItem
+        ? (lineItem.marketplaceFees || []).reduce((s, f) => s + parseFloat(f.amount?.value || '0'), 0)
+        : 0;
       const lineItemTotal = parseFloat(lineItem?.total?.value || '0');
       const lineShare = orderSubtotal > 0 ? lineItemTotal / orderSubtotal : 1;
-      const correctFee = Math.round(orderFee * lineShare * 100) / 100;
-      if (Math.abs((sale.fees || 0) - correctFee) > 0.01) {
+      const correctFee = orderFee > 0
+        ? Math.round(orderFee * lineShare * 100) / 100
+        : (lineItemFees > 0 ? Math.round(lineItemFees * 100) / 100 : 0);
+      if (correctFee > 0 && Math.abs((sale.fees || 0) - correctFee) > 0.01) {
         sale.fees = correctFee;
         updated = true;
       }
