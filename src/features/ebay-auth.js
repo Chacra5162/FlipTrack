@@ -124,9 +124,14 @@ async function callEdgeFn(action, body = {}) {
     try { data = JSON.parse(text); } catch { throw new Error(`Unexpected response (${resp.status})`); }
   }
   if (!resp.ok) {
-    console.error('[eBay] API ERROR:', data.method, data.path, '→', data.ebayStatus || resp.status);
-    console.error('[eBay] Error message:', data.error);
-    if (data.ebayErrors) console.error('[eBay] Full eBay errors:', JSON.stringify(data.ebayErrors, null, 2));
+    // Downgrade known/expected failures to warn (Trading API blocked, invalid SKU)
+    const isExpected = resp.status === 403
+      || (data.error || '').includes('not allowed')
+      || (data.error || '').includes('invalid value for a SKU');
+    const log = isExpected ? console.warn : console.error;
+    log('[eBay] API ERROR:', data.method, data.path, '→', data.ebayStatus || resp.status);
+    log('[eBay] Error message:', data.error);
+    if (data.ebayErrors && !isExpected) console.error('[eBay] Full eBay errors:', JSON.stringify(data.ebayErrors, null, 2));
     throw new Error(data.error || `Edge function error: ${resp.status}`);
   }
   return data;
