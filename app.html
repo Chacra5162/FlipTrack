@@ -1581,6 +1581,7 @@
           <div id="s_fee_hint" style="font-size:10px;color:var(--muted);margin-top:4px;font-family:'DM Mono',monospace;display:none"></div>
         </div>
         <div class="fgrp"><label for="s_fees">Platform Fees ($)</label><input type="number" id="s_fees" placeholder="0.00" step="0.01"></div>
+        <div class="fgrp"><label for="s_addl_fee_pct">Addl Fee %</label><input type="number" id="s_addl_fee_pct" placeholder="0" step="0.1" min="0" max="100" oninput="updateAddlFeePreview()" title="Additional percentage fee (e.g. store performance surcharge)"></div>
         <div class="fgrp"><label for="s_ship">Shipping Cost ($)</label><input type="number" id="s_ship" placeholder="0.00" step="0.01" oninput="updateFeeEstimate()"></div>
         <div class="fgrp full"><label for="s_date">Date Sold</label><input type="date" id="s_date"></div>
         <div class="fgrp full"><label for="s_buyer">Buyer Name / Handle <span style="color:var(--muted);font-weight:400">(optional)</span></label><input type="text" id="s_buyer" placeholder="e.g. john_resells"></div>

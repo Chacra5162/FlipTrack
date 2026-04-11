@@ -966,8 +966,7 @@ async function _backfillOrderData(order) {
   const bfOrderTax = parseFloat(ps.tax?.value || '0');
   const orderSubtotal = parseFloat(ps.priceSubtotal?.value || '0')
     || (bfOrderTotal - bfOrderDelivery - bfOrderTax);
-  const orderFee = parseFloat(order.totalMarketplaceFee?.value
-    || ps.fee?.value || '0');
+  const orderFee = parseFloat(order.totalMarketplaceFee?.value || '0');
 
   let updated = false;
   const lineItems = order.lineItems || [];
@@ -1121,12 +1120,10 @@ async function _syncEBayOrders(lookbackMs) {
       const orderTax = parseFloat(ps.tax?.value || '0');
       const orderSubtotal = parseFloat(ps.priceSubtotal?.value || '0')
         || (orderTotal - orderDelivery - orderTax);
-      // ── Fee sources (best to worst) ──
-      // totalMarketplaceFee: matches eBay's "Transaction fees" (often absent)
-      // pricingSummary.fee: close but may include ~$0.17 regulatory operating fee
-      // lineItem.marketplaceFees: misses store performance surcharge (~6%)
-      const orderTotalFee = parseFloat(order.totalMarketplaceFee?.value
-        || ps.fee?.value || '0');
+      // Use totalMarketplaceFee if available, otherwise lineItem.marketplaceFees.
+      // Store performance surcharges (e.g. 6% below-standard) aren't in the API —
+      // user adds those via the addlFeePct field on the sale record.
+      const orderTotalFee = parseFloat(order.totalMarketplaceFee?.value || '0');
 
       for (const lineItem of (order.lineItems || [])) {
         const sku = lineItem.sku;

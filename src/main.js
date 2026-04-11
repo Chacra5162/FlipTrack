@@ -75,7 +75,7 @@ import {
 } from './views/inventory.js';
 import {
   openSoldModal, closeSold, sPriceType, onSoldItemPick,
-  updateSalePriceHint, updateFeeEstimate,
+  updateSalePriceHint, updateFeeEstimate, updateAddlFeePreview,
   recSale, renderSalesView, openEditSaleModal, promptLinkBuyer,
   toggleBundleMode, filterBundleItems, toggleBundleItem, _updateBundlePriceHint,
   setSalesSearch, setSalesDateFrom, setSalesDateTo, clearSalesFilters
@@ -534,7 +534,7 @@ Object.assign(window, {
 // Sold / Sales
 Object.assign(window, {
   openSoldModal, closeSold, sPriceType, onSoldItemPick,
-  updateSalePriceHint, updateFeeEstimate,
+  updateSalePriceHint, updateFeeEstimate, updateAddlFeePreview,
   recSale, renderSalesView, delSale, undoSaleDeletion, openEditSaleModal, promptLinkBuyer,
   toggleBundleMode, filterBundleItems, toggleBundleItem, _updateBundlePriceHint,
   setSalesSearch, setSalesDateFrom, setSalesDateTo, clearSalesFilters

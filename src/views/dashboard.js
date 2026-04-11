@@ -1,5 +1,5 @@
 import { inv, sales, getInvItem, getSalesForItem, calc, sc, margCls, mkc, save, refresh, markDirty } from '../data/store.js';
-import { fmt, pct, ds, escHtml, escAttr, localDate} from '../utils/format.js';
+import { fmt, pct, ds, escHtml, escAttr, localDate, addlFee} from '../utils/format.js';
 import { getPlatforms, renderPlatTags } from '../features/platforms.js';
 import { toast } from '../utils/dom.js';
 import { openDrawer } from '../modals/drawer.js';
@@ -48,7 +48,7 @@ export function updateStats() {
     const it=getInvItem(s.itemId);
     rev  +=(s.price||0)*(s.qty||0);
     cogs +=(it?(it.cost||0)*(s.qty||0):0);
-    fees +=(s.fees||0)+(s.ship||0);
+    fees +=(s.fees||0)+addlFee(s)+(s.ship||0);
   }
   const profit=rev-cogs-fees, roi=cogs?profit/cogs:null, avgm=rev?profit/rev:null;
   document.getElementById('sInvVal').textContent=fmt(invVal);
@@ -169,7 +169,7 @@ export function updateSalesLog() {
   el.innerHTML=sales.slice(-8).reverse().map((s,i)=>{
     const it=getInvItem(s.itemId);
     const nm=it?escHtml(it.name):'Unknown';
-    const pr=(s.price||0)*(s.qty||0)-(it?(it.cost||0)*(s.qty||0):0)-(s.fees||0)-(s.ship||0);
+    const pr=(s.price||0)*(s.qty||0)-(it?(it.cost||0)*(s.qty||0):0)-(s.fees||0)-addlFee(s)-(s.ship||0);
     return `<div class="sale-item">
       <div class="sale-dot" style="background:${colors[i%5]}"></div>
       <div class="sale-info"><div class="sale-name">${nm}</div><div class="sale-time">${ds(s.date)} · profit ${fmt(pr)}</div></div>

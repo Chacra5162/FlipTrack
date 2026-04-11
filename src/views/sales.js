@@ -11,7 +11,7 @@ import {
   isParent, getVariants,
 } from '../data/store.js';
 
-import { fmt, pct, escHtml, escAttr, uid, ds, localDate} from '../utils/format.js';
+import { fmt, pct, escHtml, escAttr, uid, ds, localDate, addlFee} from '../utils/format.js';
 import { PLATFORMS, platCls, PLATFORM_FEES, calcPlatformFee } from '../config/platforms.js';
 import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
@@ -60,6 +60,7 @@ export function openSoldModal(id) {
     document.getElementById('s_price').value = '';
     document.getElementById('s_qty').value = '1';
     document.getElementById('s_fees').value = '';
+    document.getElementById('s_addl_fee_pct').value = '';
     document.getElementById('s_ship').value = '';
     document.getElementById('s_date').value = localDate();
     const sel = document.getElementById('s_platform');
@@ -97,6 +98,7 @@ export function openSoldModal(id) {
       document.getElementById('s_price').value = '';
       document.getElementById('s_qty').value = '1';
       document.getElementById('s_fees').value = '';
+      document.getElementById('s_addl_fee_pct').value = '';
       document.getElementById('s_ship').value = '';
       document.getElementById('s_date').value = localDate();
       sPriceType('each');
@@ -147,6 +149,7 @@ export function openEditSaleModal(saleId) {
   document.getElementById('s_price').value = sale.price || '';
   document.getElementById('s_qty').value = sale.qty || 1;
   document.getElementById('s_fees').value = sale.fees || '';
+  document.getElementById('s_addl_fee_pct').value = sale.addlFeePct || '';
   document.getElementById('s_ship').value = sale.ship || '';
   document.getElementById('s_date').value = (sale.date || '').slice(0, 10) || localDate();
 
@@ -283,6 +286,22 @@ export function updateFeeEstimate() {
     hint.innerHTML = `${feeData.label} · est. <strong style="color:var(--accent)">${fmt(est)}</strong> <span style="color:var(--good);font-size:9px;margin-left:4px">Auto-applied ✓</span>`;
   } else {
     hint.textContent = feeData.label;
+  }
+}
+
+// ── ADDITIONAL FEE % ─────────────────────────────────────────────────────────
+// addlFee(s) imported from format.js — computes pct% × (price × qty + ship)
+
+/** Live preview — update tooltip showing what the % translates to in $ */
+export function updateAddlFeePreview() {
+  const pctVal = parseFloat(document.getElementById('s_addl_fee_pct')?.value) || 0;
+  const price = parseFloat(document.getElementById('s_price')?.value) || 0;
+  const ship = parseFloat(document.getElementById('s_ship')?.value) || 0;
+  const qty = parseInt(document.getElementById('s_qty')?.value) || 1;
+  const el = document.getElementById('s_addl_fee_pct');
+  if (pctVal > 0 && price > 0 && el) {
+    const amt = Math.round((pctVal / 100) * (price * qty + ship) * 100) / 100;
+    el.title = `${pctVal}% = $${amt.toFixed(2)} additional fee`;
   }
 }
 
@@ -506,10 +525,12 @@ export async function recSale() {
   const saleDate = document.getElementById('s_date').value || new Date().toISOString();
   if (saleDate.slice(0, 10) > localDate()) { toast('Date cannot be in the future', true); reenableBtn(); return; }
 
+  const addlFeePct = parseFloat(document.getElementById('s_addl_fee_pct')?.value) || 0;
   const sale = {
     id: uid(), itemId: activeSoldId, price, listPrice: item.price || 0,
     qty, platform,
     fees: isNaN(fees) ? 0 : fees,
+    addlFeePct: addlFeePct > 0 ? addlFeePct : undefined,
     ship: isNaN(ship) ? 0 : ship,
     date: saleDate,
     tracking: (document.getElementById('s_tracking')?.value || '').trim() || null,
@@ -604,6 +625,8 @@ async function _updateExistingSale(reenableBtn) {
   sale.qty = newQty;
   sale.platform = platform;
   sale.fees = isNaN(fees) ? 0 : fees;
+  const editAddlFeePct = parseFloat(document.getElementById('s_addl_fee_pct')?.value) || 0;
+  sale.addlFeePct = editAddlFeePct > 0 ? editAddlFeePct : undefined;
   sale.ship = isNaN(ship) ? 0 : ship;
   const editDate = document.getElementById('s_date').value || sale.date;
   if (editDate.slice(0, 10) > localDate()) { toast('Date cannot be in the future', true); reenableBtn(); return; }
@@ -739,7 +762,7 @@ export function renderSalesView() {
   for (const s of filtered) {
     const it = getInvItem(s.itemId);
     rev += (s.price || 0) * (s.qty || 1);
-    profit += (s.price || 0) * (s.qty || 1) - (it ? (it.cost || 0) * (s.qty || 1) : 0) - (s.fees || 0) - (s.ship || 0);
+    profit += (s.price || 0) * (s.qty || 1) - (it ? (it.cost || 0) * (s.qty || 1) : 0) - (s.fees || 0) - addlFee(s) - (s.ship || 0);
   }
   document.getElementById('salesTotalLbl').textContent =
     `${filtered.length} sales · ${fmt(rev)} revenue · ${fmt(profit)} profit`;
@@ -781,7 +804,7 @@ export function renderSalesView() {
     const nm = it ? escHtml(it.name) : 'Deleted Item';
     const cost = it ? (it.cost || 0) * (s.qty || 0) : 0;
     const sRev = (s.price || 0) * (s.qty || 0);
-    const pr = sRev - cost - (s.fees || 0) - (s.ship || 0);
+    const pr = sRev - cost - (s.fees || 0) - addlFee(s) - (s.ship || 0);
     const lp = s.listPrice || (it ? it.price : 0);
     const priceDiff = lp > 0 ? ((s.price - lp) / lp) : 0;
     const priceTag = lp > 0
@@ -802,7 +825,7 @@ export function renderSalesView() {
       <td>${s.qty}</td>
       <td>${fmt(s.price)} ${priceTag}</td>
       <td style="color:var(--muted)">${fmt(it ? it.cost : 0)}</td>
-      <td style="color:var(--muted)">${fmt((s.fees || 0) + (s.ship || 0))}</td>
+      <td style="color:var(--muted)">${fmt((s.fees || 0) + addlFee(s) + (s.ship || 0))}${s.addlFeePct ? ` <span style="font-size:9px;color:var(--accent2)">${s.addlFeePct}%</span>` : ''}</td>
       <td style="font-family:'Syne',sans-serif;font-weight:700;color:${pr >= 0 ? 'var(--good)' : 'var(--danger)'}">${fmt(pr)}</td>
       <td>${buyerCell}</td>
       <td style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)">${s.tracking ? `<a href="https://parcelsapp.com/en/tracking/${encodeURIComponent(s.tracking)}" target="_blank" rel="noopener" style="color:var(--accent)">${escHtml(s.tracking.slice(0, 18))}${s.tracking.length > 18 ? '…' : ''}</a>` : '—'}</td>

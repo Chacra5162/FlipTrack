@@ -1,5 +1,5 @@
 import { inv, sales, expenses, getInvItem, getSalesForItem, markDirty, save, refresh } from '../data/store.js';
-import { fmt, pct, ds, escHtml, escAttr } from '../utils/format.js';
+import { fmt, pct, ds, escHtml, escAttr, addlFee } from '../utils/format.js';
 import { getPlatforms } from '../features/platforms.js';
 import { scanArbitrageOpportunities } from '../features/arbitrage-alerts.js';
 import { renderSeasonalCalendar } from '../features/seasonal-calendar.js';
@@ -37,7 +37,7 @@ export function renderInsights() {
     const itemSales = getSalesForItem(item.id);
     const revenue   = itemSales.reduce((a,s) => a + (s.price||0)*(s.qty||0), 0);
     const unitsSold = itemSales.reduce((a,s) => a + (s.qty||0), 0);
-    const profit    = itemSales.reduce((a,s) => a + (s.price||0)*(s.qty||0) - (item.cost||0)*(s.qty||0) - (s.fees||0) - (s.ship||0), 0);
+    const profit    = itemSales.reduce((a,s) => a + (s.price||0)*(s.qty||0) - (item.cost||0)*(s.qty||0) - (s.fees||0) - addlFee(s) - (s.ship||0), 0);
     const lastSale  = itemSales.length ? new Date(Math.max(...itemSales.map(s=>new Date(s.date)))) : null;
     const daysSinceSale = lastSale ? Math.floor((now - lastSale) / msDay) : null;
     const addedDate = new Date(item.added || now);
@@ -168,7 +168,7 @@ export function renderInsights() {
     if (!monthlyData[key]) monthlyData[key] = { revenue: 0, profit: 0, units: 0 };
     monthlyData[key].revenue += (s.price || 0) * (s.qty || 0);
     const it = getInvItem(s.itemId);
-    monthlyData[key].profit += (s.price||0)*(s.qty||0) - (it?.cost||0)*(s.qty||0) - (s.fees||0) - (s.ship||0);
+    monthlyData[key].profit += (s.price||0)*(s.qty||0) - (it?.cost||0)*(s.qty||0) - (s.fees||0) - addlFee(s) - (s.ship||0);
     monthlyData[key].units += s.qty || 0;
   }
 
