@@ -933,15 +933,14 @@ async function _backfillOrderData(order) {
     console.warn('FlipTrack: backfill tracking fetch error:', e.message);
   }
 
-  // Compute fee / shipping breakdown from order pricing summary once
+  // Compute fee breakdown from order pricing summary once
   // (used to backfill sales recorded before fees were captured)
   const orderSubtotal = parseFloat(order.pricingSummary?.priceSubtotal?.value || '0');
-  const orderDelivery = parseFloat(order.pricingSummary?.deliveryCost?.value || '0');
   const orderFee = parseFloat(order.pricingSummary?.fee?.value || '0');
 
   let updated = false;
   for (const sale of existing) {
-    // Backfill fees and shipping label cost if missing
+    // Backfill fees if missing
     if ((!sale.fees || sale.fees === 0) && orderFee > 0) {
       const lineItem = (order.lineItems || []).find(li => {
         const lineTotal = parseFloat(li.total?.value || '0');
@@ -956,14 +955,9 @@ async function _backfillOrderData(order) {
       sale.fees = Math.round((lineItemFees > 0 ? lineItemFees : orderFee * lineShare) * 100) / 100;
       updated = true;
     }
-    if ((!sale.ship || sale.ship === 0) && orderDelivery > 0) {
-      const lineItemTotal = parseFloat(
-        (order.lineItems || []).find(li => Math.abs(parseFloat(li.total?.value || '0') - sale.price * sale.qty) < 0.01)?.total?.value || '0'
-      );
-      const lineShare = orderSubtotal > 0 ? lineItemTotal / orderSubtotal : 1;
-      sale.ship = Math.round(orderDelivery * lineShare * 100) / 100;
-      updated = true;
-    }
+    // Note: ship intentionally NOT backfilled from buyer's deliveryCost.
+    // Buyer's shipping payment offsets the label cost (net ~$0 to seller).
+    // If seller paid for labels separately, they should adjust ship manually.
     // Backfill tracking
     if (!sale.tracking && trackCode) {
       sale.tracking = trackCode;
@@ -1057,33 +1051,27 @@ async function _syncEBayOrders(lookbackMs) {
           autoDlistOnSale(local.id, 'eBay');
         }
 
-        // ── Capture full financial breakdown from eBay Fulfillment API ──
-        // Buyer paid: itemSubtotal + shippingBuyerPaid + tax
-        // Seller receives: itemSubtotal + shippingBuyerPaid (tax remitted by eBay)
-        // Seller pays: marketplaceFees + shippingLabelCost
-        // Net = (itemSubtotal + shippingBuyerPaid) - marketplaceFees - shippingLabelCost
+        // ── Capture financial breakdown from eBay Fulfillment API ──
+        // lineItem.total = item selling price × qty (excludes shipping & tax)
+        // Buyer's shipping payment offsets the seller's label cost (net ~$0)
+        // eBay fees (FVF etc.) are assessed on item + shipping combined
         const itemSubtotal = parseFloat(lineItem.total?.value || '0');
         // Line-item marketplace fees (FINAL_VALUE_FEE, etc.)
         const lineItemFees = (lineItem.marketplaceFees || []).reduce((sum, f) =>
           sum + parseFloat(f.amount?.value || '0'), 0);
         // Order-level pricing summary (fallback if line item doesn't have fees)
-        const orderDeliveryCost = parseFloat(order.pricingSummary?.deliveryCost?.value || '0');
         const orderFee = parseFloat(order.pricingSummary?.fee?.value || '0');
         const orderSubtotal = parseFloat(order.pricingSummary?.priceSubtotal?.value || '0');
 
         // Prorate order-level fields by this line's share of the subtotal
         const lineShare = orderSubtotal > 0 ? itemSubtotal / orderSubtotal : 1;
-        const shippingFromBuyer = orderDeliveryCost * lineShare;
         // Use line-item fees if available, otherwise prorate order fee
         const fees = lineItemFees > 0 ? lineItemFees : (orderFee * lineShare);
-        // Assume shipping label cost matches buyer shipping (true when using eBay labels).
-        // User can adjust manually if they bought labels elsewhere.
-        const shippingLabelCost = shippingFromBuyer;
 
-        // FlipTrack sale model: price = total seller received, fees = platform fees,
-        // ship = label cost. profit = price - cost - fees - ship.
-        const sellerReceived = itemSubtotal + shippingFromBuyer;
-        const price = soldQty > 1 ? sellerReceived / soldQty : sellerReceived;
+        // price = item selling price per unit (matches eBay's displayed item price)
+        // ship = 0 (buyer's shipping payment covers label cost; user can adjust
+        //   manually for free-shipping listings where seller absorbs label cost)
+        const price = soldQty > 1 ? itemSubtotal / soldQty : itemSubtotal;
         if (itemSubtotal > 0) {
           logSalePrice(local.id, itemSubtotal, 'eBay');
         }
@@ -1101,7 +1089,7 @@ async function _syncEBayOrders(lookbackMs) {
           id: uid(), itemId: local.id, price,
           listPrice: local.price || 0, qty: soldQty, platform: 'eBay',
           fees: Math.round(fees * 100) / 100,
-          ship: Math.round(shippingLabelCost * 100) / 100,
+          ship: 0,
           date: order.creationDate || new Date().toISOString(),
           tracking: null,
           trackingCarrier: null,
