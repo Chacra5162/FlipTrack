@@ -56,6 +56,58 @@ export function normalizeSource(raw) {
   return trimmed;
 }
 
+/**
+ * Retroactively normalize all existing inventory sources.
+ * Groups by normalized key, picks the most common spelling as canonical,
+ * and updates any items that differ. Runs once on startup.
+ */
+export function retroNormalizeSources() {
+  // Build frequency map: normKey → { canonical, count, items }
+  const groups = new Map();
+  for (const item of inv) {
+    const src = (item.source || '').trim();
+    if (!src) continue;
+    const key = _normKey(src);
+    if (!key) continue;
+    if (!groups.has(key)) groups.set(key, new Map());
+    const variants = groups.get(key);
+    variants.set(src, (variants.get(src) || 0) + 1);
+  }
+
+  let fixed = 0;
+  for (const [key, variants] of groups) {
+    if (variants.size <= 1) continue; // no duplicates
+
+    // Pick the most-used spelling as canonical (tie-break: defaults, then alphabetical)
+    let canonical = '';
+    let maxCount = 0;
+    for (const [name, count] of variants) {
+      const isDefault = DEFAULT_SOURCES.some(d => _normKey(d) === key);
+      const defaultName = DEFAULT_SOURCES.find(d => _normKey(d) === key);
+      if (defaultName) { canonical = defaultName; break; }
+      if (count > maxCount || (count === maxCount && name < canonical)) {
+        canonical = name;
+        maxCount = count;
+      }
+    }
+    if (!canonical) continue;
+
+    // Update all items with variant spellings to the canonical name
+    for (const item of inv) {
+      const src = (item.source || '').trim();
+      if (src && _normKey(src) === key && src !== canonical) {
+        item.source = canonical;
+        fixed++;
+      }
+    }
+  }
+  if (fixed > 0) {
+    console.warn(`[FlipTrack] Normalized ${fixed} item source(s) to resolve duplicates`);
+    // Caller should save() after this
+  }
+  return fixed;
+}
+
 // ── PERSIST CUSTOM ENTRIES ───────────────────────────────────────────────────
 
 const IDB_KEY = 'autocomplete_custom';

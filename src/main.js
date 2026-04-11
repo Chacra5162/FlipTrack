@@ -17,6 +17,7 @@ import { fmt, pct, uid, ds, escHtml, escAttr, debounce } from './utils/format.js
 import { toast, trapFocus, releaseFocus, appPrompt } from './utils/dom.js';
 import { _sfx } from './utils/sfx.js';
 import { initKeyboardShortcuts } from './utils/keyboard.js';
+import { retroNormalizeSources } from './utils/autocomplete.js';
 
 // ── Data Layer ────────────────────────────────────────────────────────────────
 import {
@@ -1291,6 +1292,8 @@ setTimeout(_killSplash, 3000);
 
   // Normalize category names to prevent duplicates (e.g., "Men's Clothing" vs "Men's clothing")
   try { const n = normalizeAllCategories(); if (n > 0) { save(); console.warn(`FlipTrack: Normalized ${n} category names`); } } catch(e) {}
+  // Normalize source names to merge near-duplicates (e.g., "Marshall's" → "Marshalls")
+  try { const n = retroNormalizeSources(); if (n > 0) { save(); } } catch(e) {}
 
   // Build initial state — restore last viewed page on refresh
   try {
