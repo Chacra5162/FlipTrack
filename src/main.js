@@ -291,7 +291,7 @@ import {
 import { exportPLReport, exportTaxReport } from './features/pdf-reports.js';
 
 // ── Phase 9: Analytics & Intelligence ────────────────────────────────────────
-import { renderInventoryHealth } from './features/inventory-health.js';
+import { renderInventoryHealth, toggleStalePanel } from './features/inventory-health.js';
 import { renderSourcingAnalytics, showSourceItems } from './features/sourcing-analytics.js';
 import { renderPlatformROI } from './features/platform-roi.js';
 import { renderPeriodCompare } from './features/period-compare.js';
@@ -865,7 +865,7 @@ Object.assign(window, {
 
 // Phase 9: Analytics & Intelligence
 Object.assign(window, {
-  renderInventoryHealth,
+  renderInventoryHealth, toggleStalePanel,
   renderSourcingAnalytics, showSourceItems,
   renderPlatformROI,
   renderPeriodCompare,

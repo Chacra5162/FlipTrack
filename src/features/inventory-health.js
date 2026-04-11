@@ -18,6 +18,8 @@ const AGING_BUCKETS = [
 // Use daysSince with 999 fallback for items with no date (treated as very old)
 const _daysSince = d => daysSince(d, 999);
 
+let _staleExpanded = false; // toggle state for stale items panel
+
 // ── COMPUTE HEALTH METRICS ────────────────────────────────────────────────
 
 export function computeInventoryHealth() {
@@ -139,15 +141,44 @@ export function renderInventoryHealth() {
         <div class="ih-card-val">${h.avgAge}d</div>
         <div class="ih-card-lbl">Avg Age</div>
       </div>
-      <div class="ih-card ih-card-warn">
+      <div class="ih-card ih-card-warn" style="cursor:pointer" onclick="toggleStalePanel()" title="Click to see stale items">
         <div class="ih-card-val">${h.staleCount}</div>
-        <div class="ih-card-lbl">Stale (60d+)</div>
+        <div class="ih-card-lbl">Stale (60d+) ▾</div>
       </div>
-      <div class="ih-card ih-card-warn">
+      <div class="ih-card ih-card-warn" style="cursor:pointer" onclick="toggleStalePanel()" title="Click to see stuck inventory">
         <div class="ih-card-val">${fmt(h.staleValue)}</div>
-        <div class="ih-card-lbl">$ Stuck</div>
+        <div class="ih-card-lbl">$ Stuck ▾</div>
       </div>
     </div>`;
+
+  // Stale items action panel
+  const staleItems = h.aging.filter(b => b.max >= 61).flatMap(b => b.items);
+  const stalePanelHtml = staleItems.length ? `
+    <div id="stalePanelWrap" style="display:none">
+      <div class="ih-section">
+        <div class="ih-section-hdr">🚨 Stale Items — Action Required</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px">These items have been listed 60+ days. Consider repricing, relisting, bundling, or donating.</div>
+        <table class="ih-table">
+          <thead><tr><th>Item</th><th>Days</th><th>Cost</th><th>Price</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${staleItems.sort((a, b) => _daysSince(b.added) - _daysSince(a.added)).map(item => {
+              const days = _daysSince(item.added);
+              const urgency = days >= 90 ? 'ih-bad' : 'ih-ok';
+              return `<tr>
+                <td class="ih-td-name" style="cursor:pointer" onclick="openDrawer('${escAttr(item.id)}')">${escHtml((item.name || 'Unnamed').slice(0, 45))}</td>
+                <td class="${urgency}" style="font-weight:600">${days}d</td>
+                <td>${fmt(item.cost || 0)}</td>
+                <td>${fmt(item.price || 0)}</td>
+                <td style="white-space:nowrap">
+                  <button class="act-btn" onclick="openDrawer('${escAttr(item.id)}')" title="Edit / Reprice">Edit</button>
+                  <button class="act-btn" onclick="quickReprice('${escAttr(item.id)}')" title="Quick 10% price drop" style="color:var(--accent2)">-10%</button>
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>` : '';
 
   // Aging bars
   const maxBucket = Math.max(...h.aging.map(b => b.count), 1);
@@ -219,8 +250,19 @@ export function renderInventoryHealth() {
   // Composition donut-style bars
   const compHtml = _renderComposition(h.composition, h.unsoldCount);
 
-  el.innerHTML = summaryHtml + agingHtml + turnoverHtml + roiHtml + compHtml;
+  el.innerHTML = summaryHtml + stalePanelHtml + agingHtml + turnoverHtml + roiHtml + compHtml;
 }
+
+/** Toggle the stale items action panel */
+export function toggleStalePanel() {
+  const panel = document.getElementById('stalePanelWrap');
+  if (!panel) return;
+  _staleExpanded = !_staleExpanded;
+  panel.style.display = _staleExpanded ? '' : 'none';
+  if (_staleExpanded) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// quickReprice() already exists on window from dashboard.js — reused by the stale panel
 
 function _renderComposition(comp, total) {
   const colors = ['var(--accent)', 'var(--accent2)', '#4caf50', '#ff9800', '#9c27b0', '#00bcd4', '#e91e63', '#795548'];
