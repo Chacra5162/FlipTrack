@@ -4,7 +4,7 @@
  * merges with static defaults, and repopulates <datalist> elements.
  */
 
-import { inv } from '../data/store.js';
+import { inv, markDirty } from '../data/store.js';
 import { getMeta, setMeta } from '../data/idb.js';
 
 // ── STATIC DEFAULTS ──────────────────────────────────────────────────────────
@@ -96,7 +96,9 @@ export function retroNormalizeSources() {
     for (const item of inv) {
       const src = (item.source || '').trim();
       if (src && _normKey(src) === key && src !== canonical) {
+        console.warn(`[FlipTrack] Source fix: "${src}" → "${canonical}" (item: ${item.name})`);
         item.source = canonical;
+        markDirty('inv', item.id);
         fixed++;
       }
     }

@@ -1293,7 +1293,12 @@ setTimeout(_killSplash, 3000);
   // Normalize category names to prevent duplicates (e.g., "Men's Clothing" vs "Men's clothing")
   try { const n = normalizeAllCategories(); if (n > 0) { save(); console.warn(`FlipTrack: Normalized ${n} category names`); } } catch(e) {}
   // Normalize source names to merge near-duplicates (e.g., "Marshall's" → "Marshalls")
-  try { const n = retroNormalizeSources(); if (n > 0) { save(); } } catch(e) {}
+  try {
+    console.warn('[FlipTrack] Source normalization: inv has', inv.length, 'items');
+    const n = retroNormalizeSources();
+    console.warn('[FlipTrack] Source normalization result:', n, 'fixed');
+    if (n > 0) { save(); refresh(); }
+  } catch(e) { console.warn('[FlipTrack] Source normalization error:', e.message, e.stack); }
 
   // Build initial state — restore last viewed page on refresh
   try {
