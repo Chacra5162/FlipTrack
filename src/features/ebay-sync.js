@@ -36,7 +36,13 @@ let _orderSyncErrorLogged = false; // throttle repeated order-sync warnings
 let _processedReturnIds = new Set(); // avoid duplicate return/cancel notifications
 let _dismissedEBayIds = new Set(); // eBay IDs of items user deleted — prevent re-import
 let _returnCheckInterval = null;
+let _tradingApiBlocked = false; // set true after 403 — proxy doesn't support Trading API
 const RETURN_CHECK_WINDOW = 30 * 86400000; // 30 days
+
+/** eBay SKU must be alphanumeric (plus limited punctuation) and ≤50 chars */
+function _isValidSku(sku) {
+  return sku && sku.length <= 50 && /^[a-zA-Z0-9._\-*]+$/.test(sku) && !sku.startsWith('ebay-');
+}
 
 // ── INITIALIZATION ─────────────────────────────────────────────────────────
 
@@ -156,7 +162,9 @@ export async function pullEBayListings({ silent = false } = {}) {
     // ── PRIMARY: Trading API GetMyeBaySelling ──────────────────────────
     // This returns ALL active listings regardless of how they were created
     let tradingWorked = false;
-    try {
+    if (_tradingApiBlocked) {
+      console.warn('[eBay] Trading API not supported by proxy — skipping GetMyeBaySelling');
+    } else try {
       let pageNum = 1;
       let totalPages = 1;
 
@@ -296,6 +304,7 @@ export async function pullEBayListings({ silent = false } = {}) {
         console.warn('[eBay] Trading API returned 0 listings — trying fallbacks');
       }
     } catch (e) {
+      if (e.message?.includes('not allowed') || e.message?.includes('403')) _tradingApiBlocked = true;
       console.warn('[eBay] GetMyeBaySelling failed:', e.message);
     }
 
@@ -457,9 +466,10 @@ export async function pullEBayListings({ silent = false } = {}) {
             const userResp = await ebayAPI('GET', '/sell/account/v1/privilege');
             // The privilege endpoint doesn't return username directly, try Trading API
           } catch (_) {}
-          // Try GetUser via Trading API proxy
-          try {
-            const userResp = await ebayAPI('POST', '/trading/GetUser', {
+          // Try GetUser via Trading API proxy (skip if Trading API blocked)
+          if (!_tradingApiBlocked) try {
+            const userResp = await ebayAPI('POST', TRADING_API, {
+              _tradingCall: 'GetUser',
               DetailLevel: 'ReturnAll'
             });
             const uname = userResp?.User?.UserID || userResp?.UserID || '';
@@ -1328,7 +1338,7 @@ async function _syncEBayPrices() {
   try {
     // Collect all eBay-linked items with active status
     const ebayItems = inv.filter(i =>
-      i.ebayItemId && i.platformStatus?.eBay === 'active'
+      i.ebayItemId && _isValidSku(i.ebayItemId) && i.platformStatus?.eBay === 'active'
     );
     if (ebayItems.length === 0) return 0;
 
@@ -1387,6 +1397,7 @@ const TRADING_API = '/ws/api.dll';
  * Uses the Trading API GetBestOffers call.
  */
 async function _syncEBayOffers() {
+  if (_tradingApiBlocked) return 0; // Trading API required — skip if proxy doesn't support it
   const ebayItems = inv.filter(i =>
     i.ebayListingId && i.platformStatus?.eBay === 'active' && i.ebayBestOffer
   );
@@ -1395,11 +1406,14 @@ async function _syncEBayOffers() {
   let notified = 0;
   for (const item of ebayItems) {
     try {
-      const resp = await ebayAPI('GET',
-        `${INVENTORY_API}/offer?sku=${encodeURIComponent(item.ebayItemId)}`
-      );
-      const offer = resp?.offers?.[0];
-      if (!offer) continue;
+      // Skip items with invalid SKUs for the Offer API pre-check
+      if (_isValidSku(item.ebayItemId)) {
+        const resp = await ebayAPI('GET',
+          `${INVENTORY_API}/offer?sku=${encodeURIComponent(item.ebayItemId)}`
+        );
+        const offer = resp?.offers?.[0];
+        if (!offer) continue;
+      }
 
       // Check the listing for best offers via Trading API GetBestOffers
       const offersResp = await ebayAPI('POST', TRADING_API, {
@@ -1447,6 +1461,7 @@ async function _syncEBayOffers() {
  * Only runs for auctions that pullEBayListings didn't already handle.
  */
 async function _syncEBayAuctions() {
+  if (_tradingApiBlocked) return 0; // Trading API required — skip if proxy doesn't support it
   const auctionItems = inv.filter(i =>
     i.ebayListingId &&
     i.ebayListingFormat === 'AUCTION' &&
