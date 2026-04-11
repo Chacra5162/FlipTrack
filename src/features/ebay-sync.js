@@ -37,6 +37,7 @@ let _processedReturnIds = new Set(); // avoid duplicate return/cancel notificati
 let _dismissedEBayIds = new Set(); // eBay IDs of items user deleted — prevent re-import
 let _returnCheckInterval = null;
 let _tradingApiBlocked = false; // set true after 403 — proxy doesn't support Trading API
+let _offerApiBlocked = false;   // set true after 400 — account has invalid SKU data
 const RETURN_CHECK_WINDOW = 30 * 86400000; // 30 days
 
 /** eBay SKU must be alphanumeric (plus limited punctuation) and ≤50 chars */
@@ -56,6 +57,9 @@ export async function initEBaySync() {
     const dismissed = await getMeta('ebay_dismissed_ids');
     if (dismissed) _dismissedEBayIds = new Set(JSON.parse(dismissed));
   } catch (_) {}
+  // Restore API capability flags so we don't retry blocked APIs every session
+  _tradingApiBlocked = !!(await getMeta('ebay_trading_blocked'));
+  _offerApiBlocked = !!(await getMeta('ebay_offer_blocked'));
 }
 
 /** Mark eBay IDs as dismissed so they won't be re-imported on next sync. */
@@ -304,14 +308,18 @@ export async function pullEBayListings({ silent = false } = {}) {
         console.warn('[eBay] Trading API returned 0 listings — trying fallbacks');
       }
     } catch (e) {
-      if (e.message?.includes('not allowed') || e.message?.includes('403')) _tradingApiBlocked = true;
+      if (e.message?.includes('not allowed') || e.message?.includes('403')) {
+        _tradingApiBlocked = true;
+        setMeta('ebay_trading_blocked', '1').catch(() => {});
+      }
       console.warn('[eBay] GetMyeBaySelling failed:', e.message);
     }
 
     // ── SUPPLEMENT / FALLBACK: Offer API scan ─────────────────────────
     // Always run: enriches items with listingId, price, and format that
     // the Trading API may not provide (or fills everything if Trading failed)
-    {
+    // Skip if Offer API is known broken (account has invalid SKU data)
+    if (!_offerApiBlocked) {
       try {
         console.warn('[eBay] Running Offer API scan…');
         let offerOffset = 0;
@@ -449,6 +457,10 @@ export async function pullEBayListings({ silent = false } = {}) {
         if (imported > 0 || matched > 0) tradingWorked = true;
         console.warn(`[eBay] Offer API: matched=${matched}, imported=${imported}`);
       } catch (e) {
+        if (e.message?.includes('invalid value for a SKU') || e.message?.includes('25707')) {
+          _offerApiBlocked = true;
+          setMeta('ebay_offer_blocked', '1').catch(() => {});
+        }
         console.warn('[eBay] Offer API scan failed:', e.message);
       }
     }
@@ -479,7 +491,7 @@ export async function pullEBayListings({ silent = false } = {}) {
             }
           } catch (_) {}
           // Fallback: extract from any existing offer's marketplaceId or listing URL
-          if (!username) {
+          if (!username && !_offerApiBlocked) {
             try {
               const offerCheck = await ebayAPI('GET', `${INVENTORY_API}/offer?limit=1`);
               const firstOffer = offerCheck?.offers?.[0];
@@ -831,7 +843,7 @@ export async function pullEBayListings({ silent = false } = {}) {
       }
 
       // Scan offers to pick up listing IDs, formats, and prices
-      try {
+      if (!_offerApiBlocked) try {
         const offerResp = await ebayAPI('GET', `${INVENTORY_API}/offer?limit=200`);
         for (const offer of (offerResp?.offers || [])) {
           const sku = offer.sku;
@@ -853,6 +865,10 @@ export async function pullEBayListings({ silent = false } = {}) {
           if (changed) { markDirty('inv', local.id); updated++; }
         }
       } catch (e) {
+        if (e.message?.includes('invalid value for a SKU') || e.message?.includes('25707')) {
+          _offerApiBlocked = true;
+          setMeta('ebay_offer_blocked', '1').catch(() => {});
+        }
         console.warn('[eBay] Offer scan failed:', e.message);
       }
     }
