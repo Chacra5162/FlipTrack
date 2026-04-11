@@ -967,9 +967,33 @@ async function _backfillOrderData(order) {
 
   let updated = false;
   for (const sale of existing) {
+    // ── Correct price if it was recorded with old inflated logic ──
+    // Old code bundled shipping into price, or used lineItem.total which can
+    // include handling fees. Correct to lineItemCost or prorated priceSubtotal.
+    const matchingLine = (order.lineItems || []).find(li => {
+      const liCost = parseFloat(li.lineItemCost?.value || li.total?.value || '0');
+      const liTotal = parseFloat(li.total?.value || '0');
+      // Match by approximate price (old price may include shipping or adjustments)
+      return Math.abs(liTotal - (sale.price * sale.qty)) < 0.02
+        || Math.abs(liCost - (sale.price * sale.qty)) < 0.02
+        || Math.abs(liTotal - sale.listPrice * sale.qty) < 0.02;
+    });
+    if (matchingLine && orderSubtotal > 0) {
+      const correctCost = parseFloat(matchingLine.lineItemCost?.value || '0');
+      const lineTotal = parseFloat(matchingLine.total?.value || '0');
+      const allLinesTotal = (order.lineItems || []).reduce(
+        (s, li) => s + parseFloat(li.total?.value || '0'), 0);
+      const correctSubtotal = correctCost > 0 ? correctCost
+        : (allLinesTotal > 0 ? orderSubtotal * (lineTotal / allLinesTotal) : lineTotal);
+      const correctPrice = sale.qty > 1 ? correctSubtotal / sale.qty : correctSubtotal;
+      if (Math.abs(sale.price - correctPrice) > 0.01) {
+        sale.price = Math.round(correctPrice * 100) / 100;
+        updated = true;
+      }
+    }
     // Backfill fees if missing
     if ((!sale.fees || sale.fees === 0) && orderFee > 0) {
-      const lineItem = (order.lineItems || []).find(li => {
+      const lineItem = matchingLine || (order.lineItems || []).find(li => {
         const lineTotal = parseFloat(li.total?.value || '0');
         return Math.abs(lineTotal - (sale.price * sale.qty)) < 0.01
           || Math.abs(lineTotal - sale.listPrice * sale.qty) < 0.01;
@@ -1107,10 +1131,18 @@ async function _syncEBayOrders(lookbackMs) {
         }
 
         // ── Capture financial breakdown from eBay Fulfillment API ──
-        // lineItem.total = item selling price × qty (excludes shipping & tax)
-        // Buyer's shipping payment offsets the seller's label cost (net ~$0)
-        // eBay fees (FVF etc.) are assessed on item + shipping combined
-        const itemSubtotal = parseFloat(lineItem.total?.value || '0');
+        // Use lineItemCost (pure price × qty) — lineItem.total can include
+        // handling fees and adjustments that inflate the amount.
+        // Fall back to prorated order subtotal (pricingSummary.priceSubtotal)
+        // which matches eBay's displayed "Subtotal" for the order.
+        const lineItemCost = parseFloat(lineItem.lineItemCost?.value || '0');
+        const lineTotal = parseFloat(lineItem.total?.value || '0');
+        const allLineItemsTotal = (order.lineItems || []).reduce(
+          (s, li) => s + parseFloat(li.total?.value || '0'), 0);
+        const shareOfSubtotal = allLineItemsTotal > 0
+          ? orderSubtotal * (lineTotal / allLineItemsTotal) : orderSubtotal;
+        const itemSubtotal = lineItemCost > 0 ? lineItemCost
+          : (shareOfSubtotal > 0 ? shareOfSubtotal : lineTotal);
 
         // Fees: prefer line-item breakdown, fall back to prorated order total
         const lineItemFees = (lineItem.marketplaceFees || []).reduce((sum, f) =>
