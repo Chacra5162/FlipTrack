@@ -28,7 +28,7 @@ const DEFAULT_BRANDS = [
 
 /** Normalize key for comparison: lowercase, strip apostrophes/punctuation, collapse spaces */
 function _normKey(s) {
-  return s.toLowerCase().replace(/[''`.,\-!]/g, '').replace(/\s+/g, ' ').trim();
+  return s.toLowerCase().replace(/['''`.,\-!]/g, '').replace(/\s+/g, ' ').trim();
 }
 
 /**
