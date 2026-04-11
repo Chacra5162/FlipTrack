@@ -1125,6 +1125,7 @@ async function _syncEBayOrders(lookbackMs) {
         const priceStr = price > 0 ? ` for $${price.toFixed(2)}` : '';
         toast(`🎉 eBay Sale! ${label}${priceStr}`);
         addNotification('sale', 'eBay Sale', `${label} sold${priceStr}`, local.id);
+        sendNotification('eBay Sale!', `${label} sold${priceStr}`, `ft-ebay-sale-${local.id}-${orderId}`);
         try { sfx.sale(); } catch (_) {}
       }
     }
@@ -1408,6 +1409,7 @@ async function _syncEBayOffers() {
 
         addNotification('price', 'Best Offer Received',
           `${buyer} offered $${amount.toFixed(2)} for "${label}"`, item.id);
+        sendNotification('Best Offer Received', `${buyer} offered $${amount.toFixed(2)} for "${label}"`, `ft-ebay-offer-${offerId}`);
         logItemEvent(item.id, 'ebay-offer',
           `Best offer: $${amount.toFixed(2)} from ${buyer}`);
         notified++;
@@ -1461,6 +1463,7 @@ async function _syncEBayAuctions() {
         const soldPrice = parseFloat(ebayItem.SellingStatus?.CurrentPrice?.Value || '0');
         addNotification('sale', 'Auction Sold!',
           `"${label}" sold for $${soldPrice.toFixed(2)}`, item.id);
+        sendNotification('Auction Sold!', `"${label}" sold for $${soldPrice.toFixed(2)}`, `ft-ebay-auction-${item.ebayListingId}`);
         logItemEvent(item.id, 'auction-end',
           `Auction ended — sold for $${soldPrice.toFixed(2)}`);
         updated++;
