@@ -3,7 +3,7 @@
  * Extracted from crosslist-dashboard.js for bundle size optimization.
  */
 
-import { inv, sales, getInvItem } from '../data/store.js';
+import { inv, sales, getInvItem, refresh } from '../data/store.js';
 import { fmt, escHtml, escAttr, ds, localDate } from '../utils/format.js';
 import { toast, appConfirm, appPrompt } from '../utils/dom.js';
 import {
@@ -27,6 +27,11 @@ import {
   compareShows, calcCategoryRotation, suggestShowBids, calcGoalStats,
   calcInventoryActions
 } from '../features/whatnot-analytics.js';
+import {
+  importWhatnotOrderCSV, importLivestreamCSV,
+  createSaleFromShow, reconcileShowSales,
+  reconcilePayout, getShowPayoutBreakdown, getWhatnotSalesInRange
+} from '../features/whatnot-import.js';
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 let _wnExpandedShow = null;
@@ -45,6 +50,12 @@ let _wnShipQueueShowId = null;
 let _wnPickerSearch = '';
 let _wnPickerLimit = 50;
 let _wnShowItemsExpanded = new Set();
+// Import & Reconciliation state
+let _wnPayoutAmount = '';
+let _wnPayoutStart = '';
+let _wnPayoutEnd = '';
+let _wnPayoutResult = null;
+let _wnImportShowId = '';  // show to reconcile livestream CSV against
 
 let _rerender = () => {};
 
@@ -79,6 +90,8 @@ export function renderWhatnotPanel() {
       <button class="wn-tab${_wnTab === 'builder' ? ' active' : ''}" onclick="wnSwitchTab('builder')">Smart Builder</button>
       <button class="wn-tab${_wnTab === 'pricing' ? ' active' : ''}" onclick="wnSwitchTab('pricing')">Pricing</button>
       <button class="wn-tab${_wnTab === 'shipping' ? ' active' : ''}" onclick="wnSwitchTab('shipping')">Shipping</button>
+      <button class="wn-tab${_wnTab === 'import' ? ' active' : ''}" onclick="wnSwitchTab('import')">Import</button>
+      <button class="wn-tab${_wnTab === 'reconcile' ? ' active' : ''}" onclick="wnSwitchTab('reconcile')">Reconcile</button>
       <button class="wn-tab${_wnTab === 'calculator' ? ' active' : ''}" onclick="wnSwitchTab('calculator')">Calculator</button>
     </div>`;
 
@@ -88,6 +101,8 @@ export function renderWhatnotPanel() {
   else if (_wnTab === 'builder') html += _renderWnBuilderTab();
   else if (_wnTab === 'pricing') html += _renderWnPricingTab();
   else if (_wnTab === 'shipping') html += _renderWnShippingTab();
+  else if (_wnTab === 'import') html += _renderWnImportTab();
+  else if (_wnTab === 'reconcile') html += _renderWnReconcileTab();
   else if (_wnTab === 'calculator') html += _renderWnCalculatorTab();
 
   html += `</div>`;
@@ -237,7 +252,7 @@ function _renderWnShowsTab() {
           for (const item of visible) {
             const showHist = getItemShowHistory(item.id);
             const histLabel = showHist.length ? ` (${showHist.filter(h => h.wasSold).length}/${showHist.length} shows sold)` : '';
-            html += `<div class="wn-picker-item" onclick="wnPickItem('${escAttr(show.id)}','${escAttr(item.id)}')"
+            html += `<div class="wn-picker-item" onclick="wnPickItem('${escAttr(show.id)}','${escAttr(item.id)}')">
               <span class="wn-picker-name">${escHtml(item.name || 'Untitled')}${histLabel}</span>
               <span class="wn-picker-price">${item.price ? fmt(item.price) : ''}</span>
             </div>`;
@@ -273,6 +288,7 @@ function _renderWnShowsTab() {
           <span style="color:${m.profit >= 0 ? 'var(--good)' : 'var(--danger)'}">${fmt(m.profit)}</span>
         </div>
         <div class="wn-past-actions">
+          <button class="btn-xs btn-accent" onclick="wnReconcileShow('${escAttr(s.id)}')" title="Create sale records for sold items">Sync Sales</button>
           <button class="btn-xs" onclick="wnCopyRecap('${escAttr(s.id)}')" title="Copy show recap for sharing">📣</button>
           <button class="btn-xs" onclick="wnCloneShow('${escAttr(s.id)}')" title="Clone as new show">↻ Clone</button>
           <button class="btn-xs" onclick="wnExportShowCSV('${escAttr(s.id)}')" title="Export results CSV">📊</button>
@@ -334,7 +350,7 @@ function _renderWnAnalyticsTab() {
         ${trends.map((t, i) => {
           const x = pad + (i / (trends.length - 1)) * (w - pad * 2);
           const y = h - pad - (t.sellThrough / maxST) * (h - pad * 2);
-          return `<circle cx="${x}" cy="${y}" r="3" fill="var(--accent)"><title>${t.name}: ${(t.sellThrough * 100).toFixed(0)}%</title></circle>`;
+          return `<circle cx="${x}" cy="${y}" r="3" fill="var(--accent)"><title>${escHtml(t.name)}: ${(t.sellThrough * 100).toFixed(0)}%</title></circle>`;
         }).join('')}
       </svg>
     </div>`;
@@ -519,11 +535,11 @@ function _renderWnBuilderTab() {
     html += `<div class="wn-builder-list">`;
     for (const s of suggestions) {
       const isSelected = _wnBuilderSelected.has(s.item.id);
-      html += `<div class="wn-builder-item${isSelected ? ' selected' : ''}" onclick="wnBuilderToggle('${escAttr(s.item.id)}')"
+      html += `<div class="wn-builder-item${isSelected ? ' selected' : ''}" onclick="wnBuilderToggle('${escAttr(s.item.id)}')">
         <div class="wn-builder-check">${isSelected ? '☑' : '☐'}</div>
         <div class="wn-builder-item-info">
           <span class="wn-builder-item-name">${escHtml(s.item.name || 'Untitled')}</span>
-          <span class="wn-builder-item-detail">${escHtml(s.item.condition || '')} · ${s.item.price ? fmt(s.item.price) : '—'} · ${s.item.category || ''}</span>
+          <span class="wn-builder-item-detail">${escHtml(s.item.condition || '')} · ${s.item.price ? fmt(s.item.price) : '—'} · ${escHtml(s.item.category || '')}</span>
           <span class="wn-builder-item-reason">${escHtml(s.reason)}</span>
         </div>
         <div class="wn-builder-item-score">${s.score.toFixed(1)}</div>
@@ -747,6 +763,180 @@ function _renderWnPricingTab() {
   return html;
 }
 
+// ── Import Tab ──────────────────────────────────────────────────────────
+
+function _renderWnImportTab() {
+  const endedShows = getEndedShows(20);
+
+  let html = `<div class="wn-import">
+    <div class="wn-section-title">Import Whatnot Sales</div>
+    <p style="color:var(--muted);font-size:0.85rem;margin:0 0 12px">Import Order History or Livestream Report CSV to auto-record sales and calculate fees.</p>
+
+    <div class="wn-import-section">
+      <div class="wn-import-card">
+        <strong>Order History CSV</strong>
+        <p style="color:var(--muted);font-size:0.8rem;margin:4px 0 8px">
+          From Whatnot: Profile &rarr; Financials &rarr; Ledger &rarr; Export Data
+        </p>
+        <label class="btn-sm btn-accent" style="cursor:pointer">
+          Choose File
+          <input type="file" accept=".csv,.tsv,.txt" style="display:none" onchange="wnImportOrderCSV(this.files[0])">
+        </label>
+      </div>
+
+      <div class="wn-import-card" style="margin-top:12px">
+        <strong>Livestream Report CSV</strong>
+        <p style="color:var(--muted);font-size:0.8rem;margin:4px 0 8px">
+          From Whatnot: Seller Hub &rarr; Shipments &rarr; Select show &rarr; Export Livestream Report
+        </p>`;
+
+  if (endedShows.length > 0) {
+    html += `<div style="margin-bottom:8px">
+      <label style="font-size:0.8rem;color:var(--muted)">Match to show (optional):</label>
+      <select class="wn-calc-input" style="width:100%;margin-top:4px" onchange="wnSetImportShow(this.value)">
+        <option value="">Auto-detect</option>`;
+    for (const s of endedShows) {
+      html += `<option value="${escAttr(s.id)}"${_wnImportShowId === s.id ? ' selected' : ''}>${escHtml(s.name)} (${s.date ? ds(s.date + 'T12:00:00') : 'No date'})</option>`;
+    }
+    html += `</select></div>`;
+  }
+
+  html += `<label class="btn-sm btn-accent" style="cursor:pointer">
+          Choose File
+          <input type="file" accept=".csv,.tsv,.txt" style="display:none" onchange="wnImportLivestreamCSV(this.files[0])">
+        </label>
+      </div>
+    </div>
+
+    <div class="wn-import-section" style="margin-top:20px">
+      <div class="wn-section-title">Reconcile Show Sales</div>
+      <p style="color:var(--muted);font-size:0.85rem;margin:0 0 12px">Create sale records for items marked sold in shows, bridging show data into Sales view.</p>`;
+
+  if (endedShows.length === 0) {
+    html += `<div style="text-align:center;padding:20px;color:var(--muted)">No ended shows to reconcile.</div>`;
+  } else {
+    html += `<div class="wn-ship-list">`;
+    for (const s of endedShows.slice(0, 10)) {
+      const soldCount = s.soldItems ? Object.keys(s.soldItems).length : 0;
+      if (soldCount === 0) continue;
+      html += `<div class="wn-ship-row">
+        <div class="wn-ship-info">
+          <span class="wn-ship-name">${escHtml(s.name)}</span>
+          <span class="wn-ship-detail">${s.date ? ds(s.date + 'T12:00:00') : ''} · ${soldCount} sold · ${fmt(s.totalRevenue || 0)}</span>
+        </div>
+        <button class="btn-xs btn-accent" onclick="wnReconcileShow('${escAttr(s.id)}')">Sync Sales</button>
+      </div>`;
+    }
+    html += `</div>`;
+    html += `<div style="margin-top:10px"><button class="btn-sm" onclick="wnReconcileAllShows()">Sync All Shows</button></div>`;
+  }
+
+  html += `</div></div>`;
+  return html;
+}
+
+// ── Reconcile (Payout) Tab ───────────────────────────────────────────────
+
+function _renderWnReconcileTab() {
+  let html = `<div class="wn-reconcile">
+    <div class="wn-section-title">Payout Reconciliation</div>
+    <p style="color:var(--muted);font-size:0.85rem;margin:0 0 12px">Enter payout amount and date range to check against recorded sales and identify discrepancies.</p>
+
+    <div class="wn-calc-form">
+      <div class="wn-calc-row">
+        <label>Payout Amount</label>
+        <div class="wn-calc-input-wrap">
+          <span class="wn-calc-dollar">$</span>
+          <input type="number" step="0.01" class="wn-calc-input" placeholder="0.00" value="${escAttr(_wnPayoutAmount)}" oninput="wnPayoutUpdate('amount',this.value)">
+        </div>
+      </div>
+      <div class="wn-calc-row">
+        <label>Period Start</label>
+        <input type="date" class="wn-calc-input" value="${escAttr(_wnPayoutStart)}" oninput="wnPayoutUpdate('start',this.value)">
+      </div>
+      <div class="wn-calc-row">
+        <label>Period End</label>
+        <input type="date" class="wn-calc-input" value="${escAttr(_wnPayoutEnd)}" oninput="wnPayoutUpdate('end',this.value)">
+      </div>
+      <button class="btn-sm btn-accent" style="margin-top:8px" onclick="wnRunReconcile()"${_wnPayoutAmount && _wnPayoutStart && _wnPayoutEnd ? '' : ' disabled'}>Reconcile</button>
+    </div>`;
+
+  // Show results if available
+  if (_wnPayoutResult) {
+    const r = _wnPayoutResult;
+    const statusColor = r.status === 'match' ? 'var(--good)' : r.status === 'overpaid' ? 'var(--accent2)' : 'var(--danger)';
+    const statusLabel = r.status === 'match' ? 'Matched' : r.status === 'overpaid' ? 'Overpaid' : 'Underpaid';
+
+    const _s = (v, l, st) => `<div class="wn-stat"><div class="wn-stat-val"${st ? ` style="${st}"` : ''}>${v}</div><div class="wn-stat-label">${l}</div></div>`;
+    html += `<div class="wn-reconcile-results" style="margin-top:16px">
+      <div class="wn-section-title" style="color:${statusColor}">${statusLabel}</div>
+      <div class="wn-stats-grid" style="margin-bottom:12px">
+        ${_s(fmt(r.payoutAmount), 'Whatnot Payout')}
+        ${_s(fmt(r.expectedPayout), 'Expected Payout')}
+        ${_s((r.discrepancy >= 0 ? '+' : '') + fmt(r.discrepancy), `Discrepancy (${r.discrepancyPct}%)`, `color:${statusColor}`)}
+        ${_s(r.saleCount, 'Sales Recorded')}
+        ${_s(fmt(r.totalRevenue), 'Total Revenue')}
+        ${_s(fmt(r.totalFees), 'Total Fees')}
+      </div>`;
+
+    // Possible reasons
+    if (r.status !== 'match' && r.possibleReasons.length > 0) {
+      html += `<div class="wn-reconcile-reasons">
+        <strong style="font-size:0.85rem">Possible Reasons:</strong>
+        <ul style="margin:4px 0 0;padding-left:20px;font-size:0.8rem;color:var(--muted)">`;
+      for (const reason of r.possibleReasons) {
+        html += `<li>${escHtml(reason)}</li>`;
+      }
+      html += `</ul></div>`;
+    }
+
+    // Show-level breakdown
+    const showBreakdown = getShowPayoutBreakdown(r.startDate, r.endDate);
+    if (showBreakdown.length > 0) {
+      html += `<div style="margin-top:12px">
+        <strong style="font-size:0.85rem">Show Breakdown</strong>
+        <table class="wn-perf-table" style="margin-top:6px">
+          <thead><tr><th>Show</th><th>Date</th><th>Sold</th><th>Revenue</th><th>Fees</th><th>Expected Payout</th></tr></thead>
+          <tbody>`;
+      for (const sb of showBreakdown) {
+        html += `<tr>
+          <td>${escHtml(sb.showName.slice(0, 20))}</td>
+          <td>${sb.date ? ds(sb.date + 'T12:00:00') : ''}</td>
+          <td>${sb.soldCount}</td>
+          <td>${fmt(sb.revenue)}</td>
+          <td>${fmt(sb.fees)}</td>
+          <td>${fmt(sb.expectedPayout)}</td>
+        </tr>`;
+      }
+      html += `</tbody></table></div>`;
+    }
+
+    // Per-sale detail
+    if (r.sales.length > 0) {
+      html += `<details style="margin-top:12px">
+        <summary style="cursor:pointer;font-size:0.85rem"><strong>Sale Details (${r.sales.length})</strong></summary>
+        <table class="wn-perf-table" style="margin-top:6px">
+          <thead><tr><th>Item</th><th>Date</th><th>Price</th><th>Fees</th><th>Payout</th></tr></thead>
+          <tbody>`;
+      for (const s of r.sales) {
+        html += `<tr>
+          <td>${escHtml(s.itemName.slice(0, 25))}</td>
+          <td>${s.date ? ds(s.date + 'T12:00:00') : ''}</td>
+          <td>${fmt(s.price)}</td>
+          <td>${fmt(s.fees)}</td>
+          <td>${fmt(s.payout)}</td>
+        </tr>`;
+      }
+      html += `</tbody></table></details>`;
+    }
+
+    html += `</div>`;
+  }
+
+  html += `</div>`;
+  return html;
+}
+
 // ── Shipping Queue Tab ──────────────────────────────────────────────────
 
 function _renderWnShippingTab() {
@@ -839,8 +1029,13 @@ export async function wnEndShow(showId) {
 
 export async function wnMarkSold(showId, itemId) {
   const item = getInvItem(itemId);
-  const price = item?.price || 0;
+  const defPrice = item?.price || 0;
+  const input = await appPrompt({ title: 'Sale Price', message: `${item?.name || 'Item'} — enter the sale price:`, defaultValue: String(defPrice), placeholder: '0.00' });
+  if (input === null) return;
+  const price = parseFloat(input) || defPrice;
   await markShowItemSold(showId, itemId, price);
+  // Also create a proper sale record in the Sales module
+  createSaleFromShow(showId, itemId, price);
   refresh();
   _rerender();
 }
@@ -1063,5 +1258,73 @@ export async function wnBulkMarkShipped() {
     await markItemShipped(q.itemId);
   }
   toast(`${queue.length} items marked as shipped`);
+  _rerender();
+}
+
+// ── Import & Reconcile Handlers ──────────────────────────────────────────
+
+export function wnImportOrderCSV(file) {
+  if (!file) return;
+  importWhatnotOrderCSV(file);
+  // Delay rerender to let async FileReader finish
+  setTimeout(() => { refresh(); _rerender(); }, 500);
+}
+
+export function wnImportLivestreamCSV(file) {
+  if (!file) return;
+  importLivestreamCSV(file, _wnImportShowId || null);
+  setTimeout(() => { refresh(); _rerender(); }, 500);
+}
+
+export function wnSetImportShow(showId) {
+  _wnImportShowId = showId;
+}
+
+export function wnReconcileShow(showId) {
+  const result = reconcileShowSales(showId);
+  const show = getShow(showId);
+  const name = show?.name || 'Show';
+  if (result.created > 0) {
+    toast(`${name}: ${result.created} sale${result.created !== 1 ? 's' : ''} synced to Sales view`);
+  } else if (result.alreadyRecorded > 0) {
+    toast(`${name}: all ${result.alreadyRecorded} sales already recorded`);
+  } else {
+    toast(`${name}: no sold items to sync`);
+  }
+  _rerender();
+}
+
+export function wnReconcileAllShows() {
+  const ended = getEndedShows(50);
+  let totalCreated = 0, totalAlready = 0;
+  for (const s of ended) {
+    if (!s.soldItems || Object.keys(s.soldItems).length === 0) continue;
+    const r = reconcileShowSales(s.id);
+    totalCreated += r.created;
+    totalAlready += r.alreadyRecorded;
+  }
+  if (totalCreated > 0) {
+    toast(`Synced ${totalCreated} sale${totalCreated !== 1 ? 's' : ''} across all shows`);
+  } else {
+    toast(`All show sales already recorded (${totalAlready} total)`);
+  }
+  _rerender();
+}
+
+export function wnPayoutUpdate(field, value) {
+  if (field === 'amount') _wnPayoutAmount = value;
+  else if (field === 'start') _wnPayoutStart = value;
+  else if (field === 'end') _wnPayoutEnd = value;
+  _wnPayoutResult = null; // clear stale results on input change
+  _rerender();
+}
+
+export function wnRunReconcile() {
+  const amount = parseFloat(_wnPayoutAmount);
+  if (isNaN(amount) || !_wnPayoutStart || !_wnPayoutEnd) {
+    toast('Enter payout amount and date range', true);
+    return;
+  }
+  _wnPayoutResult = reconcilePayout(amount, _wnPayoutStart, _wnPayoutEnd);
   _rerender();
 }

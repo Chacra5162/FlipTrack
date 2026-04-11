@@ -405,7 +405,7 @@ export function getShowRunSheet(showId) {
   const lines = [];
   lines.push(`<div class="wn-run-sheet">`);
   lines.push(`<h2>${escHtml(show.name)}</h2>`);
-  lines.push(`<p>${show.date}${show.time ? ' @ ' + show.time : ''} &middot; ${show.items.length} items</p>`);
+  lines.push(`<p>${escHtml(show.date || '')}${show.time ? ' @ ' + escHtml(show.time) : ''} &middot; ${show.items.length} items</p>`);
   lines.push(`<table><thead><tr><th>#</th><th>Item</th><th>Condition</th><th>Price</th><th>Location</th><th>Talking Points</th></tr></thead><tbody>`);
   show.items.forEach((itemId, i) => {
     const item = getInvItem(itemId);

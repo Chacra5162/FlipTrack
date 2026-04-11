@@ -3276,6 +3276,14 @@ textarea { resize:vertical; min-height:70px; }
 .wn-action-item { display: block; font-weight: 600; font-size: 0.85rem; }
 .wn-action-text { display: block; font-size: 0.75rem; color: var(--muted); }
 
+/* ── Whatnot: Import & Reconcile ──────────────────────────────── */
+.wn-import, .wn-reconcile { padding: 4px 0; }
+.wn-import-section { margin-bottom: 8px; }
+.wn-import-card { background: var(--bg2); border-radius: 8px; padding: 12px 14px; border: 1px solid var(--border); }
+.wn-import-card strong { font-size: 0.9rem; }
+.wn-reconcile-results { background: var(--bg2); border-radius: 8px; padding: 12px 14px; border: 1px solid var(--border); }
+.wn-reconcile-reasons { margin-top: 10px; padding: 8px 10px; background: var(--surface); border-radius: 6px; }
+
 /* ── Whatnot: Button variants ─────────────────────────────────── */
 .btn-warn { background: rgba(247,129,102,0.12); color: var(--accent2); border: 1px solid rgba(247,129,102,0.25); }
 .btn-warn:hover { background: rgba(247,129,102,0.2); }

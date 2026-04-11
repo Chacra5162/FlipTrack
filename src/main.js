@@ -173,7 +173,10 @@ import {
   wnBuilderToggle, wnBuilderSelectAll, wnBuilderClearSelection, wnBuilderCreateShow,
   wnCalcUpdate,
   wnSetGoal, wnGiveaway, wnEditBinLoc, wnCreateLot, wnRemoveLot,
-  wnCopyRecap, wnSetCompareA, wnSetCompareB, wnMarkShipped, wnBulkMarkShipped
+  wnCopyRecap, wnSetCompareA, wnSetCompareB, wnMarkShipped, wnBulkMarkShipped,
+  wnImportOrderCSV, wnImportLivestreamCSV, wnSetImportShow,
+  wnReconcileShow, wnReconcileAllShows,
+  wnPayoutUpdate, wnRunReconcile
 } from './views/whatnot-dashboard.js';
 import { initEBayAuth, handleEBayCallback, isEBayConnected } from './features/ebay-auth.js';
 import { initEBaySync, startEBaySyncInterval, stopEBaySyncInterval, pullEBayListings, resyncEBayOrders, backfillEBayData, dismissEBayItem, undismissEBayItem, importEBayItem } from './features/ebay-sync.js';
@@ -636,6 +639,9 @@ Object.assign(window, {
   wnCalcUpdate,
   wnSetGoal, wnGiveaway, wnEditBinLoc, wnCreateLot, wnRemoveLot,
   wnCopyRecap, wnSetCompareA, wnSetCompareB, wnMarkShipped, wnBulkMarkShipped,
+  wnImportOrderCSV, wnImportLivestreamCSV, wnSetImportShow,
+  wnReconcileShow, wnReconcileAllShows,
+  wnPayoutUpdate, wnRunReconcile,
   exportShowPrepCSV, exportShowResultsCSV, exportAllShowsCSV,
   notifyShowEnded
 });
