@@ -991,20 +991,21 @@ async function _backfillOrderData(order) {
         updated = true;
       }
     }
-    // Backfill fees if missing
-    if ((!sale.fees || sale.fees === 0) && orderFee > 0) {
+    // Backfill / correct fees — use orderTotalFee (prorated) as source of truth
+    // since lineItem.marketplaceFees often misses promoted listing & regulatory fees
+    if (orderFee > 0) {
       const lineItem = matchingLine || (order.lineItems || []).find(li => {
         const lineTotal = parseFloat(li.total?.value || '0');
         return Math.abs(lineTotal - (sale.price * sale.qty)) < 0.01
           || Math.abs(lineTotal - sale.listPrice * sale.qty) < 0.01;
       });
-      const lineItemFees = lineItem
-        ? (lineItem.marketplaceFees || []).reduce((s, f) => s + parseFloat(f.amount?.value || '0'), 0)
-        : 0;
       const lineItemTotal = parseFloat(lineItem?.total?.value || '0');
       const lineShare = orderSubtotal > 0 ? lineItemTotal / orderSubtotal : 1;
-      sale.fees = Math.round((lineItemFees > 0 ? lineItemFees : orderFee * lineShare) * 100) / 100;
-      updated = true;
+      const correctFee = Math.round(orderFee * lineShare * 100) / 100;
+      if (Math.abs((sale.fees || 0) - correctFee) > 0.01) {
+        sale.fees = correctFee;
+        updated = true;
+      }
     }
     // Note: ship intentionally NOT backfilled from buyer's deliveryCost.
     // Buyer's shipping payment offsets the label cost (net ~$0 to seller).
@@ -1144,11 +1145,15 @@ async function _syncEBayOrders(lookbackMs) {
         const itemSubtotal = lineItemCost > 0 ? lineItemCost
           : (shareOfSubtotal > 0 ? shareOfSubtotal : lineTotal);
 
-        // Fees: prefer line-item breakdown, fall back to prorated order total
+        // Fees: prefer orderTotalFee (includes ALL fees: FVF, promoted listing,
+        // regulatory, etc.). lineItem.marketplaceFees often misses some fee types.
+        const lineShare = orderSubtotal > 0 ? itemSubtotal / orderSubtotal : 1;
+        const proratedOrderFee = orderTotalFee * lineShare;
         const lineItemFees = (lineItem.marketplaceFees || []).reduce((sum, f) =>
           sum + parseFloat(f.amount?.value || '0'), 0);
-        const lineShare = orderSubtotal > 0 ? itemSubtotal / orderSubtotal : 1;
-        const fees = lineItemFees > 0 ? lineItemFees : (orderTotalFee * lineShare);
+        // Use whichever is higher — orderTotalFee is more complete
+        const fees = proratedOrderFee > 0
+          ? Math.max(proratedOrderFee, lineItemFees) : lineItemFees;
 
         // price = item selling price per unit (matches eBay's displayed item price)
         // ship = 0 (buyer's shipping payment covers label cost; user can adjust
