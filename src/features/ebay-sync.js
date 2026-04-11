@@ -936,7 +936,8 @@ async function _backfillOrderData(order) {
   // Compute fee breakdown from order pricing summary once
   // (used to backfill sales recorded before fees were captured)
   const orderSubtotal = parseFloat(order.pricingSummary?.priceSubtotal?.value || '0');
-  const orderFee = parseFloat(order.pricingSummary?.fee?.value || '0');
+  const orderFee = parseFloat(order.totalMarketplaceFee?.value
+    || order.pricingSummary?.fee?.value || '0');
 
   let updated = false;
   for (const sale of existing) {
@@ -997,11 +998,15 @@ async function _syncEBayOrders(lookbackMs) {
   try {
     // eBay Fulfillment API expects ISO 8601 with explicit 'T' and 'Z' — strip milliseconds
     // to avoid timezone parsing issues on eBay's end
+    // Always look back at least 48h so recently created sales get tracking
+    // backfilled on subsequent syncs (dedup via knownOrderIds prevents duplicates)
+    const MIN_ORDER_LOOKBACK = 172800000; // 48h
     const sinceRaw = lookbackMs
       ? new Date(Date.now() - lookbackMs)
-      : _lastSyncTime
-        ? new Date(_lastSyncTime)
-        : new Date(Date.now() - 86400000);
+      : new Date(Date.now() - Math.max(
+          _lastSyncTime ? Date.now() - new Date(_lastSyncTime).getTime() : 86400000,
+          MIN_ORDER_LOOKBACK
+        ));
     const nowRaw = new Date();
 
     // Format as yyyy-MM-ddTHH:mm:ssZ (no milliseconds — eBay chokes on .000Z)
@@ -1032,6 +1037,30 @@ async function _syncEBayOrders(lookbackMs) {
         await _backfillOrderData(order);
         continue;
       }
+
+      // Fetch shipping fulfillment for tracking (once per order, shared across line items)
+      let orderTracking = null;
+      let orderCarrier = null;
+      let orderShippedDate = null;
+      try {
+        const fulfResp = await ebayAPI('GET',
+          `${FULFILLMENT_API}/order/${order.orderId}/shipping_fulfillment`
+        );
+        const shipFulfillments = fulfResp.fulfillments || fulfResp.shippingFulfillments || [];
+        if (shipFulfillments.length) {
+          const sf = shipFulfillments[0];
+          orderTracking = sf.shipmentTrackingNumber || sf.trackingNumber || null;
+          orderCarrier = sf.shippingCarrierCode || null;
+          orderShippedDate = sf.shippedDate || null;
+        }
+      } catch (_) { /* Not shipped yet — tracking will be backfilled on next sync */ }
+
+      // Order-level fee totals (used as fallback when line-item fees missing)
+      const orderSubtotal = parseFloat(order.pricingSummary?.priceSubtotal?.value || '0');
+      // totalMarketplaceFee is the most reliable order-level fee total
+      const orderTotalFee = parseFloat(order.totalMarketplaceFee?.value
+        || order.pricingSummary?.fee?.value || '0');
+
       for (const lineItem of (order.lineItems || [])) {
         const sku = lineItem.sku;
         const legacyId = lineItem.legacyItemId;
@@ -1056,17 +1085,12 @@ async function _syncEBayOrders(lookbackMs) {
         // Buyer's shipping payment offsets the seller's label cost (net ~$0)
         // eBay fees (FVF etc.) are assessed on item + shipping combined
         const itemSubtotal = parseFloat(lineItem.total?.value || '0');
-        // Line-item marketplace fees (FINAL_VALUE_FEE, etc.)
+
+        // Fees: prefer line-item breakdown, fall back to prorated order total
         const lineItemFees = (lineItem.marketplaceFees || []).reduce((sum, f) =>
           sum + parseFloat(f.amount?.value || '0'), 0);
-        // Order-level pricing summary (fallback if line item doesn't have fees)
-        const orderFee = parseFloat(order.pricingSummary?.fee?.value || '0');
-        const orderSubtotal = parseFloat(order.pricingSummary?.priceSubtotal?.value || '0');
-
-        // Prorate order-level fields by this line's share of the subtotal
         const lineShare = orderSubtotal > 0 ? itemSubtotal / orderSubtotal : 1;
-        // Use line-item fees if available, otherwise prorate order fee
-        const fees = lineItemFees > 0 ? lineItemFees : (orderFee * lineShare);
+        const fees = lineItemFees > 0 ? lineItemFees : (orderTotalFee * lineShare);
 
         // price = item selling price per unit (matches eBay's displayed item price)
         // ship = 0 (buyer's shipping payment covers label cost; user can adjust
@@ -1091,11 +1115,15 @@ async function _syncEBayOrders(lookbackMs) {
           fees: Math.round(fees * 100) / 100,
           ship: 0,
           date: order.creationDate || new Date().toISOString(),
-          tracking: null,
-          trackingCarrier: null,
+          tracking: orderTracking,
+          trackingCarrier: orderCarrier,
           ebayOrderId: order.orderId || null,
           buyerAddress, buyerCity, buyerState, buyerZip,
         };
+        if (orderShippedDate) {
+          sale.shipped = true;
+          sale.shippedDate = orderShippedDate;
+        }
 
         // Auto-link buyer to CRM
         const buyerName = order.buyer?.username || shipTo?.fullName || null;
@@ -1113,7 +1141,7 @@ async function _syncEBayOrders(lookbackMs) {
         const priceStr = price > 0 ? ` for $${price.toFixed(2)}` : '';
         toast(`🎉 eBay Sale! ${label}${priceStr}`);
         addNotification('sale', 'eBay Sale', `${label} sold${priceStr}`, local.id);
-        sendNotification('eBay Sale!', `${label} sold${priceStr}`, `ft-ebay-sale-${local.id}-${orderId}`);
+        sendNotification('eBay Sale!', `${label} sold${priceStr}`, `ft-ebay-sale-${local.id}-${order.orderId}`);
         try { sfx.sale(); } catch (_) {}
       }
     }
