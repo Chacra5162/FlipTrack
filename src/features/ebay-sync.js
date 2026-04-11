@@ -966,7 +966,14 @@ async function _backfillOrderData(order) {
   const bfOrderTax = parseFloat(ps.tax?.value || '0');
   const orderSubtotal = parseFloat(ps.priceSubtotal?.value || '0')
     || (bfOrderTotal - bfOrderDelivery - bfOrderTax);
-  const orderFee = parseFloat(order.totalMarketplaceFee?.value || '0');
+  // Derive fees from payment data (same logic as new-sale creation)
+  const bfTotalDueSeller = parseFloat(
+    order.paymentSummary?.totalDueSeller?.value
+    || order.paymentSummary?.payments?.[0]?.amount?.value || '0');
+  const bfDerivedFee = (bfTotalDueSeller > 0 && orderSubtotal > 0)
+    ? Math.round((orderSubtotal - bfTotalDueSeller) * 100) / 100 : 0;
+  const orderFee = bfDerivedFee > 0 ? bfDerivedFee
+    : parseFloat(order.totalMarketplaceFee?.value || '0');
 
   let updated = false;
   const lineItems = order.lineItems || [];
@@ -1120,10 +1127,27 @@ async function _syncEBayOrders(lookbackMs) {
       const orderTax = parseFloat(ps.tax?.value || '0');
       const orderSubtotal = parseFloat(ps.priceSubtotal?.value || '0')
         || (orderTotal - orderDelivery - orderTax);
-      // totalMarketplaceFee = eBay's transaction fees (matches their UI).
-      // DO NOT use pricingSummary.fee — it includes regulatory/operating fees
-      // that eBay doesn't show in "Transaction fees", overcounting by ~$0.17.
-      const orderTotalFee = parseFloat(order.totalMarketplaceFee?.value || '0');
+      // ── Derive fees from payment data when possible ──
+      // marketplaceFees misses store-level performance fees (e.g. 6% below-standard).
+      // pricingSummary.fee overcounts (includes regulatory/operating fees).
+      // Best source: derive from totalDueSeller (net payout after ALL deductions).
+      // fees = orderSubtotal - totalDueSeller (shipping in/out cancel for eBay labels)
+      const totalDueSeller = parseFloat(
+        order.paymentSummary?.totalDueSeller?.value
+        || order.paymentSummary?.payments?.[0]?.amount?.value || '0');
+      const derivedFee = (totalDueSeller > 0 && orderSubtotal > 0)
+        ? Math.round((orderSubtotal - totalDueSeller) * 100) / 100 : 0;
+      const orderTotalFee = derivedFee > 0 ? derivedFee
+        : parseFloat(order.totalMarketplaceFee?.value || '0');
+      // Diagnostic: log fee sources so mismatches can be traced
+      if (!knownOrderIds.has(order.orderId)) {
+        console.warn('[eBay] Fee debug:', JSON.stringify({
+          orderId: order.orderId,
+          orderSubtotal, totalDueSeller, derivedFee, orderTotalFee,
+          psFee: ps.fee?.value, totalMktFee: order.totalMarketplaceFee?.value,
+          hasPmtSummary: !!order.paymentSummary,
+        }));
+      }
 
       for (const lineItem of (order.lineItems || [])) {
         const sku = lineItem.sku;
