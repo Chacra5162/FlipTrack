@@ -21,21 +21,34 @@ let _expandedBuyerId = null;
 
 // Buyer schema: { id, name, handles: { eBay: '', Poshmark: '', ... }, email, phone, notes, createdAt, comms: [] }
 
-// Buyer tiers based on total spending
-const BUYER_TIERS = [
-  { name: 'New', minSpent: 0, color: 'var(--muted)', icon: '👤' },
-  { name: 'Regular', minSpent: 50, color: 'var(--accent)', icon: '⭐' },
-  { name: 'VIP', minSpent: 200, color: 'var(--accent2)', icon: '💎' },
-  { name: 'Elite', minSpent: 500, color: 'var(--good)', icon: '👑' },
+// Buyer loyalty tiers based on number of purchases
+const LOYALTY_TIERS = [
+  { name: 'New',     minOrders: 0, color: 'var(--muted)',   icon: '👤' },
+  { name: 'Regular', minOrders: 3, color: 'var(--accent)',  icon: '⭐' },
+  { name: 'VIP',     minOrders: 7, color: 'var(--accent2)', icon: '💎' },
+  { name: 'Elite',   minOrders: 15, color: 'var(--good)',   icon: '👑' },
+];
+
+// Buyer spending tiers based on total amount spent
+const SPENDING_TIERS = [
+  { name: 'Shopper',       minSpent: 0,    color: 'var(--muted)',   icon: '🛒' },
+  { name: 'Regular',       minSpent: 100,  color: 'var(--accent)',  icon: '💵' },
+  { name: 'Big Spender',   minSpent: 500,  color: 'var(--accent2)', icon: '💰' },
+  { name: 'Store Sponsor', minSpent: 1000, color: 'var(--good)',    icon: '🏆' },
 ];
 
 function getBuyerTier(buyerId) {
-  const spent = sales.filter(s => s.buyerId === buyerId).reduce((t, s) => t + (s.price || 0), 0);
-  let tier = BUYER_TIERS[0];
-  for (const t of BUYER_TIERS) {
-    if (spent >= t.minSpent) tier = t;
-  }
-  return { ...tier, spent };
+  const buyerSales = sales.filter(s => s.buyerId === buyerId);
+  const spent = buyerSales.reduce((t, s) => t + (s.price || 0) * (s.qty || 1), 0);
+  const orders = buyerSales.length;
+
+  let loyalty = LOYALTY_TIERS[0];
+  for (const t of LOYALTY_TIERS) { if (orders >= t.minOrders) loyalty = t; }
+
+  let spending = SPENDING_TIERS[0];
+  for (const t of SPENDING_TIERS) { if (spent >= t.minSpent) spending = t; }
+
+  return { loyalty, spending, spent, orders };
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
@@ -334,7 +347,8 @@ export function renderBuyersView() {
                     <div>
                       <div style="display:flex;align-items:center;gap:8px">
                         <span style="font-weight:600;color:var(--text)">${escHtml(buyer.name)}</span>
-                        <span style="font-size:9px;padding:2px 6px;background:${tier.color}20;color:${tier.color};border-radius:2px">${tier.icon} ${tier.name}</span>
+                        <span style="font-size:9px;padding:2px 6px;background:${tier.loyalty.color}20;color:${tier.loyalty.color};border-radius:2px">${tier.loyalty.icon} ${tier.loyalty.name}</span>
+                        ${tier.spending.minSpent > 0 ? `<span style="font-size:9px;padding:2px 6px;background:${tier.spending.color}20;color:${tier.spending.color};border-radius:2px">${tier.spending.icon} ${tier.spending.name}</span>` : ''}
                       </div>
                       <div style="font-size:11px;color:var(--muted);margin-top:2px">
                         ${buyer.email ? escHtml(buyer.email) + ' · ' : ''}
