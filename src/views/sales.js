@@ -150,6 +150,8 @@ export function openEditSaleModal(saleId) {
   document.getElementById('s_qty').value = sale.qty || 1;
   document.getElementById('s_fees').value = sale.fees || '';
   document.getElementById('s_addl_fee_pct').value = sale.addlFeePct || '';
+  // Store fee basis for addl fee calculation (set by eBay sync)
+  document.getElementById('s_addl_fee_pct').dataset.basis = sale.addlFeeBasis || '';
   document.getElementById('s_ship').value = sale.ship || '';
   document.getElementById('s_date').value = (sale.date || '').slice(0, 10) || localDate();
 
@@ -294,14 +296,19 @@ export function updateFeeEstimate() {
 
 /** Live preview — update tooltip showing what the % translates to in $ */
 export function updateAddlFeePreview() {
-  const pctVal = parseFloat(document.getElementById('s_addl_fee_pct')?.value) || 0;
+  const el = document.getElementById('s_addl_fee_pct');
+  if (!el) return;
+  const pctVal = parseFloat(el.value) || 0;
+  const basis = parseFloat(el.dataset.basis) || 0;
   const price = parseFloat(document.getElementById('s_price')?.value) || 0;
   const ship = parseFloat(document.getElementById('s_ship')?.value) || 0;
   const qty = parseInt(document.getElementById('s_qty')?.value) || 1;
-  const el = document.getElementById('s_addl_fee_pct');
-  if (pctVal > 0 && price > 0 && el) {
-    const amt = Math.round((pctVal / 100) * (price * qty + ship) * 100) / 100;
-    el.title = `${pctVal}% = $${amt.toFixed(2)} additional fee`;
+  const feeBasis = basis > 0 ? basis : (price * qty + ship);
+  if (pctVal > 0 && feeBasis > 0) {
+    const amt = Math.round((pctVal / 100) * feeBasis * 100) / 100;
+    el.title = `${pctVal}% of $${feeBasis.toFixed(2)} = $${amt.toFixed(2)}`;
+  } else {
+    el.title = 'Additional % fee (e.g. 6% store performance surcharge)';
   }
 }
 

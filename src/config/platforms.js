@@ -36,7 +36,7 @@ export const platCls = p => ({
 // ── PLATFORM FEE SCHEDULES ────────────────────────────────────────────────
 // Fees as percentage (0.13 = 13%). Some have flat fees added.
 export const PLATFORM_FEES = {
-  'eBay':                { pct: 0.1325, flat: 0.30, label: '13.25% + $0.30 (on item + shipping)', feeOnShipping: true },
+  'eBay':                { pct: 0.136, flat: 0.40, label: '~13.6% + $0.40 (on order total)', feeOnShipping: true },
   'Amazon':              { pct: 0.15,   flat: 0,    label: '15% referral' },
   'Etsy':                { pct: 0.065,  flat: 0.20, label: '6.5% + $0.20 + 3% processing', processing: 0.03 },
   'Facebook Marketplace':{ pct: 0.05,   flat: 0,    label: '5% (or $0.40 min)' },

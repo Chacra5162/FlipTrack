@@ -1013,6 +1013,11 @@ async function _backfillOrderData(order) {
         updated = true;
       }
     }
+    // Backfill addlFeeBasis (eBay's fee basis = order total incl. tax+ship)
+    if (!sale.addlFeeBasis && bfOrderTotal > 0) {
+      sale.addlFeeBasis = Math.round(bfOrderTotal * 100) / 100;
+      updated = true;
+    }
     // Note: ship intentionally NOT backfilled from buyer's deliveryCost.
     // Buyer's shipping payment offsets the label cost (net ~$0 to seller).
     // If seller paid for labels separately, they should adjust ship manually.
@@ -1181,10 +1186,16 @@ async function _syncEBayOrders(lookbackMs) {
         const buyerZip = shipTo?.contactAddress?.postalCode || null;
 
         // Create actual sale record (matching recSale() structure)
+        // addlFeeBasis = eBay's "Fees based on" amount (order total incl. tax+ship)
+        // so user can enter addlFeePct (e.g. 6% below-standard) on the correct basis
+        const feeBasis = lineItems.length === 1
+          ? orderTotal
+          : (allLineTotals > 0 ? orderTotal * (lineTotal / allLineTotals) : orderTotal);
         const sale = {
           id: uid(), itemId: local.id, price,
           listPrice: local.price || 0, qty: soldQty, platform: 'eBay',
           fees: Math.round(fees * 100) / 100,
+          addlFeeBasis: feeBasis > 0 ? Math.round(feeBasis * 100) / 100 : undefined,
           ship: 0,
           date: order.creationDate || new Date().toISOString(),
           tracking: orderTracking,

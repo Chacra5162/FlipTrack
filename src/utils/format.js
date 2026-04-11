@@ -51,5 +51,6 @@ export const sc = (qty, alert, bulk, alertEnabled) =>
 // Make color (converts status to CSS variable)
 export const mkc = c => ({ok:'var(--good)',warn:'var(--warn)',low:'var(--danger)'}[c] || 'var(--muted)');
 
-// Additional fee % → dollar amount: pct% × (price × qty + ship)
-export const addlFee = s => s?.addlFeePct ? Math.round((s.addlFeePct / 100) * ((s.price||0)*(s.qty||1)+(s.ship||0)) * 100) / 100 : 0;
+// Additional fee % → dollar amount: pct% × feeBasis (or price×qty+ship fallback)
+// eBay charges surcharges on the order total (incl. tax+shipping), stored as addlFeeBasis
+export const addlFee = s => s?.addlFeePct ? Math.round((s.addlFeePct / 100) * (s.addlFeeBasis || ((s.price||0)*(s.qty||1)+(s.ship||0))) * 100) / 100 : 0;
