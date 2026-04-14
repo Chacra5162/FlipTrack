@@ -551,7 +551,7 @@ export async function saveDrawer(){
   }
   // Only sync to eBay if an eBay-relevant field actually changed
   // Compare only fields that exist on the snapshot (TRACKED_FIELDS)
-  const _ebayTracked = ['name','price','condition','brand','color','size','material','model','style','pattern','notes','upc'];
+  const _ebayTracked = ['name','price','qty','condition','brand','color','size','material','model','style','pattern','notes','upc'];
   const ebayChanged = _drawerSnapshotForEbay && _ebayTracked.some(f => {
     return (f in _drawerSnapshotForEbay) && String(_drawerSnapshotForEbay[f] ?? '') !== String(item[f] ?? '');
   });
