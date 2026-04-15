@@ -382,6 +382,22 @@ export async function pullEBayListings({ silent = false } = {}) {
               if (isLive && local.platformStatus.eBay !== 'active') {
                 markPlatformStatus(local.id, 'eBay', 'active'); changed = true;
               }
+              // Detect ended offers — auction ended or listing withdrawn
+              if (!isLive && status === 'ENDED' && local.platformStatus.eBay === 'active') {
+                const listingFmt = isAuction ? 'AUCTION' : 'FIXED_PRICE';
+                const label = local.name || local.sku || 'Item';
+                markPlatformStatus(local.id, 'eBay', listingFmt === 'AUCTION' ? 'expired' : 'removed');
+                changed = true;
+                if (listingFmt === 'AUCTION') {
+                  addNotification('info', 'Auction Ended',
+                    `"${label}" auction ended — check eBay for final result`, local.id);
+                  sendNotification('Auction Ended', `"${label}" — check eBay for final result`, `ft-auction-end-${lid}`);
+                  logItemEvent(local.id, 'auction-end', 'Auction ended (detected via Offer API status)');
+                } else {
+                  addNotification('warning', 'eBay Listing Ended',
+                    `"${label}" listing ended`, local.id);
+                }
+              }
               const fmt = isAuction ? 'AUCTION' : 'FIXED_PRICE';
               if (local.ebayListingFormat !== fmt) { local.ebayListingFormat = fmt; changed = true; }
               if (lid && !local.url?.includes(lid)) {
@@ -687,7 +703,10 @@ export async function pullEBayListings({ silent = false } = {}) {
       );
       console.warn(`[eBay] Live data enrichment: ${needsLiveData.length} items need lookup (${seenListingIds.size} already synced)`);
       let liveUpdated = 0;
-      for (const item of needsLiveData.slice(0, 15)) {
+      // Prioritize auctions — their status changes matter most
+      needsLiveData.sort((a, b) => (b.ebayListingFormat === 'AUCTION' ? 1 : 0) - (a.ebayListingFormat === 'AUCTION' ? 1 : 0));
+      // Process up to 30 per sync (15 auctions + 15 others typically); auctions prioritized
+      for (const item of needsLiveData.slice(0, 30)) {
         try {
           const resp = await ebayAPI('GET',
             `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${item.ebayListingId}`
@@ -763,8 +782,27 @@ export async function pullEBayListings({ silent = false } = {}) {
 
           if (changed) { markDirty('inv', item.id); updated++; liveUpdated++; }
         } catch (e) {
-          // 404 = listing ended/not found — not an error
-          if (!e.message?.includes('404')) {
+          // 404 = listing ended/not found — mark as ended and notify
+          if (e.message?.includes('404') || e.message?.toLowerCase().includes('not found')) {
+            const isAuction = item.ebayListingFormat === 'AUCTION';
+            const prevStatus = item.platformStatus?.eBay;
+            if (prevStatus === 'active') {
+              markPlatformStatus(item.id, 'eBay', isAuction ? 'expired' : 'removed');
+              markDirty('inv', item.id);
+              const label = item.name || item.sku || 'Item';
+              if (isAuction) {
+                addNotification('info', 'Auction Ended',
+                  `"${label}" auction ended — check eBay for final result`, item.id);
+                sendNotification('Auction Ended', `"${label}" — check eBay for final result`, `ft-auction-end-${item.ebayListingId}`);
+                logItemEvent(item.id, 'auction-end', 'Auction ended (detected via Browse API 404)');
+              } else {
+                addNotification('warning', 'eBay Listing Removed',
+                  `"${label}" is no longer on eBay`, item.id);
+                logItemEvent(item.id, 'ebay-removed', 'Listing no longer found on eBay');
+              }
+              updated++; liveUpdated++;
+            }
+          } else {
             console.warn(`[eBay] Live data for "${item.name}":`, e.message);
           }
         }
