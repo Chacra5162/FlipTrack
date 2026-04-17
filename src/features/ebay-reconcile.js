@@ -1,9 +1,4 @@
-/**
- * ebay-reconcile.js — Compare FlipTrack inventory with live eBay listings.
- * Fetches all active listings via Browse API, compares to local items, and
- * shows a 3-column diff: eBay-only, FlipTrack-only, and mismatched data.
- */
-
+// ebay-reconcile.js — Compare FlipTrack inventory vs live eBay listings
 import { inv, save, refresh, markDirty } from '../data/store.js';
 import { ebayAPI, isEBayConnected, getEBayUsername } from './ebay-auth.js';
 import { markPlatformStatus } from './crosslist.js';
@@ -15,10 +10,6 @@ const BROWSE_API = '/buy/browse/v1';
 let _isReconciling = false;
 let _reconcileCancelled = false;
 
-/**
- * Fetch all active eBay listings for the seller via Browse API.
- * Returns a Map of listingId → { listingId, title, price, isAuction, currentBid, url }
- */
 async function _fetchEBayListings() {
   const username = getEBayUsername();
   if (!username) throw new Error('eBay username not available — try syncing first');
@@ -60,10 +51,6 @@ async function _fetchEBayListings() {
   return listings;
 }
 
-/**
- * Build the comparison report.
- * @returns {Promise<{ebayOnly, localOnly, mismatched}>}
- */
 export async function buildReconciliation() {
   if (!isEBayConnected()) throw new Error('eBay not connected');
   if (_isReconciling) throw new Error('Reconciliation already running');
@@ -128,9 +115,6 @@ export async function buildReconciliation() {
   }
 }
 
-/**
- * Open the reconciliation modal and render results.
- */
 export async function openReconcileModal() {
   if (!isEBayConnected()) { toast('eBay not connected — connect in Settings', true); return; }
 
@@ -182,7 +166,6 @@ export async function openReconcileModal() {
   }
 }
 
-/** User hit cancel during reconciliation — signals the fetch loop to stop */
 export function cancelReconcile() {
   _reconcileCancelled = true;
 }
@@ -274,9 +257,6 @@ function _renderReconcileResults(r) {
   body.innerHTML = summaryHtml + allClearHtml + ebayOnlyHtml + localOnlyHtml + mismatchHtml;
 }
 
-// ── ROW ACTIONS ─────────────────────────────────────────────────────────────
-
-/** Mark local item as ended/expired (no longer on eBay) */
 export function reconcileMarkEnded(itemId) {
   const item = inv.find(i => i.id === itemId);
   if (!item) return;
@@ -288,7 +268,6 @@ export function reconcileMarkEnded(itemId) {
   openReconcileModal();
 }
 
-/** Mark local item as active on eBay (when FlipTrack says inactive but eBay says live) */
 export function reconcileMarkActive(itemId) {
   const item = inv.find(i => i.id === itemId);
   if (!item) return;
@@ -299,7 +278,6 @@ export function reconcileMarkActive(itemId) {
   openReconcileModal();
 }
 
-/** Placeholder for importing an eBay listing — prompts user to use existing import flow */
 export function reconcileImport(listingId) {
   closeReconcileModal();
   if (typeof window.promptImportEBay === 'function') {

@@ -176,7 +176,7 @@ import {
   wnCopyRecap, wnSetCompareA, wnSetCompareB, wnMarkShipped, wnBulkMarkShipped
 } from './views/whatnot-dashboard.js';
 import { initEBayAuth, handleEBayCallback, isEBayConnected } from './features/ebay-auth.js';
-import { initEBaySync, startEBaySyncInterval, stopEBaySyncInterval, pullEBayListings, resyncEBayOrders, backfillEBayData, dismissEBayItem, undismissEBayItem, importEBayItem } from './features/ebay-sync.js';
+import { initEBaySync, startEBaySyncInterval, stopEBaySyncInterval, pullEBayListings, resyncEBayOrders, backfillEBayData, dismissEBayItem, undismissEBayItem, importEBayItem, mergeInventoryDuplicates } from './features/ebay-sync.js';
 import { openReconcileModal, closeReconcileModal, reconcileMarkEnded, reconcileMarkActive, reconcileImport, cancelReconcile } from './features/ebay-reconcile.js';
 import { initEtsyAuth, handleEtsyCallback, isEtsyConnected } from './features/etsy-auth.js';
 import { initEtsySync, startEtsySyncInterval, stopEtsySyncInterval, syncEtsyExpenses } from './features/etsy-sync.js';
@@ -1295,12 +1295,13 @@ setTimeout(_killSplash, 3000);
   // Normalize category names to prevent duplicates (e.g., "Men's Clothing" vs "Men's clothing")
   try { const n = normalizeAllCategories(); if (n > 0) { save(); console.warn(`FlipTrack: Normalized ${n} category names`); } } catch(e) {}
   // Normalize source names to merge near-duplicates (e.g., "Marshall's" → "Marshalls")
+  try { const n = retroNormalizeSources(); if (n > 0) { save(); refresh(); } } catch(e) {}
+
+  // Auto-merge duplicate inventory items (same SKU or eBay listing ID)
   try {
-    console.warn('[FlipTrack] Source normalization: inv has', inv.length, 'items');
-    const n = retroNormalizeSources();
-    console.warn('[FlipTrack] Source normalization result:', n, 'fixed');
-    if (n > 0) { save(); refresh(); }
-  } catch(e) { console.warn('[FlipTrack] Source normalization error:', e.message, e.stack); }
+    const merged = mergeInventoryDuplicates();
+    if (merged > 0) { save(); refresh(); toast(`Merged ${merged} duplicate item${merged > 1 ? 's' : ''}`); }
+  } catch(e) { console.warn('[FlipTrack] Dedup error:', e.message); }
 
   // Build initial state — restore last viewed page on refresh
   try {

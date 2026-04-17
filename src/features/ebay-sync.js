@@ -45,27 +45,15 @@ function _isValidSku(sku) {
   return sku && sku.length <= 50 && /^[a-zA-Z0-9._\-*]+$/.test(sku) && !sku.startsWith('ebay-');
 }
 
-// ── INVENTORY INDEX & FUZZY MATCHING (shared across all sync paths) ───────
-
-/** Normalize SKU — strip non-alphanumerics so dash-stripped eBay SKUs match */
-function _normSku(s) {
-  return (s || '').toString().replace(/[^A-Za-z0-9]/g, '').toLowerCase();
-}
-
-/** Normalize name — lowercase, collapse whitespace, strip common condition suffixes */
+// ── INVENTORY INDEX (shared across all sync paths) ───────
+function _normSku(s) { return (s||'').toString().replace(/[^A-Za-z0-9]/g,'').toLowerCase(); }
 function _normName(n) {
-  return (n || '')
-    .toString()
-    .toLowerCase()
-    .replace(/[\u2013\u2014]/g, '-')
-    .replace(/\s*[-–—]\s*(sealed|mint|nwt|nib|new in box|new with tags|used|pre-?owned)\b.*$/i, '')
-    .replace(/\s*\((sealed|mint|nwt|nib|new|used|pre-?owned)[^)]*\)\s*$/i, '')
-    .replace(/[^\w\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return (n||'').toString().toLowerCase().replace(/[\u2013\u2014]/g,'-')
+    .replace(/\s*[-–—]\s*(sealed|mint|nwt|nib|new in box|new with tags|used|pre-?owned)\b.*$/i,'')
+    .replace(/\s*\((sealed|mint|nwt|nib|new|used|pre-?owned)[^)]*\)\s*$/i,'')
+    .replace(/[^\w\s]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-/** Build cross-reference maps indexing by SKU, normalized-SKU, ebayItemId, listingId, id, name */
 function _buildInventoryIndex(items) {
   const idx = {
     bySku: new Map(),
@@ -92,7 +80,6 @@ function _buildInventoryIndex(items) {
   return idx;
 }
 
-/** Find the FlipTrack row for an incoming eBay listing; tolerates small divergences */
 function _findMatchingItem(idx, liveListingIds, { listingId, sku, itemId, name }) {
   const lid = listingId ? String(listingId) : null;
   if (lid && idx.byListing.has(lid)) return idx.byListing.get(lid);
@@ -102,7 +89,6 @@ function _findMatchingItem(idx, liveListingIds, { listingId, sku, itemId, name }
   const skuNorm = _normSku(sku || itemId);
   if (skuNorm && idx.bySkuNorm.has(skuNorm)) return idx.bySkuNorm.get(skuNorm);
   const nameNorm = _normName(name);
-  // Name-only match is risky — skip if multiple items share this name (ambiguous)
   if (nameNorm && idx.byNameNorm.has(nameNorm) && !idx.nameCollisions.has(nameNorm)) {
     const candidate = idx.byNameNorm.get(nameNorm);
     const attached = candidate.ebayListingId && liveListingIds.has(String(candidate.ebayListingId));
@@ -111,7 +97,6 @@ function _findMatchingItem(idx, liveListingIds, { listingId, sku, itemId, name }
   return null;
 }
 
-/** Register a newly-created row so subsequent scan paths within this sync run find it */
 function _indexUpsert(idx, row) {
   if (row.sku) { idx.bySku.set(row.sku, row); idx.bySkuNorm.set(_normSku(row.sku), row); }
   if (row.ebayItemId) { idx.byItemId.set(row.ebayItemId, row); idx.bySkuNorm.set(_normSku(row.ebayItemId), row); }
@@ -126,7 +111,6 @@ function _indexUpsert(idx, row) {
   if (row.id) idx.byId.set(row.id, row);
 }
 
-/** Detect existing duplicates in inventory (runs on startup) */
 export function detectInventoryDuplicates() {
   const bySkuNorm = new Map();
   const byListing = new Map();
@@ -145,6 +129,33 @@ export function detectInventoryDuplicates() {
     }
   }
   return dupes;
+}
+
+export function mergeInventoryDuplicates() {
+  const dupes = detectInventoryDuplicates();
+  if (!dupes.length) return 0;
+
+  const merged = new Set();
+  let count = 0;
+  for (const { a, b } of dupes) {
+    if (merged.has(a.id) || merged.has(b.id) || a.id === b.id) continue;
+    const aS = sales.filter(s => s.itemId === a.id).length;
+    const bS = sales.filter(s => s.itemId === b.id).length;
+    const aF = Object.values(a).filter(v => v != null && v !== '' && v !== 0).length;
+    const [keeper, dupe] = (aS > bS || (aS === bS && aF >= Object.values(b).filter(v => v != null && v !== '' && v !== 0).length)) ? [a, b] : [b, a];
+    keeper.qty = (keeper.qty || 0) + (dupe.qty || 0);
+    for (const [k, v] of Object.entries(dupe)) {
+      if (k === 'id' || k === 'qty' || k === 'added' || k === 'dateAdded') continue;
+      if ((keeper[k] == null || keeper[k] === '' || keeper[k] === 0) && v != null && v !== '' && v !== 0) keeper[k] = v;
+    }
+    for (const s of sales) { if (s.itemId === dupe.id) { s.itemId = keeper.id; markDirty('sales', s.id); } }
+    const di = inv.indexOf(dupe); if (di >= 0) inv.splice(di, 1);
+    markDirty('inv', keeper.id);
+    merged.add(dupe.id);
+    count++;
+  }
+
+  return count;
 }
 
 // ── INITIALIZATION ─────────────────────────────────────────────────────────
