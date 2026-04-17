@@ -80,23 +80,39 @@ export async function buildReconciliation() {
     const ebayMap = await _fetchEBayListings();
 
     const localActive = inv.filter(i => i.platforms?.includes('eBay') && i.platformStatus?.eBay === 'active');
-    // Build lookup maps — try to match by listing ID, SKU, ebayItemId, and normalized title
     const _norm = s => (s||'').toString().toLowerCase().replace(/[^\w\s]/g,' ').replace(/\s+/g,' ').trim();
+    // Strip common eBay title noise words so "NEW Blue Shirt Free Ship" matches "Blue Shirt"
+    const _stripNoise = s => _norm(s).replace(/\b(new|nib|nwt|nwob|mint|sealed|used|brand new|free ship(ping)?|w\/|with|tags?|authentic|lot of \d+|pack of \d+|bundle)\b/g, ' ').replace(/\s+/g, ' ').trim();
+    const _tokenSet = s => new Set(_stripNoise(s).split(' ').filter(w => w.length >= 3));
     const localByLid = new Map();
     const localBySku = new Map();
     const localByName = new Map();
+    const localTokenSets = []; // [{item, tokens}]
     for (const item of localActive) {
       if (item.ebayListingId) localByLid.set(String(item.ebayListingId), item);
       if (item.sku) localBySku.set(item.sku.toLowerCase(), item);
       if (item.ebayItemId) localBySku.set(item.ebayItemId.toLowerCase(), item);
-      if (item.name) localByName.set(_norm(item.name), item);
+      if (item.name) {
+        localByName.set(_norm(item.name), item);
+        localTokenSets.push({ item, tokens: _tokenSet(item.name) });
+      }
     }
-    // Helper: find ANY local item matching an eBay listing
     const findLocalForListing = (listing) => {
       if (localByLid.has(listing.listingId)) return localByLid.get(listing.listingId);
       const titleNorm = _norm(listing.title);
       if (titleNorm && localByName.has(titleNorm)) return localByName.get(titleNorm);
-      return null;
+      // Fuzzy token-overlap match — ≥60% of local's tokens appear in eBay title
+      const ebayTokens = _tokenSet(listing.title);
+      if (ebayTokens.size === 0) return null;
+      let best = null, bestScore = 0;
+      for (const { item, tokens } of localTokenSets) {
+        if (tokens.size < 2) continue;
+        let hits = 0;
+        for (const t of tokens) if (ebayTokens.has(t)) hits++;
+        const score = hits / tokens.size;
+        if (score >= 0.6 && score > bestScore) { best = item; bestScore = score; }
+      }
+      return best;
     };
     // Track which local items got matched (so we know what's truly local-only)
     const matchedLocal = new Set();
