@@ -369,6 +369,7 @@ export async function disconnectEBay() {
 export function isEBayConnected() { return _connected; }
 export function isEBayStatusVerified() { return _statusVerified; }
 export function getEBayUsername() { return _ebayUsername; }
+export function setEBayUsername(u) { if (u) _ebayUsername = u; }
 export function getEBayIsSandbox() { return _isSandbox; }
 export function getEBayConnectedAt() { return _connectedAt; }
 

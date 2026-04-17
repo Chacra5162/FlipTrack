@@ -1,6 +1,6 @@
 // ebay-reconcile.js — Compare FlipTrack inventory vs live eBay listings
 import { inv, save, refresh, markDirty } from '../data/store.js';
-import { ebayAPI, isEBayConnected, getEBayUsername } from './ebay-auth.js';
+import { ebayAPI, isEBayConnected, getEBayUsername, setEBayUsername } from './ebay-auth.js';
 import { pullEBayListings } from './ebay-sync.js';
 import { markPlatformStatus } from './crosslist.js';
 import { toast, releaseFocus, trapFocus } from '../utils/dom.js';
@@ -14,13 +14,26 @@ let _reconcileCancelled = false;
 async function _fetchEBayListings() {
   let username = getEBayUsername();
   if (!username) {
-    // Run a silent sync to trigger username discovery (via Trading API, Browse API seller lookup, etc.)
     const progressEl = document.getElementById('reconcileProgress');
     if (progressEl) progressEl.textContent = 'Discovering eBay username…';
     try { await pullEBayListings({ silent: true }); } catch (_) {}
     username = getEBayUsername();
   }
-  if (!username) throw new Error('eBay username not available — connect eBay in Settings, then try again');
+  if (!username) {
+    try {
+      const resp = await ebayAPI('GET', '/sell/fulfillment/v1/order?limit=10');
+      for (const o of (resp?.orders || [])) {
+        const lid = o?.lineItems?.[0]?.legacyItemId;
+        if (!lid) continue;
+        try {
+          const ir = await ebayAPI('GET', `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${lid}`);
+          const s = ir?.seller?.username || ir?.seller?.userId;
+          if (s) { username = s; setEBayUsername(username); break; }
+        } catch (_) {}
+      }
+    } catch (_) {}
+  }
+  if (!username) throw new Error('eBay username not available. Make a sale or sync first to let FlipTrack discover it.');
 
   const sellerFilter = `sellers:%7B${encodeURIComponent(username)}%7D`;
   const queries = ['a', 'e', 'the', 'new', 'lot', 'vintage', 'set', 'bag', 'or', 'of', 'in'];
@@ -29,7 +42,6 @@ async function _fetchEBayListings() {
   for (let qi = 0; qi < queries.length; qi++) {
     if (_reconcileCancelled) throw new Error('Reconciliation cancelled');
     const q = queries[qi];
-    // Update progress UI if modal is open
     const progressEl = document.getElementById('reconcileProgress');
     if (progressEl) progressEl.textContent = `Fetching… (${qi + 1}/${queries.length})`;
     try {
@@ -67,7 +79,6 @@ export async function buildReconciliation() {
   try {
     const ebayMap = await _fetchEBayListings();
 
-    // Local items marked active on eBay
     const localActive = inv.filter(i => i.platforms?.includes('eBay') && i.platformStatus?.eBay === 'active');
     const localByLid = new Map();
     for (const item of localActive) {
