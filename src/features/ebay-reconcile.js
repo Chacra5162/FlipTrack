@@ -36,14 +36,56 @@ async function _fetchEBayListings() {
   if (!username) throw new Error('eBay username not available. Make a sale or sync first to let FlipTrack discover it.');
 
   const sellerFilter = `sellers:%7B${encodeURIComponent(username)}%7D`;
-  const queries = ['a', 'e', 'the', 'new', 'lot', 'vintage', 'set', 'bag', 'or', 'of', 'in'];
   const listings = new Map();
+
+  // Strategy 1: Direct Browse API lookup by known ebayListingId. Most reliable —
+  // guaranteed to find listings that FlipTrack already has IDs for.
+  const knownLids = [...new Set(inv
+    .filter(i => i.ebayListingId && !i.sold && !i.deleted)
+    .map(i => String(i.ebayListingId)))];
+  const progressEl = document.getElementById('reconcileProgress');
+  for (let i = 0; i < knownLids.length; i++) {
+    if (_reconcileCancelled) throw new Error('Reconciliation cancelled');
+    const lid = knownLids[i];
+    if (progressEl) progressEl.textContent = `Checking known listings… (${i + 1}/${knownLids.length})`;
+    try {
+      const resp = await ebayAPI('GET', `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${lid}`);
+      if (!resp || !resp.itemId) continue;
+      const isAuction = (resp.buyingOptions || []).includes('AUCTION');
+      listings.set(lid, {
+        listingId: lid,
+        title: resp.title || '',
+        price: parseFloat(resp.price?.value || '0'),
+        currentBid: parseFloat(resp.currentBidPrice?.value || '0'),
+        isAuction,
+        url: resp.itemWebUrl || `https://www.ebay.com/itm/${lid}`,
+        image: resp.image?.imageUrl || resp.thumbnailImages?.[0]?.imageUrl || '',
+      });
+    } catch (_) { /* 404 = listing ended/removed */ }
+  }
+
+  // Strategy 2: Seller search using keywords derived from local item names.
+  // Using keywords that actually appear in the user's inventory produces much
+  // better coverage than generic words like 'the', 'new', etc.
+  const tokenCounts = new Map();
+  for (const item of inv) {
+    if (item.sold || item.deleted) continue;
+    if (!item.platforms?.includes('eBay') && !item.ebayItemId) continue;
+    const words = (item.name || '').toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/);
+    for (const w of words) {
+      if (w.length >= 3 && !/^(the|and|for|with|new|used|size|pack|lot)$/.test(w)) {
+        tokenCounts.set(w, (tokenCounts.get(w) || 0) + 1);
+      }
+    }
+  }
+  // Use up to 40 most common tokens
+  const queries = [...tokenCounts.entries()].sort((a,b) => b[1] - a[1]).slice(0, 40).map(e => e[0]);
+  if (!queries.length) queries.push('a', 'the', 'new');
 
   for (let qi = 0; qi < queries.length; qi++) {
     if (_reconcileCancelled) throw new Error('Reconciliation cancelled');
     const q = queries[qi];
-    const progressEl = document.getElementById('reconcileProgress');
-    if (progressEl) progressEl.textContent = `Fetching… (${qi + 1}/${queries.length})`;
+    if (progressEl) progressEl.textContent = `Searching eBay… (${qi + 1}/${queries.length}) — ${listings.size} found`;
     try {
       const resp = await ebayAPI('GET',
         `${BROWSE_API}/item_summary/search?q=${encodeURIComponent(q)}&filter=${sellerFilter}&limit=200`
