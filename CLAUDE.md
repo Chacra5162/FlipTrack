@@ -110,6 +110,9 @@ src/
 - **Goal-Aware Alerts:** `renderGoalGapWidget()` in kpi-goals.js — actionable gap-closing suggestions
 - **VAPID Push:** `subscribeToPush()`/`togglePush()` in push-notifications.js — background notifications
 - **eBay Sale Notifications:** `sendNotification()` called for sales, best offers, and auction completions
+- **eBay Reconciliation:** `openReconcileModal()` in ebay-reconcile.js — compares local inventory to live eBay listings via Browse API, shows 3-way diff (eBay-only, FlipTrack-only, mismatched data)
+- **Auction End Detection:** Three independent paths — `_syncEBayOrders` (sold via Fulfillment API), Browse API 404 (listing gone → marks expired + notification), Offer API `ENDED` status (new and existing items checked)
+- **eBay Qty Push:** Drawer edits to `qty` now trigger `updateEBayListing()`; inline stepper buttons use `_debouncedEbayQtySync` via `pushEBayPrice()`
 - **Multi-Variant:** `getVariants()`/`isParent()`/`isVariant()` in store.js — parent/child item model
 - **AI Sourcing:** `openSourcingMode()` in sourcing-mode.js — camera → AI → comps → BUY/PASS verdict
 - **Poshmark Sync:** `openPoshmarkSync()` in poshmark-sync.js — manual sold-status check
