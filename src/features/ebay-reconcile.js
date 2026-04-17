@@ -80,48 +80,70 @@ export async function buildReconciliation() {
     const ebayMap = await _fetchEBayListings();
 
     const localActive = inv.filter(i => i.platforms?.includes('eBay') && i.platformStatus?.eBay === 'active');
+    // Build lookup maps — try to match by listing ID, SKU, ebayItemId, and normalized title
+    const _norm = s => (s||'').toString().toLowerCase().replace(/[^\w\s]/g,' ').replace(/\s+/g,' ').trim();
     const localByLid = new Map();
+    const localBySku = new Map();
+    const localByName = new Map();
     for (const item of localActive) {
       if (item.ebayListingId) localByLid.set(String(item.ebayListingId), item);
+      if (item.sku) localBySku.set(item.sku.toLowerCase(), item);
+      if (item.ebayItemId) localBySku.set(item.ebayItemId.toLowerCase(), item);
+      if (item.name) localByName.set(_norm(item.name), item);
     }
+    // Helper: find ANY local item matching an eBay listing
+    const findLocalForListing = (listing) => {
+      if (localByLid.has(listing.listingId)) return localByLid.get(listing.listingId);
+      const titleNorm = _norm(listing.title);
+      if (titleNorm && localByName.has(titleNorm)) return localByName.get(titleNorm);
+      return null;
+    };
+    // Track which local items got matched (so we know what's truly local-only)
+    const matchedLocal = new Set();
 
-    // 1. eBay-only: on eBay but not in local inv (or marked inactive locally)
     const ebayOnly = [];
     for (const [lid, listing] of ebayMap) {
-      if (!localByLid.has(lid)) {
-        // Also check if it exists in inv but with a different status
-        const anyLocal = inv.find(i => String(i.ebayListingId || '') === lid);
-        ebayOnly.push({ ...listing, localStatus: anyLocal?.platformStatus?.eBay || null, localItemId: anyLocal?.id || null });
+      const match = findLocalForListing(listing);
+      if (match) {
+        matchedLocal.add(match.id);
+        // If the match exists but its ebayListingId is missing/stale, we'll flag as mismatch later
+        continue;
       }
+      const anyLocal = inv.find(i => String(i.ebayListingId || '') === lid);
+      ebayOnly.push({ ...listing, localStatus: anyLocal?.platformStatus?.eBay || null, localItemId: anyLocal?.id || null });
     }
 
-    // 2. Local-only: FlipTrack says active but eBay doesn't have it
     const localOnly = [];
     for (const item of localActive) {
+      if (matchedLocal.has(item.id)) continue;
       const lid = String(item.ebayListingId || '');
       if (!lid || !ebayMap.has(lid)) {
         localOnly.push(item);
       }
     }
 
-    // 3. Mismatched: both sides have the listing but data differs
+    // 3. Mismatched: both sides have the listing but data differs.
+    // Use the same fuzzy matcher as above so items without a stored
+    // ebayListingId still get compared via name.
     const mismatched = [];
     for (const [lid, listing] of ebayMap) {
-      const item = localByLid.get(lid);
+      const item = localByLid.get(lid) || findLocalForListing(listing);
       if (!item) continue;
       const diffs = [];
-      // Price (skip auctions — current bid changes)
       if (!listing.isAuction) {
         const localPrice = item.price || 0;
         if (Math.abs(localPrice - listing.price) > 0.01 && listing.price > 0) {
           diffs.push({ field: 'price', local: localPrice, remote: listing.price });
         }
       }
-      // Format mismatch
       const localFmt = item.ebayListingFormat || 'FIXED_PRICE';
       const remoteFmt = listing.isAuction ? 'AUCTION' : 'FIXED_PRICE';
       if (localFmt !== remoteFmt) {
         diffs.push({ field: 'format', local: localFmt, remote: remoteFmt });
+      }
+      // Listing ID drift: we matched by name but the stored ID differs
+      if (String(item.ebayListingId || '') !== lid) {
+        diffs.push({ field: 'listingId', local: item.ebayListingId || '(none)', remote: lid });
       }
       if (diffs.length) {
         mismatched.push({ item, listing, diffs });
@@ -240,10 +262,14 @@ function _renderReconcileResults(r) {
       </tbody></table>
     </div>` : '';
 
+  const linkageCount = r.mismatched.filter(m => m.diffs.some(d => d.field === 'listingId')).length;
   const mismatchHtml = r.mismatched.length ? `
     <div style="margin-bottom:24px">
-      <div style="font-family:'Syne',sans-serif;font-weight:700;color:var(--accent2);margin-bottom:10px">⚠ Data Mismatches (${r.mismatched.length})</div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Both sides have the listing but values differ. Typically means a FlipTrack edit hasn't pushed, or eBay changed something.</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;color:var(--accent2)">⚠ Data Mismatches (${r.mismatched.length})</div>
+        ${linkageCount > 0 ? `<button class="btn-secondary" onclick="reconcileFixLinkage()" style="font-size:11px">🔗 Fix ${linkageCount} Linkage Issue${linkageCount > 1 ? 's' : ''}</button>` : ''}
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Both sides have the listing but values differ. "listingId" mismatches mean FlipTrack has the item but isn't linked to the live eBay listing — click "Fix Linkage" to auto-repair.</div>
       <table class="ih-table"><thead><tr>
         <th>Item</th><th>Field</th><th>FlipTrack</th><th>eBay</th><th>Action</th>
       </tr></thead><tbody>
@@ -294,6 +320,22 @@ export function reconcileMarkActive(itemId) {
   markDirty('inv', itemId);
   save(); refresh();
   toast(`Marked "${item.name?.slice(0, 30) || 'item'}" as active`);
+  openReconcileModal();
+}
+
+export async function reconcileFixLinkage() {
+  const r = await buildReconciliation();
+  let fixed = 0;
+  for (const m of r.mismatched) {
+    const d = m.diffs.find(x => x.field === 'listingId');
+    if (!d) continue;
+    const newLid = String(d.remote);
+    m.item.ebayListingId = newLid;
+    m.item.url = `https://www.ebay.com/itm/${newLid}`;
+    markDirty('inv', m.item.id);
+    fixed++;
+  }
+  if (fixed > 0) { save(); refresh(); toast(`Linked ${fixed} item${fixed > 1 ? 's' : ''} to live eBay listings`); }
   openReconcileModal();
 }
 
