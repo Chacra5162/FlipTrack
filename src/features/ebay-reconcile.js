@@ -336,7 +336,10 @@ function _renderReconcileResults(r) {
           <td><strong>${escHtml(d.field)}</strong></td>
           <td>${d.field === 'price' ? fmt(d.local) : escHtml(String(d.local))}</td>
           <td style="color:var(--accent)">${d.field === 'price' ? fmt(d.remote) : escHtml(String(d.remote))}</td>
-          <td><button class="act-btn" onclick="openDrawer('${escAttr(m.item.id)}')">Review</button></td>
+          <td style="white-space:nowrap">
+            <button class="act-btn" onclick="reconcileAcceptEbay('${escAttr(m.item.id)}','${escAttr(d.field)}',${JSON.stringify(d.remote).replace(/"/g,'&quot;')})" title="Update FlipTrack to match eBay">Use eBay</button>
+            <button class="act-btn" onclick="openDrawer('${escAttr(m.item.id)}')">Review</button>
+          </td>
         </tr>`)).join('')}
       </tbody></table>
     </div>` : '';
@@ -481,6 +484,22 @@ export function reconcileMarkActive(itemId) {
   markDirty('inv', itemId);
   save(); refresh();
   toast(`Marked "${item.name?.slice(0, 30) || 'item'}" as active`);
+  openReconcileModal();
+}
+
+/** Accept eBay's value for a specific field on one item. */
+export function reconcileAcceptEbay(itemId, field, remoteValue) {
+  const item = inv.find(i => i.id === itemId);
+  if (!item) return;
+  if (field === 'price') item.price = parseFloat(remoteValue) || 0;
+  else if (field === 'format') item.ebayListingFormat = String(remoteValue);
+  else if (field === 'listingId') {
+    item.ebayListingId = String(remoteValue);
+    item.url = `https://www.ebay.com/itm/${remoteValue}`;
+  }
+  markDirty('inv', itemId);
+  save(); refresh();
+  toast(`Updated ${field} for "${(item.name || 'item').slice(0, 25)}"`);
   openReconcileModal();
 }
 
