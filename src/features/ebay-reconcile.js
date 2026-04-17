@@ -318,6 +318,109 @@ function _renderReconcileResults(r) {
   body.innerHTML = summaryHtml + allClearHtml + ebayOnlyHtml + localOnlyHtml + mismatchHtml;
 }
 
+/**
+ * One-click repair: match ALL local eBay items to live listings and fix linkage.
+ * For every item with eBay platform tag or ebayItemId, finds the live listing
+ * by SKU, name, or listing ID and writes back the correct ebayListingId,
+ * platformStatus, and URL.
+ */
+export async function repairEBayLinkage() {
+  if (!isEBayConnected()) { toast('eBay not connected', true); return; }
+  toast('Repairing eBay linkage — this may take 30 seconds…');
+
+  try {
+    const ebayMap = await _fetchEBayListings();
+    const _norm = s => (s||'').toString().toLowerCase().replace(/[^\w\s]/g,' ').replace(/\s+/g,' ').trim();
+    const _stripNoise = s => _norm(s).replace(/\b(new|nib|nwt|nwob|mint|sealed|used|brand new|free ship(ping)?|w\/|with|tags?|authentic|lot of \d+|pack of \d+|bundle)\b/g, ' ').replace(/\s+/g, ' ').trim();
+    const _tokenSet = s => new Set(_stripNoise(s).split(' ').filter(w => w.length >= 3));
+
+    // Index eBay listings by various keys for fast lookup
+    const ebayByLid = new Map();
+    const ebayBySku = new Map();
+    const ebayTokens = [];
+    for (const [lid, listing] of ebayMap) {
+      ebayByLid.set(lid, listing);
+      ebayTokens.push({ listing, tokens: _tokenSet(listing.title) });
+    }
+
+    // Get all local items that should be on eBay
+    const ebayItems = inv.filter(i =>
+      (i.platforms?.includes('eBay') || i.ebayItemId || i.ebayListingId) &&
+      !i.sold && !i.deleted
+    );
+
+    let linked = 0, alreadyLinked = 0, notFound = 0;
+
+    for (const item of ebayItems) {
+      // Already correctly linked?
+      if (item.ebayListingId && ebayByLid.has(item.ebayListingId)) {
+        // Ensure status is active
+        if (item.platformStatus?.eBay !== 'active') {
+          markPlatformStatus(item.id, 'eBay', 'active');
+          markDirty('inv', item.id);
+          linked++;
+        } else {
+          alreadyLinked++;
+        }
+        continue;
+      }
+
+      // Try to find the matching eBay listing
+      let match = null;
+
+      // 1. By listing ID (stale but might still work)
+      if (item.ebayListingId && ebayByLid.has(item.ebayListingId)) {
+        match = ebayByLid.get(item.ebayListingId);
+      }
+
+      // 2. By exact normalized name
+      if (!match) {
+        const itemNorm = _norm(item.name);
+        for (const [, listing] of ebayMap) {
+          if (_norm(listing.title) === itemNorm) { match = listing; break; }
+        }
+      }
+
+      // 3. By token overlap (≥60%)
+      if (!match && item.name) {
+        const itemTokens = _tokenSet(item.name);
+        if (itemTokens.size >= 2) {
+          let bestScore = 0;
+          for (const { listing, tokens } of ebayTokens) {
+            let hits = 0;
+            for (const t of itemTokens) if (tokens.has(t)) hits++;
+            const score = hits / itemTokens.size;
+            if (score >= 0.6 && score > bestScore) { match = listing; bestScore = score; }
+          }
+        }
+      }
+
+      if (match) {
+        item.ebayListingId = match.listingId;
+        item.url = match.url || `https://www.ebay.com/itm/${match.listingId}`;
+        if (!item.platformStatus) item.platformStatus = {};
+        item.platformStatus.eBay = 'active';
+        if (!item.platforms) item.platforms = [];
+        if (!item.platforms.includes('eBay')) item.platforms.push('eBay');
+        markDirty('inv', item.id);
+        linked++;
+      } else {
+        notFound++;
+      }
+    }
+
+    if (linked > 0) { save(); refresh(); }
+    const msg = [];
+    if (linked > 0) msg.push(`${linked} linked`);
+    if (alreadyLinked > 0) msg.push(`${alreadyLinked} already OK`);
+    if (notFound > 0) msg.push(`${notFound} not found on eBay`);
+    toast(msg.join(' · ') || 'No eBay items found');
+    return { linked, alreadyLinked, notFound };
+  } catch (e) {
+    toast('Repair failed: ' + e.message, true);
+  }
+}
+
 export function reconcileMarkEnded(itemId) {
   const item = inv.find(i => i.id === itemId);
   if (!item) return;
