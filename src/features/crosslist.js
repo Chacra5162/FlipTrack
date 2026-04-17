@@ -317,7 +317,9 @@ export function getListingHealth(item) {
   const ps = item.platformStatus || {};
   let active = 0, sold = 0, soldElsewhere = 0, expired = 0, delisted = 0, draft = 0;
   for (const p of plats) {
-    const st = ps[p] || 'active';
+    // Default to 'draft' for unset status — avoids counting platforms that were
+    // added to the item but never actually listed as if they were live.
+    const st = ps[p] || 'draft';
     if (st === 'active') active++;
     else if (st === 'sold') sold++;
     else if (st === 'sold-elsewhere') soldElsewhere++;

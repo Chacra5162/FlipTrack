@@ -349,12 +349,12 @@ function renderMatrixTab(inStock) {
       <div class="cl-matrix-platforms">`;
 
     for (const p of plats) {
-      // For eBay: derive status — trust platformStatus if explicitly set to active
-      let st = ps[p] || 'active';
+      // Default unset platformStatus to 'draft' (not 'active') — platforms
+      // tagged on an item but never explicitly marked active shouldn't count as live.
+      let st = ps[p] || 'draft';
       if (p === 'eBay') {
-        if (!item.ebayItemId) st = 'unlisted';          // tagged but never pushed
-        else if (!item.ebayListingId && ps.eBay !== 'active') st = 'draft'; // pushed but not published AND not confirmed active
-        // else keep whatever platformStatus says (active, sold, etc.)
+        if (!item.ebayItemId) st = 'unlisted';
+        else if (!item.ebayListingId && ps.eBay !== 'active') st = 'draft';
       }
       const daysLeft = getDaysUntilExpiry(p, dates[p]);
       const expiryLabel = daysLeft !== null
@@ -499,8 +499,8 @@ export function clCycleStatus(itemId, platform) {
   const item = getInvItem(itemId);
   if (!item) return;
   const ps = item.platformStatus || {};
-  const current = ps[platform] || 'active';
-  const cycle = ['active', 'sold', 'delisted', 'expired', 'draft'];
+  const current = ps[platform] || 'draft';
+  const cycle = ['draft', 'active', 'sold', 'delisted', 'expired'];
   const next = cycle[(cycle.indexOf(current) + 1) % cycle.length];
   markPlatformStatus(itemId, platform, next);
   if (next === 'active') {

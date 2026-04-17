@@ -321,7 +321,7 @@ export function renderListingStatus(item) {
   const itemSales = getSalesForItem(item.id);
   const isSoldOut = (item.qty || 0) <= 0 && itemSales.length > 0;
   el.innerHTML = plats.map(p => {
-    let st = ps[p] || 'active';
+    let st = ps[p] || 'draft';
     // For API-managed platforms, derive real status from actual push state
     if (p === 'eBay' && !ps[p]) {
       st = item.ebayItemId ? (item.ebayListingId ? 'active' : 'unlisted') : 'unlisted';
