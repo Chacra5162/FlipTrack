@@ -265,6 +265,7 @@ export async function pullEBayListings({ silent = false } = {}) {
     if (!silent) toast('Syncing eBay listings…');
     let matched = 0, imported = 0, updated = 0;
     const seenListingIds = new Set(); // Track eBay listing IDs for reconciliation
+    const seenLocalIds = new Set(); // Local item IDs that matched any eBay listing this sync
 
     // Build shared inventory index (normalized SKU, fuzzy name, listing ID, etc.)
     const idx = _buildInventoryIndex(inv);
@@ -326,6 +327,7 @@ export async function pullEBayListings({ silent = false } = {}) {
           });
 
           if (local) {
+            seenLocalIds.add(local.id);
             matched++;
             let changed = false;
 
@@ -469,6 +471,7 @@ export async function pullEBayListings({ silent = false } = {}) {
             const isLive = status && status !== 'ENDED' && status !== 'WITHDRAWN';
 
             if (local) {
+              seenLocalIds.add(local.id);
               matched++;
               let changed = false;
               if (sku && local.ebayItemId !== sku) { local.ebayItemId = sku; changed = true; }
@@ -664,6 +667,7 @@ export async function pullEBayListings({ silent = false } = {}) {
                   listingId: legacyId, sku: null, itemId: `ebay-${legacyId}`, name: title
                 });
                 if (local) {
+                  seenLocalIds.add(local.id);
                   matched++;
                   let changed = false;
                   if (local.ebayListingId !== legacyId) {
@@ -806,6 +810,8 @@ export async function pullEBayListings({ silent = false } = {}) {
             `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${item.ebayListingId}`
           );
           if (!resp) continue;
+          // Listing still exists (no 404) — mark local as seen so reconcile won't mark it removed
+          seenLocalIds.add(item.id);
           let changed = false;
           const buyOpts = resp.buyingOptions || [];
           const isAuction = buyOpts.includes('AUCTION');
@@ -923,6 +929,7 @@ export async function pullEBayListings({ silent = false } = {}) {
           let local = bySku.get(sku) || byEbayId.get(sku);
 
           if (local) {
+            seenLocalIds.add(local.id);
             matched++;
             let changed = false;
             if (!local.ebayItemId || local.ebayItemId !== sku) { local.ebayItemId = sku; changed = true; }
@@ -1005,22 +1012,27 @@ export async function pullEBayListings({ silent = false } = {}) {
     }
 
     // ── RECONCILE: Mark items removed if no longer on eBay ────────────
-    // Only reconcile if we actually found listings (prevents false mass-removal)
-    if (seenListingIds.size > 0) {
-      const activeEbayItems = inv.filter(i =>
-        i.ebayListingId && i.platformStatus?.eBay === 'active'
-      );
+    // Guard: require BOTH a nonempty seen-listings set AND >=70% of local items
+    // to have been matched. If most local items weren't matched, the sync
+    // likely just didn't cover them all — safer to skip removal than to
+    // false-flag many items as removed.
+    const activeEbayItems = inv.filter(i => i.ebayListingId && i.platformStatus?.eBay === 'active');
+    const matchRatio = activeEbayItems.length > 0 ? seenLocalIds.size / activeEbayItems.length : 0;
+    if (seenListingIds.size > 0 && matchRatio >= 0.7) {
       for (const item of activeEbayItems) {
-        if (!seenListingIds.has(item.ebayListingId)) {
-          console.warn(`[eBay] Listing removed: "${item.name}" (#${item.ebayListingId})`);
-          markPlatformStatus(item.id, 'eBay', 'removed');
-          logItemEvent(item.id, 'ebay-sync', 'eBay removed this listing — check Seller Hub');
-          markDirty('inv', item.id);
-          updated++;
-          const label = item.name || item.sku || 'Item';
-          addNotification('warning', 'eBay Removed Listing', `"${label}" was removed by eBay.`, item.id);
-        }
+        // Skip items that matched ANY eBay listing this sync (by ID, SKU, or name)
+        if (seenLocalIds.has(item.id)) continue;
+        if (seenListingIds.has(item.ebayListingId)) continue;
+        console.warn(`[eBay] Listing removed: "${item.name}" (#${item.ebayListingId})`);
+        markPlatformStatus(item.id, 'eBay', 'removed');
+        logItemEvent(item.id, 'ebay-sync', 'eBay removed this listing — check Seller Hub');
+        markDirty('inv', item.id);
+        updated++;
+        const label = item.name || item.sku || 'Item';
+        addNotification('warning', 'eBay Removed Listing', `"${label}" was removed by eBay.`, item.id);
       }
+    } else if (seenListingIds.size > 0) {
+      console.warn(`[eBay] Reconcile skipped — match ratio too low (${Math.round(matchRatio * 100)}%). Sync likely incomplete.`);
     }
 
     // Check recent orders for sold items
