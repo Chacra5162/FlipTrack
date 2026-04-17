@@ -5,7 +5,7 @@
  */
 
 import { inv, sales, expenses, getInvItem } from '../data/store.js';
-import { fmt, pct, escHtml } from '../utils/format.js';
+import { fmt, pct, escHtml, addlFee } from '../utils/format.js';
 
 // ── DATE HELPERS ──────────────────────────────────────────────────────────
 
@@ -33,7 +33,7 @@ function _periodMetrics(fromDate, toDate) {
   }, 0);
   const fees = periodSales.reduce((s, sale) => {
     const item = getInvItem(sale.itemId);
-    return s + (item?.fees || 0) + (sale.fees || 0);
+    return s + (item?.fees || 0) + (sale.fees || 0) + addlFee(sale);
   }, 0);
   const expTotal = periodExpenses.reduce((s, e) => s + (e.amount || 0), 0);
   const profit = revenue - cost - fees;

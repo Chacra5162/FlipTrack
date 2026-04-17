@@ -9,7 +9,7 @@ import { SB_URL, SB_KEY } from '../config/constants.js';
 import {
   inv, sales, expenses, supplies,
   save, refresh, saveLocalSupplies,
-  getDirtyItems, clearDirtyTracking, markDirty, waitForPersist,
+  getDirtyItems, getDirtyIdSets, clearDirtyTracking, markDirty, isInvDirty, waitForPersist,
   isSyncInProgress, setSyncInProgress, clearStoreTimers,
   registerAutoSync
 } from './store.js';
@@ -308,28 +308,30 @@ export async function pullFromCloud() {
 
   if (lastPull) {
     // ── DELTA MERGE with conflict resolution: compare updated_at timestamps ──
-    const mergeArray = (arr, remoteRows) => {
+    // Skip items that have pending local edits (dirty) to prevent overwriting user's work
+    const mergeArray = (arr, remoteRows, dirtySet) => {
       if (!remoteRows || !remoteRows.length) return;
       const posMap = new Map(arr.map((item, idx) => [item.id, idx]));
       for (const row of remoteRows) {
         if (!row.data) continue;
         const idx = posMap.has(row.id) ? posMap.get(row.id) : -1;
         if (idx !== -1) {
-          // Conflict resolution: remote wins if it's newer (server updated_at vs local _localUpdatedAt)
+          // Never overwrite an item the user is actively editing
+          if (dirtySet && dirtySet.has(row.id)) continue;
           const localTs = arr[idx]._localUpdatedAt || 0;
           const remoteTs = row.updated_at ? new Date(row.updated_at).getTime() : 0;
           if (remoteTs >= localTs) {
             arr[idx] = row.data;
           }
-          // else: local is newer, skip remote update (local will push on next sync)
         } else {
           arr.push(row.data);
         }
       }
     };
-    mergeArray(inv, remoteInv);
-    mergeArray(sales, remoteSales);
-    mergeArray(expenses, remoteExp);
+    const dirtySets = getDirtyIdSets();
+    mergeArray(inv, remoteInv, dirtySets.inv);
+    mergeArray(sales, remoteSales, dirtySets.sales);
+    mergeArray(expenses, remoteExp, dirtySets.expenses);
   } else {
     // ── FULL PULL: replace all local data, preserving any dirty local items ──
     const dirty = getDirtyItems();

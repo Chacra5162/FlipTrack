@@ -5,7 +5,7 @@
  */
 
 import { inv, sales, getInvItem, calc, expenses } from '../data/store.js';
-import { fmt, pct, ds, escHtml, escAttr, debounce } from '../utils/format.js';
+import { fmt, pct, ds, escHtml, escAttr, debounce, addlFee } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { openDrawer } from '../modals/drawer.js';
 import { PLATFORM_FEES } from '../config/platforms.js';
@@ -85,7 +85,7 @@ function _calcItemStats(filtSales) {
     r.cost += sCost;
     r.fees += (s.fees || 0);
     r.ship += (s.ship || 0);
-    r.profit += sRev - sCost - (s.fees || 0) - (s.ship || 0);
+    r.profit += sRev - sCost - (s.fees || 0) - addlFee(s) - (s.ship || 0);
     r.unitsSold += (s.qty || 0);
     if (s.platform) r.platforms.add(s.platform);
   }
@@ -141,7 +141,7 @@ function _calcPlatformProfit(filtSales) {
     r.cost += (it ? (it.cost || 0) * (s.qty || 0) : 0);
     r.fees += (s.fees || 0);
     r.ship += (s.ship || 0);
-    r.profit += sRev - (it ? (it.cost || 0) * (s.qty || 0) : 0) - (s.fees || 0) - (s.ship || 0);
+    r.profit += sRev - (it ? (it.cost || 0) * (s.qty || 0) : 0) - (s.fees || 0) - addlFee(s) - (s.ship || 0);
     r.count++;
     r.units += (s.qty || 0);
   }
@@ -162,8 +162,8 @@ function _calcCategoryProfit(filtSales) {
     const sRev = (s.price || 0) * (s.qty || 0);
     r.revenue += sRev;
     r.cost += (it ? (it.cost || 0) * (s.qty || 0) : 0);
-    r.fees += (s.fees || 0) + (s.ship || 0);
-    r.profit += sRev - (it ? (it.cost || 0) * (s.qty || 0) : 0) - (s.fees || 0) - (s.ship || 0);
+    r.fees += (s.fees || 0) + addlFee(s) + (s.ship || 0);
+    r.profit += sRev - (it ? (it.cost || 0) * (s.qty || 0) : 0) - (s.fees || 0) - addlFee(s) - (s.ship || 0);
     r.count++;
   }
   const results = Object.values(map);
@@ -184,8 +184,8 @@ function _calcMonthlyTrend() {
     const sRev = (s.price || 0) * (s.qty || 0);
     r.revenue += sRev;
     r.cost += (it ? (it.cost || 0) * (s.qty || 0) : 0);
-    r.fees += (s.fees || 0) + (s.ship || 0);
-    r.profit += sRev - (it ? (it.cost || 0) * (s.qty || 0) : 0) - (s.fees || 0) - (s.ship || 0);
+    r.fees += (s.fees || 0) + addlFee(s) + (s.ship || 0);
+    r.profit += sRev - (it ? (it.cost || 0) * (s.qty || 0) : 0) - (s.fees || 0) - addlFee(s) - (s.ship || 0);
     r.count++;
   }
   return Object.values(map).sort((a, b) => a.month.localeCompare(b.month)).slice(-12);

@@ -6,7 +6,7 @@
 
 import { inv, sales, expenses, getInvItem } from '../data/store.js';
 // Platform fee constants imported dynamically if needed
-import { fmt, pct, ds, escHtml } from '../utils/format.js';
+import { fmt, pct, ds, escHtml, addlFee } from '../utils/format.js';
 
 // ── COMPUTE ───────────────────────────────────────────────────────────────
 
@@ -35,7 +35,7 @@ export function computePlatformROI() {
     const cost = item.cost || 0;
     const fees = item.fees || sale.fees || 0;
     const ship = item.ship || 0;
-    const profit = (sale.price || 0) - cost - fees - ship;
+    const profit = (sale.price || 0) - cost - fees - addlFee(sale) - ship;
     const days = _daysBetween(item.added, sale.date);
 
     p.sold++;

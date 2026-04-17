@@ -5,7 +5,7 @@
  */
 
 import { inv, sales, getInvItem, getSalesForItem } from '../data/store.js';
-import { fmt, pct, ds, escHtml, escAttr, daysSince } from '../utils/format.js';
+import { fmt, pct, ds, escHtml, escAttr, daysSince, addlFee } from '../utils/format.js';
 
 const _daysSince = daysSince;
 
@@ -37,7 +37,8 @@ export function computeSourcingAnalytics() {
       const fees = itemSales.reduce((sum, sl) => sum + (sl.fees || 0), 0);
       const shipping = itemSales.reduce((sum, sl) => sum + (sl.ship || 0), 0);
       s.totalRevenue += revenue;
-      s.totalProfit += revenue - (item.cost || 0) * soldQty - fees - shipping;
+      const addlFees = itemSales.reduce((sum, sl) => sum + addlFee(sl), 0);
+      s.totalProfit += revenue - (item.cost || 0) * soldQty - fees - addlFees - shipping;
       s.totalDaysToSell += _daysSince(item.added);
     } else {
       s.unsold++;
@@ -161,7 +162,8 @@ export function showSourceItems(sourceName) {
     const revenue = itemSales.reduce((sum, s) => sum + (s.price || 0) * (s.qty || 1), 0);
     const fees = itemSales.reduce((sum, s) => sum + (s.fees || 0), 0);
     const ship = itemSales.reduce((sum, s) => sum + (s.ship || 0), 0);
-    const profit = soldQty > 0 ? revenue - (item.cost || 0) * soldQty - fees - ship : 0;
+    const addlFees = itemSales.reduce((sum, s) => sum + addlFee(s), 0);
+    const profit = soldQty > 0 ? revenue - (item.cost || 0) * soldQty - fees - addlFees - ship : 0;
     const status = soldQty > 0
       ? `<span class="ih-good">Sold (${soldQty})</span>`
       : (item.qty || 0) > 0

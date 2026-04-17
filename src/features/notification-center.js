@@ -4,7 +4,7 @@
  */
 
 import { inv, sales, getInvItem, getSalesForItem } from '../data/store.js';
-import { fmt, escHtml, escAttr } from '../utils/format.js';
+import { fmt, escHtml, escAttr, addlFee } from '../utils/format.js';
 import { toast } from '../utils/dom.js';
 import { sendNotification } from '../features/push-notifications.js';
 import { getDaysUntilExpiry } from '../features/crosslist.js';
@@ -269,7 +269,7 @@ export function getSalesVelocity() {
     if (!catMap[cat]) catMap[cat] = { cat, items: 0, sold: 0, totalDays: 0, revenue: 0, profit: 0 };
     catMap[cat].sold++;
     catMap[cat].revenue += sale.price || 0;
-    catMap[cat].profit += (sale.price || 0) - (sale.fees || 0) - (sale.ship || 0) - (item?.cost || 0);
+    catMap[cat].profit += (sale.price || 0) - (sale.fees || 0) - addlFee(sale) - (sale.ship || 0) - (item?.cost || 0);
     if (item?.added && sale.date) {
       const daysSold = Math.max(1, Math.floor((new Date(sale.date).getTime() - new Date(item.added).getTime()) / 86400000));
       catMap[cat].totalDays += daysSold;
@@ -302,7 +302,7 @@ export function checkDailyDigest() {
 
   const count = ySales.length;
   const revenue = ySales.reduce((sum, s) => sum + ((s.price || 0) * (s.qty || 1)), 0);
-  const fees = ySales.reduce((sum, s) => sum + (s.fees || 0) + (s.ship || 0), 0);
+  const fees = ySales.reduce((sum, s) => sum + (s.fees || 0) + addlFee(s) + (s.ship || 0), 0);
   const cogs = ySales.reduce((sum, s) => {
     const item = getInvItem(s.itemId);
     return sum + ((item?.cost || 0) * (s.qty || 1));

@@ -1,6 +1,6 @@
 import { inv, sales, expenses, getInvItem, save, refresh, markDirty, softDeleteItem, sel } from '../data/store.js';
 import { renderInv } from './inventory.js';
-import { fmt, ds, escHtml, escAttr } from '../utils/format.js';
+import { fmt, ds, escHtml, escAttr, addlFee } from '../utils/format.js';
 import { toast, appConfirm } from '../utils/dom.js';
 import { pushDeleteToCloud, autoSync, pushToCloud } from '../data/sync.js';
 import { setDefaultExpDate } from './expenses.js';
@@ -40,7 +40,7 @@ export function renderReports() {
     const it = getInvItem(s.itemId);
     revenue += (s.price||0) * (s.qty||0);
     cogs    += it ? (it.cost||0) * (s.qty||0) : 0;
-    fees    += (s.fees||0) + (s.ship||0);
+    fees    += (s.fees||0) + addlFee(s) + (s.ship||0);
   }
   const grossProfit  = revenue - cogs - fees;
   const totalExpenses= periodExp.reduce((a,e) => a+(e.amount||0), 0);
@@ -93,7 +93,7 @@ export function renderReports() {
     if (!catProfit[cat]) catProfit[cat] = { revenue: 0, cogs: 0, fees: 0, profit: 0, count: 0 };
     const rev = (s.price || 0) * (s.qty || 0);
     const cost = it ? (it.cost || 0) * (s.qty || 0) : 0;
-    const fee = (s.fees || 0) + (s.ship || 0);
+    const fee = (s.fees || 0) + addlFee(s) + (s.ship || 0);
     catProfit[cat].revenue += rev;
     catProfit[cat].cogs += cost;
     catProfit[cat].fees += fee;
@@ -135,7 +135,7 @@ export function renderReports() {
     const it = getInvItem(s.itemId);
     const rev = (s.price || 0) * (s.qty || 0);
     const cost = it ? (it.cost || 0) * (s.qty || 0) : 0;
-    const fee = (s.fees || 0) + (s.ship || 0);
+    const fee = (s.fees || 0) + addlFee(s) + (s.ship || 0);
     platProfit[plat].revenue += rev;
     platProfit[plat].cogs += cost;
     platProfit[plat].fees += fee;
@@ -203,7 +203,7 @@ export function renderReports() {
         <thead><tr><th>Item</th><th>Date</th><th>Qty</th><th>Price</th><th>Net Profit</th></tr></thead>
         <tbody>${[...periodSales].sort((a,b)=>new Date(b.date)-new Date(a.date)).map(s=>{
           const it=getInvItem(s.itemId);
-          const pr=(s.price||0)*(s.qty||0)-(it?(it.cost||0)*(s.qty||0):0)-(s.fees||0)-(s.ship||0);
+          const pr=(s.price||0)*(s.qty||0)-(it?(it.cost||0)*(s.qty||0):0)-(s.fees||0)-addlFee(s)-(s.ship||0);
           return `<tr>
             <td><div class="item-name" style="cursor:${it?'pointer':'default'}" ${it?`onclick="openDrawer('${escAttr(it.id)}')"`:''}>${it?escHtml(it.name):'Deleted Item'}</div></td>
             <td style="color:var(--muted);font-size:11px">${ds(s.date)}</td>
@@ -330,7 +330,7 @@ export function renderPLStatement() {
     const mSales = sales.filter(s => { const sd = new Date(s.date); return sd >= mStart && sd <= mEnd; });
     const mRev = mSales.reduce((a, s) => a + (s.price || 0) * (s.qty || 0), 0);
     const mCogs = mSales.reduce((a, s) => { const it = getInvItem(s.itemId); return a + (it ? (it.cost || 0) * (s.qty || 0) : 0); }, 0);
-    const mFees = mSales.reduce((a, s) => a + (s.fees || 0) + (s.ship || 0), 0);
+    const mFees = mSales.reduce((a, s) => a + (s.fees || 0) + addlFee(s) + (s.ship || 0), 0);
     const mExp = expenses.filter(e => { const ed = new Date(e.date); return ed >= mStart && ed <= mEnd; }).reduce((a, e) => a + (e.amount || 0), 0);
     const mNet = mRev - mCogs - mFees - mExp;
     months.push({
@@ -501,7 +501,7 @@ export function buildTrendRows(mode, periodStart, periodEnd) {
       const ws = sales.filter(s=>{ const d=new Date(s.date);return d>=wStart&&d<=actualEnd;});
       const we = expenses.filter(e=>{ const d=new Date(e.date);return d>=wStart&&d<=actualEnd;});
       let rev=0,cogs=0,fe=0;
-      for(const s of ws){const it=getInvItem(s.itemId);rev+=(s.price||0)*(s.qty||0);cogs+=it?(it.cost||0)*(s.qty||0):0;fe+=(s.fees||0)+(s.ship||0);}
+      for(const s of ws){const it=getInvItem(s.itemId);rev+=(s.price||0)*(s.qty||0);cogs+=it?(it.cost||0)*(s.qty||0):0;fe+=(s.fees||0)+addlFee(s)+(s.ship||0);}
       const gross=rev-cogs-fe;
       const expAmt=we.reduce((a,e)=>a+(e.amount||0),0);
       const net=gross-expAmt;
@@ -533,7 +533,7 @@ export function buildTrendRows(mode, periodStart, periodEnd) {
       const ds2 = sales.filter(s=>{ const d=new Date(s.date);return d>=day&&d<=dayEnd;});
       const de  = expenses.filter(e=>{ const d=new Date(e.date);return d>=day&&d<=dayEnd;});
       let rev=0,cogs=0,fe=0;
-      for(const s of ds2){const it=getInvItem(s.itemId);rev+=(s.price||0)*(s.qty||0);cogs+=it?(it.cost||0)*(s.qty||0):0;fe+=(s.fees||0)+(s.ship||0);}
+      for(const s of ds2){const it=getInvItem(s.itemId);rev+=(s.price||0)*(s.qty||0);cogs+=it?(it.cost||0)*(s.qty||0):0;fe+=(s.fees||0)+addlFee(s)+(s.ship||0);}
       const gross=rev-cogs-fe;
       const expAmt=de.reduce((a,e)=>a+(e.amount||0),0);
       const net=gross-expAmt;

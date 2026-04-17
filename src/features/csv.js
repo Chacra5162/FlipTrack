@@ -1,7 +1,7 @@
 // ── CSV IMPORT/EXPORT ───────────────────────────────────────────────────────────
 
 import { inv, sales, expenses, save, refresh, getInvItem, markDirty, normCat } from '../data/store.js';
-import { fmt, pct, uid, escHtml, escAttr, localDate} from '../utils/format.js';
+import { fmt, pct, uid, escHtml, escAttr, localDate, addlFee } from '../utils/format.js';
 import { toast, trapFocus, releaseFocus } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
 import { getPlatforms } from './platforms.js';
@@ -25,11 +25,12 @@ export function exportCSV(){
 }
 
 export function exportSalesCSV() {
-  const rows=[['Date','Item Name','SKU','Platform','Qty','Sale Price','List Price','Fees','Shipping','Profit']];
+  const rows=[['Date','Item Name','SKU','Platform','Qty','Sale Price','List Price','Fees','Addl Fee %','Addl Fee Basis','Addl Fee $','Shipping','Profit']];
   for (const s of sales) {
     const it = getInvItem(s.itemId);
-    const pr = (s.price||0)*(s.qty||0) - (it?(it.cost||0)*(s.qty||0):0) - (s.fees||0) - (s.ship||0);
-    rows.push([s.date, it?it.name:'Deleted Item', it?it.sku:'', s.platform||'', s.qty, s.price, s.listPrice||'', s.fees||0, s.ship||0, pr.toFixed(2)]);
+    const af = addlFee(s);
+    const pr = (s.price||0)*(s.qty||0) - (it?(it.cost||0)*(s.qty||0):0) - (s.fees||0) - af - (s.ship||0);
+    rows.push([s.date, it?it.name:'Deleted Item', it?it.sku:'', s.platform||'', s.qty, s.price, s.listPrice||'', s.fees||0, s.addlFeePct||'', s.addlFeeBasis||'', af||'', s.ship||0, pr.toFixed(2)]);
   }
   const csv=rows.map(r=>r.map(v=>`"${_sanitizeCell(String(v)).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='fliptrack-sales.csv';a.click();toast('Sales CSV exported ✓');

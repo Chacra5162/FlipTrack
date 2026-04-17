@@ -5,7 +5,7 @@
  */
 
 import { sales, expenses, getInvItem } from '../data/store.js';
-import { fmt, localDate } from '../utils/format.js';
+import { fmt, localDate, addlFee } from '../utils/format.js';
 
 /**
  * Build daily profit map for the last N days
@@ -23,7 +23,7 @@ function buildDailyProfitMap(days = 365) {
     const it = getInvItem(s.itemId);
     const rev = (s.price || 0) * (s.qty || 0);
     const cogs = it ? (it.cost || 0) * (s.qty || 0) : 0;
-    const fees = (s.fees || 0) + (s.ship || 0);
+    const fees = (s.fees || 0) + addlFee(s) + (s.ship || 0);
     const profit = rev - cogs - fees;
     map[d] = (map[d] || 0) + profit;
   }

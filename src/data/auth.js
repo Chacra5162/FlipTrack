@@ -5,7 +5,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { SB_URL, SB_KEY } from '../config/constants.js';
-import { inv, sales, expenses, supplies, save, refresh, clearStoreTimers, setSyncInProgress } from './store.js';
+import { inv, sales, expenses, supplies, save, refresh, clearStoreTimers, setSyncInProgress, _trash, _undoStack } from './store.js';
 import { syncNow, autoSync, pullSupplies, startRealtime, stopRealtime, setSyncStatus, stopPoll, clearSyncTimers, resetSyncGuard } from './sync.js';
 import { deleteMeta, clearStore } from './idb.js';
 import { resetOfflineReplay } from './offline-queue.js';
@@ -198,6 +198,8 @@ export async function authSignOut() {
   sales.length = 0;
   expenses.length = 0;
   supplies.length = 0;
+  _trash.length = 0;
+  _undoStack.length = 0;
 
   // ── CLEAR ALL CACHE AND SESSION DATA FROM STORAGE ─────────────────────
   localStorage.removeItem('ft3_inv');
@@ -219,8 +221,12 @@ export async function authSignOut() {
   // ── CLEAR SYNC METADATA FROM INDEXEDDB ────────────────────────────────
   await deleteMeta('lastSyncPush').catch(e => console.warn('FlipTrack: delete lastSyncPush failed:', e.message));
   await deleteMeta('lastSyncPull').catch(e => console.warn('FlipTrack: delete lastSyncPull failed:', e.message));
+  await clearStore('inventory').catch(() => {});
+  await clearStore('sales').catch(() => {});
+  await clearStore('expenses').catch(() => {});
   await clearStore('supplies').catch(() => {});
-  await clearStore('syncQueue').catch(() => {}); // Clear offline queue to prevent cross-account data leak
+  await clearStore('trash').catch(() => {});
+  await clearStore('syncQueue').catch(() => {});
   resetOfflineReplay(); // Allow new session to register fresh replay closure
 
   // ── CLEAR MARKETPLACE AUTH STATE FROM INDEXEDDB ────────────────────────
@@ -228,6 +234,11 @@ export async function authSignOut() {
   await deleteMeta('etsy_csrf_state').catch(() => {});
   await deleteMeta('ebay_auth').catch(() => {});
   await deleteMeta('etsy_auth').catch(() => {});
+  await deleteMeta('ebay_trading_blocked').catch(() => {});
+  await deleteMeta('ebay_offer_blocked').catch(() => {});
+  await deleteMeta('ebay_last_sync').catch(() => {});
+  await deleteMeta('ebay_processed_returns').catch(() => {});
+  await deleteMeta('ebay_dismissed_ids').catch(() => {});
 
   refresh();
   setSyncStatus('disconnected');

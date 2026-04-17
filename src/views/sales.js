@@ -695,6 +695,8 @@ async function _recBundleSale(reenableBtn) {
   let buyer = null;
   if (buyerName) buyer = await getOrCreateBuyer(buyerName, platform);
 
+  const bundleAddlFeePct = parseFloat(document.getElementById('s_addl_fee_pct')?.value) || 0;
+
   for (const item of items) {
     const proportion = (item.price || 1) / totalListPrice;
     const itemPrice = Math.round(totalPrice * proportion * 100) / 100;
@@ -705,6 +707,8 @@ async function _recBundleSale(reenableBtn) {
       id: uid(), itemId: item.id, price: itemPrice, listPrice: item.price || 0,
       qty: 1, platform, bundleId,
       fees: itemFees, ship: itemShip,
+      addlFeePct: bundleAddlFeePct > 0 ? bundleAddlFeePct : undefined,
+      addlFeeBasis: bundleAddlFeePct > 0 ? Math.round((totalPrice + ship) * proportion * 100) / 100 : undefined,
       date, tracking, buyerAddress, buyerCity, buyerState, buyerZip,
     };
     if (buyer) sale.buyerId = buyer.id;
