@@ -1,6 +1,7 @@
 // ebay-reconcile.js — Compare FlipTrack inventory vs live eBay listings
 import { inv, save, refresh, markDirty } from '../data/store.js';
 import { ebayAPI, isEBayConnected, getEBayUsername } from './ebay-auth.js';
+import { pullEBayListings } from './ebay-sync.js';
 import { markPlatformStatus } from './crosslist.js';
 import { toast, releaseFocus, trapFocus } from '../utils/dom.js';
 import { fmt, escHtml, escAttr } from '../utils/format.js';
@@ -11,8 +12,15 @@ let _isReconciling = false;
 let _reconcileCancelled = false;
 
 async function _fetchEBayListings() {
-  const username = getEBayUsername();
-  if (!username) throw new Error('eBay username not available — try syncing first');
+  let username = getEBayUsername();
+  if (!username) {
+    // Run a silent sync to trigger username discovery (via Trading API, Browse API seller lookup, etc.)
+    const progressEl = document.getElementById('reconcileProgress');
+    if (progressEl) progressEl.textContent = 'Discovering eBay username…';
+    try { await pullEBayListings({ silent: true }); } catch (_) {}
+    username = getEBayUsername();
+  }
+  if (!username) throw new Error('eBay username not available — connect eBay in Settings, then try again');
 
   const sellerFilter = `sellers:%7B${encodeURIComponent(username)}%7D`;
   const queries = ['a', 'e', 'the', 'new', 'lot', 'vintage', 'set', 'bag', 'or', 'of', 'in'];
