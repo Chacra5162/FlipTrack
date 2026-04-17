@@ -583,9 +583,12 @@
 
 <!-- VIEW: CROSSLIST -->
 <div id="view-crosslist" class="view">
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:0 0 12px">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:0 0 12px;gap:8px;flex-wrap:wrap">
     <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px">Crosslist Manager</div>
-    <button class="btn-secondary" onclick="clBulkRelistExpired()" style="font-size:11px">♻ Relist All Expired</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn-secondary" onclick="openReconcileModal()" style="font-size:11px" title="Compare FlipTrack to live eBay listings">🔍 eBay Reconcile</button>
+      <button class="btn-secondary" onclick="clBulkRelistExpired()" style="font-size:11px">♻ Relist All Expired</button>
+    </div>
   </div>
   <div id="crosslistContent"></div>
 </div>

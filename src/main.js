@@ -177,6 +177,7 @@ import {
 } from './views/whatnot-dashboard.js';
 import { initEBayAuth, handleEBayCallback, isEBayConnected } from './features/ebay-auth.js';
 import { initEBaySync, startEBaySyncInterval, stopEBaySyncInterval, pullEBayListings, resyncEBayOrders, backfillEBayData, dismissEBayItem, undismissEBayItem, importEBayItem } from './features/ebay-sync.js';
+import { openReconcileModal, closeReconcileModal, reconcileMarkEnded, reconcileMarkActive, reconcileImport } from './features/ebay-reconcile.js';
 import { initEtsyAuth, handleEtsyCallback, isEtsyConnected } from './features/etsy-auth.js';
 import { initEtsySync, startEtsySyncInterval, stopEtsySyncInterval, syncEtsyExpenses } from './features/etsy-sync.js';
 import { initWhatnotShows, getTodayShows } from './features/whatnot-show.js';
@@ -458,6 +459,7 @@ Object.assign(window, {
     if (isEBayConnected()) pullEBayListings({ silent: true }).catch(e => console.warn('eBay sync on manual sync:', e.message));
   },
   mobileSyncNow, resyncEBayOrders, backfillEBayData,
+  openReconcileModal, closeReconcileModal, reconcileMarkEnded, reconcileMarkActive, reconcileImport,
   importEBayItem: async (input) => {
     const result = await importEBayItem(input);
     if (result.success) {
