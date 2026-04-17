@@ -154,6 +154,11 @@ export function openEditSaleModal(saleId) {
   document.getElementById('s_addl_fee_pct').dataset.basis = sale.addlFeeBasis || '';
   document.getElementById('s_ship').value = sale.ship || '';
   document.getElementById('s_date').value = (sale.date || '').slice(0, 10) || localDate();
+  // If this sale was auto-synced from eBay, remember the original date
+  if (sale.originalDate) {
+    const dateEl = document.getElementById('s_date');
+    if (dateEl) dateEl.title = `Auto-synced from eBay on ${sale.originalDate.slice(0, 10)}`;
+  }
 
   // Platform dropdown
   const itemPlats = getPlatforms(item);

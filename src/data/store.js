@@ -397,11 +397,20 @@ function _scheduleLSSave() {
   _lsDebounce = setTimeout(_saveToLocalStorage, 5000);
 }
 
+/** Strip PII (buyer shipping addresses) before writing sales to localStorage.
+ * localStorage is same-origin accessible to any JS, so PII stays in IDB only. */
+function _salesWithoutPii(arr) {
+  return arr.map(s => {
+    const { buyerAddress, buyerCity, buyerState, buyerZip, ...rest } = s;
+    return rest;
+  });
+}
+
 /** Write to localStorage as backup */
 function _saveToLocalStorage() {
   try {
     localStorage.setItem('ft3_inv', JSON.stringify(inv));
-    localStorage.setItem('ft3_sal', JSON.stringify(sales));
+    localStorage.setItem('ft3_sal', JSON.stringify(_salesWithoutPii(sales)));
     localStorage.setItem('ft3_exp', JSON.stringify(expenses));
     _lastSaveOk = true;
   } catch (e) {
@@ -409,7 +418,7 @@ function _saveToLocalStorage() {
       try {
         const invNoImg = inv.map(i => { const d = { ...i }; delete d.image; delete d.images; return d; });
         localStorage.setItem('ft3_inv', JSON.stringify(invNoImg));
-        localStorage.setItem('ft3_sal', JSON.stringify(sales));
+        localStorage.setItem('ft3_sal', JSON.stringify(_salesWithoutPii(sales)));
         localStorage.setItem('ft3_exp', JSON.stringify(expenses));
         _lastSaveOk = true;
       } catch (e2) {
@@ -497,9 +506,18 @@ export function saveTrash() {
 export function softDeleteItem(id) {
   const item = inv.find(i => i.id === id);
   if (!item) return;
-  pushUndo('delete', { ...item });
+  // Cascade: if this is a parent, also soft-delete all variant children so they
+  // don't become orphans with dangling parentId references
+  const children = item.isParent ? inv.filter(i => i.parentId === id) : [];
+  pushUndo('delete', { ...item, _cascadedChildren: children.map(c => ({ ...structuredClone(c) })) });
   if (item.ebayListingId || item.ebayItemId) _ebayDismissCallback(item);
   _trash.push({ ...structuredClone(item), deletedAt: Date.now() });
+  for (const child of children) {
+    if (child.ebayListingId || child.ebayItemId) _ebayDismissCallback(child);
+    _trash.push({ ...structuredClone(child), deletedAt: Date.now() });
+    inv.splice(inv.indexOf(child), 1);
+    markDeleted('ft_inventory', child.id);
+  }
   saveTrash();
   inv.splice(inv.indexOf(item), 1);
   markDeleted('ft_inventory', id);

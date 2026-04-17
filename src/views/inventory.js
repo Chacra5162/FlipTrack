@@ -453,8 +453,11 @@ export function renderInv() {
     if (cardContainer) cardContainer.innerHTML = '';
     tbody.innerHTML=pageItems.map((item)=>{
       const {cost,price,m}=calc(item);
-      const c=sc(item.qty,item.lowAlert,item.bulk,item.lowAlertEnabled);
-      const bp=Math.min(100,((item.qty||0)/maxQ)*100);
+      const _isParent = isParent(item);
+      const _variantCount = _isParent ? (inv.filter(i => i.parentId === item.id).length) : 0;
+      const displayQty = _isParent ? getVariantAggQty(item.id) : (item.qty || 0);
+      const c=sc(displayQty,item.lowAlert,item.bulk,item.lowAlertEnabled);
+      const bp=Math.min(100,(displayQty/maxQ)*100);
       const isSel=sel.has(item.id);
       const eid = escAttr(item.id);
       const _imgs = getItemImages(item);
@@ -477,9 +480,9 @@ export function renderInv() {
         <td>
           <div class="stock-cell">
             <div class="stepper">
-              <button class="stepper-btn" aria-label="Decrease quantity" onclick="adjStock('${eid}',-1)">−</button>
-              <span class="stepper-val sv-${c}" title="${c==='low'?'Low stock':c==='warn'?'Warning':'In stock'}">${item.qty||0}${c==='low'?' ⚠':c==='warn'?' ⚡':''}</span>
-              <button class="stepper-btn" aria-label="Increase quantity" onclick="adjStock('${eid}',+1)">+</button>
+              <button class="stepper-btn" aria-label="Decrease quantity" onclick="adjStock('${eid}',-1)" ${_isParent ? 'disabled title="Edit variants individually"' : ''}>−</button>
+              <span class="stepper-val sv-${c}" title="${_isParent ? `Aggregate of ${_variantCount} variants` : (c==='low'?'Low stock':c==='warn'?'Warning':'In stock')}">${displayQty}${_isParent ? ` <span style="font-size:9px;color:var(--accent2)">×${_variantCount}</span>` : (c==='low'?' ⚠':c==='warn'?' ⚡':'')}</span>
+              <button class="stepper-btn" aria-label="Increase quantity" onclick="adjStock('${eid}',+1)" ${_isParent ? 'disabled title="Edit variants individually"' : ''}>+</button>
             </div>
             <div class="mini-bar"><div class="mb-fill mf-${c}" style="width:${bp}%"></div></div>
           </div>

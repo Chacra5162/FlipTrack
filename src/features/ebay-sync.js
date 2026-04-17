@@ -74,12 +74,19 @@ function _buildInventoryIndex(items) {
     byListing: new Map(),
     byNameNorm: new Map(),
     byId: new Map(),
+    nameCollisions: new Set(), // normalized names that appear on 2+ items — don't name-match
   };
   for (const it of items) {
     if (it.sku) { idx.bySku.set(it.sku, it); idx.bySkuNorm.set(_normSku(it.sku), it); }
     if (it.ebayItemId) { idx.byItemId.set(it.ebayItemId, it); idx.bySkuNorm.set(_normSku(it.ebayItemId), it); }
     if (it.ebayListingId) idx.byListing.set(String(it.ebayListingId), it);
-    if (it.name) idx.byNameNorm.set(_normName(it.name), it);
+    if (it.name) {
+      const nk = _normName(it.name);
+      if (nk) {
+        if (idx.byNameNorm.has(nk)) idx.nameCollisions.add(nk);
+        else idx.byNameNorm.set(nk, it);
+      }
+    }
     if (it.id) idx.byId.set(it.id, it);
   }
   return idx;
@@ -95,7 +102,8 @@ function _findMatchingItem(idx, liveListingIds, { listingId, sku, itemId, name }
   const skuNorm = _normSku(sku || itemId);
   if (skuNorm && idx.bySkuNorm.has(skuNorm)) return idx.bySkuNorm.get(skuNorm);
   const nameNorm = _normName(name);
-  if (nameNorm && idx.byNameNorm.has(nameNorm)) {
+  // Name-only match is risky — skip if multiple items share this name (ambiguous)
+  if (nameNorm && idx.byNameNorm.has(nameNorm) && !idx.nameCollisions.has(nameNorm)) {
     const candidate = idx.byNameNorm.get(nameNorm);
     const attached = candidate.ebayListingId && liveListingIds.has(String(candidate.ebayListingId));
     if (!attached) return candidate;
@@ -108,7 +116,13 @@ function _indexUpsert(idx, row) {
   if (row.sku) { idx.bySku.set(row.sku, row); idx.bySkuNorm.set(_normSku(row.sku), row); }
   if (row.ebayItemId) { idx.byItemId.set(row.ebayItemId, row); idx.bySkuNorm.set(_normSku(row.ebayItemId), row); }
   if (row.ebayListingId) idx.byListing.set(String(row.ebayListingId), row);
-  if (row.name) idx.byNameNorm.set(_normName(row.name), row);
+  if (row.name) {
+    const nk = _normName(row.name);
+    if (nk) {
+      if (idx.byNameNorm.has(nk) && idx.byNameNorm.get(nk) !== row) idx.nameCollisions.add(nk);
+      else idx.byNameNorm.set(nk, row);
+    }
+  }
   if (row.id) idx.byId.set(row.id, row);
 }
 
@@ -660,7 +674,7 @@ export async function pullEBayListings({ silent = false } = {}) {
                   // Auction details: store BIN and start bid
                   if (isAuction) {
                     if (binPrice > 0 && local.ebayBuyItNowPrice !== binPrice) { local.ebayBuyItNowPrice = binPrice; changed = true; }
-                    if (bidPrice > 0 && local.ebayStartBid !== bidPrice) { local.ebayStartBid = bidPrice; changed = true; }
+                    if (bidPrice > 0 && local.ebayAuctionStart !== bidPrice) { local.ebayAuctionStart = bidPrice; changed = true; }
                   }
                   if (buyOpts.includes('BEST_OFFER') && !local.ebayBestOffer) {
                     local.ebayBestOffer = true; changed = true;
@@ -801,8 +815,8 @@ export async function pullEBayListings({ silent = false } = {}) {
             if (browsePrice > 0 && item.ebayBuyItNowPrice !== browsePrice) {
               item.ebayBuyItNowPrice = browsePrice; changed = true;
             }
-            if (browseBid > 0 && item.ebayStartBid !== browseBid) {
-              item.ebayStartBid = browseBid; changed = true;
+            if (browseBid > 0 && item.ebayAuctionStart !== browseBid) {
+              item.ebayAuctionStart = browseBid; changed = true;
             }
           }
           if (buyOpts.includes('BEST_OFFER') && !item.ebayBestOffer) {
@@ -1291,6 +1305,23 @@ async function _syncEBayOrders(lookbackMs) {
         const buyerState = shipTo?.contactAddress?.stateOrProvince || null;
         const buyerZip = shipTo?.contactAddress?.postalCode || null;
 
+        // Dedup: if user manually recorded this sale before sync caught it,
+        // link it to the eBay order instead of creating a duplicate
+        const orderDate = order.creationDate ? new Date(order.creationDate).getTime() : 0;
+        const manualCollision = sales.find(s =>
+          !s.ebayOrderId && s.itemId === local.id && s.platform === 'eBay' &&
+          Math.abs(new Date(s.date).getTime() - orderDate) < 86400000 // same day
+        );
+        if (manualCollision) {
+          manualCollision.ebayOrderId = order.orderId;
+          if (!manualCollision.tracking && orderTracking) {
+            manualCollision.tracking = orderTracking;
+            manualCollision.trackingCarrier = orderCarrier;
+          }
+          markDirty('sales', manualCollision.id);
+          continue;
+        }
+
         // Create actual sale record (matching recSale() structure)
         // addlFeeBasis = eBay's "Fees based on" amount (order total incl. tax+ship)
         // so user can enter addlFeePct (e.g. 6% below-standard) on the correct basis
@@ -1304,6 +1335,7 @@ async function _syncEBayOrders(lookbackMs) {
           addlFeeBasis: feeBasis > 0 ? Math.round(feeBasis * 100) / 100 : undefined,
           ship: 0,
           date: order.creationDate || new Date().toISOString(),
+          originalDate: order.creationDate || null,
           tracking: orderTracking,
           trackingCarrier: orderCarrier,
           ebayOrderId: order.orderId || null,
@@ -1787,7 +1819,7 @@ export async function importEBayItem(input) {
     };
     if (isAuction) {
       if (browsePrice > 0) newItem.ebayBuyItNowPrice = browsePrice;
-      if (browseBid > 0) newItem.ebayStartBid = browseBid;
+      if (browseBid > 0) newItem.ebayAuctionStart = browseBid;
     }
 
     inv.push(newItem);

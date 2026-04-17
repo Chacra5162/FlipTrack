@@ -236,7 +236,21 @@ export function openAddModal(){
   refreshAutocompleteLists().catch(() => {});
 }
 
-export function closeAdd(){
+/** Check if any form field has user input that would be lost on close */
+function _hasUnsavedAddInput() {
+  const fields = ['f_name','f_sku','f_upc','f_cost','f_price','f_notes','f_source','f_brand','f_color','f_size','f_ebay_desc'];
+  for (const id of fields) {
+    const el = document.getElementById(id);
+    if (el && el.value && el.value.trim().length > 0) return true;
+  }
+  if (getPendingAddImages && getPendingAddImages().length > 0) return true;
+  return false;
+}
+
+export function closeAdd(force = false){
+  if (!force && _hasUnsavedAddInput()) {
+    if (!window.confirm('You have unsaved changes. Close anyway?')) return;
+  }
   releaseFocus();
   const trigger = document.getElementById('headerAddBtn') || document.querySelector('[onclick*="openAdd"]');
   if (trigger) trigger.focus();
@@ -518,12 +532,12 @@ export async function addItem(){
     // Capture count BEFORE clearing the array so the toast shows the real number
     const variantCount = _variantLabels.length;
     _variantLabels = [];
-    save(); closeAdd(); refresh(); _sfx.create();
+    save(); closeAdd(true); refresh(); _sfx.create();
     toast(`Parent + ${variantCount} variant${variantCount === 1 ? '' : 's'} created`);
   } else {
     inv.push(baseItem);
     markDirty('inv', newId);
-    save(); closeAdd(); refresh(); _sfx.create(); toast('Item added ✓');
+    save(); closeAdd(true); refresh(); _sfx.create(); toast('Item added ✓');
   }
   // Persist source & brand for future autocomplete
   const addedItem = getInvItem(newId);

@@ -88,8 +88,8 @@ export function importExpenseCSV(file) {
         expenses.push({
           id: uid(),
           date: dateIdx >= 0 ? (cells[dateIdx] || localDate()) : localDate(),
-          category: catIdx >= 0 ? (cells[catIdx] || 'Other') : 'Other',
-          description: descIdx >= 0 ? (cells[descIdx] || '') : '',
+          category: catIdx >= 0 ? _sanitizeImport(cells[catIdx] || 'Other') : 'Other',
+          description: descIdx >= 0 ? _sanitizeImport(cells[descIdx] || '') : '',
           amount: amt,
         });
         markDirty('expenses', expenses[expenses.length - 1].id);

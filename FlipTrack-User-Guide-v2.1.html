@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FlipTrack User Guide — v2.1</title>
+<title>FlipTrack User Guide — v2.1.1</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
@@ -446,7 +446,7 @@
 <div class="hero">
   <h1><span>Flip</span>Track User Guide</h1>
   <p class="subtitle">The all-in-one reseller dashboard for tracking inventory, sales, profits, and cross-platform listings.</p>
-  <div class="version">Version 2.1 — April 2026</div>
+  <div class="version">Version 2.1.1 — April 2026</div>
 </div>
 
 <!-- ══════════════════════════════════════════════ TOC ════ -->
@@ -2597,8 +2597,79 @@
 <section id="whats-new" style="padding-top:48px">
   <div class="section-header">
     <div class="section-icon" style="background:rgba(247,129,102,0.12);color:var(--accent2)">🆕</div>
-    <h2>What's New in Version 2.1</h2>
+    <h2>What's New in Version 2.1.1</h2>
   </div>
+
+  <h3>Ship-Ready Audit Fixes (v2.1.1)</h3>
+  <p>Comprehensive audit of eBay sync, financial calculations, data integrity, security, and UX. 17 bugs fixed across the stack.</p>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <h4>💰 Profit Calcs Unified</h4>
+      <p>All 10 profit calculation views (reports, dashboard, ROI, heatmap, CSV, period compare, etc.) now include the Addl Fee % deduction. Previously these understated fees for users with store performance surcharges.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🔒 Sync Race Protection</h4>
+      <p>When you're editing an item and a cloud sync arrives, your unsaved changes are now preserved. Previously, realtime updates could silently overwrite your work.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🧹 Clean Account Switching</h4>
+      <p>Sign-out now fully clears all local data (inventory, sales, expenses, trash, undo stack, eBay flags) so switching accounts on shared devices is clean. No more User A's items leaking to User B.</p>
+    </div>
+    <div class="feature-card">
+      <h4>📸 Image Migration Sync</h4>
+      <p>Base64 → Cloud Storage image migration now properly triggers a cloud sync push. Converted image URLs no longer get lost on device switches.</p>
+    </div>
+    <div class="feature-card">
+      <h4>📦 Bundle Sale Fees</h4>
+      <p>Bundle sales now split Addl Fee % and Addl Fee Basis proportionally across child items. Per-item profits are accurate for bundles with store surcharges.</p>
+    </div>
+    <div class="feature-card">
+      <h4>📊 CSV Export Complete</h4>
+      <p>Sales CSV export now includes Addl Fee %, Addl Fee Basis, and Addl Fee $ columns so you can back up and audit all fee data.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🔁 Smart Sale Dedup</h4>
+      <p>If you manually record a sale right before eBay auto-syncs the same order, FlipTrack now links them instead of creating a duplicate. Matches by item + platform + same-day date.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🗑 Cascade Delete</h4>
+      <p>Deleting a parent variant now also deletes all its children in one operation. No more orphaned variants with dangling parent references.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🔨 Auction Fields Fixed</h4>
+      <p>The drawer now correctly displays auction Reserve Price and Start Bid (was showing "—" due to field name mismatch between sync and display code).</p>
+    </div>
+    <div class="feature-card">
+      <h4>🛡 CSV Sanitize</h4>
+      <p>Expense CSV imports now sanitize formula-injection prefixes (=, +, -, @) on category and description fields, matching the inventory import behavior.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🔐 PII Hardening</h4>
+      <p>Buyer shipping addresses are no longer written to localStorage (they remain in the authenticated IndexedDB store only). Reduces exposure on shared devices.</p>
+    </div>
+    <div class="feature-card">
+      <h4>⏪ Add-Item Safety</h4>
+      <p>Closing the Add Item modal with unsaved data now shows a confirmation prompt instead of silently losing your input. Escape key also properly closes the modal.</p>
+    </div>
+    <div class="feature-card">
+      <h4>⏸ Reconcile Cancel</h4>
+      <p>eBay Reconciliation now shows a spinner with progress (e.g. "Fetching… 3/11") and a Cancel button, so long-running scans don't feel like the app is frozen.</p>
+    </div>
+    <div class="feature-card">
+      <h4>📅 Original Sale Date</h4>
+      <p>Auto-synced eBay sales remember their original order date via a tooltip on the Date field, even if you edit the date later. Preserves the audit trail.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🔢 Variant Qty Display</h4>
+      <p>Parent items in the inventory table now show "×N" next to the aggregate qty, so you can see at a glance that it's a sum across variants. Stepper is disabled — edit variants individually.</p>
+    </div>
+    <div class="feature-card">
+      <h4>🎯 Smarter Item Matching</h4>
+      <p>eBay sync's fuzzy-name matcher now refuses to match when multiple local items share the same normalized name. Eliminates silent duplicates when you have similarly-named inventory.</p>
+    </div>
+  </div>
+
+  <h3>Version 2.1 Feature Summary</h3>
 
   <h3>eBay Sync & Sales Accuracy Overhaul (v2.0.3)</h3>
   <p>Major improvements to eBay order sync, sale calculations, notifications, and inventory management.</p>

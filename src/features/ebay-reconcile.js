@@ -13,6 +13,7 @@ import { fmt, escHtml, escAttr } from '../utils/format.js';
 const BROWSE_API = '/buy/browse/v1';
 
 let _isReconciling = false;
+let _reconcileCancelled = false;
 
 /**
  * Fetch all active eBay listings for the seller via Browse API.
@@ -26,7 +27,12 @@ async function _fetchEBayListings() {
   const queries = ['a', 'e', 'the', 'new', 'lot', 'vintage', 'set', 'bag', 'or', 'of', 'in'];
   const listings = new Map();
 
-  for (const q of queries) {
+  for (let qi = 0; qi < queries.length; qi++) {
+    if (_reconcileCancelled) throw new Error('Reconciliation cancelled');
+    const q = queries[qi];
+    // Update progress UI if modal is open
+    const progressEl = document.getElementById('reconcileProgress');
+    if (progressEl) progressEl.textContent = `Fetching… (${qi + 1}/${queries.length})`;
     try {
       const resp = await ebayAPI('GET',
         `${BROWSE_API}/item_summary/search?q=${encodeURIComponent(q)}&filter=${sellerFilter}&limit=200`
@@ -47,6 +53,7 @@ async function _fetchEBayListings() {
         });
       }
     } catch (e) {
+      if (e.message?.includes('cancelled')) throw e;
       console.warn(`[Reconcile] query "${q}" failed:`, e.message);
     }
   }
@@ -146,24 +153,38 @@ export async function openReconcileModal() {
       </div>
       <div id="reconcileBody" style="padding:18px;overflow-y:auto;flex:1">
         <div style="text-align:center;padding:40px">
-          <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Fetching live eBay listings…</div>
-          <div style="font-size:11px;color:var(--muted)">This may take 10-20 seconds</div>
+          <div class="spinner" style="margin:0 auto 18px;width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:ft-spin 0.8s linear infinite"></div>
+          <div id="reconcileProgress" style="font-size:13px;color:var(--muted);margin-bottom:8px">Fetching live eBay listings…</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:16px">This may take 10-20 seconds</div>
+          <button class="btn-secondary" onclick="cancelReconcile()" style="font-size:11px">Cancel</button>
         </div>
+        <style>@keyframes ft-spin { to { transform: rotate(360deg); } }</style>
       </div>
     </div>`;
   modal.style.display = '';
   modal.classList.add('on');
   trapFocus(modal);
+  _reconcileCancelled = false;
 
   try {
     const r = await buildReconciliation();
     _renderReconcileResults(r);
   } catch (e) {
+    if (e.message?.includes('cancelled')) {
+      closeReconcileModal();
+      toast('Reconciliation cancelled');
+      return;
+    }
     document.getElementById('reconcileBody').innerHTML = `
       <div style="padding:20px;color:var(--danger)">
         <strong>Error:</strong> ${escHtml(e.message)}
       </div>`;
   }
+}
+
+/** User hit cancel during reconciliation — signals the fetch loop to stop */
+export function cancelReconcile() {
+  _reconcileCancelled = true;
 }
 
 export function closeReconcileModal() {
