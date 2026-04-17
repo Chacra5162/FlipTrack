@@ -45,6 +45,94 @@ function _isValidSku(sku) {
   return sku && sku.length <= 50 && /^[a-zA-Z0-9._\-*]+$/.test(sku) && !sku.startsWith('ebay-');
 }
 
+// ── INVENTORY INDEX & FUZZY MATCHING (shared across all sync paths) ───────
+
+/** Normalize SKU — strip non-alphanumerics so dash-stripped eBay SKUs match */
+function _normSku(s) {
+  return (s || '').toString().replace(/[^A-Za-z0-9]/g, '').toLowerCase();
+}
+
+/** Normalize name — lowercase, collapse whitespace, strip common condition suffixes */
+function _normName(n) {
+  return (n || '')
+    .toString()
+    .toLowerCase()
+    .replace(/[\u2013\u2014]/g, '-')
+    .replace(/\s*[-–—]\s*(sealed|mint|nwt|nib|new in box|new with tags|used|pre-?owned)\b.*$/i, '')
+    .replace(/\s*\((sealed|mint|nwt|nib|new|used|pre-?owned)[^)]*\)\s*$/i, '')
+    .replace(/[^\w\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Build cross-reference maps indexing by SKU, normalized-SKU, ebayItemId, listingId, id, name */
+function _buildInventoryIndex(items) {
+  const idx = {
+    bySku: new Map(),
+    bySkuNorm: new Map(),
+    byItemId: new Map(),
+    byListing: new Map(),
+    byNameNorm: new Map(),
+    byId: new Map(),
+  };
+  for (const it of items) {
+    if (it.sku) { idx.bySku.set(it.sku, it); idx.bySkuNorm.set(_normSku(it.sku), it); }
+    if (it.ebayItemId) { idx.byItemId.set(it.ebayItemId, it); idx.bySkuNorm.set(_normSku(it.ebayItemId), it); }
+    if (it.ebayListingId) idx.byListing.set(String(it.ebayListingId), it);
+    if (it.name) idx.byNameNorm.set(_normName(it.name), it);
+    if (it.id) idx.byId.set(it.id, it);
+  }
+  return idx;
+}
+
+/** Find the FlipTrack row for an incoming eBay listing; tolerates small divergences */
+function _findMatchingItem(idx, liveListingIds, { listingId, sku, itemId, name }) {
+  const lid = listingId ? String(listingId) : null;
+  if (lid && idx.byListing.has(lid)) return idx.byListing.get(lid);
+  if (sku && idx.bySku.has(sku)) return idx.bySku.get(sku);
+  if (sku && idx.byItemId.has(sku)) return idx.byItemId.get(sku);
+  if (itemId && idx.byItemId.has(itemId)) return idx.byItemId.get(itemId);
+  const skuNorm = _normSku(sku || itemId);
+  if (skuNorm && idx.bySkuNorm.has(skuNorm)) return idx.bySkuNorm.get(skuNorm);
+  const nameNorm = _normName(name);
+  if (nameNorm && idx.byNameNorm.has(nameNorm)) {
+    const candidate = idx.byNameNorm.get(nameNorm);
+    const attached = candidate.ebayListingId && liveListingIds.has(String(candidate.ebayListingId));
+    if (!attached) return candidate;
+  }
+  return null;
+}
+
+/** Register a newly-created row so subsequent scan paths within this sync run find it */
+function _indexUpsert(idx, row) {
+  if (row.sku) { idx.bySku.set(row.sku, row); idx.bySkuNorm.set(_normSku(row.sku), row); }
+  if (row.ebayItemId) { idx.byItemId.set(row.ebayItemId, row); idx.bySkuNorm.set(_normSku(row.ebayItemId), row); }
+  if (row.ebayListingId) idx.byListing.set(String(row.ebayListingId), row);
+  if (row.name) idx.byNameNorm.set(_normName(row.name), row);
+  if (row.id) idx.byId.set(row.id, row);
+}
+
+/** Detect existing duplicates in inventory (runs on startup) */
+export function detectInventoryDuplicates() {
+  const bySkuNorm = new Map();
+  const byListing = new Map();
+  const dupes = [];
+  for (const it of inv) {
+    if (it.sold || it.deleted) continue;
+    const skuKey = it.sku ? 'sku:' + _normSku(it.sku) : null;
+    const lidKey = it.ebayListingId ? 'lid:' + it.ebayListingId : null;
+    if (skuKey) {
+      if (bySkuNorm.has(skuKey)) dupes.push({ a: bySkuNorm.get(skuKey), b: it, key: skuKey });
+      else bySkuNorm.set(skuKey, it);
+    }
+    if (lidKey) {
+      if (byListing.has(lidKey)) dupes.push({ a: byListing.get(lidKey), b: it, key: lidKey });
+      else byListing.set(lidKey, it);
+    }
+  }
+  return dupes;
+}
+
 // ── INITIALIZATION ─────────────────────────────────────────────────────────
 
 export async function initEBaySync() {
@@ -153,15 +241,12 @@ export async function pullEBayListings({ silent = false } = {}) {
     let matched = 0, imported = 0, updated = 0;
     const seenListingIds = new Set(); // Track eBay listing IDs for reconciliation
 
-    // Build O(1) lookup maps
-    const bySku = new Map();
-    const byEbayId = new Map();
-    const byListingId = new Map();
-    for (const item of inv) {
-      if (item.sku) bySku.set(item.sku, item);
-      if (item.ebayItemId) byEbayId.set(item.ebayItemId, item);
-      if (item.ebayListingId) byListingId.set(item.ebayListingId, item);
-    }
+    // Build shared inventory index (normalized SKU, fuzzy name, listing ID, etc.)
+    const idx = _buildInventoryIndex(inv);
+    // Legacy aliases so existing code paths keep working; they reference the same Maps
+    const bySku = idx.bySku;
+    const byEbayId = idx.byItemId;
+    const byListingId = idx.byListing;
 
     // ── PRIMARY: Trading API GetMyeBaySelling ──────────────────────────
     // This returns ALL active listings regardless of how they were created
@@ -210,16 +295,10 @@ export async function pullEBayListings({ silent = false } = {}) {
 
           if (listingId) seenListingIds.add(listingId);
 
-          // Match to local item by listingId, SKU, ebayItemId, or fuzzy name
-          const titleLower = title.toLowerCase().trim();
-          let local = byListingId.get(listingId)
-            || (sku && (bySku.get(sku) || byEbayId.get(sku)))
-            || (titleLower && inv.find(i =>
-              i.platforms?.includes('eBay') &&
-              (!i.ebayListingId || !seenListingIds.has(i.ebayListingId)) &&
-              i.name && i.name.toLowerCase().trim() === titleLower
-            ))
-            || null;
+          // Match via shared index (exact ID → SKU → normalized SKU → fuzzy name)
+          let local = _findMatchingItem(idx, seenListingIds, {
+            listingId, sku, itemId: sku, name: title
+          });
 
           if (local) {
             matched++;
@@ -288,10 +367,8 @@ export async function pullEBayListings({ silent = false } = {}) {
             };
             inv.push(newItem);
             markDirty('inv', newId);
-            // Update lookup maps for subsequent matches
-            if (sku) bySku.set(sku, newItem);
-            byEbayId.set(newItem.ebayItemId, newItem);
-            byListingId.set(listingId, newItem);
+            // Register in shared index so subsequent paths find this row
+            _indexUpsert(idx, newItem);
             imported++;
             logItemEvent(newId, 'ebay-import', `Imported from eBay: "${title}" (#${listingId})`);
           }
@@ -358,10 +435,10 @@ export async function pullEBayListings({ silent = false } = {}) {
             );
             if (lid) seenListingIds.add(lid);
 
-            // Match to existing local item
-            let local = (lid && byListingId.get(lid))
-              || (sku && (bySku.get(sku) || byEbayId.get(sku)))
-              || null;
+            // Match via shared index (tolerates dash-stripped SKUs, fuzzy name)
+            let local = _findMatchingItem(idx, seenListingIds, {
+              listingId: lid, sku, itemId: sku, name: null
+            });
 
             // Any non-ended offer status means the item is live on eBay
             const isLive = status && status !== 'ENDED' && status !== 'WITHDRAWN';
@@ -462,8 +539,7 @@ export async function pullEBayListings({ silent = false } = {}) {
               };
               inv.push(newItem);
               markDirty('inv', newId);
-              if (sku) { bySku.set(sku, newItem); byEbayId.set(sku, newItem); }
-              if (lid) byListingId.set(lid, newItem);
+              _indexUpsert(idx, newItem);
               imported++;
               logItemEvent(newId, 'ebay-import', `Imported from eBay offer: "${title}"`);
             }
@@ -558,17 +634,10 @@ export async function pullEBayListings({ silent = false } = {}) {
                 const price = binPrice || bidPrice;
                 const imageUrl = summary.image?.imageUrl || '';
 
-                // Match by listingId first, then by ebayItemId, then fuzzy name match
-                // Name match also catches relisted items whose old listingId is stale
-                const titleLower = title.toLowerCase().trim();
-                let local = byListingId.get(legacyId)
-                  || byEbayId.get(`ebay-${legacyId}`)
-                  || (titleLower && inv.find(i =>
-                    i.platforms?.includes('eBay') &&
-                    (!i.ebayListingId || !seenListingIds.has(i.ebayListingId)) &&
-                    i.name && i.name.toLowerCase().trim() === titleLower
-                  ))
-                  || null;
+                // Match via shared index (normalized SKU, fuzzy name, listing ID)
+                let local = _findMatchingItem(idx, seenListingIds, {
+                  listingId: legacyId, sku: null, itemId: `ebay-${legacyId}`, name: title
+                });
                 if (local) {
                   matched++;
                   let changed = false;
@@ -619,7 +688,7 @@ export async function pullEBayListings({ silent = false } = {}) {
                   };
                   inv.push(newItem);
                   markDirty('inv', newId);
-                  byListingId.set(legacyId, newItem);
+                  _indexUpsert(idx, newItem);
                   imported++;
                   logItemEvent(newId, 'ebay-import', `Imported from eBay: "${title}" (#${legacyId})`);
                 }
@@ -660,7 +729,7 @@ export async function pullEBayListings({ silent = false } = {}) {
 
                 let changed = false;
                 item.ebayListingId = legacyId; changed = true;
-                byListingId.set(legacyId, item);
+                _indexUpsert(idx, item);
                 if (item.platformStatus?.eBay !== 'active') {
                   markPlatformStatus(item.id, 'eBay', 'active'); changed = true;
                 }
@@ -871,8 +940,7 @@ export async function pullEBayListings({ silent = false } = {}) {
             };
             inv.push(newItem);
             markDirty('inv', newId);
-            bySku.set(sku, newItem);
-            byEbayId.set(sku, newItem);
+            _indexUpsert(idx, newItem);
             imported++;
             logItemEvent(newId, 'ebay-import', `Imported from eBay inventory (SKU: ${sku})`);
           }

@@ -490,7 +490,7 @@ export async function addItem(){
   const ebayAutoAccept = parseFloat(document.getElementById('f_autoAccept')?.value) || 0;
   const ebayAutoDecline = parseFloat(document.getElementById('f_autoDecline')?.value) || 0;
 
-  const baseItem = {id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:subcatVal,subtype:subtypeVal,platform,platforms:selPlats,cost:isNaN(cost)?0:cost,price,qty,bulk:isBulk,fees:isNaN(fees)?0:fees,ship:isNaN(ship)?0:ship,lowAlert,lowAlertEnabled:alertEnabled,notes:_notes,source:normalizeSource(document.getElementById('f_source').value),condition:document.getElementById('f_condition').value.trim(),smoke:smokeVal,coverType:isBookCat(cat)?coverVal:null,brand,color,size,sizeType,department,material,mpn,model,style,pattern,ebayDesc,ebayListingFormat,ebayBestOffer,ebayAuctionStart,ebayAuctionReserve,ebayAuctionDuration,ebayAutoAccept,ebayAutoDecline,images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),...(isBookCat(cat) ? getBookFields('f') : {}),added:new Date().toISOString()};
+  const baseItem = {id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:subcatVal,subtype:subtypeVal,platform,platforms:selPlats,cost:isNaN(cost)?0:cost,price,qty,bulk:isBulk,fees:isNaN(fees)?0:fees,ship:isNaN(ship)?0:ship,lowAlert,lowAlertEnabled:alertEnabled,notes:_notes,source:normalizeSource(document.getElementById('f_source').value),condition:document.getElementById('f_condition').value.trim(),smoke:smokeVal,coverType:isBookCat(cat)?coverVal:null,brand,color,size,sizeType,department,material,mpn,model,style,pattern,ebayDesc,ebayListingFormat,ebayBestOffer,ebayAuctionStart,ebayAuctionReserve,ebayAuctionDuration,ebayAutoAccept,ebayAutoDecline,images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),...(isBookCat(cat) ? getBookFields('f') : {}),added:new Date().toISOString(),_notifiedOfferIds:[]};
 
   if (_hasVariants && _variantLabels.length > 0) {
     // Create parent (qty=0, holds shared data) + N children
@@ -508,15 +508,18 @@ export async function addItem(){
         parentId: newId,
         variantLabel: label,
         isParent: false,
-        qty: qty || 1,
+        // Only fall back to 1 if qty is non-finite or negative — preserve legitimate 0
+        qty: (Number.isFinite(qty) && qty >= 0) ? qty : 1,
         images: [], image: null,
       });
       markDirty('inv', childId);
     }
     _hasVariants = false;
+    // Capture count BEFORE clearing the array so the toast shows the real number
+    const variantCount = _variantLabels.length;
     _variantLabels = [];
     save(); closeAdd(); refresh(); _sfx.create();
-    toast(`Parent + ${_variantLabels.length || 'variants'} created`);
+    toast(`Parent + ${variantCount} variant${variantCount === 1 ? '' : 's'} created`);
   } else {
     inv.push(baseItem);
     markDirty('inv', newId);

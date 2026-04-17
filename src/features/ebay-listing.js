@@ -397,7 +397,11 @@ export async function pushItemToEBay(itemId) {
     await _putInventoryWithRetry(sku, payload, item);
 
     // Store eBay reference on local item
+    // IMPORTANT: Do NOT overwrite item.sku — it's the user-facing identifier and
+    // should keep its original formatting (dashes, etc). Only ebayItemId gets stripped.
     item.ebayItemId = sku;
+    // Backfill item.sku only if the user never set one, using the stripped value
+    if (!item.sku) item.sku = sku;
     if (!item.platforms) item.platforms = [];
     if (!item.platforms.includes('eBay')) item.platforms.push('eBay');
     // Remove "Unlisted" tag now that item is on a real platform
@@ -1083,12 +1087,38 @@ export async function publishEBayListing(itemId, options = {}, _isRetry = false)
       await ebayAPI('PUT', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`, existing);
       publishResp = await ebayAPI('POST', `${INVENTORY_API}/offer/${offerId}/publish`);
     }
-    const listingId = publishResp.listingId;
+    // eBay's publish response shape varies — sometimes listingId is nested,
+    // sometimes missing entirely (especially for auction or update paths).
+    // Fall back to re-fetching the offer to recover the listing ID.
+    let listingId = publishResp?.listingId
+      || publishResp?.listings?.[0]?.listingId
+      || null;
 
-    // Update local item
+    if (!listingId) {
+      try {
+        const offerBack = await ebayAPI('GET', `${INVENTORY_API}/offer/${offerId}`);
+        listingId = offerBack?.listing?.listingId || offerBack?.listingId || null;
+      } catch (fetchErr) {
+        console.warn('[eBay] Publish returned no listingId and offer re-fetch failed:', fetchErr.message);
+      }
+    }
+
+    if (!listingId) {
+      console.error('[eBay] Publish succeeded but no listingId resolved. Response:', JSON.stringify(publishResp));
+      toast('Listed on eBay, but FlipTrack could not capture the listing ID. Run a sync to reconcile.', true);
+      // Still mark as active so it isn't orphaned — sync will backfill the ID
+      item.platformStatus['eBay'] = 'active';
+      setListingDate(itemId, 'eBay', localDate());
+      markDirty('inv', itemId);
+      save();
+      logItemEvent(itemId, 'listed', 'Published on eBay (no listing ID captured — will reconcile on next sync)');
+      return { success: true, listingId: null, warning: 'no-listing-id' };
+    }
+
+    // Update local item with the listing ID
     item.platformStatus['eBay'] = 'active';
     item.ebayListingId = listingId;
-    item.url = listingId ? `https://www.ebay.com/itm/${listingId}` : item.url;
+    item.url = `https://www.ebay.com/itm/${listingId}`;
     setListingDate(itemId, 'eBay', localDate());
     markDirty('inv', itemId);
     save();

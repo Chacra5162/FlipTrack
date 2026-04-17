@@ -217,7 +217,7 @@ function _executeImport(colMap, lines, parseRow) {
   const rows = lines.length - 1;
   if (rows > 10000) { toast('Too many rows (max 10,000)', true); return; }
 
-  let imported = 0, skipped = 0;
+  let imported = 0, updated = 0, skipped = 0;
   for (let r = 1; r < lines.length; r++) {
     const row = parseRow(lines[r]);
     const name = _sanitizeImport(row[colMap.name]);
@@ -263,15 +263,40 @@ function _executeImport(colMap, lines, parseRow) {
     if (colMap.pubYear !== undefined) item.pubYear = _parseInt(row[colMap.pubYear], null);
     if (colMap.signed !== undefined) item.signed = ['yes','true','1','y'].includes((row[colMap.signed]||'').trim().toLowerCase());
     if (colMap.salesRank !== undefined) item.salesRank = _parseInt(row[colMap.salesRank], null);
-    inv.push(item);
-    markDirty('inv', item.id);
-    imported++;
+
+    // ── Dedup: check for an existing row by SKU or UPC before pushing ──
+    const existingBySku = item.sku && inv.find(x => x.sku && x.sku.toLowerCase() === item.sku.toLowerCase());
+    const existingByUpc = item.upc && inv.find(x => x.upc && x.upc === item.upc);
+    const existing = existingBySku || existingByUpc;
+
+    if (existing) {
+      // Merge: update CSV-provided fields, preserve app-controlled fields.
+      const SKIP = new Set(['id', 'added', 'dateAdded', 'images', 'image',
+                            'platformStatus', 'platformListingDates', 'platformListingExpiry',
+                            'ebayItemId', 'ebayListingId', 'ebayListingFormat',
+                            'etsyListingId']);
+      for (const [k, v] of Object.entries(item)) {
+        if (SKIP.has(k)) continue;
+        if (v === '' || v === null || v === undefined) continue;
+        existing[k] = v;
+      }
+      markDirty('inv', existing.id);
+      updated++;
+    } else {
+      inv.push(item);
+      markDirty('inv', item.id);
+      imported++;
+    }
   }
 
-  if (!imported) { toast('No valid rows found', true); return; }
+  if (!imported && !updated) { toast('No valid rows found', true); return; }
 
   save(); refresh(); _sfx.create();
-  toast(imported + ' item' + (imported !== 1 ? 's' : '') + ' imported ✓' + (skipped ? ' (' + skipped + ' skipped)' : ''));
+  const parts = [];
+  if (imported > 0) parts.push(`${imported} imported`);
+  if (updated > 0) parts.push(`${updated} updated`);
+  if (skipped > 0) parts.push(`${skipped} skipped`);
+  toast(parts.join(' · ') + ' ✓');
   autoSync();
 }
 

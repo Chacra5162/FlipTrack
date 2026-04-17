@@ -470,8 +470,18 @@ export async function saveDrawer(){
   item.fees    =isNaN(fees)?0:fees;
   item.ship    =isNaN(ship)?0:ship;
   const qtyEl = document.getElementById('d_qty');
-  const qtyVal = parseInt(qtyEl?.value, 10);
-  item.qty     =isNaN(qtyVal) || qtyVal < 0 ? (item.qty ?? 1) : qtyVal;
+  const qtyRaw = (qtyEl?.value ?? '').trim();
+  if (qtyRaw === '') {
+    // Empty field — keep previous value silently
+    item.qty = item.qty ?? 1;
+  } else {
+    const qtyVal = parseInt(qtyRaw, 10);
+    if (isNaN(qtyVal) || qtyVal < 0) {
+      validateNumericInput(qtyEl, { fieldName: 'Quantity' });
+      return;
+    }
+    item.qty = qtyVal;
+  }
   item.lowAlertEnabled = !!document.getElementById('d_alert_on')?.checked;
   item.lowAlert = item.lowAlertEnabled && !isNaN(alertVal) ? alertVal : (item.lowAlert || 2);
   item.bulk    =document.getElementById('d_bulk')?.checked||false;

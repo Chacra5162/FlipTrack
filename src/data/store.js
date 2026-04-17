@@ -511,6 +511,18 @@ export function restoreItem(trashIdxOrId) {
   const item = _trash[idx];
   if (!item) return;
   const { deletedAt, ...restored } = item;
+
+  // Dedup: check if a replacement row was created while this one sat in trash.
+  const collision = inv.find(x =>
+    x.id === restored.id ||
+    (restored.sku && x.sku === restored.sku) ||
+    (restored.ebayListingId && x.ebayListingId === restored.ebayListingId)
+  );
+  if (collision) {
+    const confirmMsg = `Similar item already exists: "${collision.name}". Restore anyway (may create duplicate) or cancel?`;
+    if (!window.confirm(confirmMsg)) return;
+  }
+
   if (restored.ebayListingId || restored.ebayItemId) _ebayUndismissCallback(restored);
   inv.push(restored);
   markDirty('inv', restored.id);
