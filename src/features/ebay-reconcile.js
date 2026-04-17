@@ -147,7 +147,7 @@ export async function openReconcileModal() {
     </div>`;
   modal.style.display = '';
   modal.classList.add('on');
-  trapFocus(modal);
+  trapFocus('#reconcileOv .modal');
   _reconcileCancelled = false;
 
   try {
