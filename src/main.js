@@ -176,7 +176,7 @@ import {
   wnCopyRecap, wnSetCompareA, wnSetCompareB, wnMarkShipped, wnBulkMarkShipped
 } from './views/whatnot-dashboard.js';
 import { initEBayAuth, handleEBayCallback, isEBayConnected } from './features/ebay-auth.js';
-import { initEBaySync, startEBaySyncInterval, stopEBaySyncInterval, pullEBayListings, resyncEBayOrders, backfillEBayData, dismissEBayItem, undismissEBayItem, importEBayItem, mergeInventoryDuplicates } from './features/ebay-sync.js';
+import { initEBaySync, startEBaySyncInterval, stopEBaySyncInterval, pullEBayListings, resyncEBayOrders, backfillEBayData, dismissEBayItem, undismissEBayItem, importEBayItem, mergeInventoryDuplicates, resetEBayApiFlags } from './features/ebay-sync.js';
 import { openReconcileModal, closeReconcileModal, reconcileMarkEnded, reconcileMarkActive, reconcileImport, reconcileFixLinkage, cancelReconcile, repairEBayLinkage, reconcileAcceptEbay } from './features/ebay-reconcile.js';
 import { initEtsyAuth, handleEtsyCallback, isEtsyConnected } from './features/etsy-auth.js';
 import { initEtsySync, startEtsySyncInterval, stopEtsySyncInterval, syncEtsyExpenses } from './features/etsy-sync.js';
@@ -458,7 +458,7 @@ Object.assign(window, {
     await syncNow();
     if (isEBayConnected()) pullEBayListings({ silent: true }).catch(e => console.warn('eBay sync on manual sync:', e.message));
   },
-  mobileSyncNow, resyncEBayOrders, backfillEBayData,
+  mobileSyncNow, resyncEBayOrders, backfillEBayData, resetEBayApiFlags,
   openReconcileModal, closeReconcileModal, reconcileMarkEnded, reconcileMarkActive, reconcileImport, reconcileFixLinkage, cancelReconcile, repairEBayLinkage, reconcileAcceptEbay,
   importEBayItem: async (input) => {
     const result = await importEBayItem(input);

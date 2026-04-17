@@ -160,6 +160,17 @@ export function mergeInventoryDuplicates() {
 
 // ── INITIALIZATION ─────────────────────────────────────────────────────────
 
+/** Clear stored API-capability flags so the client retries blocked APIs.
+ * Use after deploying edge function updates that add support for previously-blocked paths. */
+export async function resetEBayApiFlags() {
+  _tradingApiBlocked = false;
+  _offerApiBlocked = false;
+  try {
+    await setMeta('ebay_trading_blocked', null);
+    await setMeta('ebay_offer_blocked', null);
+  } catch (_) {}
+}
+
 export async function initEBaySync() {
   _lastSyncTime = await getMeta('ebay_last_sync');
   try {
