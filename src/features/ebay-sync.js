@@ -491,6 +491,8 @@ export async function pullEBayListings({ silent = false } = {}) {
               if (!isLive && status === 'ENDED' && local.platformStatus.eBay === 'active') {
                 const listingFmt = isAuction ? 'AUCTION' : 'FIXED_PRICE';
                 const label = local.name || local.sku || 'Item';
+                if (isAuction && (local.qty || 0) === 0) local.qty = 1; // restore qty for unsold auctions
+                if (isAuction) local.ebayCurrentBid = 0;
                 markPlatformStatus(local.id, 'eBay', listingFmt === 'AUCTION' ? 'expired' : 'removed');
                 changed = true;
                 if (listingFmt === 'AUCTION') {
@@ -689,9 +691,13 @@ export async function pullEBayListings({ silent = false } = {}) {
                   // Auction details: store BIN and start bid
                   if (isAuction) {
                     if (binPrice > 0 && local.ebayBuyItNowPrice !== binPrice) { local.ebayBuyItNowPrice = binPrice; changed = true; }
-                    if (bidPrice > 0 && local.ebayAuctionStart !== bidPrice) { local.ebayAuctionStart = bidPrice; changed = true; }
+                    // Track current bid separately — NEVER overwrite original start price
+                    if (bidPrice > 0 && local.ebayCurrentBid !== bidPrice) { local.ebayCurrentBid = bidPrice; changed = true; }
+                    // Populate ebayAuctionStart only if it's empty (first sync)
+                    if (bidPrice > 0 && !local.ebayAuctionStart) { local.ebayAuctionStart = bidPrice; changed = true; }
                   }
-                  if (buyOpts.includes('BEST_OFFER') && !local.ebayBestOffer) {
+                  // BEST_OFFER only valid on fixed-price listings; ignore for auctions
+                  if (!isAuction && buyOpts.includes('BEST_OFFER') && !local.ebayBestOffer) {
                     local.ebayBestOffer = true; changed = true;
                   }
                   if (title && (!local.name || local.name === 'eBay Import')) { local.name = title; changed = true; }
@@ -832,11 +838,14 @@ export async function pullEBayListings({ silent = false } = {}) {
             if (browsePrice > 0 && item.ebayBuyItNowPrice !== browsePrice) {
               item.ebayBuyItNowPrice = browsePrice; changed = true;
             }
-            if (browseBid > 0 && item.ebayAuctionStart !== browseBid) {
+            if (browseBid > 0 && item.ebayCurrentBid !== browseBid) {
+              item.ebayCurrentBid = browseBid; changed = true;
+            }
+            if (browseBid > 0 && !item.ebayAuctionStart) {
               item.ebayAuctionStart = browseBid; changed = true;
             }
           }
-          if (buyOpts.includes('BEST_OFFER') && !item.ebayBestOffer) {
+          if (!isAuction && buyOpts.includes('BEST_OFFER') && !item.ebayBestOffer) {
             item.ebayBestOffer = true; changed = true;
           }
           // Title enrichment (only if generic)
@@ -887,6 +896,8 @@ export async function pullEBayListings({ silent = false } = {}) {
             const isAuction = item.ebayListingFormat === 'AUCTION';
             const prevStatus = item.platformStatus?.eBay;
             if (prevStatus === 'active') {
+              if (isAuction && (item.qty || 0) === 0) item.qty = 1; // restore qty for unsold auctions
+              if (isAuction) item.ebayCurrentBid = 0;
               markPlatformStatus(item.id, 'eBay', isAuction ? 'expired' : 'removed');
               markDirty('inv', item.id);
               const label = item.name || item.sku || 'Item';
@@ -1733,11 +1744,16 @@ async function _syncEBayAuctions() {
           `Auction ended — sold for $${soldPrice.toFixed(2)}`);
         updated++;
       } else if (listingStatus === 'Completed' || listingStatus === 'Ended') {
+        // Auction ended with no winner (no bids, reserve not met, or withdrawn).
+        // Restore inventory qty if it was zeroed out, so user can relist.
+        if ((item.qty || 0) === 0) item.qty = 1;
         markPlatformStatus(item.id, 'eBay', 'expired');
+        item.ebayCurrentBid = 0; // clear stale bid
         markDirty('inv', item.id);
         addNotification('info', 'Auction Ended',
-          `"${label}" auction ended without a sale`, item.id);
-        logItemEvent(item.id, 'auction-end', 'Auction ended without a sale');
+          `"${label}" auction ended without a sale — qty restored`, item.id);
+        sendNotification('Auction Ended', `"${label}" ended without selling`, `ft-auction-ended-${item.ebayListingId}`);
+        logItemEvent(item.id, 'auction-end', 'Auction ended without a sale — qty restored to 1');
         updated++;
       }
     } catch (e) {

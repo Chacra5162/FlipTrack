@@ -47,15 +47,31 @@ export function scanMarginAlerts() {
 
   for (const item of unsold) {
     const isAuction = item.ebayListingFormat === 'AUCTION';
-    // Skip auctions — final price is unknown, margin alerts don't apply
-    if (isAuction) continue;
-    const price = item.price || (isAuction ? (item.ebayAuctionStart || 0) : 0);
+    // For auctions, use start bid — warn if even the MINIMUM possible price is unprofitable.
+    // Skip other margin checks for auctions (final price unknown).
+    const price = isAuction ? (item.ebayAuctionStart || 0) : (item.price || 0);
     const cost = item.cost || 0;
     const fees = item.fees || 0;
     const ship = item.ship || 0;
     const profit = price - cost - fees - ship;
     const margin = price > 0 ? (profit / price) * 100 : 0;
     const days = _daysSince(item.added || item.dateAdded);
+
+    // Critical alert only: auction start bid is below cost (guaranteed loss if it sells at start)
+    if (isAuction) {
+      if (price > 0 && cost > 0 && profit < 0) {
+        alerts.push({
+          type: 'low-margin',
+          severity: 'critical',
+          itemId: item.id,
+          itemName: item.name || 'Unnamed',
+          message: `Auction start bid ${fmt(price)} is below cost+fees — guaranteed loss if it sells at start`,
+          value: margin,
+          profit,
+        });
+      }
+      continue; // Skip remaining checks (stale, low-profit, etc.) for auctions
+    }
 
     // Low margin alert
     if (price > 0 && cost > 0 && margin < _thresholds.minMarginPct) {
