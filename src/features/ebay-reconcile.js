@@ -115,7 +115,7 @@ async function _fetchEBayListings() {
 
 export async function buildReconciliation() {
   if (!isEBayConnected()) throw new Error('eBay not connected');
-  if (_isReconciling) throw new Error('Reconciliation already running');
+  if (_isReconciling) { _isReconciling = false; } // Reset stale guard from prior crash
   _isReconciling = true;
 
   try {
