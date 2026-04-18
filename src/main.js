@@ -176,7 +176,7 @@ import {
   wnCopyRecap, wnSetCompareA, wnSetCompareB, wnMarkShipped, wnBulkMarkShipped
 } from './views/whatnot-dashboard.js';
 import { initEBayAuth, handleEBayCallback, isEBayConnected } from './features/ebay-auth.js';
-import { initEBaySync, startEBaySyncInterval, stopEBaySyncInterval, pullEBayListings, resyncEBayOrders, backfillEBayData, dismissEBayItem, undismissEBayItem, importEBayItem, mergeInventoryDuplicates, mergeDuplicatesByName, resetEBayApiFlags } from './features/ebay-sync.js';
+import { initEBaySync, startEBaySyncInterval, stopEBaySyncInterval, pullEBayListings, resyncEBayOrders, backfillEBayData, dismissEBayItem, undismissEBayItem, importEBayItem, mergeInventoryDuplicates, mergeDuplicatesByName as _mergeDupsByName, resetEBayApiFlags } from './features/ebay-sync.js';
 import { openReconcileModal, closeReconcileModal, reconcileMarkEnded, reconcileMarkActive, reconcileImport, reconcileFixLinkage, cancelReconcile, repairEBayLinkage, reconcileAcceptEbay } from './features/ebay-reconcile.js';
 import { initEtsyAuth, handleEtsyCallback, isEtsyConnected } from './features/etsy-auth.js';
 import { initEtsySync, startEtsySyncInterval, stopEtsySyncInterval, syncEtsyExpenses } from './features/etsy-sync.js';
@@ -460,23 +460,22 @@ Object.assign(window, {
   },
   mobileSyncNow, resyncEBayOrders, backfillEBayData, resetEBayApiFlags,
   mergeDuplicatesByName: () => {
-    const preview = [];
-    const seen = new Map();
     const normName = n => (n || '').toString().toLowerCase().replace(/[^\w\s]/g,' ').replace(/\s+/g,' ').trim();
-    for (const i of inv) {
-      if (i.sold || i.deleted || !i.name) continue;
-      const k = normName(i.name);
+    const seen = new Map();
+    for (const it of inv) {
+      if (it.sold || it.deleted || !it.name) continue;
+      const k = normName(it.name);
       if (!k || k.length < 3) continue;
       if (!seen.has(k)) seen.set(k, []);
-      seen.get(k).push(i);
+      seen.get(k).push(it);
     }
     const groups = [...seen.values()].filter(g => g.length > 1);
     const toMerge = groups.reduce((s, g) => s + g.length - 1, 0);
-    if (!toMerge) { window.toast?.('No duplicate names found'); return; }
-    const preview2 = groups.slice(0, 5).map(g => `"${g[0].name.slice(0,40)}" (${g.length})`).join(', ');
-    if (!window.confirm(`Merge ${toMerge} duplicate item(s) into ${groups.length} entry(ies)?\n\nExamples: ${preview2}${groups.length > 5 ? '…' : ''}\n\nQuantities will be summed. Cannot be undone.`)) return;
-    const n = mergeDuplicatesByName();
-    if (n > 0) { save(); refresh(); window.toast?.(`Merged ${n} duplicate item(s)`); }
+    if (!toMerge) { toast('No duplicate names found'); return; }
+    const preview = groups.slice(0, 5).map(g => `"${g[0].name.slice(0,40)}" (${g.length})`).join(', ');
+    if (!window.confirm(`Merge ${toMerge} duplicate item(s) into ${groups.length} entry(ies)?\n\nExamples: ${preview}${groups.length > 5 ? '\u2026' : ''}\n\nQuantities will be summed. Cannot be undone.`)) return;
+    const n = _mergeDupsByName();
+    if (n > 0) { save(); refresh(); toast(`Merged ${n} duplicate item(s)`); }
   },
   openReconcileModal, closeReconcileModal, reconcileMarkEnded, reconcileMarkActive, reconcileImport, reconcileFixLinkage, cancelReconcile, repairEBayLinkage, reconcileAcceptEbay,
   importEBayItem: async (input) => {
