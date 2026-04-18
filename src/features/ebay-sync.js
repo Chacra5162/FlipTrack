@@ -158,6 +158,50 @@ export function mergeInventoryDuplicates() {
   return count;
 }
 
+/** Merge items with identical normalized names. More aggressive than mergeInventoryDuplicates.
+ * Groups by normalized name; picks the keeper (has listingId > most sales > most fields);
+ * sums qty, reassigns sales, removes rest. */
+export function mergeDuplicatesByName() {
+  const groups = new Map();
+  for (const item of inv) {
+    if (item.sold || item.deleted) continue;
+    if (!item.name) continue;
+    const key = _normName(item.name);
+    if (!key || key.length < 3) continue;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(item);
+  }
+  let count = 0;
+  for (const [, items] of groups) {
+    if (items.length < 2) continue;
+    items.sort((a, b) => {
+      const aLid = a.ebayListingId ? 1 : 0;
+      const bLid = b.ebayListingId ? 1 : 0;
+      if (aLid !== bLid) return bLid - aLid;
+      const aS = sales.filter(s => s.itemId === a.id).length;
+      const bS = sales.filter(s => s.itemId === b.id).length;
+      if (aS !== bS) return bS - aS;
+      return Object.keys(b).length - Object.keys(a).length;
+    });
+    const keeper = items[0];
+    for (const dupe of items.slice(1)) {
+      keeper.qty = (keeper.qty || 0) + (dupe.qty || 0);
+      for (const [k, v] of Object.entries(dupe)) {
+        if (k === 'id' || k === 'qty' || k === 'added' || k === 'dateAdded') continue;
+        if ((keeper[k] == null || keeper[k] === '' || keeper[k] === 0) && v != null && v !== '' && v !== 0) keeper[k] = v;
+      }
+      for (const s of sales) {
+        if (s.itemId === dupe.id) { s.itemId = keeper.id; markDirty('sales', s.id); }
+      }
+      const di = inv.indexOf(dupe);
+      if (di >= 0) inv.splice(di, 1);
+      count++;
+    }
+    markDirty('inv', keeper.id);
+  }
+  return count;
+}
+
 // ── INITIALIZATION ─────────────────────────────────────────────────────────
 
 /** Clear stored API-capability flags so the client retries blocked APIs.
