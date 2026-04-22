@@ -124,15 +124,23 @@ async function callEdgeFn(action, body = {}) {
     try { data = JSON.parse(text); } catch { throw new Error(`Unexpected response (${resp.status})`); }
   }
   if (!resp.ok) {
-    // Downgrade known/expected failures to warn (Trading API blocked, invalid SKU)
+    // Downgrade known/expected failures to warn. 404s on the taxonomy
+    // conditions-policy endpoint are documented behavior — eBay simply
+    // doesn't publish a policy for every category — and the caller in
+    // _getValidCondition handles it gracefully. Logging them as red errors
+    // just scares users into thinking the update failed when it didn't.
+    const ebayStatus = data.ebayStatus || resp.status;
+    const pathStr = path || '';
     const isExpected = resp.status === 403
       || (data.error || '').includes('not allowed')
-      || (data.error || '').includes('invalid value for a SKU');
+      || (data.error || '').includes('invalid value for a SKU')
+      || (ebayStatus === 404 && pathStr.includes('/commerce/taxonomy/'))
+      || (ebayStatus === 404 && pathStr.includes('/buy/browse/v1/item/get_item_by_legacy_id'));
     const log = isExpected ? console.warn : console.error;
-    log('[eBay] API ERROR:', data.method, data.path, '→', data.ebayStatus || resp.status);
-    log('[eBay] Error message:', data.error);
+    log('[eBay] API ERROR:', data.method, data.path, '→', ebayStatus);
+    if (data.error) log('[eBay] Error message:', data.error);
     if (data.ebayErrors && !isExpected) console.error('[eBay] Full eBay errors:', JSON.stringify(data.ebayErrors, null, 2));
-    throw new Error(data.error || `Edge function error: ${resp.status}`);
+    throw new Error(data.error || `eBay returned ${ebayStatus}`);
   }
   return data;
 }
