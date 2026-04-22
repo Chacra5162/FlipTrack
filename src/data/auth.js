@@ -18,6 +18,12 @@ export function registerAuthCleanup(fn) { _cleanupCallbacks.push(fn); }
 let _sessionInitCallback = async () => ({ team: null, role: null });
 export function registerSessionInit(fn) { _sessionInitCallback = fn; }
 
+// Post-sync hooks run after _startSession finishes its initial pull+push.
+// Used by feature layer to safely run dedup/normalization against cloud-fresh
+// data rather than the stale pre-sync local snapshot.
+const _postSyncCallbacks = [];
+export function registerPostSync(fn) { _postSyncCallbacks.push(fn); }
+
 let _setOfflineUser = () => {};
 export function registerOfflineUserHandler(fn) { _setOfflineUser = fn; }
 
@@ -322,6 +328,13 @@ async function _startSession(user) {
 
     // Pull supplies from cloud (separate table)
     pullSupplies().catch(e => console.warn('FlipTrack: supplies pull error:', e.message));
+
+    // Run post-sync hooks (e.g. dedup) AFTER the initial pull so they operate
+    // on cloud-fresh data. Running them on pre-sync local state was a major
+    // cause of cross-device qty inflation.
+    for (const cb of _postSyncCallbacks) {
+      try { await cb(); } catch (e) { console.warn('FlipTrack: post-sync hook error:', e.message); }
+    }
 
     // Load subscription tier & apply nav locks
     try {
