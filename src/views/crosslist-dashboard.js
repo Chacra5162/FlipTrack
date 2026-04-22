@@ -481,7 +481,28 @@ export function clSetSearch(v) { _clSearch = v || ''; _clPage = 0; clearTimeout(
 export function clSetPlatFilter(v) { _clPlatFilter = v || 'all'; _clPage = 0; renderCrosslistDashboard(); }
 export function clSetStatusFilter(v) { _clStatusFilter = v || 'all'; _clPage = 0; renderCrosslistDashboard(); }
 
-export function clRelistItem(itemId, platform) {
+export async function clRelistItem(itemId, platform) {
+  // Route eBay relists through publishEBayListing so the listing actually
+  // goes back live. For all other platforms the generic status-flip is
+  // correct (we don't control their APIs uniformly).
+  if (platform === 'eBay') {
+    if (!isEBayConnected()) { toast('Connect eBay first', true); return; }
+    toast('Relisting on eBay…');
+    try {
+      const r = await publishEBayListing(itemId);
+      if (r?.listingId) {
+        relistItem(itemId, 'eBay');
+        save(); refresh();
+        toast(`Relisted on eBay #${r.listingId} ✓`);
+      } else {
+        toast('eBay relist failed', true);
+      }
+    } catch (e) {
+      toast(`eBay relist error: ${e.message}`, true);
+    }
+    renderCrosslistDashboard();
+    return;
+  }
   relistItem(itemId, platform);
   save(); refresh();
   toast(`Relisted on ${platform} ✓`);

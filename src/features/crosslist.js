@@ -244,7 +244,16 @@ export function getExpiredListings(items) {
     const dates = item.platformListingDates || {};
     const expiry = item.platformListingExpiry || {};
     for (const p of plats) {
-      if (p === 'eBay') continue; // eBay GTC auto-renews; lifecycle managed by ebay-sync
+      if (p === 'eBay') {
+        // eBay fixed-price uses GTC (auto-renews), so status='active' items
+        // don't belong here. But auctions genuinely end — an auction that
+        // closed with no winner is marked platformStatus.eBay='expired' by
+        // _syncEBayAuctions, and those DO need to show up in the relist list.
+        if (item.ebayListingFormat === 'AUCTION' && ps.eBay === 'expired') {
+          results.push({ item, platform: 'eBay', expiryDate: dates.eBay || null, listedDate: dates.eBay || null });
+        }
+        continue;
+      }
       if (ps[p] && ps[p] !== 'active') continue; // Skip non-active
       const exp = expiry[p];
       if (exp && new Date(exp) < now) {

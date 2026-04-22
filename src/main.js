@@ -907,10 +907,31 @@ Object.assign(window, {
 });
 
 // Relist from within the drawer modal
-function clRelistFromDrawer(itemId, platform) {
-  relistItem(itemId, platform);
-  save(); refresh();
-  toast(`Relisted on ${platform} ✓`);
+async function clRelistFromDrawer(itemId, platform) {
+  // eBay auctions (and any delisted eBay item) need to be re-published via
+  // the API — flipping a local status flag doesn't bring the listing back.
+  if (platform === 'eBay') {
+    try {
+      const { publishEBayListing } = await import('./features/ebay-sync.js');
+      const { isEBayConnected } = await import('./features/ebay-auth.js');
+      if (!isEBayConnected()) { toast('Connect eBay first', true); return; }
+      toast('Relisting on eBay…');
+      const r = await publishEBayListing(itemId);
+      if (r?.listingId) {
+        relistItem(itemId, 'eBay');
+        save(); refresh();
+        toast(`Relisted on eBay #${r.listingId} ✓`);
+      } else {
+        toast('eBay relist failed — see console', true);
+      }
+    } catch (e) {
+      toast(`eBay relist error: ${e.message}`, true);
+    }
+  } else {
+    relistItem(itemId, platform);
+    save(); refresh();
+    toast(`Relisted on ${platform} ✓`);
+  }
   // Re-render the drawer's listing status if still open
   const item = getInvItem(itemId);
   if (item) renderListingStatus(item);
