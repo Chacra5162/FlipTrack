@@ -9,7 +9,7 @@ import { SB_URL, SB_KEY } from '../config/constants.js';
 import {
   inv, sales, expenses, supplies,
   save, refresh, saveLocalSupplies,
-  getDirtyItems, getDirtyIdSets, clearDirtyTracking, markDirty, isInvDirty, waitForPersist,
+  getDirtyItems, getDirtyIdSets, getDeletedIdSets, clearDirtyTracking, markDirty, isInvDirty, waitForPersist,
   isSyncInProgress, setSyncInProgress, clearStoreTimers,
   registerAutoSync
 } from './store.js';
@@ -308,12 +308,16 @@ export async function pullFromCloud() {
 
   if (lastPull) {
     // ── DELTA MERGE with conflict resolution: compare updated_at timestamps ──
-    // Skip items that have pending local edits (dirty) to prevent overwriting user's work
-    const mergeArray = (arr, remoteRows, dirtySet) => {
+    // Skip items that have pending local edits (dirty) to prevent overwriting user's work.
+    // Skip items queued for deletion — otherwise a pull between dedup (which marks a
+    // dupe deleted) and the next push (which deletes it on cloud) will re-add the
+    // row locally, defeating dedup and causing qty inflation on the next boot.
+    const mergeArray = (arr, remoteRows, dirtySet, deletedSet) => {
       if (!remoteRows || !remoteRows.length) return;
       const posMap = new Map(arr.map((item, idx) => [item.id, idx]));
       for (const row of remoteRows) {
         if (!row.data) continue;
+        if (deletedSet && deletedSet.has(row.id)) continue;
         const idx = posMap.has(row.id) ? posMap.get(row.id) : -1;
         if (idx !== -1) {
           // Never overwrite an item the user is actively editing
@@ -329,20 +333,22 @@ export async function pullFromCloud() {
       }
     };
     const dirtySets = getDirtyIdSets();
-    mergeArray(inv, remoteInv, dirtySets.inv);
-    mergeArray(sales, remoteSales, dirtySets.sales);
-    mergeArray(expenses, remoteExp, dirtySets.expenses);
+    const deletedSets = getDeletedIdSets();
+    mergeArray(inv, remoteInv, dirtySets.inv, deletedSets.inv);
+    mergeArray(sales, remoteSales, dirtySets.sales, deletedSets.sales);
+    mergeArray(expenses, remoteExp, dirtySets.expenses, deletedSets.expenses);
   } else {
     // ── FULL PULL: replace all local data, preserving any dirty local items ──
     const dirty = getDirtyItems();
     const dirtyInvMap = new Map(dirty.inv.map(i => [i.id, i]));
     const dirtySalesMap = new Map(dirty.sales.map(s => [s.id, s]));
     const dirtyExpMap = new Map(dirty.expenses.map(e => [e.id, e]));
+    // Don't resurrect rows queued for deletion — same reasoning as delta pull above.
+    const deletedSets = getDeletedIdSets();
 
     if (remoteInv) {
       inv.length = 0;
-      inv.push(...remoteInv.map(r => r.data).filter(Boolean));
-      // Re-apply dirty local items that may have been overwritten
+      inv.push(...remoteInv.map(r => r.data).filter(d => d && !deletedSets.inv.has(d.id)));
       for (const [id, item] of dirtyInvMap) {
         const idx = inv.findIndex(i => i.id === id);
         if (idx !== -1) inv[idx] = item;
@@ -351,7 +357,7 @@ export async function pullFromCloud() {
     }
     if (remoteSales) {
       sales.length = 0;
-      sales.push(...remoteSales.map(r => r.data).filter(Boolean));
+      sales.push(...remoteSales.map(r => r.data).filter(d => d && !deletedSets.sales.has(d.id)));
       for (const [id, sale] of dirtySalesMap) {
         const idx = sales.findIndex(s => s.id === id);
         if (idx !== -1) sales[idx] = sale;
@@ -360,7 +366,7 @@ export async function pullFromCloud() {
     }
     if (remoteExp) {
       expenses.length = 0;
-      expenses.push(...remoteExp.map(r => r.data).filter(Boolean));
+      expenses.push(...remoteExp.map(r => r.data).filter(d => d && !deletedSets.expenses.has(d.id)));
       for (const [id, exp] of dirtyExpMap) {
         const idx = expenses.findIndex(e => e.id === id);
         if (idx !== -1) expenses[idx] = exp;

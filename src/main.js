@@ -39,7 +39,7 @@ import {
   initAuth, authSubmit, authForgotPassword, authSignOut,
   switchAuthTab, showAuthModal, hideAuthModal,
   openAccountMenu, closeAccountMenu,
-  registerAuthCleanup, registerOfflineUserHandler, registerSessionInit
+  registerAuthCleanup, registerOfflineUserHandler, registerSessionInit, registerPostSync
 } from './data/auth.js';
 import {
   pushToCloud, pushDeleteToCloud, pullFromCloud,
@@ -413,6 +413,16 @@ registerAuthCleanup(clearReportTimers);
 registerAuthCleanup(stopStockAlertChecks);
 registerAuthCleanup(disableAutoRelist);
 registerAuthCleanup(stopSyncIndicator);
+
+// Run dedup AFTER first cloud pull so it sees cloud-fresh data rather than a
+// stale pre-sync snapshot. mergeInventoryDuplicates itself marks dupes for
+// cloud deletion, so repeat boots are idempotent.
+registerPostSync(() => {
+  try {
+    const merged = mergeInventoryDuplicates();
+    if (merged > 0) { save(); refresh(); toast(`Merged ${merged} duplicate item${merged > 1 ? 's' : ''}`); }
+  } catch (e) { console.warn('[FlipTrack] Post-sync dedup error:', e.message); }
+});
 
 // ══════════════════════════════════════════════════════════════════════════════
 // EXPOSE TO WINDOW — needed for inline HTML event handlers (onclick etc.)
@@ -1315,11 +1325,11 @@ setTimeout(_killSplash, 3000);
   // Normalize source names to merge near-duplicates (e.g., "Marshall's" → "Marshalls")
   try { const n = retroNormalizeSources(); if (n > 0) { save(); refresh(); } } catch(e) {}
 
-  // Auto-merge duplicate inventory items (same SKU or eBay listing ID)
-  try {
-    const merged = mergeInventoryDuplicates();
-    if (merged > 0) { save(); refresh(); toast(`Merged ${merged} duplicate item${merged > 1 ? 's' : ''}`); }
-  } catch(e) { console.warn('[FlipTrack] Dedup error:', e.message); }
+  // NOTE: auto-merge of duplicate inventory items is deliberately deferred to
+  // AFTER the first cloud pull (see _startSession in data/auth.js). Running
+  // dedup on stale pre-sync data caused cross-device qty inflation — each
+  // device merged against its own outdated snapshot and pushed a different
+  // total, so later pulls kept re-summing.
 
   // Build initial state — restore last viewed page on refresh
   try {

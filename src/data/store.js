@@ -67,6 +67,15 @@ export function clearDeletedId(table, id) {
 /** Check if an inventory item has pending local changes not yet synced */
 export function isInvDirty(id) { return _dirtyInv.has(id); }
 export function getDirtyIdSets() { return { inv: _dirtyInv, sales: _dirtySales, expenses: _dirtyExp }; }
+/** Expose deleted-ID sets so pullFromCloud can avoid re-adding rows that are
+ *  queued for cloud deletion but haven't been pushed yet. */
+export function getDeletedIdSets() {
+  return {
+    inv: _deletedIds.ft_inventory,
+    sales: _deletedIds.ft_sales,
+    expenses: _deletedIds.ft_expenses,
+  };
+}
 
 export function clearDirtyTracking() {
   _dirtyInv.clear();
@@ -544,6 +553,10 @@ export function restoreItem(trashIdxOrId) {
 
   if (restored.ebayListingId || restored.ebayItemId) _ebayUndismissCallback(restored);
   inv.push(restored);
+  // Soft-delete had queued this ID for cloud deletion; clear that before the
+  // next push so the restored row isn't wiped from cloud moments after being
+  // upserted back.
+  clearDeletedId('ft_inventory', restored.id);
   markDirty('inv', restored.id);
   _trash.splice(idx, 1);
   saveTrash();

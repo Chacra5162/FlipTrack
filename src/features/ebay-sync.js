@@ -6,7 +6,7 @@
  * Uses the ebay-auth.js proxy for all API calls.
  */
 
-import { inv, sales, save, refresh, markDirty, getInvItem, getSalesForItem, isInvDirty } from '../data/store.js';
+import { inv, sales, save, refresh, markDirty, markDeleted, getInvItem, getSalesForItem, isInvDirty } from '../data/store.js';
 import { EBAY_SYNC_INTERVAL } from '../config/timing.js';
 import { ebayAPI, isEBayConnected, getEBayUsername } from './ebay-auth.js';
 import { markPlatformStatus } from './crosslist.js';
@@ -143,7 +143,10 @@ export function mergeInventoryDuplicates() {
     const bS = sales.filter(s => s.itemId === b.id).length;
     const aF = Object.values(a).filter(v => v != null && v !== '' && v !== 0).length;
     const [keeper, dupe] = (aS > bS || (aS === bS && aF >= Object.values(b).filter(v => v != null && v !== '' && v !== 0).length)) ? [a, b] : [b, a];
-    keeper.qty = (keeper.qty || 0) + (dupe.qty || 0);
+    // MAX not SUM: a "duplicate" detected by shared SKU/listingId is almost
+    // always a sync echo, not two distinct stock piles. Summing inflates qty
+    // every boot; MAX preserves the higher count without compounding.
+    keeper.qty = Math.max(keeper.qty || 0, dupe.qty || 0);
     for (const [k, v] of Object.entries(dupe)) {
       if (k === 'id' || k === 'qty' || k === 'added' || k === 'dateAdded') continue;
       if ((keeper[k] == null || keeper[k] === '' || keeper[k] === 0) && v != null && v !== '' && v !== 0) keeper[k] = v;
@@ -151,6 +154,9 @@ export function mergeInventoryDuplicates() {
     for (const s of sales) { if (s.itemId === dupe.id) { s.itemId = keeper.id; markDirty('sales', s.id); } }
     const di = inv.indexOf(dupe); if (di >= 0) inv.splice(di, 1);
     markDirty('inv', keeper.id);
+    // Delete the dupe row from cloud too, otherwise the next pull re-adds it
+    // and the next boot re-runs dedup, causing runaway qty inflation.
+    markDeleted('ft_inventory', dupe.id);
     merged.add(dupe.id);
     count++;
   }
@@ -185,7 +191,7 @@ export function mergeDuplicatesByName() {
     });
     const keeper = items[0];
     for (const dupe of items.slice(1)) {
-      keeper.qty = (keeper.qty || 0) + (dupe.qty || 0);
+      keeper.qty = Math.max(keeper.qty || 0, dupe.qty || 0);
       for (const [k, v] of Object.entries(dupe)) {
         if (k === 'id' || k === 'qty' || k === 'added' || k === 'dateAdded') continue;
         if ((keeper[k] == null || keeper[k] === '' || keeper[k] === 0) && v != null && v !== '' && v !== 0) keeper[k] = v;
@@ -195,6 +201,7 @@ export function mergeDuplicatesByName() {
       }
       const di = inv.indexOf(dupe);
       if (di >= 0) inv.splice(di, 1);
+      markDeleted('ft_inventory', dupe.id);
       count++;
     }
     markDirty('inv', keeper.id);
@@ -1562,11 +1569,17 @@ async function _syncEBayReturns() {
               if (sale) {
                 logReturn(sale.id, `eBay Cancel: ${reason}`, price, `Auto-detected: ${stateLabel}`, cancelState.includes('REFUND'));
               }
-              // Restock if cancel is confirmed
+              // Restock if cancel is confirmed — but only ONCE across all devices.
+              // _processedReturnIds is per-device memory; without a synced marker
+              // every device re-processes the same cancel and qty doubles/triples.
               if (cancelState === 'CANCEL_CLOSED_WITH_REFUND' || cancelState === 'CANCEL_CLOSED_NO_REFUND') {
-                local.qty = (local.qty || 0) + (parseInt(lineItem?.quantity, 10) || 1);
-                markPlatformStatus(local.id, 'eBay', 'active');
-                markDirty('inv', local.id);
+                const processed = Array.isArray(local._processedReturns) ? local._processedReturns : [];
+                if (!processed.includes(cancelKey)) {
+                  local.qty = (local.qty || 0) + (parseInt(lineItem?.quantity, 10) || 1);
+                  local._processedReturns = [...processed, cancelKey].slice(-50);
+                  markPlatformStatus(local.id, 'eBay', 'active');
+                  markDirty('inv', local.id);
+                }
               }
             }
 
@@ -1598,10 +1611,14 @@ async function _syncEBayReturns() {
               if (sale) {
                 logReturn(sale.id, 'eBay Return/Refund', refundAmount, `Auto-detected refund on order ${orderId}`, true);
               }
-              // Restock the item
-              local.qty = (local.qty || 0) + (parseInt(lineItem.quantity, 10) || 1);
-              markPlatformStatus(local.id, 'eBay', 'active');
-              markDirty('inv', local.id);
+              // Restock once, tracked via synced marker on the item itself.
+              const processed = Array.isArray(local._processedReturns) ? local._processedReturns : [];
+              if (!processed.includes(refundKey)) {
+                local.qty = (local.qty || 0) + (parseInt(lineItem.quantity, 10) || 1);
+                local._processedReturns = [...processed, refundKey].slice(-50);
+                markPlatformStatus(local.id, 'eBay', 'active');
+                markDirty('inv', local.id);
+              }
             }
 
             // Urgent notification
