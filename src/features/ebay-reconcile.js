@@ -1,5 +1,5 @@
 // ebay-reconcile.js — Compare FlipTrack inventory vs live eBay listings
-import { inv, save, refresh, markDirty } from '../data/store.js';
+import { inv, save, refresh, markDirty, isVariant } from '../data/store.js';
 import { ebayAPI, isEBayConnected, getEBayUsername, setEBayUsername } from './ebay-auth.js';
 import { pullEBayListings } from './ebay-sync.js';
 import { markPlatformStatus } from './crosslist.js';
@@ -121,7 +121,18 @@ export async function buildReconciliation() {
   try {
     const ebayMap = await _fetchEBayListings();
 
-    const localActive = inv.filter(i => i.platforms?.includes('eBay') && i.platformStatus?.eBay === 'active');
+    // Only count items that could plausibly exist on eBay: active status AND
+    // some eBay reference (listingId or inventory SKU). Pure phantoms with
+    // neither are reconciled separately by the eBay sync itself. Variant
+    // children are excluded — when a multi-variant listing is live on eBay
+    // it shows as a single listing, not one per variant, so counting each
+    // child inflates the local total over eBay's.
+    const localActive = inv.filter(i =>
+      i.platforms?.includes('eBay')
+      && i.platformStatus?.eBay === 'active'
+      && (i.ebayListingId || i.ebayItemId)
+      && !isVariant(i)
+    );
     const _norm = s => (s||'').toString().toLowerCase().replace(/[^\w\s]/g,' ').replace(/\s+/g,' ').trim();
     // Strip common eBay title noise words so "NEW Blue Shirt Free Ship" matches "Blue Shirt"
     const _stripNoise = s => _norm(s).replace(/\b(new|nib|nwt|nwob|mint|sealed|used|brand new|free ship(ping)?|w\/|with|tags?|authentic|lot of \d+|pack of \d+|bundle)\b/g, ' ').replace(/\s+/g, ' ').trim();
