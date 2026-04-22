@@ -328,24 +328,46 @@ function _parseMissingAspects(msg) {
  * If the first PUT fails with "item specific X is missing", we add X with
  * a default value and retry once.
  */
+// Classify an error as "transient" (eBay/edge wobble) vs "permanent" (bad
+// payload, auth, etc). eBay explicitly recommends retrying errorId 25001
+// "A system error has occurred." with backoff — and edge-function timeouts
+// ("Request timed out — try again") are the same story.
+function _isTransientEBayError(e) {
+  const m = (e?.message || '').toLowerCase();
+  if (m.includes('500') || m.includes('502') || m.includes('503') || m.includes('504')) return true;
+  if (m.includes('a system error has occurred')) return true;
+  if (m.includes('internal server error')) return true;
+  if (m.includes('try again')) return true;
+  if (m.includes('timed out') || m.includes('timeout')) return true;
+  return false;
+}
+
+const _sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+/**
+ * Wrap any ebayAPI call in retry-with-backoff for transient failures.
+ * Up to 3 attempts: 1s, 2s, 4s. Permanent errors throw on first try.
+ */
+async function _ebayApiWithRetry(method, path, body = null) {
+  let lastErr = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await ebayAPI(method, path, body);
+    } catch (e) {
+      lastErr = e;
+      if (!_isTransientEBayError(e) || attempt === 2) throw e;
+      const waitMs = 1000 * Math.pow(2, attempt);
+      console.warn(`[eBay] Transient ${method} ${path} failure (${e.message}) — retrying in ${waitMs}ms`);
+      await _sleep(waitMs);
+    }
+  }
+  throw lastErr || new Error('eBay API call failed');
+}
+
 async function _putInventoryWithRetry(sku, payload, item) {
   const path = `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`;
-
-  // Classify an error as "transient" (eBay server wobble) vs "permanent"
-  // (payload invalid, auth issue, etc). eBay explicitly recommends retrying
-  // errorId 25001 "A system error has occurred." with backoff — otherwise
-  // the user sees spurious "Auto-update failed" toasts for issues that
-  // resolve by themselves seconds later.
-  const isTransient = (e) => {
-    const m = (e?.message || '').toLowerCase();
-    if (m.includes('500') || m.includes('502') || m.includes('503') || m.includes('504')) return true;
-    if (m.includes('a system error has occurred')) return true;
-    if (m.includes('internal server error')) return true;
-    if (m.includes('try again')) return true;
-    return false;
-  };
-
-  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  const isTransient = _isTransientEBayError;
+  const sleep = _sleep;
 
   // Up to 3 attempts for transient failures: 1s, 2s, 4s.
   let lastErr = null;
@@ -532,11 +554,11 @@ export async function updateEBayListing(itemId) {
         };
 
         console.log('[eBay] Updating offer price to $' + currentPrice.toFixed(2));
-        await ebayAPI('PUT', `${INVENTORY_API}/offer/${offerId}`, offerUpdate);
+        await _ebayApiWithRetry('PUT', `${INVENTORY_API}/offer/${offerId}`, offerUpdate);
       }
 
       console.log('[eBay] Re-publishing offer to push changes live:', offerId);
-      const pubResp = await ebayAPI('POST', `${INVENTORY_API}/offer/${offerId}/publish`);
+      const pubResp = await _ebayApiWithRetry('POST', `${INVENTORY_API}/offer/${offerId}/publish`);
       console.log('[eBay] Listing updated live, listingId:', pubResp.listingId);
     } else {
       console.log('[eBay] No offer found — inventory item updated but listing may need manual publish');
@@ -608,10 +630,10 @@ export async function pushEBayPrice(itemId) {
     };
 
     console.warn('[eBay] Pushing price update: $' + ebayPrice.toFixed(2) + ' → $' + item.price.toFixed(2));
-    await ebayAPI('PUT', `${INVENTORY_API}/offer/${offerId}`, offerUpdate);
+    await _ebayApiWithRetry('PUT', `${INVENTORY_API}/offer/${offerId}`, offerUpdate);
 
     // Re-publish to make it live
-    await ebayAPI('POST', `${INVENTORY_API}/offer/${offerId}/publish`);
+    await _ebayApiWithRetry('POST', `${INVENTORY_API}/offer/${offerId}/publish`);
     console.log('[eBay] Price synced to eBay ✓');
 
     return { success: true };

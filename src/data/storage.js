@@ -95,8 +95,14 @@ export async function migrateImagesToStorage() {
 
   let migrated = 0;
   for (const item of inv) {
+    // Skip items we've already failed to migrate — the base64 is corrupt
+    // (atob can't decode it, so the browser can't render it either). Retrying
+    // every sync just spams the console with the same warning.
+    if (item._imgMigrationFailed) continue;
+
     const imgs = getItemImages(item);
     let changed = false;
+    let decodeFailed = false;
     const newImgs = [];
 
     for (let idx = 0; idx < imgs.length; idx++) {
@@ -114,9 +120,15 @@ export async function migrateImagesToStorage() {
       } catch(e) {
         newImgs.push(img); // keep base64 on failure
         console.warn('FlipTrack: migration upload failed for', item.id, e.message);
+        // atob decode failures are permanent — the data URL itself is broken
+        if ((e.message || '').includes('Failed to convert image')) decodeFailed = true;
       }
     }
 
+    if (decodeFailed) {
+      item._imgMigrationFailed = true;
+      markDirty('inv', item.id);
+    }
     if (changed) {
       item.images = newImgs;
       item.image = newImgs[0] || null;
