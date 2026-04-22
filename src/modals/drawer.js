@@ -613,7 +613,16 @@ export async function saveDrawer(){
       toast('eBay listing updated ✓');
     }).catch(e => {
       console.warn('[eBay] Auto-update failed:', e.message);
-      toast('eBay sync failed: ' + e.message, true);
+      // errorId 25001 "A system error has occurred" is eBay's generic
+      // transient-failure code. _putInventoryWithRetry already retried 3x
+      // with backoff, so reaching here means eBay is genuinely wobbly.
+      // Tell the user it's eBay's side, not theirs.
+      const msg = e.message || '';
+      if (msg.toLowerCase().includes('a system error has occurred') || /\b5\d\d\b/.test(msg)) {
+        toast('eBay is having trouble right now — try again in a minute', true);
+      } else {
+        toast('eBay sync failed: ' + msg, true);
+      }
     });
   } else if (item.platforms?.includes('eBay') && ebayChanged && !ebayRemoved) {
     // eBay field changed but can't sync — tell user why

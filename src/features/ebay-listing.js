@@ -329,27 +329,53 @@ function _parseMissingAspects(msg) {
  * a default value and retry once.
  */
 async function _putInventoryWithRetry(sku, payload, item) {
-  try {
-    await ebayAPI('PUT', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`, payload);
-    return;
-  } catch (e) {
-    const missing = _parseMissingAspects(e.message || '');
-    if (missing.length === 0) throw e; // not a missing-aspect error
+  const path = `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`;
 
-    console.log('[eBay] Missing aspects detected:', missing.join(', '), '— auto-filling and retrying');
-    if (!payload.product) payload.product = {};
-    if (!payload.product.aspects) payload.product.aspects = {};
+  // Classify an error as "transient" (eBay server wobble) vs "permanent"
+  // (payload invalid, auth issue, etc). eBay explicitly recommends retrying
+  // errorId 25001 "A system error has occurred." with backoff — otherwise
+  // the user sees spurious "Auto-update failed" toasts for issues that
+  // resolve by themselves seconds later.
+  const isTransient = (e) => {
+    const m = (e?.message || '').toLowerCase();
+    if (m.includes('500') || m.includes('502') || m.includes('503') || m.includes('504')) return true;
+    if (m.includes('a system error has occurred')) return true;
+    if (m.includes('internal server error')) return true;
+    if (m.includes('try again')) return true;
+    return false;
+  };
 
-    for (const name of missing) {
-      if (payload.product.aspects[name]) continue; // already there somehow
-      const defaultFn = _ASPECT_DEFAULTS[name.toLowerCase()];
-      payload.product.aspects[name] = [defaultFn ? String(defaultFn(item)) : 'N/A'];
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+  // Up to 3 attempts for transient failures: 1s, 2s, 4s.
+  let lastErr = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await ebayAPI('PUT', path, payload);
+      return;
+    } catch (e) {
+      lastErr = e;
+      const missing = _parseMissingAspects(e.message || '');
+      if (missing.length > 0) {
+        // Same missing-aspects auto-patch flow as before — handled once,
+        // then we loop for another shot at the PUT.
+        console.log('[eBay] Missing aspects detected:', missing.join(', '), '— auto-filling and retrying');
+        if (!payload.product) payload.product = {};
+        if (!payload.product.aspects) payload.product.aspects = {};
+        for (const name of missing) {
+          if (payload.product.aspects[name]) continue;
+          const defaultFn = _ASPECT_DEFAULTS[name.toLowerCase()];
+          payload.product.aspects[name] = [defaultFn ? String(defaultFn(item)) : 'N/A'];
+        }
+        continue; // retry immediately, don't wait
+      }
+      if (!isTransient(e) || attempt === 2) throw e;
+      const waitMs = 1000 * Math.pow(2, attempt);
+      console.warn(`[eBay] Transient PUT failure (${e.message}) — retrying in ${waitMs}ms`);
+      await sleep(waitMs);
     }
-
-    // Retry once with patched aspects
-    console.log('[eBay] Retrying PUT with patched aspects');
-    await ebayAPI('PUT', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`, payload);
   }
+  throw lastErr || new Error('eBay inventory update failed');
 }
 
 /**
