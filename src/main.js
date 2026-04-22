@@ -177,7 +177,7 @@ import {
 } from './views/whatnot-dashboard.js';
 import { initEBayAuth, handleEBayCallback, isEBayConnected } from './features/ebay-auth.js';
 import { initEBaySync, startEBaySyncInterval, stopEBaySyncInterval, pullEBayListings, resyncEBayOrders, backfillEBayData, dismissEBayItem, undismissEBayItem, importEBayItem, mergeInventoryDuplicates, mergeDuplicatesByName as _mergeDupsByName, resetEBayApiFlags } from './features/ebay-sync.js';
-import { openReconcileModal, closeReconcileModal, reconcileMarkEnded, reconcileMarkActive, reconcileImport, reconcileFixLinkage, cancelReconcile, repairEBayLinkage, reconcileAcceptEbay } from './features/ebay-reconcile.js';
+import { openReconcileModal, closeReconcileModal, reconcileMarkEnded, reconcileMarkActive, reconcileImport, reconcileFixLinkage, cancelReconcile, repairEBayLinkage, reconcileAcceptEbay, reconcileEndListing, reconcileDumpAllPhantoms } from './features/ebay-reconcile.js';
 import { initEtsyAuth, handleEtsyCallback, isEtsyConnected } from './features/etsy-auth.js';
 import { initEtsySync, startEtsySyncInterval, stopEtsySyncInterval, syncEtsyExpenses } from './features/etsy-sync.js';
 import { initWhatnotShows, getTodayShows } from './features/whatnot-show.js';
@@ -487,7 +487,7 @@ Object.assign(window, {
     const n = _mergeDupsByName();
     if (n > 0) { save(); refresh(); toast(`Merged ${n} duplicate item(s)`); }
   },
-  openReconcileModal, closeReconcileModal, reconcileMarkEnded, reconcileMarkActive, reconcileImport, reconcileFixLinkage, cancelReconcile, repairEBayLinkage, reconcileAcceptEbay,
+  openReconcileModal, closeReconcileModal, reconcileMarkEnded, reconcileMarkActive, reconcileImport, reconcileFixLinkage, cancelReconcile, repairEBayLinkage, reconcileAcceptEbay, reconcileEndListing, reconcileDumpAllPhantoms,
   importEBayItem: async (input) => {
     const result = await importEBayItem(input);
     if (result.success) {

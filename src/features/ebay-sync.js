@@ -1865,6 +1865,7 @@ export {
   updateEBayListing,
   pushEBayPrice,
   endEBayListing,
+  endEBayListingByLid,
   relistOnEBay,
 } from './ebay-listing.js';
 

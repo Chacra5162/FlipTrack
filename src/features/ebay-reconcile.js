@@ -1,7 +1,7 @@
 // ebay-reconcile.js — Compare FlipTrack inventory vs live eBay listings
 import { inv, save, refresh, markDirty, isVariant } from '../data/store.js';
 import { ebayAPI, isEBayConnected, getEBayUsername, setEBayUsername } from './ebay-auth.js';
-import { pullEBayListings } from './ebay-sync.js';
+import { pullEBayListings, endEBayListingByLid } from './ebay-sync.js';
 import { markPlatformStatus } from './crosslist.js';
 import { toast, releaseFocus, trapFocus } from '../utils/dom.js';
 import { fmt, escHtml, escAttr } from '../utils/format.js';
@@ -290,12 +290,18 @@ function _renderReconcileResults(r) {
   const body = document.getElementById('reconcileBody');
   if (!body) return;
 
+  // Phantom candidates: live on eBay but either sold locally or never imported —
+  // the user almost always wants to end these on eBay rather than mark active.
+  const phantomCount = r.ebayOnly.filter(l =>
+    !l.localItemId || (l.localStatus && l.localStatus !== 'active')
+  ).length;
   const ebayOnlyHtml = r.ebayOnly.length ? `
     <div style="margin-bottom:24px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap">
         <div style="font-family:'Syne',sans-serif;font-weight:700;color:var(--accent)">📥 On eBay, Not in FlipTrack (${r.ebayOnly.length})</div>
+        ${phantomCount > 0 ? `<button class="btn-secondary" onclick="reconcileDumpAllPhantoms()" style="font-size:11px">🚫 End ${phantomCount} Phantom${phantomCount > 1 ? 's' : ''} on eBay</button>` : ''}
       </div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">These listings are live on eBay but either missing from your inventory or marked inactive locally.</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">These listings are live on eBay but either missing from your inventory or marked inactive locally. Use "End on eBay" to take down listings that shouldn't be live anymore (e.g. already sold elsewhere).</div>
       <table class="ih-table"><thead><tr>
         <th>Title</th><th>Price</th><th>Format</th><th>Local Status</th><th>Action</th>
       </tr></thead><tbody>
@@ -304,9 +310,11 @@ function _renderReconcileResults(r) {
           <td>${l.isAuction ? fmt(l.currentBid || l.price) + ' bid' : fmt(l.price)}</td>
           <td>${l.isAuction ? 'Auction' : 'Fixed'}</td>
           <td style="color:${l.localStatus ? 'var(--warn)' : 'var(--muted)'}">${l.localStatus || 'not imported'}</td>
-          <td>${l.localItemId
+          <td style="white-space:nowrap">${l.localItemId
             ? `<button class="act-btn" onclick="reconcileMarkActive('${escAttr(l.localItemId)}')">Mark Active</button>`
-            : `<button class="act-btn" onclick="reconcileImport('${escAttr(l.listingId)}')">Import</button>`}</td>
+            : `<button class="act-btn" onclick="reconcileImport('${escAttr(l.listingId)}')">Import</button>`}
+            <button class="act-btn red" onclick="reconcileEndListing('${escAttr(l.listingId)}','${escAttr(l.localItemId || '')}')" title="End this listing on eBay">End on eBay</button>
+          </td>
         </tr>`).join('')}
       </tbody></table>
     </div>` : '';
@@ -475,6 +483,44 @@ export async function repairEBayLinkage() {
   } catch (e) {
     toast('Repair failed: ' + e.message, true);
   }
+}
+
+/**
+ * End a single "phantom" listing on eBay — a listing that's live on eBay
+ * but already marked sold locally or not in FlipTrack at all.
+ */
+export async function reconcileEndListing(listingId, localItemId) {
+  if (!listingId) return;
+  if (!confirm(`End eBay listing #${listingId}? This will take it down from eBay immediately.`)) return;
+  const r = await endEBayListingByLid(listingId, localItemId || null);
+  if (r.success) {
+    toast(`eBay listing #${listingId} ended ✓`);
+    openReconcileModal();
+  } else {
+    toast(`Failed to end listing: ${r.error || 'unknown error'}`, true);
+  }
+}
+
+/**
+ * Bulk-end every eBay-only phantom (live on eBay, sold-or-missing locally).
+ * Runs sequentially so we can stream progress; a rate-limit burst would just
+ * fail the rest silently.
+ */
+export async function reconcileDumpAllPhantoms() {
+  const r = await buildReconciliation();
+  const phantoms = r.ebayOnly.filter(l =>
+    !l.localItemId || (l.localStatus && l.localStatus !== 'active')
+  );
+  if (!phantoms.length) { toast('No phantom listings to end'); return; }
+  if (!confirm(`End ${phantoms.length} phantom listing${phantoms.length > 1 ? 's' : ''} on eBay? This takes them down immediately and cannot be undone.`)) return;
+  let ok = 0, failed = 0;
+  for (const l of phantoms) {
+    const res = await endEBayListingByLid(l.listingId, l.localItemId || null);
+    if (res.success) ok++; else failed++;
+  }
+  save(); refresh();
+  toast(`Ended ${ok} listing${ok === 1 ? '' : 's'}${failed ? ` (${failed} failed)` : ''}`);
+  openReconcileModal();
 }
 
 export function reconcileMarkEnded(itemId) {

@@ -1193,6 +1193,41 @@ export async function publishEBayListing(itemId, options = {}, _isRetry = false)
 }
 
 /**
+ * End (delist) a live eBay listing directly by its listingId. Used by the
+ * reconcile "dump phantom" flow — the listing is live on eBay but either
+ * already marked sold locally or not imported at all. Falls back to
+ * updating the local item's status if one is known.
+ * @param {string} listingId - eBay listing (legacy item) ID
+ * @param {string|null} [localItemId] - Optional local item to update post-end
+ */
+export async function endEBayListingByLid(listingId, localItemId = null) {
+  if (!isEBayConnected()) throw new Error('eBay not connected');
+  if (!listingId) throw new Error('Listing ID required');
+  try {
+    await ebayAPI('POST', '/ws/api.dll', {
+      _tradingCall: 'EndItem',
+      ItemID: String(listingId),
+      EndingReason: 'NotAvailable',
+    });
+    console.warn('[eBay] Trading API EndItem succeeded for', listingId);
+    if (localItemId) {
+      const item = getInvItem(localItemId);
+      if (item) {
+        delete item.ebayListingId;
+        markPlatformStatus(localItemId, 'eBay', 'delisted');
+        logItemEvent(localItemId, 'delisted', `eBay listing #${listingId} ended via reconcile`);
+        markDirty('inv', localItemId);
+        save();
+      }
+    }
+    return { success: true };
+  } catch (e) {
+    console.warn('[eBay] EndItem failed for', listingId, e.message);
+    return { success: false, error: e.message };
+  }
+}
+
+/**
  * End (delist) an active eBay listing.
  * @param {string} itemId - Local FlipTrack item ID
  */
