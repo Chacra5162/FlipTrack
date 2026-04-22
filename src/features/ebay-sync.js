@@ -1108,6 +1108,25 @@ export async function pullEBayListings({ silent = false } = {}) {
       console.warn(`[eBay] Reconcile skipped — match ratio too low (${Math.round(matchRatio * 100)}%). Sync likely incomplete.`);
     }
 
+    // ── PHANTOM ACTIVES: items marked active on eBay with neither an
+    // ebayListingId nor an ebayItemId can't possibly correspond to a real
+    // eBay listing — they're leftover from a failed publish, a manual
+    // platform toggle, or the pre-v2.1.1 default-to-active bug. Flip them
+    // to 'draft' so the inventory count matches what eBay actually shows.
+    // Guarded by the same coverage check as the reconcile above so we
+    // don't touch these when a sync was partial.
+    if (seenListingIds.size > 0 && matchRatio >= 0.7) {
+      for (const item of inv) {
+        if (item.sold || item.deleted) continue;
+        if (item.platformStatus?.eBay !== 'active') continue;
+        if (item.ebayListingId || item.ebayItemId) continue;
+        console.warn(`[eBay] Phantom active cleared: "${item.name}" (no eBay record)`);
+        markPlatformStatus(item.id, 'eBay', 'draft');
+        markDirty('inv', item.id);
+        updated++;
+      }
+    }
+
     // Check recent orders for sold items
     await _syncEBayOrders();
 
