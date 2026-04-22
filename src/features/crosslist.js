@@ -456,8 +456,15 @@ export function runAutoRelist() {
 
   let count = 0;
   for (const { item, platform } of candidates) {
+    // eBay is flagged renewable:false because fixed-price is GTC. Expired
+    // auctions are genuinely ended though — treat them as renewable so the
+    // user's relist UX works. The actual republish happens via the manual
+    // Relist button which routes through publishEBayListing.
+    const isExpiredEBayAuction = platform === 'eBay'
+      && item.ebayListingFormat === 'AUCTION'
+      && item.platformStatus?.eBay === 'expired';
     const rule = PLATFORM_EXPIRY_RULES[platform];
-    if (!rule || !rule.renewable) continue;
+    if (!isExpiredEBayAuction && (!rule || !rule.renewable)) continue;
     relistItem(item.id, platform);
     count++;
   }
@@ -481,8 +488,13 @@ export function getAutoRelistCandidates() {
     const key = `${entry.item.id}:${entry.platform}`;
     if (seen.has(key)) continue;
     seen.add(key);
+    // Expired eBay auctions are legitimately relistable even though eBay's
+    // rule is renewable:false (that covers fixed-price GTC). Include them.
+    const isExpiredEBayAuction = entry.platform === 'eBay'
+      && entry.item.ebayListingFormat === 'AUCTION'
+      && entry.item.platformStatus?.eBay === 'expired';
     const rule = PLATFORM_EXPIRY_RULES[entry.platform];
-    if (rule && rule.renewable) results.push(entry);
+    if (isExpiredEBayAuction || (rule && rule.renewable)) results.push(entry);
   }
   return results;
 }
