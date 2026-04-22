@@ -19,6 +19,8 @@ import { parseNum, validateNumericInput } from '../utils/validate.js';
 import { pushDeleteToCloud, autoSync } from '../data/sync.js';
 import { getPlatforms, renderPlatTags } from '../features/platforms.js';
 import { autoDlistOnSale, setListingDate } from '../features/crosslist.js';
+import { pushEBayPrice } from '../features/ebay-sync.js';
+import { isEBayConnected } from '../features/ebay-auth.js';
 import { logSalePrice } from '../features/price-history.js';
 import { getOrCreateBuyer, getBuyer } from '../views/buyers.js';
 import { openMaterialsModal } from '../modals/materials.js';
@@ -574,6 +576,15 @@ export async function recSale() {
     }
   }
   markDirty('inv', item.id);
+  // Cross-platform sale (e.g. Poshmark) with remaining qty — push the new
+  // qty to eBay so its listing doesn't show stale availability. Skip if the
+  // sale was on eBay (eBay already decremented its own side) or if qty hit
+  // zero (autoDlistOnSale ends the listing entirely).
+  if (platform !== 'eBay' && (item.qty || 0) > 0
+      && item.ebayItemId && item.platformStatus?.eBay === 'active'
+      && isEBayConnected()) {
+    pushEBayPrice(item.id).catch(e => console.warn('[eBay] Qty sync after sale:', e.message));
+  }
   save();
   closeSold();
   refresh();
@@ -662,6 +673,13 @@ async function _updateExistingSale(reenableBtn) {
 
   markDirty('sales', sale.id);
   markDirty('inv', item.id);
+  // If the edit actually changed qty and the sale wasn't on eBay, push the
+  // new availability to eBay so its listing matches.
+  if (qtyDelta !== 0 && platform !== 'eBay' && (item.qty || 0) > 0
+      && item.ebayItemId && item.platformStatus?.eBay === 'active'
+      && isEBayConnected()) {
+    pushEBayPrice(item.id).catch(e => console.warn('[eBay] Qty sync after sale edit:', e.message));
+  }
   save();
   closeSold();
   refresh();

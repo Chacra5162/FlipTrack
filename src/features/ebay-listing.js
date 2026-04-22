@@ -551,10 +551,15 @@ export async function pushEBayPrice(itemId) {
     const offer = existing.offers[0];
     const offerId = offer.offerId;
     const ebayPrice = parseFloat(offer.pricingSummary?.price?.value || '0');
+    const ebayQty = parseInt(offer.availableQuantity, 10) || 0;
+    const localQty = item.qty || 1;
 
-    // Only update if price actually changed
-    if (Math.abs(ebayPrice - item.price) < 0.01) {
-      console.log('[eBay] Price already in sync ($' + item.price.toFixed(2) + ')');
+    // Only skip if BOTH price AND qty already match. This function is used
+    // both for price pushes and for the inline stock stepper's qty sync
+    // (_debouncedEbayQtySync). If we bail on price-match alone, qty edits
+    // never reach eBay.
+    if (Math.abs(ebayPrice - item.price) < 0.01 && ebayQty === localQty) {
+      console.log('[eBay] Price & qty already in sync ($' + item.price.toFixed(2) + ', qty ' + localQty + ')');
       return { success: true };
     }
 
