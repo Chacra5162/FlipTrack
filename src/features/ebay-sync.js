@@ -1797,7 +1797,12 @@ async function _syncEBayOffers() {
  * Only runs for auctions that pullEBayListings didn't already handle.
  */
 async function _syncEBayAuctions() {
-  if (_tradingApiBlocked) return 0; // Trading API required — skip if proxy doesn't support it
+  // NOTE: do NOT early-return on _tradingApiBlocked here. That flag is sticky
+  // and tracks the discovery call (GetMyeBaySelling) specifically. Per-item
+  // GetItem may still work, and even if it doesn't we fall back to the Browse
+  // API which is the signal we actually need (404 → listing ended). Skipping
+  // unconditionally meant a single 403 at discovery broke auction-end
+  // detection forever until the user manually reset the flag.
   const auctionItems = inv.filter(i =>
     i.ebayListingId &&
     i.ebayListingFormat === 'AUCTION' &&
@@ -1805,51 +1810,75 @@ async function _syncEBayAuctions() {
   );
   if (!auctionItems.length) return 0;
 
+  const markExpired = (item, label) => {
+    if ((item.qty || 0) === 0) item.qty = 1;
+    markPlatformStatus(item.id, 'eBay', 'expired');
+    item.ebayCurrentBid = 0;
+    markDirty('inv', item.id);
+    addNotification('info', 'Auction Ended',
+      `"${label}" auction ended without a sale — qty restored`, item.id);
+    sendNotification('Auction Ended', `"${label}" ended without selling`, `ft-auction-ended-${item.ebayListingId}`);
+    logItemEvent(item.id, 'auction-end', 'Auction ended without a sale — qty restored to 1');
+  };
+
   let updated = 0;
   for (const item of auctionItems) {
-    try {
-      // Use Trading API GetItem to check actual listing status
-      const resp = await ebayAPI('POST', TRADING_API, {
-        _tradingCall: 'GetItem',
-        ItemID: item.ebayListingId,
-        DetailLevel: 'ReturnAll',
-      });
+    const label = item.name || item.sku || 'Item';
+    let resolved = false;
 
-      const ebayItem = resp?.Item || resp?.GetItemResponse?.Item;
-      if (!ebayItem) continue; // can't determine status — skip
-
-      const listingStatus = ebayItem.SellingStatus?.ListingStatus;
-      // Active/pending listings — nothing to do
-      if (listingStatus === 'Active') continue;
-
-      // Auction completed or ended
-      const label = item.name || item.sku || 'Item';
-      const soldQty = parseInt(ebayItem.SellingStatus?.QuantitySold || '0', 10);
-
-      if (listingStatus === 'Completed' && soldQty > 0) {
-        const soldPrice = parseFloat(ebayItem.SellingStatus?.CurrentPrice?.Value || '0');
-        addNotification('sale', 'Auction Sold!',
-          `"${label}" sold for $${soldPrice.toFixed(2)}`, item.id);
-        sendNotification('Auction Sold!', `"${label}" sold for $${soldPrice.toFixed(2)}`, `ft-ebay-auction-${item.ebayListingId}`);
-        logItemEvent(item.id, 'auction-end',
-          `Auction ended — sold for $${soldPrice.toFixed(2)}`);
-        updated++;
-      } else if (listingStatus === 'Completed' || listingStatus === 'Ended') {
-        // Auction ended with no winner (no bids, reserve not met, or withdrawn).
-        // Restore inventory qty if it was zeroed out, so user can relist.
-        if ((item.qty || 0) === 0) item.qty = 1;
-        markPlatformStatus(item.id, 'eBay', 'expired');
-        item.ebayCurrentBid = 0; // clear stale bid
-        markDirty('inv', item.id);
-        addNotification('info', 'Auction Ended',
-          `"${label}" auction ended without a sale — qty restored`, item.id);
-        sendNotification('Auction Ended', `"${label}" ended without selling`, `ft-auction-ended-${item.ebayListingId}`);
-        logItemEvent(item.id, 'auction-end', 'Auction ended without a sale — qty restored to 1');
-        updated++;
+    // Primary path: Trading API GetItem (rich status info). Skip quietly if
+    // discovery has been blocked — avoid repeated 403s.
+    if (!_tradingApiBlocked) {
+      try {
+        const resp = await ebayAPI('POST', TRADING_API, {
+          _tradingCall: 'GetItem',
+          ItemID: item.ebayListingId,
+          DetailLevel: 'ReturnAll',
+        });
+        const ebayItem = resp?.Item || resp?.GetItemResponse?.Item;
+        if (ebayItem) {
+          resolved = true;
+          const listingStatus = ebayItem.SellingStatus?.ListingStatus;
+          if (listingStatus === 'Active') continue; // still live
+          const soldQty = parseInt(ebayItem.SellingStatus?.QuantitySold || '0', 10);
+          if (listingStatus === 'Completed' && soldQty > 0) {
+            const soldPrice = parseFloat(ebayItem.SellingStatus?.CurrentPrice?.Value || '0');
+            addNotification('sale', 'Auction Sold!',
+              `"${label}" sold for $${soldPrice.toFixed(2)}`, item.id);
+            sendNotification('Auction Sold!', `"${label}" sold for $${soldPrice.toFixed(2)}`, `ft-ebay-auction-${item.ebayListingId}`);
+            logItemEvent(item.id, 'auction-end', `Auction ended — sold for $${soldPrice.toFixed(2)}`);
+            updated++;
+            continue;
+          }
+          if (listingStatus === 'Completed' || listingStatus === 'Ended') {
+            markExpired(item, label);
+            updated++;
+            continue;
+          }
+        }
+      } catch (e) {
+        console.warn('[eBay] Trading GetItem failed for', label, ':', e.message);
       }
-    } catch (e) {
-      // If Trading API not available, skip silently — pullEBayListings handles discovery
-      console.warn('[eBay] Auction check failed for', item.name, ':', e.message);
+    }
+
+    // Fallback: Browse API get_item_by_legacy_id. If the listing is live we
+    // get a 200 with data; if it ended we get 404. That's enough to detect
+    // expired auctions when Trading API is blocked.
+    if (!resolved) {
+      try {
+        const resp = await ebayAPI('GET',
+          `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${item.ebayListingId}`);
+        if (resp?.itemId) continue; // listing is still live
+      } catch (e) {
+        // 404 (or similar "not found") indicates the auction ended.
+        const msg = (e?.message || '').toLowerCase();
+        if (msg.includes('404') || msg.includes('not found') || msg.includes('no record')) {
+          markExpired(item, label);
+          updated++;
+        } else {
+          console.warn('[eBay] Browse auction check failed for', label, ':', e.message);
+        }
+      }
     }
   }
   if (updated > 0) { save(); refresh(); }
