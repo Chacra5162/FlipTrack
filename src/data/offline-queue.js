@@ -19,13 +19,62 @@ const STORE_NAME = 'syncQueue';
 // ── ENQUEUE ─────────────────────────────────────────────────────────────────
 
 /**
- * Add a mutation to the offline queue.
+ * Extract the set of row IDs this entry affects, regardless of shape.
+ * Upserts: payload is { id, data } or an array of those.
+ * Deletes: payload is an ID string or an array of IDs.
+ */
+function _rowIds(entry) {
+  const ids = new Set();
+  const p = entry.payload;
+  if (!p) return ids;
+  if (entry.action === 'delete') {
+    (Array.isArray(p) ? p : [p]).forEach(id => id && ids.add(id));
+  } else { // upsert
+    (Array.isArray(p) ? p : [p]).forEach(row => row?.id && ids.add(row.id));
+  }
+  return ids;
+}
+
+/**
+ * Add a mutation to the offline queue. Earlier queued mutations for the same
+ * (table, row-id) are removed first so the queue collapses to the latest
+ * intent per row — otherwise 10 offline edits of the same item would queue
+ * 10 upserts and replay all 10 on reconnect, wasting bandwidth and moving
+ * the server's updated_at forward 10 times.
+ *
  * @param {'upsert'|'delete'} action
  * @param {string} table - Supabase table name (e.g. 'ft_inventory')
  * @param {Object|string[]} payload - Row data for upsert, or array of IDs for delete
  */
 export async function enqueue(action, table, payload) {
   try {
+    // Remove any existing queue entries that target the same (table, row-id).
+    // For upserts: the new payload has the latest state, older ones are stale.
+    // For deletes: deletion is final; any prior upsert for the same row is
+    //              superseded, and a duplicate delete is redundant.
+    const newIds = new Set();
+    if (action === 'delete') {
+      (Array.isArray(payload) ? payload : [payload]).forEach(id => id && newIds.add(id));
+    } else {
+      (Array.isArray(payload) ? payload : [payload]).forEach(row => row?.id && newIds.add(row.id));
+    }
+    if (newIds.size) {
+      const existing = await dequeueAll();
+      for (const e of existing) {
+        if (e.table !== table) continue;
+        const ids = _rowIds(e);
+        // Remove if the existing entry's row-set is a subset of the new one.
+        // (Mixed batches with only partial overlap are left alone to preserve
+        //  rows that aren't superseded — rare in practice since the sync
+        //  layer batches by table, but correct.)
+        let subset = true;
+        for (const id of ids) { if (!newIds.has(id)) { subset = false; break; } }
+        if (subset && ids.size > 0) {
+          try { await deleteOne(STORE_NAME, e.id); } catch (_) {}
+        }
+      }
+    }
+
     // Check queue size cap (1000 items)
     const size = await queueSize();
     if (size >= 1000) {

@@ -42,13 +42,19 @@ export function setSyncInProgress(val) {
   _syncInProgress = val;
 }
 
-/** Get and reset dirty sets for sync */
+/** Get and reset dirty sets for sync. Rebuilds the lookup maps fresh from
+ *  the live arrays so a splice-without-save (happens during dedup and undo)
+ *  doesn't leak a removed item into the push via the stale index. */
 export function getDirtyItems() {
-  const result = {
-    inv: [..._dirtyInv].map(id => _invIndex[id]).filter(Boolean),
-    sales: [..._dirtySales].map(id => _salesIndex[id]).filter(Boolean),
-    expenses: [..._dirtyExp].map(id => _expIndex[id]).filter(Boolean),
-    supplies: [..._dirtySupplies].map(id => _suppliesIndex[id]).filter(Boolean),
+  const invMap = new Map(inv.map(i => [i.id, i]));
+  const salesMap = new Map(sales.map(s => [s.id, s]));
+  const expMap = new Map(expenses.map(e => [e.id, e]));
+  const supMap = new Map(supplies.map(s => [s.id, s]));
+  return {
+    inv: [..._dirtyInv].map(id => invMap.get(id)).filter(Boolean),
+    sales: [..._dirtySales].map(id => salesMap.get(id)).filter(Boolean),
+    expenses: [..._dirtyExp].map(id => expMap.get(id)).filter(Boolean),
+    supplies: [..._dirtySupplies].map(id => supMap.get(id)).filter(Boolean),
     deleted: {
       ft_inventory: [..._deletedIds.ft_inventory],
       ft_sales: [..._deletedIds.ft_sales],
@@ -56,7 +62,6 @@ export function getDirtyItems() {
       ft_supplies: [..._deletedIds.ft_supplies],
     }
   };
-  return result;
 }
 
 /** Remove a specific ID from the deleted tracking set (used by undo + restore) */
