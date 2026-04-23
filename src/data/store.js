@@ -644,7 +644,10 @@ export function restoreItem(trashIdxOrId) {
 // ── UNDO SYSTEM ────────────────────────────────────────────────────────────
 export function pushUndo(action, data) {
   _undoStack.push({ action, data, ts: Date.now() });
-  if (_undoStack.length > 20) _undoStack.shift();
+  // Raised from 20 → 50. Bulk repricing of many items + a couple of later
+  // operations routinely overflowed the old cap, making the first
+  // rebulk-priced items permanently unrecoverable via undo.
+  if (_undoStack.length > 50) _undoStack.shift();
 }
 
 export function showUndoToast(msg) {

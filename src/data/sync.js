@@ -25,6 +25,16 @@ import { toast, humanizeError } from '../utils/dom.js';
 let _recordSync = () => {};
 export function registerRecordSync(fn) { _recordSync = fn; }
 
+// Log-once guards: some errors fire every sync (ft_expenses/ft_supplies
+// missing, Trading API blocked) and there's no signal in seeing them
+// repeated. These flags drop the second+ occurrences until a reload.
+const _loggedOnce = new Set();
+function _warnOnce(key, ...args) {
+  if (_loggedOnce.has(key)) return;
+  _loggedOnce.add(key);
+  console.warn(...args);
+}
+
 // ── SYNC STATUS ────────────────────────────────────────────────────────────
 export function setSyncStatus(state, msg) {
   const dot = document.getElementById('syncDot');
@@ -137,10 +147,10 @@ export async function pushToCloud() {
       }));
       try {
         const { error } = await _sb.from('ft_expenses').upsert(rows, { onConflict: 'id' });
-        if (error) console.warn('FlipTrack: expenses push error:', error.message);
+        if (error) _warnOnce('exp-push-err', 'FlipTrack: expenses push error:', error.message);
         else succeeded.expenses = true;
       } catch (e) {
-        console.warn('FlipTrack: ft_expenses not available:', e.message);
+        _warnOnce('exp-missing', 'FlipTrack: ft_expenses not available:', e.message);
       }
     } else { succeeded.expenses = true; }
 
@@ -151,10 +161,10 @@ export async function pushToCloud() {
       }));
       try {
         const { error } = await _sb.from('ft_supplies').upsert(rows, { onConflict: 'id' });
-        if (error) console.warn('FlipTrack: supplies push error:', error.message);
+        if (error) _warnOnce('sup-push-err', 'FlipTrack: supplies push error:', error.message);
         else succeeded.supplies = true;
       } catch (e) {
-        console.warn('FlipTrack: ft_supplies not available:', e.message);
+        _warnOnce('sup-missing', 'FlipTrack: ft_supplies not available:', e.message);
       }
     } else { succeeded.supplies = true; }
 
@@ -173,7 +183,16 @@ export async function pushToCloud() {
     }
 
     // ── Record last sync timestamp ──
-    await setMeta('lastSyncPush', new Date().toISOString()).catch(e => console.warn('FlipTrack: sync push timestamp save failed:', e.message));
+    // If the timestamp write fails (IDB quota, transient error) we deliberately
+    // do NOT swallow it silently — an unpersisted lastSyncPush means the next
+    // delta pull uses a stale timestamp and may miss rows. Clear local cache
+    // so the next sync does a full pull and rebuilds the timestamp cleanly.
+    try {
+      await setMeta('lastSyncPush', new Date().toISOString());
+    } catch (e) {
+      console.warn('FlipTrack: sync push timestamp save failed — forcing full pull next cycle:', e.message);
+      try { await setMeta('lastSyncPull', null); } catch (_) {}
+    }
 
     // Clear ONLY the snapshotted IDs, per table. Items marked dirty AFTER the
     // snapshot stay dirty and ride the next sync.
@@ -411,8 +430,14 @@ export async function pullFromCloud() {
     }
   }
 
-  // Record pull timestamp
-  await setMeta('lastSyncPull', new Date().toISOString()).catch(e => console.warn('FlipTrack: sync pull timestamp save failed:', e.message));
+  // Record pull timestamp. On failure, force a full pull next cycle (null
+  // means "no lastPull, fetch everything") — better to re-fetch once than
+  // to silently skip rows with a stale timestamp.
+  try {
+    await setMeta('lastSyncPull', new Date().toISOString());
+  } catch (e) {
+    console.warn('FlipTrack: sync pull timestamp save failed — will retry full pull:', e.message);
+  }
 
   // Persist to IDB + localStorage
   save();
