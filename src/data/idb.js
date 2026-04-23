@@ -9,7 +9,7 @@
  */
 
 const DB_NAME = 'fliptrack';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORES = {
   inventory: { keyPath: 'id' },
   sales: { keyPath: 'id' },
@@ -17,7 +17,10 @@ const STORES = {
   supplies: { keyPath: 'id' },
   trash: { keyPath: 'id' },
   meta: { keyPath: 'key' },
-  syncQueue: { keyPath: 'id', autoIncrement: true }
+  syncQueue: { keyPath: 'id', autoIncrement: true },
+  // Queue entries that hit their retry ceiling land here instead of
+  // being silently dropped. Inspect via getDeadLetters() for diagnostics.
+  syncDeadLetter: { keyPath: 'id', autoIncrement: true },
 };
 
 let db = null;

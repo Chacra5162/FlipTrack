@@ -233,6 +233,7 @@ export async function authSignOut() {
   await clearStore('supplies').catch(() => {});
   await clearStore('trash').catch(() => {});
   await clearStore('syncQueue').catch(() => {});
+  await clearStore('syncDeadLetter').catch(() => {});
   resetOfflineReplay(); // Allow new session to register fresh replay closure
 
   // ── CLEAR MARKETPLACE AUTH STATE FROM INDEXEDDB ────────────────────────

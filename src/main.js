@@ -469,6 +469,30 @@ Object.assign(window, {
     if (isEBayConnected()) pullEBayListings({ silent: true }).catch(e => console.warn('eBay sync on manual sync:', e.message));
   },
   mobileSyncNow, resyncEBayOrders, backfillEBayData, resetEBayApiFlags,
+  // Dead-letter diagnostics exposed on window for manual recovery via
+  // browser console: window.getSyncDeadLetters() / .retryDeadLetters() /
+  // .clearDeadLetters(). Avoids needing a dedicated UI for rarely-needed
+  // ops while making the data accessible when it's needed.
+  getSyncDeadLetters: async () => {
+    const { getDeadLetters } = await import('./data/offline-queue.js');
+    const items = await getDeadLetters();
+    console.table(items.map(i => ({
+      table: i.table, action: i.action, failedAt: new Date(i.failedAt).toISOString(),
+      retries: i.retries, lastError: i.lastError,
+    })));
+    return items;
+  },
+  retryDeadLetters: async () => {
+    const { retryDeadLetters } = await import('./data/offline-queue.js');
+    const n = await retryDeadLetters();
+    toast(n > 0 ? `Requeued ${n} failed mutation${n === 1 ? '' : 's'}` : 'No failed mutations to retry');
+    return n;
+  },
+  clearDeadLetters: async () => {
+    const { clearDeadLetters } = await import('./data/offline-queue.js');
+    await clearDeadLetters();
+    toast('Cleared dead-letter queue');
+  },
   mergeDuplicatesByName: () => {
     const normName = n => (n || '').toString().toLowerCase().replace(/[^\w\s]/g,' ').replace(/\s+/g,' ').trim();
     const seen = new Map();

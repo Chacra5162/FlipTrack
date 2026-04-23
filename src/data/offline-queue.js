@@ -15,6 +15,7 @@ import { getAll, putOne, deleteOne, clearStore, getCount } from './idb.js';
 import { toast } from '../utils/dom.js';
 
 const STORE_NAME = 'syncQueue';
+const DEAD_LETTER_STORE = 'syncDeadLetter';
 
 // ── ENQUEUE ─────────────────────────────────────────────────────────────────
 
@@ -171,6 +172,23 @@ export async function replayQueue(sb, accountId) {
       const retries = (entry.retries || 0) + 1;
       if (retries >= 5) {
         console.warn(`FlipTrack: Dropping queue entry after ${retries} retries: ${entry.action} on ${entry.table}`);
+        // Move to dead-letter store so the mutation is recoverable.
+        // Previously these were silently dropped — if a critical upsert
+        // failed 5 times, the change was lost forever with no diagnostics.
+        try {
+          await putOne(DEAD_LETTER_STORE, {
+            originalId: entry.id,
+            action: entry.action,
+            table: entry.table,
+            payload: entry.payload,
+            ts: entry.ts,
+            failedAt: Date.now(),
+            lastError: e.message || String(e),
+            retries,
+          });
+        } catch (deadErr) {
+          console.warn('FlipTrack: dead-letter write failed:', deadErr.message);
+        }
         await _removeEntry(entry.id);
         dropped++;
       } else {
@@ -241,4 +259,46 @@ export function setupOfflineReplay(getClient, onComplete) {
       setTimeout(tryReplay, 1000);
     }
   });
+}
+
+// ── DEAD-LETTER DIAGNOSTICS ─────────────────────────────────────────────────
+
+/** List all queue entries that exceeded their retry budget. Safe for UI
+ *  display — each entry has { action, table, payload, failedAt, lastError }.
+ *  Use to surface "N mutations failed to sync — review" in diagnostics. */
+export async function getDeadLetters() {
+  try { return await getAll(DEAD_LETTER_STORE); }
+  catch (e) { console.warn('FlipTrack: dead-letter read failed:', e.message); return []; }
+}
+
+/** Move dead-letter entries back into the active queue for another attempt.
+ *  Use sparingly — repeat failures likely indicate a structural problem
+ *  (malformed payload, schema mismatch, revoked permission). */
+export async function retryDeadLetters() {
+  const items = await getDeadLetters();
+  let requeued = 0;
+  for (const it of items) {
+    try {
+      await putOne(STORE_NAME, {
+        action: it.action,
+        table: it.table,
+        payload: it.payload,
+        ts: Date.now(),
+        retries: 0,
+      });
+      await deleteOne(DEAD_LETTER_STORE, it.id);
+      requeued++;
+    } catch (e) {
+      console.warn('FlipTrack: dead-letter requeue failed for', it.id, e.message);
+    }
+  }
+  return requeued;
+}
+
+/** Permanently discard all dead-letter entries. Called by logout cleanup
+ *  and available as a manual action for when the user knows the data is
+ *  no longer relevant. */
+export async function clearDeadLetters() {
+  try { await clearStore(DEAD_LETTER_STORE); }
+  catch (e) { console.warn('FlipTrack: dead-letter clear failed:', e.message); }
 }
