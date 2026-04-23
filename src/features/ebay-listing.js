@@ -1382,6 +1382,7 @@ export async function endEBayListingByLid(listingId, localItemId = null) {
         // stale eBay-side inventory item — same reasoning as endEBayListing.
         delete item.ebayListingId;
         delete item.ebayItemId;
+        item.ebayCurrentBid = 0;
         markPlatformStatus(localItemId, 'eBay', 'delisted');
         logItemEvent(localItemId, 'delisted', `eBay listing #${listingId} ended via reconcile`);
         markDirty('inv', localItemId);
@@ -1450,6 +1451,9 @@ export async function endEBayListing(itemId) {
     // Clear BOTH IDs locally so publishEBayListing treats this as a fresh item.
     delete item.ebayListingId;
     delete item.ebayItemId;
+    // Clear live auction state so a later relist starts fresh instead of
+    // showing a stale bid in the drawer header.
+    item.ebayCurrentBid = 0;
 
     markPlatformStatus(itemId, 'eBay', 'delisted');
     logItemEvent(itemId, 'delisted', 'eBay listing ended');

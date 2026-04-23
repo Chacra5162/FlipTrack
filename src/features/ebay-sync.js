@@ -1785,7 +1785,11 @@ async function _syncEBayOffers() {
           `Best offer: $${amount.toFixed(2)} from ${buyer}`);
         notified++;
       }
-      item._notifiedOfferIds = [...notifiedOffers];
+      // Cap the notified-offer-ID list so it can't grow unbounded over years
+      // of activity (it syncs with the item, so every new offer adds a few
+      // bytes to every sync). Keeping the most-recent 100 is plenty to
+      // dedupe the actively-pending offer IDs eBay cycles through.
+      item._notifiedOfferIds = [...notifiedOffers].slice(-100);
       markDirty('inv', item.id);
     } catch (e) {
       // Trading API may not be available — skip silently

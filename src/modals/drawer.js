@@ -519,6 +519,7 @@ export async function saveDrawer(){
   item.vintage  =(document.getElementById('d_vintage')?.value||'').trim();
   item.countryMfg=(document.getElementById('d_countryMfg')?.value||'').trim();
   // eBay auction/best-offer fields
+  const prevFormat = item.ebayListingFormat;
   item.ebayListingFormat = document.getElementById('d_ebayFormat')?.value || 'FIXED_PRICE';
   // eBay doesn't support Best Offer on auctions; force off if format is AUCTION
   item.ebayBestOffer = item.ebayListingFormat === 'AUCTION' ? false : !!document.getElementById('d_bestOffer')?.checked;
@@ -527,6 +528,15 @@ export async function saveDrawer(){
   item.ebayAuctionDuration = document.getElementById('d_auctionDuration')?.value || 'DAYS_7';
   item.ebayAutoAccept = parseFloat(document.getElementById('d_autoAccept')?.value) || 0;
   item.ebayAutoDecline = parseFloat(document.getElementById('d_autoDecline')?.value) || 0;
+  // If switching format away from AUCTION, clear auction-only state that no
+  // longer applies — otherwise stale ebayCurrentBid/ebayAuctionStart/
+  // ebayAuctionReserve would pollute a fresh fixed-price listing and show in
+  // the drawer header as if the auction were still live.
+  if (prevFormat === 'AUCTION' && item.ebayListingFormat !== 'AUCTION') {
+    item.ebayCurrentBid = 0;
+    item.ebayAuctionStart = 0;
+    item.ebayAuctionReserve = 0;
+  }
   Object.assign(item, getDimsFromForm('d'));
   if (isBookCat(item.category)) {
     Object.assign(item, getBookFields('d'));
