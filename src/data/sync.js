@@ -127,6 +127,7 @@ export async function pushToCloud() {
       });
       const { error } = await _sb.from('ft_inventory').upsert(rows, { onConflict: 'id' });
       if (error) throw new Error(error.message);
+      _rememberPushed('ft_inventory', rows);
       succeeded.inv = true;
     } else { succeeded.inv = true; }
 
@@ -137,6 +138,7 @@ export async function pushToCloud() {
       }));
       const { error } = await _sb.from('ft_sales').upsert(rows, { onConflict: 'id' });
       if (error) throw new Error(error.message);
+      _rememberPushed('ft_sales', rows);
       succeeded.sales = true;
     } else { succeeded.sales = true; }
 
@@ -148,7 +150,7 @@ export async function pushToCloud() {
       try {
         const { error } = await _sb.from('ft_expenses').upsert(rows, { onConflict: 'id' });
         if (error) _warnOnce('exp-push-err', 'FlipTrack: expenses push error:', error.message);
-        else succeeded.expenses = true;
+        else { _rememberPushed('ft_expenses', rows); succeeded.expenses = true; }
       } catch (e) {
         _warnOnce('exp-missing', 'FlipTrack: ft_expenses not available:', e.message);
       }
@@ -612,7 +614,51 @@ export function startRealtime() {
     });
 }
 
+// Echo tracking: when pushToCloud upserts rows, Supabase broadcasts them
+// back to this device via realtime. Without this map we'd fire a full
+// delta pull for every echo (one per pushed row), which is wasted work.
+// Map: `${table}:${id}` → iso timestamp we set during our push. Realtime
+// events whose new.updated_at matches (within tolerance) are our echo.
+const _recentPushedRows = new Map();
+const _ECHO_WINDOW_MS = 30_000;
+function _rememberPushed(table, rows) {
+  const cutoff = Date.now() - _ECHO_WINDOW_MS;
+  // Evict stale entries as we go — cheap and bounded.
+  for (const [k, ts] of _recentPushedRows) {
+    if (ts < cutoff) _recentPushedRows.delete(k);
+  }
+  for (const r of rows) {
+    if (r?.id) _recentPushedRows.set(`${table}:${r.id}`, Date.now());
+  }
+}
+
+function _isEcho(table, rowId, remoteUpdatedAt) {
+  const key = `${table}:${rowId}`;
+  const pushedAt = _recentPushedRows.get(key);
+  if (!pushedAt) return false;
+  if (Date.now() - pushedAt > _ECHO_WINDOW_MS) {
+    _recentPushedRows.delete(key);
+    return false;
+  }
+  // Remote update must have happened within the echo window of our push.
+  const remoteTs = remoteUpdatedAt ? new Date(remoteUpdatedAt).getTime() : 0;
+  return remoteTs <= pushedAt + 5000; // 5s tolerance for server clock drift
+}
+
 function _onRealtimeChange(payload) {
+  // If the payload is our own push echoing back, skip the delta pull. The
+  // local array already has the latest — pulling would just replace the
+  // object with an identical copy and trigger needless re-renders. Non-echo
+  // events (another device's changes) still go through the normal pull.
+  try {
+    const newRow = payload?.new;
+    if (newRow && newRow.id && payload.table) {
+      if (_isEcho(payload.table, newRow.id, newRow.updated_at)) {
+        return;
+      }
+    }
+  } catch (_) { /* fall through to the standard pull */ }
+
   clearTimeout(_rtDebounce);
   _rtDebounce = setTimeout(async () => {
     if (_isSyncing) return; // skip — syncNow() will handle it
