@@ -269,11 +269,24 @@ export function quickReprice(itemId, newPrice) {
   const item = getInvItem(itemId);
   if (!item) return;
   const oldPrice = item.price;
-  item.price = newPrice;
+  // Default path: the stale-items "-10%" button passes no newPrice and
+  // expects a 10% cut off the current price. Without this fallback the
+  // function assigns undefined to item.price, which renders as $0.00 —
+  // which is the exact symptom the user reported from the Action Required
+  // section. The dashboard's price-alert path still works because it
+  // passes an explicit suggested price.
+  if (newPrice == null || !Number.isFinite(Number(newPrice))) {
+    if (!oldPrice || oldPrice <= 0) {
+      toast('Cannot drop price — item has no current price', true);
+      return;
+    }
+    newPrice = Math.round(oldPrice * 0.9 * 100) / 100;
+  }
+  item.price = Number(newPrice);
   markDirty('inv', item.id);
   save();
   refresh();
-  toast(`${item.name} repriced: ${fmt(oldPrice)} → ${fmt(newPrice)} ✓`);
+  toast(`${item.name} repriced: ${fmt(oldPrice)} → ${fmt(item.price)} ✓`);
   // Push new price to eBay if connected
   if (item.ebayItemId && isEBayConnected()) {
     pushEBayPrice(item.id).catch(e => console.warn('[Dashboard] eBay price push:', e.message));
