@@ -130,7 +130,7 @@ async function callEdgeFn(action, body = {}) {
     // _getValidCondition handles it gracefully. Logging them as red errors
     // just scares users into thinking the update failed when it didn't.
     const ebayStatus = data.ebayStatus || resp.status;
-    const pathStr = path || '';
+    const pathStr = data.path || '';
     const isExpected = resp.status === 403
       || (data.error || '').includes('not allowed')
       || (data.error || '').includes('invalid value for a SKU')
