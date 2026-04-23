@@ -510,9 +510,22 @@ export async function updateEBayListing(itemId) {
   await _putInventoryWithRetry(sku, payload, item);
   console.log('[eBay] Inventory item updated');
 
-  // 2. Find the existing offer, update price + qty, and re-publish
+  // 2. Find the existing offer, update price + qty, and re-publish.
+  // If there is no offer (eBay 404 / errorId 25713 "This Offer is not
+  // available.", or an empty offers array), we can't "update" price/qty
+  // against something that doesn't exist — fall through and publish a
+  // fresh offer so the user's change actually reaches eBay.
   try {
-    const existing = await ebayAPI('GET', `${INVENTORY_API}/offer?sku=${encodeURIComponent(sku)}`);
+    let existing = null;
+    try {
+      existing = await ebayAPI('GET', `${INVENTORY_API}/offer?sku=${encodeURIComponent(sku)}`);
+    } catch (getErr) {
+      const m = (getErr.message || '').toLowerCase();
+      const offerMissing = m.includes('not available') || m.includes('25713') || m.includes('404');
+      if (!offerMissing) throw getErr;
+      console.warn('[eBay] No offer exists for', sku, '— auto-publishing to create one');
+      existing = null;
+    }
     if (existing?.offers?.length > 0) {
       const offer = existing.offers[0];
       const offerId = offer.offerId;
@@ -561,7 +574,16 @@ export async function updateEBayListing(itemId) {
       const pubResp = await _ebayApiWithRetry('POST', `${INVENTORY_API}/offer/${offerId}/publish`);
       console.log('[eBay] Listing updated live, listingId:', pubResp.listingId);
     } else {
-      console.log('[eBay] No offer found — inventory item updated but listing may need manual publish');
+      // No offer exists for this inventory item. Create one (and publish) so
+      // the price/qty update actually reaches eBay. publishEBayListing handles
+      // policies, images, and all the offer setup — it's the same flow the
+      // user would get by clicking "Publish to eBay" manually.
+      console.log('[eBay] No offer found — auto-publishing a fresh offer');
+      const pubResp = await publishEBayListing(itemId);
+      if (!pubResp?.listingId) {
+        throw new Error('Failed to create offer for update — try publishing manually');
+      }
+      console.log('[eBay] Auto-published new listing:', pubResp.listingId);
     }
   } catch (pubErr) {
     console.warn('[eBay] Offer update/re-publish failed:', pubErr.message);
@@ -589,11 +611,20 @@ export async function pushEBayPrice(itemId) {
   const sku = item.ebayItemId;
 
   try {
-    // Fetch the existing offer for this SKU
-    const existing = await ebayAPI('GET', `${INVENTORY_API}/offer?sku=${encodeURIComponent(sku)}`);
+    // Fetch the existing offer for this SKU. If none exists (empty array or
+    // eBay 404 "This Offer is not available.") we can't push to it — the
+    // caller should go through publishEBayListing instead.
+    let existing = null;
+    try {
+      existing = await ebayAPI('GET', `${INVENTORY_API}/offer?sku=${encodeURIComponent(sku)}`);
+    } catch (getErr) {
+      const m = (getErr.message || '').toLowerCase();
+      const offerMissing = m.includes('not available') || m.includes('25713') || m.includes('404');
+      if (!offerMissing) throw getErr;
+    }
     if (!existing?.offers?.length) {
       console.log('[eBay] No offer found for SKU', sku, '— skipping price push');
-      return { success: false };
+      return { success: false, error: 'No offer exists — publish listing first' };
     }
 
     const offer = existing.offers[0];
