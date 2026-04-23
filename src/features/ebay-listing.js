@@ -364,6 +364,46 @@ async function _ebayApiWithRetry(method, path, body = null) {
   throw lastErr || new Error('eBay API call failed');
 }
 
+/**
+ * Update price and/or qty on a live eBay listing using Trading API
+ * ReviseInventoryStatus by ItemID. This bypasses the Inventory API's
+ * unreliable GET /offer?sku= lookup (which returns 25713 "Offer not
+ * available" even for SKUs whose offers exist) and works regardless
+ * of whether the listing was originally published via Trading or
+ * Inventory API.
+ *
+ * @param {string} listingId - eBay legacy ItemID (item.ebayListingId)
+ * @param {object} opts - { price?: number, qty?: number }
+ * @returns {Promise<{ success: boolean, error?: string, unsupported?: boolean }>}
+ */
+async function _reviseEBayListingDirect(listingId, opts = {}) {
+  if (!listingId) return { success: false, error: 'No listing ID' };
+  const { price, qty } = opts;
+  if (price == null && qty == null) return { success: false, error: 'Nothing to revise' };
+
+  const body = { _tradingCall: 'ReviseInventoryStatus', ItemID: String(listingId) };
+  if (price != null && Number.isFinite(price)) body.StartPrice = Number(price).toFixed(2);
+  if (qty != null && Number.isFinite(qty)) body.Quantity = Math.max(0, Math.floor(qty));
+
+  try {
+    const resp = await _ebayApiWithRetry('POST', '/ws/api.dll', body);
+    // Trading API returns Ack='Success' or 'Warning' on accepted updates;
+    // 'Failure' or no Ack means we should fall back.
+    const ack = resp?.Ack || resp?.ReviseInventoryStatusResponse?.Ack;
+    if (ack === 'Success' || ack === 'Warning') return { success: true };
+    // No Ack means the proxy returned something unexpected — surface as failure
+    // (caller may decide whether to fall back).
+    return { success: false, error: 'Trading API returned no Ack' };
+  } catch (e) {
+    const msg = (e?.message || '').toLowerCase();
+    // "not allowed" / 403 / "not supported" → proxy doesn't speak Trading API
+    // for this call. Caller should fall back to Inventory API path.
+    const unsupported = msg.includes('not allowed') || msg.includes('403')
+      || msg.includes('not supported') || msg.includes('does not support');
+    return { success: false, error: e.message, unsupported };
+  }
+}
+
 async function _putInventoryWithRetry(sku, payload, item) {
   const path = `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`;
   const isTransient = _isTransientEBayError;
@@ -510,11 +550,36 @@ export async function updateEBayListing(itemId) {
   await _putInventoryWithRetry(sku, payload, item);
   console.log('[eBay] Inventory item updated');
 
-  // 2. Find the existing offer, update price + qty, and re-publish.
-  // If there is no offer (eBay 404 / errorId 25713 "This Offer is not
-  // available.", or an empty offers array), we can't "update" price/qty
-  // against something that doesn't exist — fall through and publish a
-  // fresh offer so the user's change actually reaches eBay.
+  // 2. Push price/qty. Preferred path: Trading API ReviseInventoryStatus by
+  //    ItemID — bypasses the unreliable Inventory API GET /offer?sku lookup
+  //    that returns 25713 even when the offer exists. Auctions skip this:
+  //    Trading ReviseInventoryStatus does not support auction price changes
+  //    once bidding has started.
+  const isAuctionItem = item.ebayListingFormat === 'AUCTION';
+  if (item.ebayListingId && !isAuctionItem) {
+    const r = await _reviseEBayListingDirect(item.ebayListingId, {
+      price: item.price || 0,
+      qty: item.qty || 1,
+    });
+    if (r.success) {
+      console.log('[eBay] Price/qty synced via ReviseInventoryStatus:', item.ebayListingId);
+      logItemEvent(itemId, 'ebay-update', 'eBay listing updated with latest details');
+      return { success: true };
+    }
+    if (!r.unsupported) {
+      // Trading-side rejected (not just unavailable) — surface, don't fall
+      // back to the broken Inventory path which would risk a duplicate.
+      logItemEvent(itemId, 'ebay-update', `eBay revise failed: ${r.error}`);
+      throw new Error(`eBay listing update failed: ${r.error}`);
+    }
+    console.warn('[eBay] Trading ReviseInventoryStatus unsupported — falling back to Inventory API');
+  }
+
+  // 3. Fallback: Inventory API offer dance (used for auctions and when the
+  //    proxy doesn't support Trading API). Find existing offer, PUT it,
+  //    then publish. If GET /offer?sku returns 404 / 25713 we deliberately
+  //    do NOT auto-publish — that previously created duplicate listings
+  //    because the SKU search returns 404 even when an offer exists.
   try {
     let existing = null;
     try {
@@ -523,7 +588,6 @@ export async function updateEBayListing(itemId) {
       const m = (getErr.message || '').toLowerCase();
       const offerMissing = m.includes('not available') || m.includes('25713') || m.includes('404');
       if (!offerMissing) throw getErr;
-      console.warn('[eBay] No offer exists for', sku, '— auto-publishing to create one');
       existing = null;
     }
     if (existing?.offers?.length > 0) {
@@ -605,11 +669,37 @@ export async function pushEBayPrice(itemId) {
   if (!item.price || item.price <= 0) return { success: false };
 
   const sku = item.ebayItemId;
+  const localQty = item.qty || 1;
+
+  // Preferred path: Trading API ReviseInventoryStatus by ItemID. This
+  // sidesteps the Inventory API's flaky GET /offer?sku lookup (which has
+  // returned 25713 "Offer not available" for SKUs whose offers actually
+  // exist) and works for listings published via any eBay flow. Only
+  // attempted when we have a listing ID — otherwise nothing to revise.
+  if (item.ebayListingId) {
+    const r = await _reviseEBayListingDirect(item.ebayListingId, {
+      price: item.price,
+      qty: localQty,
+    });
+    if (r.success) {
+      console.log('[eBay] Price/qty synced via ReviseInventoryStatus:', item.ebayListingId);
+      return { success: true, status: 'revised' };
+    }
+    // Non-recoverable Trading-side failure — return clearly, don't fall back
+    // to the broken SKU path (it would just produce another 25713 or worse,
+    // a duplicate publish).
+    if (!r.unsupported) {
+      console.warn('[eBay] ReviseInventoryStatus failed:', r.error);
+      return { success: false, error: r.error };
+    }
+    // Trading API not supported by this proxy — fall through to Inventory.
+    console.warn('[eBay] Trading ReviseInventoryStatus unsupported — falling back to Inventory API');
+  }
 
   try {
-    // Fetch the existing offer for this SKU. If none exists (empty array or
-    // eBay 404 "This Offer is not available.") we can't push to it — the
-    // caller should go through publishEBayListing instead.
+    // Fallback: Inventory API path. Fetch the existing offer for this SKU.
+    // If none exists (empty array or eBay 404 "This Offer is not available.")
+    // we can't push — caller should go through publishEBayListing.
     let existing = null;
     try {
       existing = await ebayAPI('GET', `${INVENTORY_API}/offer?sku=${encodeURIComponent(sku)}`);
@@ -1288,7 +1378,10 @@ export async function endEBayListingByLid(listingId, localItemId = null) {
     if (localItemId) {
       const item = getInvItem(localItemId);
       if (item) {
+        // Clear both refs so a future republish doesn't re-link to the
+        // stale eBay-side inventory item — same reasoning as endEBayListing.
         delete item.ebayListingId;
+        delete item.ebayItemId;
         markPlatformStatus(localItemId, 'eBay', 'delisted');
         logItemEvent(localItemId, 'delisted', `eBay listing #${listingId} ended via reconcile`);
         markDirty('inv', localItemId);
@@ -1346,8 +1439,17 @@ export async function endEBayListing(itemId) {
       });
     } catch (_) {}
 
-    // Clear the old listing ID so publishEBayListing creates everything fresh
+    // 4. Delete the inventory item itself so a future republish starts clean.
+    //    Without this, item.ebayItemId still references a stale eBay-side
+    //    inventory item; the next pushItemToEBay would re-link to it and may
+    //    pick up offers/policies the user no longer wants.
+    try {
+      await ebayAPI('DELETE', `${INVENTORY_API}/inventory_item/${encodeURIComponent(sku)}`);
+    } catch (_) { /* tolerate — already-gone items are fine */ }
+
+    // Clear BOTH IDs locally so publishEBayListing treats this as a fresh item.
     delete item.ebayListingId;
+    delete item.ebayItemId;
 
     markPlatformStatus(itemId, 'eBay', 'delisted');
     logItemEvent(itemId, 'delisted', 'eBay listing ended');

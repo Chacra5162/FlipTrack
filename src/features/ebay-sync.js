@@ -8,7 +8,7 @@
 
 import { inv, sales, save, refresh, markDirty, markDeleted, getInvItem, getSalesForItem, isInvDirty } from '../data/store.js';
 import { EBAY_SYNC_INTERVAL } from '../config/timing.js';
-import { ebayAPI, isEBayConnected, getEBayUsername } from './ebay-auth.js';
+import { ebayAPI, isEBayConnected, getEBayUsername, registerEBayConnectHook } from './ebay-auth.js';
 import { markPlatformStatus } from './crosslist.js';
 import { autoDlistOnSale } from './crosslist.js';
 import { getOrCreateBuyer } from '../views/buyers.js';
@@ -221,6 +221,11 @@ export async function resetEBayApiFlags() {
     await setMeta('ebay_offer_blocked', null);
   } catch (_) {}
 }
+
+// Auto-reset blocked-API flags whenever the user reconnects eBay. Without
+// this a one-time proxy hiccup permanently disables Trading/Offer paths
+// until the user manually finds the reset button.
+registerEBayConnectHook(resetEBayApiFlags);
 
 export async function initEBaySync() {
   _lastSyncTime = await getMeta('ebay_last_sync');

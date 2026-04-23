@@ -325,6 +325,10 @@ export async function handleEBayCallback(code, state) {
       });
       await setMeta('ebay_csrf_state', null);
 
+      // Reset any per-session API-blocked flags so a fresh connection retries
+      // endpoints that may have been blocked by an earlier proxy hiccup.
+      await _runHooks(_onConnectHooks);
+
       toast('eBay account connected!');
 
       // Close popup if still open
@@ -343,6 +347,19 @@ export async function handleEBayCallback(code, state) {
   }
 }
 
+// ── CONNECT/DISCONNECT HOOKS ───────────────────────────────────────────────
+// Other modules (ebay-sync) register cleanup so per-session flags
+// (_tradingApiBlocked, _offerApiBlocked) get reset when the user reconnects.
+const _onConnectHooks = [];
+const _onDisconnectHooks = [];
+export function registerEBayConnectHook(fn) { _onConnectHooks.push(fn); }
+export function registerEBayDisconnectHook(fn) { _onDisconnectHooks.push(fn); }
+async function _runHooks(hooks) {
+  for (const fn of hooks) {
+    try { await fn(); } catch (e) { console.warn('[eBay] hook error:', e.message); }
+  }
+}
+
 // ── DISCONNECT ─────────────────────────────────────────────────────────────
 
 /**
@@ -354,6 +371,7 @@ export async function disconnectEBay() {
     _connected = false;
     _ebayUsername = null;
     _connectedAt = null;
+    await _runHooks(_onDisconnectHooks);
 
     await setMeta('ebay_auth', {
       connected: false,
