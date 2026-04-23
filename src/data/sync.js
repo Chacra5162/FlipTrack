@@ -490,6 +490,51 @@ export async function pullSupplies() {
 let _isSyncing = false;
 export function resetSyncGuard() { _isSyncing = false; }
 
+/**
+ * Reconcile local state against the cloud's full ID set for one table.
+ * Removes local rows whose IDs aren't present in the cloud — catches the
+ * case where a row was deleted on another device while we were offline
+ * or asleep and we missed the realtime DELETE event.
+ *
+ * Dirty items and pending-delete items are preserved: a locally-created
+ * row that hasn't been pushed yet would otherwise be wiped on the first
+ * reconcile.
+ */
+async function _reconcileRemoteDeletes(sb, accountId) {
+  const dirty = getDirtyIdSets();
+  const pendingDeleted = getDeletedIdSets();
+  const tables = [
+    { name: 'ft_inventory', arr: inv, dirtySet: dirty.inv, delSet: pendingDeleted.inv },
+    { name: 'ft_sales', arr: sales, dirtySet: dirty.sales, delSet: pendingDeleted.sales },
+    { name: 'ft_expenses', arr: expenses, dirtySet: dirty.expenses, delSet: pendingDeleted.expenses },
+  ];
+  for (const t of tables) {
+    if (t.arr.length === 0) continue;
+    try {
+      const { data, error } = await sb.from(t.name).select('id').eq('account_id', accountId);
+      if (error) { console.warn(`[Sync] reconcile ${t.name} failed:`, error.message); continue; }
+      if (!Array.isArray(data)) continue;
+      const cloudIds = new Set(data.map(r => r.id));
+      let removed = 0;
+      for (let i = t.arr.length - 1; i >= 0; i--) {
+        const row = t.arr[i];
+        if (!row?.id) continue;
+        if (cloudIds.has(row.id)) continue;
+        // Preserve unsent work: dirty rows are being pushed, pending-delete
+        // rows are about to be pushed as DELETEs — reconciling them would
+        // either lose the push or pre-empt it.
+        if (t.dirtySet && t.dirtySet.has(row.id)) continue;
+        if (t.delSet && t.delSet.has(row.id)) continue;
+        t.arr.splice(i, 1);
+        removed++;
+      }
+      if (removed) console.warn(`[Sync] reconciled ${removed} remote deletion${removed === 1 ? '' : 's'} from ${t.name}`);
+    } catch (e) {
+      console.warn(`[Sync] reconcile ${t.name} threw:`, e.message);
+    }
+  }
+}
+
 export async function syncNow() {
   if (_isSyncing) return;          // Re-entrancy guard
   _isSyncing = true;
@@ -506,6 +551,11 @@ export async function syncNow() {
   try {
     await pullFromCloud();
     await pushToCloud(); // Delta push — only changed items
+    // Full-set reconciliation: catch rows deleted on other devices while we
+    // were offline or while realtime missed the event. Delta pulls can't see
+    // deletes (query filters on updated_at, and a deleted row has no
+    // updated_at to compare), so without this the deletion never propagates.
+    await _reconcileRemoteDeletes(_sb, _getActiveAccountId());
     setSyncStatus('connected');
     _recordSync();
     refresh();
@@ -645,7 +695,45 @@ function _isEcho(table, rowId, remoteUpdatedAt) {
   return remoteTs <= pushedAt + 5000; // 5s tolerance for server clock drift
 }
 
+/** Apply a remote DELETE event directly. Delta pulls can't see deletes
+ *  (query is WHERE updated_at > lastPull — the row is gone, nothing to
+ *  update). Without this, a delete on another device never reaches us
+ *  until a full pull or page reload. */
+function _applyRemoteDelete(table, id) {
+  if (!id) return false;
+  let arr = null;
+  if (table === 'ft_inventory') arr = inv;
+  else if (table === 'ft_sales') arr = sales;
+  else if (table === 'ft_expenses') arr = expenses;
+  else if (table === 'ft_supplies') arr = supplies;
+  else return false;
+  const idx = arr.findIndex(r => r && r.id === id);
+  if (idx === -1) return false;
+  arr.splice(idx, 1);
+  // Echo guard: if our own DELETE just echoed back, we already spliced
+  // locally. _recentPushedRows will include this row for the window, so
+  // the caller skips further processing.
+  return true;
+}
+
 function _onRealtimeChange(payload) {
+  // Handle remote DELETE surgically: the payload carries the id of the
+  // removed row in payload.old. Splice it from the local array directly.
+  // Pulling would do nothing (delta query misses deletes) so without this
+  // branch the delete never reaches us until a full sync.
+  try {
+    if (payload?.eventType === 'DELETE' && payload.old?.id && payload.table) {
+      const echoed = _recentPushedRows.has(`${payload.table}:${payload.old.id}`);
+      const removed = _applyRemoteDelete(payload.table, payload.old.id);
+      if (removed && !echoed) {
+        save();
+        refresh();
+        if (typeof window.updateDashStats === 'function') window.updateDashStats();
+      }
+      return;
+    }
+  } catch (_) { /* fall through */ }
+
   // If the payload is our own push echoing back, skip the delta pull. The
   // local array already has the latest — pulling would just replace the
   // object with an identical copy and trigger needless re-renders. Non-echo
