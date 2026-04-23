@@ -79,6 +79,28 @@ export function getDeletedIdSets() {
   };
 }
 
+/** Clear dirty/deleted tracking for a specific list of IDs only. Used by
+ *  pushToCloud to avoid wiping items the user edited DURING the push. The
+ *  previous clearDirtyTracking() blew away everything, including marks
+ *  added between the snapshot and the upsert response — silently losing
+ *  those edits the next time the user looked away. */
+export function clearDirtyForIds(table, ids) {
+  if (!ids || !ids.length) return;
+  const set = table === 'inv' ? _dirtyInv
+    : table === 'sales' ? _dirtySales
+    : table === 'expenses' ? _dirtyExp
+    : table === 'supplies' ? _dirtySupplies
+    : null;
+  if (set) for (const id of ids) set.delete(id);
+}
+
+/** Clear specific IDs from the pending-delete set for one cloud table. */
+export function clearDeletedIds(table, ids) {
+  if (!_deletedIds[table] || !ids || !ids.length) return;
+  for (const id of ids) _deletedIds[table].delete(id);
+  _persistDeletedIds();
+}
+
 export function clearDirtyTracking() {
   _dirtyInv.clear();
   _dirtySales.clear();

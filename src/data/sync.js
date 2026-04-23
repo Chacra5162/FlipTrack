@@ -9,7 +9,7 @@ import { SB_URL, SB_KEY } from '../config/constants.js';
 import {
   inv, sales, expenses, supplies,
   save, refresh, saveLocalSupplies,
-  getDirtyItems, getDirtyIdSets, getDeletedIdSets, clearDirtyTracking, markDirty, isInvDirty, waitForPersist,
+  getDirtyItems, getDirtyIdSets, getDeletedIdSets, clearDirtyTracking, clearDirtyForIds, clearDeletedIds, markDirty, isInvDirty, waitForPersist,
   isSyncInProgress, setSyncInProgress, clearStoreTimers,
   registerAutoSync
 } from './store.js';
@@ -90,8 +90,21 @@ export async function pushToCloud() {
       console.warn('FlipTrack: image migration skipped:', e.message);
     }
 
-    // Snapshot dirty items AFTER migration so URLs are up-to-date
+    // Snapshot dirty items AFTER migration so URLs are up-to-date.
+    // Critically, we capture the IDs in the snapshot up front and only clear
+    // THOSE IDs from dirty tracking after a successful push. The previous
+    // clearDirtyTracking() approach wiped everything — including items the
+    // user edited DURING the push, silently losing those edits.
     const dirty = getDirtyItems();
+    const snapshotIds = {
+      inv: dirty.inv.map(i => i.id),
+      sales: dirty.sales.map(s => s.id),
+      expenses: dirty.expenses.map(e => e.id),
+      supplies: (dirty.supplies || []).map(s => s.id),
+    };
+    // Track which tables succeeded so we can clear dirty per-table even if
+    // a later table fails (previously the whole push threw and re-queued).
+    const succeeded = { inv: false, sales: false, expenses: false, supplies: false };
 
     // ── Push changed inventory rows ──
     if (dirty.inv.length) {
@@ -104,7 +117,8 @@ export async function pushToCloud() {
       });
       const { error } = await _sb.from('ft_inventory').upsert(rows, { onConflict: 'id' });
       if (error) throw new Error(error.message);
-    }
+      succeeded.inv = true;
+    } else { succeeded.inv = true; }
 
     // ── Push changed sales rows ──
     if (dirty.sales.length) {
@@ -113,7 +127,8 @@ export async function pushToCloud() {
       }));
       const { error } = await _sb.from('ft_sales').upsert(rows, { onConflict: 'id' });
       if (error) throw new Error(error.message);
-    }
+      succeeded.sales = true;
+    } else { succeeded.sales = true; }
 
     // ── Push changed expense rows ──
     if (dirty.expenses.length) {
@@ -123,10 +138,11 @@ export async function pushToCloud() {
       try {
         const { error } = await _sb.from('ft_expenses').upsert(rows, { onConflict: 'id' });
         if (error) console.warn('FlipTrack: expenses push error:', error.message);
+        else succeeded.expenses = true;
       } catch (e) {
         console.warn('FlipTrack: ft_expenses not available:', e.message);
       }
-    }
+    } else { succeeded.expenses = true; }
 
     // ── Push changed supply rows ──
     if (dirty.supplies && dirty.supplies.length) {
@@ -136,29 +152,38 @@ export async function pushToCloud() {
       try {
         const { error } = await _sb.from('ft_supplies').upsert(rows, { onConflict: 'id' });
         if (error) console.warn('FlipTrack: supplies push error:', error.message);
+        else succeeded.supplies = true;
       } catch (e) {
         console.warn('FlipTrack: ft_supplies not available:', e.message);
       }
-    }
+    } else { succeeded.supplies = true; }
 
-    // ── Push deletes ──
-    let deletesFailed = false;
+    // ── Push deletes (per-table, track which succeeded) ──
+    const deletesSucceededFor = {};
     for (const [table, ids] of Object.entries(dirty.deleted)) {
       if (ids.length) {
         try {
           const { error } = await _sb.from(table).delete().eq('account_id', accountId).in('id', ids);
-          if (error) { console.warn(`FlipTrack: delete from ${table} failed:`, error.message); deletesFailed = true; }
+          if (error) console.warn(`FlipTrack: delete from ${table} failed:`, error.message);
+          else deletesSucceededFor[table] = ids;
         } catch (e) {
           console.warn(`FlipTrack: delete from ${table} failed:`, e.message);
-          deletesFailed = true;
         }
-      }
+      } else { deletesSucceededFor[table] = []; }
     }
 
     // ── Record last sync timestamp ──
     await setMeta('lastSyncPush', new Date().toISOString()).catch(e => console.warn('FlipTrack: sync push timestamp save failed:', e.message));
-    if (!deletesFailed) clearDirtyTracking();
-    else console.warn('FlipTrack: some deletes failed, will retry on next sync');
+
+    // Clear ONLY the snapshotted IDs, per table. Items marked dirty AFTER the
+    // snapshot stay dirty and ride the next sync.
+    if (succeeded.inv) clearDirtyForIds('inv', snapshotIds.inv);
+    if (succeeded.sales) clearDirtyForIds('sales', snapshotIds.sales);
+    if (succeeded.expenses) clearDirtyForIds('expenses', snapshotIds.expenses);
+    if (succeeded.supplies) clearDirtyForIds('supplies', snapshotIds.supplies);
+    for (const [table, ids] of Object.entries(deletesSucceededFor)) {
+      clearDeletedIds(table, ids);
+    }
   } catch (e) {
     // Network error during push — queue everything for retry
     // Do NOT clearDirtyTracking here: dirty items that failed to push
@@ -264,13 +289,25 @@ export async function pushDeleteToCloud(table, ids) {
 // DELTA PULL — only fetch rows newer than last pull timestamp
 // ══════════════════════════════════════════════════════════════════════════
 
+let _lastPulledAccountId = null;
 export async function pullFromCloud() {
   const _sb = getSupabaseClient();
   const _currentUser = getCurrentUser();
   if (!_sb || !_currentUser) return false;
 
   const accountId = _getActiveAccountId();
+
+  // If the active account changed (team switch, account switch), the in-memory
+  // dirty set is for the PREVIOUS account. Pushing it to the new account would
+  // either fail RLS or contaminate the new account's data. Flush dirty state
+  // and force a full pull (lastPull=null) so we reload the right account's data.
   let lastPull = await getMeta('lastSyncPull').catch(() => null);
+  if (_lastPulledAccountId && _lastPulledAccountId !== accountId) {
+    console.warn('[Sync] Account switched (', _lastPulledAccountId, '→', accountId, ') — flushing dirty + forcing full pull');
+    clearDirtyTracking();
+    lastPull = null;
+  }
+  _lastPulledAccountId = accountId;
 
   // Safety: if local data is empty but lastPull is set, force a full pull.
   // This prevents a stale timestamp from causing delta queries to return 0 rows
