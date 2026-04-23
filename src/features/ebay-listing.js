@@ -574,16 +574,12 @@ export async function updateEBayListing(itemId) {
       const pubResp = await _ebayApiWithRetry('POST', `${INVENTORY_API}/offer/${offerId}/publish`);
       console.log('[eBay] Listing updated live, listingId:', pubResp.listingId);
     } else {
-      // No offer exists for this inventory item. Create one (and publish) so
-      // the price/qty update actually reaches eBay. publishEBayListing handles
-      // policies, images, and all the offer setup — it's the same flow the
-      // user would get by clicking "Publish to eBay" manually.
-      console.log('[eBay] No offer found — auto-publishing a fresh offer');
-      const pubResp = await publishEBayListing(itemId);
-      if (!pubResp?.listingId) {
-        throw new Error('Failed to create offer for update — try publishing manually');
-      }
-      console.log('[eBay] Auto-published new listing:', pubResp.listingId);
+      // eBay returned no offer for this SKU. We deliberately do NOT auto-
+      // publish here — the GET /offer?sku endpoint returns 404 / errorId
+      // 25713 even in cases where an offer actually exists (odd SKU
+      // encodings, newer offer statuses). Auto-publishing caused duplicate
+      // listings. Surface a clear message instead and let the user decide.
+      throw new Error("eBay couldn't find the offer for this SKU. Open the item and use Publish to eBay if the listing was removed.");
     }
   } catch (pubErr) {
     console.warn('[eBay] Offer update/re-publish failed:', pubErr.message);
