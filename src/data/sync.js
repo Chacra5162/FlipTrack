@@ -367,6 +367,16 @@ export async function pullFromCloud() {
     // Skip items queued for deletion — otherwise a pull between dedup (which marks a
     // dupe deleted) and the next push (which deletes it on cloud) will re-add the
     // row locally, defeating dedup and causing qty inflation on the next boot.
+    //
+    // STALENESS CAP: a dirty mark older than 24h is almost certainly stuck —
+    // either a push has been failing for days or the device was offline that
+    // long. Without this cap, a row that's been "dirty" for a week will block
+    // every newer remote update from another device indefinitely (silent
+    // multi-device data divergence). After 24h we let the remote win;
+    // worst case we lose an unsynced edit older than a day, vs. silently
+    // losing every edit from every other device permanently.
+    const STALE_DIRTY_MS = 24 * 60 * 60 * 1000;
+    const now = Date.now();
     const mergeArray = (arr, remoteRows, dirtySet, deletedSet) => {
       if (!remoteRows || !remoteRows.length) return;
       const posMap = new Map(arr.map((item, idx) => [item.id, idx]));
@@ -375,8 +385,15 @@ export async function pullFromCloud() {
         if (deletedSet && deletedSet.has(row.id)) continue;
         const idx = posMap.has(row.id) ? posMap.get(row.id) : -1;
         if (idx !== -1) {
-          // Never overwrite an item the user is actively editing
-          if (dirtySet && dirtySet.has(row.id)) continue;
+          // Skip if locally dirty AND the dirty mark is fresh (within 24h).
+          // A stale dirty mark almost always means a stuck push that's been
+          // failing for days; letting remote win there is safer than blocking
+          // every other device's updates indefinitely.
+          if (dirtySet && dirtySet.has(row.id)) {
+            const localTs = arr[idx]._localUpdatedAt || 0;
+            if (now - localTs < STALE_DIRTY_MS) continue;
+            console.warn('[Sync] Stale dirty mark on', row.id, '— accepting remote update');
+          }
           const localTs = arr[idx]._localUpdatedAt || 0;
           const remoteTs = row.updated_at ? new Date(row.updated_at).getTime() : 0;
           if (remoteTs >= localTs) {

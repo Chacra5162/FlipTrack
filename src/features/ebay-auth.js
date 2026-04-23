@@ -9,7 +9,7 @@ import { localDate } from '../utils/format.js';
 import { SB_URL, SB_KEY } from '../config/constants.js';
 import { getMeta, setMeta } from '../data/idb.js';
 import { toast } from '../utils/dom.js';
-import { getSupabaseClient } from '../data/auth.js';
+import { getSupabaseClient, safeRefreshSession } from '../data/auth.js';
 
 // ── CONFIG ─────────────────────────────────────────────────────────────────
 const EDGE_FN = `${SB_URL}/functions/v1/ebay-auth`;
@@ -69,20 +69,18 @@ async function getAuthHeaders() {
   if (!_sb) throw new Error('Not authenticated');
   let { data: { session } } = await _sb.auth.getSession();
 
-  // If no session or token expired/about to expire, force a refresh
+  // If no session or token expired/about to expire, force a refresh.
+  // Route through safeRefreshSession (in data/auth.js) which holds a
+  // module-level mutex — without it, every concurrent eBay call here
+  // would call refreshSession independently, causing token churn and
+  // potential auth chaos under load.
   if (!session || (session.expires_at && session.expires_at * 1000 < Date.now() + 60000)) {
-    const { data, error } = await _sb.auth.refreshSession();
-    if (error) {
-      // Refresh token is dead (revoked/rotated on another device) — force re-login
-      console.warn('FlipTrack: refresh token failed, signing out:', error.message);
-      await _sb.auth.signOut();
-      toast('Session expired — please log in again', true);
-      // Trigger the auth UI to show login screen
-      if (typeof window.authSignOut === 'function') window.authSignOut();
+    try {
+      const data = await safeRefreshSession();
+      if (data?.session) session = data.session;
+    } catch (err) {
+      // safeRefreshSession already handles signOut + UI on dead refresh tokens.
       throw new Error('Session expired');
-    }
-    if (data.session) {
-      session = data.session;
     }
   }
 
