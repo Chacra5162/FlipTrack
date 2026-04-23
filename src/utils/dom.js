@@ -35,10 +35,21 @@ function _handleTrapKey(e) {
   else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
 }
 
-export function toast(msg, err, dur) {
+// Toast queue. Without it, rapid toasts (e.g. save → autoSync → eBay update)
+// overwrite each other and the user only sees the last one — earlier errors
+// or status updates vanish silently. Behavior:
+//   • Errors interrupt and replace the current toast immediately
+//   • Same-text toasts within 1s collapse (no point showing "Synced ✓" 3 times)
+//   • Info toasts queue and play sequentially
+const _toastQueue = [];
+let _toastShowing = false;
+let _toastHideTimer = null;
+let _lastToastText = '';
+let _lastToastTs = 0;
+
+function _renderToast(msg, err, dur) {
   const t = document.getElementById('toast');
   if (!t) return;
-  // Ensure ARIA attributes for screen readers
   if (!t.getAttribute('role')) {
     t.setAttribute('role', 'status');
     t.setAttribute('aria-live', 'polite');
@@ -46,7 +57,64 @@ export function toast(msg, err, dur) {
   t.textContent = msg;
   t.className = 'toast' + (err ? ' err' : '');
   t.classList.add('on');
-  setTimeout(() => t.classList.remove('on'), dur || 4000);
+  _toastShowing = true;
+  _lastToastText = msg;
+  _lastToastTs = Date.now();
+  clearTimeout(_toastHideTimer);
+  _toastHideTimer = setTimeout(() => {
+    t.classList.remove('on');
+    _toastShowing = false;
+    // Drain queue
+    if (_toastQueue.length) {
+      const next = _toastQueue.shift();
+      _renderToast(next.msg, next.err, next.dur);
+    }
+  }, dur || 4000);
+}
+
+export function toast(msg, err, dur) {
+  if (!msg) return;
+  // Dedupe identical text within 1s — common when multiple sync paths each
+  // toast the same status.
+  if (msg === _lastToastText && Date.now() - _lastToastTs < 1000) return;
+  if (err) {
+    // Errors jump the line so the user always sees them.
+    _toastQueue.length = 0;
+    _renderToast(msg, true, dur);
+    return;
+  }
+  if (_toastShowing) {
+    _toastQueue.push({ msg, err: false, dur });
+    return;
+  }
+  _renderToast(msg, false, dur);
+}
+
+/**
+ * Translate raw API/network/runtime error messages into user-actionable text.
+ * Use at the catch-site before toasting: toast(humanizeError(e), true).
+ * Returns the original message verbatim if no rule matches.
+ */
+export function humanizeError(err) {
+  const raw = (err?.message || err || '').toString();
+  const m = raw.toLowerCase();
+  // Auth / session
+  if (m.includes('session expired') || m.includes('please log in')) return 'Your session expired — sign in again to continue.';
+  if (m.includes('not connected')) return raw; // already user-friendly
+  // Network
+  if (m.includes('failed to fetch') || m.includes('network error') || m.includes('check your internet')) return 'Network error — check your internet connection and try again.';
+  if (m.includes('timed out') || m.includes('timeout')) return 'Request timed out — the server is slow. Try again in a minute.';
+  // eBay-specific surface mappings
+  if (m.includes('a system error has occurred')) return 'eBay is having trouble right now — try again in a minute.';
+  if (m.includes('25713') || m.includes('this offer is not available')) return "eBay can't find the listing for this item. Open the item and use Publish to eBay to recreate it.";
+  if (m.includes('not allowed') || m.includes('insufficient permissions')) return "Your eBay account doesn't have permission for this action — reconnect your account in Settings.";
+  // HTTP status code patterns
+  if (/\b401\b/.test(m) || m.includes('unauthorized')) return 'Your session expired — sign in again.';
+  if (/\b403\b/.test(m) || m.includes('forbidden')) return 'Permission denied — check your account permissions.';
+  if (/\b5\d\d\b/.test(m) || m.includes('internal server error')) return 'Server error — try again in a moment.';
+  if (/\b4\d\d\b/.test(m)) return 'The request was rejected — check the item details (price, qty, category, etc.).';
+  // Default: return raw for now (still surfaced)
+  return raw;
 }
 
 // ── IN-APP CONFIRM MODAL (replaces window.confirm for PWA compatibility) ──

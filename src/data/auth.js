@@ -246,6 +246,14 @@ export async function authSignOut() {
   await deleteMeta('ebay_processed_returns').catch(() => {});
   await deleteMeta('ebay_dismissed_ids').catch(() => {});
 
+  // ── CLEAR USER-DERIVED CACHE THAT WOULD LEAK BETWEEN ACCOUNTS ─────────
+  // autocomplete_custom holds user-typed brand/source/category suggestions
+  // — without clearing, the next user on this device sees the previous
+  // user's history. pending_deletes is per-account dirty state and would
+  // get pushed to the wrong account on next login if left behind.
+  await deleteMeta('autocomplete_custom').catch(() => {});
+  await deleteMeta('pending_deletes').catch(() => {});
+
   refresh();
   setSyncStatus('disconnected');
   showAuthModal();

@@ -5,7 +5,7 @@
 
 import { SUBCATS, SUBSUBCATS } from '../config/categories.js';
 import { fmt, pct, ds, escHtml, escAttr, uid } from '../utils/format.js';
-import { toast, trapFocus, releaseFocus, appConfirm } from '../utils/dom.js';
+import { toast, trapFocus, releaseFocus, appConfirm, humanizeError } from '../utils/dom.js';
 import { _sfx } from '../utils/sfx.js';
 import { parseNum, validateNumericInput } from '../utils/validate.js';
 import {
@@ -613,16 +613,9 @@ export async function saveDrawer(){
       toast('eBay listing updated ✓');
     }).catch(e => {
       console.warn('[eBay] Auto-update failed:', e.message);
-      // errorId 25001 "A system error has occurred" is eBay's generic
-      // transient-failure code. _putInventoryWithRetry already retried 3x
-      // with backoff, so reaching here means eBay is genuinely wobbly.
-      // Tell the user it's eBay's side, not theirs.
-      const msg = e.message || '';
-      if (msg.toLowerCase().includes('a system error has occurred') || /\b5\d\d\b/.test(msg)) {
-        toast('eBay is having trouble right now — try again in a minute', true);
-      } else {
-        toast('eBay sync failed: ' + msg, true);
-      }
+      // humanizeError handles the 25001/25713/timeout/auth/etc. mappings
+      // centrally so all eBay-touching catch sites stay consistent.
+      toast(humanizeError(e), true);
     });
   } else if (item.platforms?.includes('eBay') && ebayChanged && !ebayRemoved) {
     // eBay field changed but can't sync — tell user why

@@ -20,7 +20,7 @@ export function registerAccountIdProvider(fn) { _getActiveAccountId = fn; }
 import { isStorageUrl, migrateImagesToStorage } from './storage.js';
 import { setMeta, getMeta } from './idb.js';
 import { enqueue, setupOfflineReplay } from './offline-queue.js';
-import { toast } from '../utils/dom.js';
+import { toast, humanizeError } from '../utils/dom.js';
 // recordSync registered from feature layer
 let _recordSync = () => {};
 export function registerRecordSync(fn) { _recordSync = fn; }
@@ -185,11 +185,10 @@ export async function pushToCloud() {
       clearDeletedIds(table, ids);
     }
   } catch (e) {
-    // Network error during push — queue everything for retry
-    // Do NOT clearDirtyTracking here: dirty items that failed to push
-    // need to stay dirty so the next sync retries them
+    // Network error during push — queue everything for retry. Dirty items
+    // that failed to push stay dirty so the next sync retries them.
     console.warn('FlipTrack: push failed, queueing for retry:', e.message);
-    toast('Sync failed — changes saved locally, will retry', true);
+    toast(`Sync failed — changes saved locally, will retry. (${humanizeError(e)})`, true);
     await waitForPersist();
     await _queueDirtyItems();
     throw e;
