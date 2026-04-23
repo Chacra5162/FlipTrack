@@ -564,7 +564,13 @@ export async function recSale() {
     const buyer = await getOrCreateBuyer(buyerName, platform);
     if (buyer) sale.buyerId = buyer.id;
   }
-  item.qty -= qty;
+  // Final defense against negative qty — validation above should catch this,
+  // but a stale form or concurrent edit could slip through. Clamp at 0 and
+  // log so the bug surfaces in console rather than silently corrupting stock.
+  if (qty > (item.qty || 0)) {
+    console.warn('[Sales] Sale qty', qty, 'exceeds available', item.qty, 'for item', item.id, '— clamping');
+  }
+  item.qty = Math.max(0, (item.qty || 0) - qty);
   // Auto-mark platform as sold
   if (platform) {
     if (!item.platformStatus) item.platformStatus = {};
@@ -641,6 +647,8 @@ async function _updateExistingSale(reenableBtn) {
     toast(`Only ${(item.qty || 0) + oldQty} available (${item.qty} in stock + ${oldQty} from this sale)`, true);
     reenableBtn(); return;
   }
+  // Math.max guard already in place — keep it; the validation above should
+  // make this unreachable but a stale form could slip through.
   item.qty = Math.max(0, (item.qty || 0) - qtyDelta);
 
   // Convert to per-unit price for storage
@@ -710,6 +718,15 @@ async function _recBundleSale(reenableBtn) {
 
   const items = [..._bundleItems].map(id => getInvItem(id)).filter(Boolean);
   if (!items.length) { toast('No items in bundle', true); reenableBtn(); return; }
+  // Reject the whole bundle if any item is out of stock — bundle code below
+  // assumes 1 unit per item; without this guard a bundle including a qty=0
+  // item would push it to -1.
+  const outOfStock = items.filter(i => (i.qty || 0) < 1);
+  if (outOfStock.length) {
+    const names = outOfStock.map(i => i.name || i.sku || 'Unnamed').slice(0, 3).join(', ');
+    toast(`Out of stock: ${names}${outOfStock.length > 3 ? '…' : ''}`, true);
+    reenableBtn(); return;
+  }
 
   // Split price proportionally by list price
   const totalListPrice = items.reduce((a, i) => a + (i.price || 1), 0) || items.length;

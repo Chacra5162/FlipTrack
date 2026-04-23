@@ -59,9 +59,11 @@ export function getDirtyItems() {
   return result;
 }
 
-/** Remove a specific ID from the deleted tracking set (used by undo) */
+/** Remove a specific ID from the deleted tracking set (used by undo + restore) */
 export function clearDeletedId(table, id) {
-  if (_deletedIds[table]) _deletedIds[table].delete(id);
+  if (!_deletedIds[table]) return;
+  _deletedIds[table].delete(id);
+  _persistDeletedIds();
 }
 
 /** Check if an inventory item has pending local changes not yet synced */
@@ -86,6 +88,7 @@ export function clearDirtyTracking() {
   _deletedIds.ft_sales.clear();
   _deletedIds.ft_expenses.clear();
   _deletedIds.ft_supplies.clear();
+  _persistDeletedIds(); // persist the cleared (empty) state
 }
 
 /** Mark an item as dirty (changed) for delta sync.
@@ -115,9 +118,29 @@ export function markDirty(table, id) {
   }
 }
 
-/** Mark an item as deleted for cloud sync */
+/** Mark an item as deleted for cloud sync. Persists immediately to IDB
+ *  so a browser crash between mark-deleted and the next sync push doesn't
+ *  resurrect the row on next load (the in-memory set would be empty, and
+ *  pullFromCloud would re-add the still-on-cloud row). */
 export function markDeleted(table, id) {
-  if (_deletedIds[table]) _deletedIds[table].add(id);
+  if (!_deletedIds[table]) return;
+  _deletedIds[table].add(id);
+  _persistDeletedIds();
+}
+
+let _persistDeletedDebounce = null;
+function _persistDeletedIds() {
+  clearTimeout(_persistDeletedDebounce);
+  _persistDeletedDebounce = setTimeout(() => {
+    if (!_idbReady) return;
+    const snapshot = {
+      ft_inventory: [..._deletedIds.ft_inventory],
+      ft_sales: [..._deletedIds.ft_sales],
+      ft_expenses: [..._deletedIds.ft_expenses],
+      ft_supplies: [..._deletedIds.ft_supplies],
+    };
+    setMeta('pending_deletes', snapshot).catch(e => console.warn('FlipTrack: persist _deletedIds failed:', e.message));
+  }, 200);
 }
 
 // ── PERFORMANCE: Inventory index for O(1) lookups ─────────────────────────
@@ -262,6 +285,20 @@ export async function initStore() {
     expenses.length = 0; expenses.push(...idbExp);
     supplies.length = 0; supplies.push(...idbSup);
     _trash.length = 0; _trash.push(...idbTrash);
+
+    // Restore pending cloud-deletes that didn't make it to push before the
+    // last shutdown. Without this, a crash after softDelete but before sync
+    // would let pullFromCloud silently re-add the still-on-cloud row.
+    try {
+      const pending = await getMeta('pending_deletes');
+      if (pending && typeof pending === 'object') {
+        for (const tbl of ['ft_inventory', 'ft_sales', 'ft_expenses', 'ft_supplies']) {
+          if (Array.isArray(pending[tbl])) {
+            for (const id of pending[tbl]) _deletedIds[tbl].add(id);
+          }
+        }
+      }
+    } catch (e) { console.warn('FlipTrack: pending_deletes hydrate failed:', e.message); }
 
     // Item counts available via dev tools if needed
   } catch (e) {
@@ -552,6 +589,18 @@ export function restoreItem(trashIdxOrId) {
   }
 
   if (restored.ebayListingId || restored.ebayItemId) _ebayUndismissCallback(restored);
+
+  // Orphan check: if restored is a child variant whose parent isn't in inv
+  // (e.g. parent was hard-deleted or evicted from trash), strip parentId so
+  // it surfaces as a standalone item rather than an invisible orphan that
+  // breaks variant indexes and rendering. The user can re-link manually if
+  // they want to.
+  if (restored.parentId && !inv.find(i => i.id === restored.parentId)) {
+    console.warn('[Trash] Restoring orphan child', restored.id, '— stripping dangling parentId', restored.parentId);
+    delete restored.parentId;
+    delete restored.variantLabel;
+  }
+
   inv.push(restored);
   // Soft-delete had queued this ID for cloud deletion; clear that before the
   // next push so the restored row isn't wiped from cloud moments after being
@@ -592,9 +641,20 @@ export function performUndo() {
   const entry = _undoStack.pop();
   if (!entry) return;
   if (entry.action === 'delete') {
-    inv.push(entry.data);
-    clearDeletedId('ft_inventory', entry.data.id);
-    markDirty('inv', entry.data.id);
+    // Restore the parent first.
+    const { _cascadedChildren, ...parentData } = entry.data;
+    inv.push(parentData);
+    clearDeletedId('ft_inventory', parentData.id);
+    markDirty('inv', parentData.id);
+    // softDeleteItem cascades children into trash + cloud-delete; undo MUST
+    // restore them too or the user is left with a parent and zero variants
+    // (variant indexes empty, drawer broken). Previously _cascadedChildren
+    // was attached to the entry but never used.
+    for (const child of (_cascadedChildren || [])) {
+      inv.push(child);
+      clearDeletedId('ft_inventory', child.id);
+      markDirty('inv', child.id);
+    }
     save();
     refresh();
   } else if (entry.action === 'sold') {
