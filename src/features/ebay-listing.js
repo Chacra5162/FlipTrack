@@ -391,9 +391,15 @@ async function _reviseEBayListingDirect(listingId, opts = {}) {
   const { price, qty } = opts;
   if (price == null && qty == null) return { success: false, error: 'Nothing to revise' };
 
-  const body = { _tradingCall: 'ReviseInventoryStatus', ItemID: String(listingId) };
-  if (price != null && Number.isFinite(price)) body.StartPrice = Number(price).toFixed(2);
-  if (qty != null && Number.isFinite(qty)) body.Quantity = Math.max(0, Math.floor(qty));
+  // Per the Trading API spec, ReviseInventoryStatus requires ItemID/
+  // StartPrice/Quantity wrapped in an <InventoryStatus> container (you can
+  // include up to 4 containers to revise multiple listings in one call).
+  // Flattening at the top level returns errorCode 21916253
+  // "Missing required container." — which is what we hit initially.
+  const inventoryStatus = { ItemID: String(listingId) };
+  if (price != null && Number.isFinite(price)) inventoryStatus.StartPrice = Number(price).toFixed(2);
+  if (qty != null && Number.isFinite(qty)) inventoryStatus.Quantity = Math.max(0, Math.floor(qty));
+  const body = { _tradingCall: 'ReviseInventoryStatus', InventoryStatus: inventoryStatus };
 
   try {
     const resp = await _ebayApiWithRetry('POST', '/ws/api.dll', body);
