@@ -41,6 +41,16 @@ let _policiesCache = null;
 let _locationKeyCache = null;
 let _aspectsCache = {};
 
+/** Drop all per-connection eBay caches. Called when the user disconnects,
+ *  reconnects, or toggles sandbox mode — without this, sandbox sessions
+ *  re-use production policies/locations and silently fail with mismatched
+ *  IDs that look like permanent errors but are just stale state. */
+export function clearEBayListingCaches() {
+  _policiesCache = null;
+  _locationKeyCache = null;
+  _aspectsCache = {};
+}
+
 /** Validate GTIN (UPC-12 / EAN-13) check digit */
 function _validGTIN(code) {
   const digits = code.split('').map(Number);

@@ -554,6 +554,8 @@ export function clearSyncTimers() {
   _syncDebounce = null;
   clearTimeout(_rtDebounce);
   _rtDebounce = null;
+  clearTimeout(_visibilityDebounce);
+  _visibilityDebounce = null;
   stopRealtime();
   if (_visibilityHandler) {
     document.removeEventListener('visibilitychange', _visibilityHandler);
@@ -664,20 +666,29 @@ export async function pollOnce() {
 // ── PAGE VISIBILITY HANDLING ───────────────────────────────────────────────
 let _syncListenersInitialized = false;
 let _visibilityHandler = null;
+let _visibilityDebounce = null;
 export function setupSyncEventListeners() {
   if (_syncListenersInitialized) return;
   _syncListenersInitialized = true;
   _visibilityHandler = () => {
-    const _sb = getSupabaseClient();
-    const _currentUser = getCurrentUser();
-    if (document.hidden) {
-      stopRealtime();
-    } else {
-      if (_sb && _currentUser) {
-        pollOnce();
-        startRealtime();
+    // Debounce rapid tab-switching: without this every toggle fires
+    // stopRealtime + startRealtime, and Supabase's channel
+    // setup/teardown is async — back-to-back calls can leak channels
+    // (subscribe callback fires after the channel was already removed)
+    // and burn rate-limit budget.
+    clearTimeout(_visibilityDebounce);
+    _visibilityDebounce = setTimeout(() => {
+      const _sb = getSupabaseClient();
+      const _currentUser = getCurrentUser();
+      if (document.hidden) {
+        stopRealtime();
+      } else {
+        if (_sb && _currentUser) {
+          pollOnce();
+          startRealtime();
+        }
       }
-    }
+    }, 300);
   };
   document.addEventListener('visibilitychange', _visibilityHandler);
 }

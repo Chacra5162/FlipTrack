@@ -227,6 +227,18 @@ export async function resetEBayApiFlags() {
 // until the user manually finds the reset button.
 registerEBayConnectHook(resetEBayApiFlags);
 
+// Drop policies/location/aspects caches on connect AND disconnect — sandbox
+// toggle re-uses cached production IDs otherwise, producing baffling failures.
+import('./ebay-listing.js').then(m => {
+  if (m.clearEBayListingCaches) {
+    registerEBayConnectHook(m.clearEBayListingCaches);
+    // Also wire disconnect — needs the hook registered through ebay-auth.
+    import('./ebay-auth.js').then(a => {
+      if (a.registerEBayDisconnectHook) a.registerEBayDisconnectHook(m.clearEBayListingCaches);
+    });
+  }
+}).catch(() => {});
+
 export async function initEBaySync() {
   _lastSyncTime = await getMeta('ebay_last_sync');
   try {
