@@ -889,11 +889,20 @@ export async function pullEBayListings({ silent = false } = {}) {
       let liveUpdated = 0;
       // Prioritize auctions — their status changes matter most
       needsLiveData.sort((a, b) => (b.ebayListingFormat === 'AUCTION' ? 1 : 0) - (a.ebayListingFormat === 'AUCTION' ? 1 : 0));
-      // Process up to 30 per sync (15 auctions + 15 others typically); auctions prioritized
-      for (const item of needsLiveData.slice(0, 30)) {
+      // Process up to 30 per sync (15 auctions + 15 others typically); auctions prioritized.
+      // 200ms inter-call delay keeps burst rate well below eBay's API quota.
+      const itemsToCheck = needsLiveData.slice(0, 30);
+      let rateLimited = false;
+      for (const item of itemsToCheck) {
+        if (rateLimited) {
+          // Rate limit hit — treat remaining items as seen so they won't be marked removed
+          seenListingIds.add(item.ebayListingId);
+          continue;
+        }
         try {
+          await new Promise(r => setTimeout(r, 200));
           const resp = await ebayAPI('GET',
-            `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${item.ebayListingId}`
+            `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${item.ebayListingId}&fieldgroups=PRODUCT`
           );
           if (!resp) continue;
           // Listing still exists (no 404) — mark local as seen so reconcile won't mark it removed
@@ -993,11 +1002,20 @@ export async function pullEBayListings({ silent = false } = {}) {
               }
               updated++; liveUpdated++;
             }
+          } else if (e.isRateLimit) {
+            // eBay rate limit hit — stop making more calls this sync cycle.
+            // Mark this item as seen so it won't be falsely marked removed.
+            seenListingIds.add(item.ebayListingId);
+            rateLimited = true;
+            console.warn('[eBay] Rate limit (429) hit — pausing per-item lookup for this sync');
           } else {
+            // Transient error — treat as seen so it won't be marked removed
+            seenListingIds.add(item.ebayListingId);
             console.warn(`[eBay] Live data for "${item.name}":`, e.message);
           }
         }
       }
+      if (rateLimited) console.warn('[eBay] Per-item lookup stopped early due to rate limit — will resume next sync');
       console.warn(`[eBay] Live data enrichment: ${liveUpdated} items updated`);
     }
 
