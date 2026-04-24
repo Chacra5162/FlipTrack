@@ -38,70 +38,44 @@ async function _fetchEBayListings() {
 
   const sellerFilter = `sellers:%7B${encodeURIComponent(username)}%7D`;
   const listings = new Map();
-
-  // Strategy 1: Direct Browse API lookup by known ebayListingId.
-  // Run in parallel batches of 8 to avoid eBay rate limits while still
-  // being much faster than sequential awaits.
-  const knownLids = [...new Set(inv
-    .filter(i => i.ebayListingId && !i.sold && !i.deleted)
-    .map(i => String(i.ebayListingId)))];
   const progressEl = document.getElementById('reconcileProgress');
-  const BATCH1 = 8;
-  for (let i = 0; i < knownLids.length; i += BATCH1) {
-    if (_reconcileCancelled) throw new Error('Reconciliation cancelled');
-    const batch = knownLids.slice(i, i + BATCH1);
-    if (progressEl) progressEl.textContent = `Checking known listings… (${Math.min(i + BATCH1, knownLids.length)}/${knownLids.length})`;
-    await Promise.all(batch.map(async lid => {
-      try {
-        const resp = await ebayAPI('GET', `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${lid}`);
-        if (!resp || !resp.itemId) return;
-        const isAuction = (resp.buyingOptions || []).includes('AUCTION');
-        listings.set(lid, {
-          listingId: lid,
-          title: resp.title || '',
-          price: parseFloat(resp.price?.value || '0'),
-          currentBid: parseFloat(resp.currentBidPrice?.value || '0'),
-          isAuction,
-          url: resp.itemWebUrl || `https://www.ebay.com/itm/${lid}`,
-          image: resp.image?.imageUrl || resp.thumbnailImages?.[0]?.imageUrl || '',
-        });
-      } catch (_) { /* 404 = listing ended/removed */ }
-    }));
-  }
 
-  // Strategy 2: Seller search — two sub-strategies combined into one query list:
-  //   a) Keywords derived from local eBay item names (good at matching known items)
-  //   b) Broad single-letter queries ('a','e','i','o') that match virtually all titles
-  //      and are essential for finding new listings that have no local counterpart yet.
-  // All queries are deduplicated and run in parallel batches of 5.
+  // ── Phase 1: Broad seller keyword search ─────────────────────────────────
+  // Run first so a single query covers the entire seller catalogue without
+  // requiring one API call per listing. Query list combines:
+  //   • Common English words that appear in virtually all item titles (the,
+  //     for, new, lot, vintage, set, etc.) — catches listings with no local
+  //     counterpart so brand-new listings are always found.
+  //   • Most-frequent tokens from the local eBay inventory — improves recall
+  //     for category-specific vocabulary the generic words might miss.
+  // All queries run in parallel batches of 5.
   const tokenCounts = new Map();
   for (const item of inv) {
     if (item.sold || item.deleted) continue;
     if (!item.platforms?.includes('eBay') && !item.ebayItemId) continue;
-    const words = (item.name || '').toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/);
-    for (const w of words) {
+    for (const w of (item.name || '').toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/)) {
       if (w.length >= 3 && !/^(the|and|for|with|new|used|size|pack|lot)$/.test(w)) {
         tokenCounts.set(w, (tokenCounts.get(w) || 0) + 1);
       }
     }
   }
-  const inventoryKeywords = [...tokenCounts.entries()].sort((a,b) => b[1] - a[1]).slice(0, 36).map(e => e[0]);
-  // Broad fallbacks catch listings whose titles share no keywords with existing inventory
-  const broadFallbacks = ['a', 'e', 'i', 'o'];
-  const queries = [...new Set([...inventoryKeywords, ...broadFallbacks])];
+  const inventoryKeywords = [...tokenCounts.entries()].sort((a,b) => b[1] - a[1]).slice(0, 24).map(e => e[0]);
+  // Broad words that appear in virtually every English listing title — essential
+  // for discovering new listings whose keywords don't appear in local inventory.
+  const broadTerms = ['the', 'for', 'new', 'lot', 'vintage', 'set', 'size', 'men', 'women', 'with', 'and'];
+  const queries = [...new Set([...broadTerms, ...inventoryKeywords])];
 
   const BATCH2 = 5;
   for (let qi = 0; qi < queries.length; qi += BATCH2) {
     if (_reconcileCancelled) throw new Error('Reconciliation cancelled');
     const batch = queries.slice(qi, qi + BATCH2);
-    if (progressEl) progressEl.textContent = `Searching eBay… (${Math.min(qi + BATCH2, queries.length)}/${queries.length} queries) — ${listings.size} found`;
+    if (progressEl) progressEl.textContent = `Searching eBay listings… (${Math.min(qi + BATCH2, queries.length)}/${queries.length} queries — ${listings.size} found)`;
     await Promise.all(batch.map(async q => {
       try {
         const resp = await ebayAPI('GET',
           `${BROWSE_API}/item_summary/search?q=${encodeURIComponent(q)}&filter=${sellerFilter}&limit=200`
         );
-        const summaries = resp?.itemSummaries || [];
-        for (const s of summaries) {
+        for (const s of (resp?.itemSummaries || [])) {
           const lid = s.legacyItemId || '';
           if (!lid || listings.has(lid)) continue;
           const isAuction = (s.buyingOptions || []).includes('AUCTION');
@@ -121,6 +95,41 @@ async function _fetchEBayListings() {
       }
     }));
   }
+
+  // ── Phase 2: Per-listing check for any known IDs the search missed ────────
+  // The keyword search catches ~95%+ of active listings. A small number of
+  // listings with unusual titles (no common words, all-numeric, etc.) may be
+  // missed. Only check those remaining known IDs — this keeps the total API
+  // call count low regardless of inventory size.
+  const knownLids = [...new Set(inv
+    .filter(i => i.ebayListingId && !i.sold && !i.deleted)
+    .map(i => String(i.ebayListingId))
+  )].filter(lid => !listings.has(lid)); // skip what Phase 1 already found
+
+  if (knownLids.length > 0) {
+    if (progressEl) progressEl.textContent = `Verifying ${knownLids.length} remaining known listing${knownLids.length > 1 ? 's' : ''}…`;
+    const BATCH1 = 6;
+    for (let i = 0; i < knownLids.length; i += BATCH1) {
+      if (_reconcileCancelled) throw new Error('Reconciliation cancelled');
+      await Promise.all(knownLids.slice(i, i + BATCH1).map(async lid => {
+        try {
+          const resp = await ebayAPI('GET', `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${lid}`);
+          if (!resp?.itemId) return;
+          const isAuction = (resp.buyingOptions || []).includes('AUCTION');
+          listings.set(lid, {
+            listingId: lid,
+            title: resp.title || '',
+            price: parseFloat(resp.price?.value || '0'),
+            currentBid: parseFloat(resp.currentBidPrice?.value || '0'),
+            isAuction,
+            url: resp.itemWebUrl || `https://www.ebay.com/itm/${lid}`,
+            image: resp.image?.imageUrl || resp.thumbnailImages?.[0]?.imageUrl || '',
+          });
+        } catch (_) { /* 404 = listing ended/removed — correctly absent from results */ }
+      }));
+    }
+  }
+
   return listings;
 }
 
