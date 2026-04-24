@@ -715,9 +715,22 @@ export async function pullEBayListings({ silent = false } = {}) {
         if (username) {
           toast('Searching your eBay store…');
           const sellerFilter = `sellers:%7B${encodeURIComponent(username)}%7D`;
-          // Try multiple broad search terms to maximize coverage
-          // eBay Browse API requires non-empty q — use broad terms that match most listings
-          const queries = ['a', 'e', 'the', 'new', 'lot', 'vintage', 'set', 'bag'];
+          // Build query list: broad English words that appear in most listing titles,
+          // plus the most-common tokens from existing local inventory names.
+          // This combination finds both new listings (via broad terms) and existing
+          // ones with unusual/specific titles (via inventory keywords).
+          const _tc = new Map();
+          for (const it of inv) {
+            if (it.sold || it.deleted) continue;
+            if (!it.platforms?.includes('eBay') && !it.ebayItemId) continue;
+            for (const w of (it.name || '').toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/)) {
+              if (w.length >= 3 && !/^(the|and|for|with|new|used|size|pack|lot)$/.test(w))
+                _tc.set(w, (_tc.get(w) || 0) + 1);
+            }
+          }
+          const invKeywords = [..._tc.entries()].sort((a,b) => b[1]-a[1]).slice(0,20).map(e=>e[0]);
+          const broadTerms = ['the', 'for', 'new', 'lot', 'vintage', 'set', 'size', 'and', 'with', 'bag'];
+          const queries = [...new Set([...broadTerms, ...invKeywords])];
           const seenBrowseIds = new Set();
 
           for (const q of queries) {
@@ -889,15 +902,20 @@ export async function pullEBayListings({ silent = false } = {}) {
       let liveUpdated = 0;
       // Prioritize auctions — their status changes matter most
       needsLiveData.sort((a, b) => (b.ebayListingFormat === 'AUCTION' ? 1 : 0) - (a.ebayListingFormat === 'AUCTION' ? 1 : 0));
-      // Process up to 30 per sync (15 auctions + 15 others typically); auctions prioritized
-      for (const item of needsLiveData.slice(0, 30)) {
+      // Process ALL items in parallel batches of 6.
+      // Previously capped at 30 which meant item #31+ never got confirmed as active,
+      // causing the reconcile block below to falsely mark them as 'removed'.
+      const _LIVE_BATCH = 6;
+      for (let _li = 0; _li < needsLiveData.length; _li += _LIVE_BATCH) {
+        await Promise.all(needsLiveData.slice(_li, _li + _LIVE_BATCH).map(async item => {
         try {
           const resp = await ebayAPI('GET',
             `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${item.ebayListingId}`
           );
-          if (!resp) continue;
+          if (!resp) return;
           // Listing still exists (no 404) — mark local as seen so reconcile won't mark it removed
           seenLocalIds.add(item.id);
+          seenListingIds.add(item.ebayListingId);
           let changed = false;
           const buyOpts = resp.buyingOptions || [];
           const isAuction = buyOpts.includes('AUCTION');
@@ -997,6 +1015,7 @@ export async function pullEBayListings({ silent = false } = {}) {
             console.warn(`[eBay] Live data for "${item.name}":`, e.message);
           }
         }
+        })); // end Promise.all batch
       }
       console.warn(`[eBay] Live data enrichment: ${liveUpdated} items updated`);
     }
