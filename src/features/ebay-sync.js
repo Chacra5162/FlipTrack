@@ -1012,6 +1012,10 @@ export async function pullEBayListings({ silent = false } = {}) {
               updated++; liveUpdated++;
             }
           } else {
+            // Transient error (rate limit, network hiccup, etc.) — NOT a 404.
+            // Do NOT mark as removed; the listing may still be active on eBay.
+            // Add to seenListingIds so the reconcile block doesn't false-flag it.
+            seenListingIds.add(item.ebayListingId);
             console.warn(`[eBay] Live data for "${item.name}":`, e.message);
           }
         }

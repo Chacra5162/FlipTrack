@@ -312,32 +312,38 @@ function _renderReconcileResults(r) {
   const body = document.getElementById('reconcileBody');
   if (!body) return;
 
-  // Phantom candidates: live on eBay but either sold locally or never imported —
-  // the user almost always wants to end these on eBay rather than mark active.
-  const phantomCount = r.ebayOnly.filter(l =>
-    !l.localItemId || (l.localStatus && l.localStatus !== 'active')
-  ).length;
+  // Phantom candidates: live on eBay but either sold locally or never imported.
+  // Only mark as phantom when the item is truly orphaned (!localItemId) or the
+  // local copy is marked sold/sold-elsewhere. Do NOT auto-end listings whose local
+  // status is 'removed' or 'expired' — those represent a data inconsistency where
+  // FlipTrack thinks eBay already removed it, but it's still live. Ending those
+  // automatically has caused active listings to be taken down in error.
+  const _isPhantom = l => !l.localItemId || l.localStatus === 'sold' || l.localStatus === 'sold-elsewhere';
+  const phantomCount = r.ebayOnly.filter(_isPhantom).length;
   const ebayOnlyHtml = r.ebayOnly.length ? `
     <div style="margin-bottom:24px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap">
         <div style="font-family:'Syne',sans-serif;font-weight:700;color:var(--accent)">📥 On eBay, Not in FlipTrack (${r.ebayOnly.length})</div>
         ${phantomCount > 0 ? `<button class="btn-secondary" onclick="reconcileDumpAllPhantoms()" style="font-size:11px">🚫 End ${phantomCount} Phantom${phantomCount > 1 ? 's' : ''} on eBay</button>` : ''}
       </div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">These listings are live on eBay but either missing from your inventory or marked inactive locally. Use "End on eBay" to take down listings that shouldn't be live anymore (e.g. already sold elsewhere).</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">These listings are live on eBay but either missing from your inventory or marked inactive locally. Use "End on eBay" to take down listings that shouldn't be live anymore (e.g. already sold elsewhere). Items showing "removed" or "expired" locally may be a sync mismatch — use "Mark Active" to restore them, or "End on eBay" only if you're sure.</div>
       <table class="ih-table"><thead><tr>
         <th>Title</th><th>Price</th><th>Format</th><th>Local Status</th><th>Action</th>
       </tr></thead><tbody>
-        ${r.ebayOnly.map(l => `<tr>
-          <td class="ih-td-name"><a href="${escAttr(l.url)}" target="_blank" rel="noopener" style="color:var(--accent)">${escHtml(l.title.slice(0, 50))}</a></td>
+        ${r.ebayOnly.map(l => {
+          const isConflict = l.localStatus === 'removed' || l.localStatus === 'expired';
+          return `<tr${isConflict ? ' style="background:rgba(255,165,0,0.07)"' : ''}>
+          <td class="ih-td-name"><a href="${escAttr(l.url)}" target="_blank" rel="noopener" style="color:var(--accent)">${escHtml(l.title.slice(0, 50))}</a>${isConflict ? ' <span style="font-size:10px;color:var(--warn)" title="FlipTrack marked this removed/expired but it\'s still live on eBay">⚠ sync conflict</span>' : ''}</td>
           <td>${l.isAuction ? fmt(l.currentBid || l.price) + ' bid' : fmt(l.price)}</td>
           <td>${l.isAuction ? 'Auction' : 'Fixed'}</td>
-          <td style="color:${l.localStatus ? 'var(--warn)' : 'var(--muted)'}">${l.localStatus || 'not imported'}</td>
+          <td style="color:${l.localStatus ? (isConflict ? 'var(--warn)' : 'var(--warn)') : 'var(--muted)'}">${l.localStatus || 'not imported'}</td>
           <td style="white-space:nowrap">${l.localItemId
             ? `<button class="act-btn" onclick="reconcileMarkActive('${escAttr(l.localItemId)}')">Mark Active</button>`
             : `<button class="act-btn" onclick="reconcileImport('${escAttr(l.listingId)}')">Import</button>`}
             <button class="act-btn red" onclick="reconcileEndListing('${escAttr(l.listingId)}','${escAttr(l.localItemId || '')}')" title="End this listing on eBay">End on eBay</button>
           </td>
-        </tr>`).join('')}
+        </tr>`;
+        }).join('')}
       </tbody></table>
     </div>` : '';
 
@@ -531,17 +537,25 @@ export async function reconcileEndListing(listingId, localItemId) {
  */
 export async function reconcileDumpAllPhantoms() {
   const r = _lastReconcile || await buildReconciliation();
-  const phantoms = r.ebayOnly.filter(l =>
-    !l.localItemId || (l.localStatus && l.localStatus !== 'active')
-  );
-  if (!phantoms.length) { toast('No phantom listings to end'); return; }
-  if (!confirm(`End ${phantoms.length} phantom listing${phantoms.length > 1 ? 's' : ''} on eBay? This takes them down immediately and cannot be undone.`)) return;
+  // Only end listings that are truly orphaned (no local match at all) or whose
+  // local copy is explicitly sold/sold-elsewhere. Never auto-end 'removed' or
+  // 'expired' items — those are data-conflict cases, not confirmed phantoms.
+  const phantoms = r.ebayOnly.filter(l => !l.localItemId || l.localStatus === 'sold' || l.localStatus === 'sold-elsewhere');
+  // Safety re-check against current live state — never end a listing whose
+  // local item is CURRENTLY active (stale cache or race condition protection).
+  const safePhantoms = phantoms.filter(l => {
+    if (!l.localItemId) return true;
+    const localItem = inv.find(i => i.id === l.localItemId);
+    return !localItem || localItem.platformStatus?.eBay !== 'active';
+  });
+  if (!safePhantoms.length) { toast('No phantom listings to end'); return; }
+  if (!confirm(`End ${safePhantoms.length} phantom listing${safePhantoms.length > 1 ? 's' : ''} on eBay? This takes them down immediately and cannot be undone.`)) return;
   _lastReconcile = null; // stale after we end listings
   const BATCH = 5;
   let ok = 0, failed = 0;
-  for (let i = 0; i < phantoms.length; i += BATCH) {
+  for (let i = 0; i < safePhantoms.length; i += BATCH) {
     const results = await Promise.all(
-      phantoms.slice(i, i + BATCH).map(l => endEBayListingByLid(l.listingId, l.localItemId || null))
+      safePhantoms.slice(i, i + BATCH).map(l => endEBayListingByLid(l.listingId, l.localItemId || null))
     );
     for (const res of results) { if (res.success) ok++; else failed++; }
   }
