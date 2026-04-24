@@ -45,6 +45,8 @@ jobs:
           cp ebay-callback.html dist/ 2>/dev/null || true
           cp etsy-callback.html dist/ 2>/dev/null || true
           cp train.html dist/ 2>/dev/null || true
+          cp whoop-callback.html dist/ 2>/dev/null || true
+          cp privacy.html dist/ 2>/dev/null || true
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
