@@ -49,21 +49,26 @@ async function _fetchEBayListings() {
   //   • Most-frequent tokens from the local eBay inventory — improves recall
   //     for category-specific vocabulary the generic words might miss.
   // All queries run in parallel batches of 5.
-  const tokenCounts = new Map();
+  const broadTerms = [
+    'a', 'an', 'the', 'for', 'of', 'in', 'on', 'at', 'to', 'by', 'or', 'and', 'with', 'from',
+    'new', 'used', 'lot', 'set', 'pair', 'pack', 'bag', 'box', 'case', 'kit', 'bundle',
+    'vintage', 'rare', 'retro', 'authentic', 'original', 'mint', 'sealed', 'bulk',
+    'size', 'small', 'medium', 'large', 'xl', 'xs', 'men', 'women', 'kids', 'boys', 'girls',
+    'nwt', 'nib', 'nwob', 'obo', 'free', 'fast', 'plus',
+    'black', 'white', 'red', 'blue', 'green', 'pink', 'grey', 'gray', 'brown', 'gold', 'silver',
+    'shirt', 'pants', 'jeans', 'jacket', 'dress', 'shoes', 'sneakers', 'boots', 'hoodie', 'top',
+    '1', '2', '3', '4', '5', '6', '7', '8', '9', '10',
+  ];
+  // ALL unique words from existing eBay inventory names for maximum title coverage.
+  const _invWords = new Set();
   for (const item of inv) {
     if (item.sold || item.deleted) continue;
     if (!item.platforms?.includes('eBay') && !item.ebayItemId) continue;
     for (const w of (item.name || '').toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/)) {
-      if (w.length >= 3 && !/^(the|and|for|with|new|used|size|pack|lot)$/.test(w)) {
-        tokenCounts.set(w, (tokenCounts.get(w) || 0) + 1);
-      }
+      if (w.length >= 3) _invWords.add(w);
     }
   }
-  const inventoryKeywords = [...tokenCounts.entries()].sort((a,b) => b[1] - a[1]).slice(0, 24).map(e => e[0]);
-  // Broad words that appear in virtually every English listing title — essential
-  // for discovering new listings whose keywords don't appear in local inventory.
-  const broadTerms = ['the', 'for', 'new', 'lot', 'vintage', 'set', 'size', 'men', 'women', 'with', 'and'];
-  const queries = [...new Set([...broadTerms, ...inventoryKeywords])];
+  const queries = [...new Set([...broadTerms, ..._invWords])];
 
   const BATCH2 = 5;
   for (let qi = 0; qi < queries.length; qi += BATCH2) {

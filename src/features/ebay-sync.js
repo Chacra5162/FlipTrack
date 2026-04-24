@@ -117,7 +117,11 @@ export function detectInventoryDuplicates() {
   const dupes = [];
   for (const it of inv) {
     if (it.sold || it.deleted) continue;
-    const skuKey = it.sku ? 'sku:' + _normSku(it.sku) : null;
+    // Use exact case-insensitive SKU (trimmed) — _normSku strips punctuation,
+    // which collapses 'JORDAN-4' and 'Jordan4' into the same key and falsely
+    // merges distinct items every app load.
+    const rawSku = it.sku?.trim();
+    const skuKey = rawSku ? 'sku:' + rawSku.toLowerCase() : null;
     const lidKey = it.ebayListingId ? 'lid:' + it.ebayListingId : null;
     if (skuKey) {
       if (bySkuNorm.has(skuKey)) dupes.push({ a: bySkuNorm.get(skuKey), b: it, key: skuKey });
@@ -555,8 +559,17 @@ export async function pullEBayListings({ silent = false } = {}) {
               let changed = false;
               if (sku && local.ebayItemId !== sku) { local.ebayItemId = sku; changed = true; }
               if (lid && local.ebayListingId !== lid) {
-                local.ebayListingId = lid; changed = true;
-                byListingId.set(lid, local);
+                // Guard: don't assign this listing ID if another item already owns it.
+                // Doing so would create two items with the same ebayListingId, which
+                // the dedup merges on every subsequent load — causing the repeated
+                // "Merged N duplicate items" toast even when the user sees no duplicates.
+                const existingOwner = byListingId.get(lid);
+                if (!existingOwner || existingOwner.id === local.id) {
+                  local.ebayListingId = lid; changed = true;
+                  byListingId.set(lid, local);
+                } else {
+                  console.warn(`[eBay] Offer API: listing ${lid} already owned by "${existingOwner.name}" — not overwriting onto "${local.name}"`);
+                }
               }
               if (!local.platforms?.includes('eBay')) {
                 if (!local.platforms) local.platforms = [];
@@ -715,22 +728,41 @@ export async function pullEBayListings({ silent = false } = {}) {
         if (username) {
           toast('Searching your eBay store…');
           const sellerFilter = `sellers:%7B${encodeURIComponent(username)}%7D`;
-          // Build query list: broad English words that appear in most listing titles,
-          // plus the most-common tokens from existing local inventory names.
-          // This combination finds both new listings (via broad terms) and existing
-          // ones with unusual/specific titles (via inventory keywords).
-          const _tc = new Map();
+          // Build query list for broad seller search.
+          // broadTerms: common English words that appear in nearly every listing title.
+          // invAllWords: EVERY unique word from existing eBay inventory names — ensures
+          //   any new listing whose title shares vocabulary with existing items is found,
+          //   even for brand names and model numbers not in the broad list.
+          // Together these maximise new-listing discovery without Trading API.
+          const broadTerms = [
+            // Articles / prepositions
+            'a', 'an', 'the', 'for', 'of', 'in', 'on', 'at', 'to', 'by', 'or', 'and', 'with', 'from',
+            // Common listing words
+            'new', 'used', 'lot', 'set', 'pair', 'pack', 'bag', 'box', 'case', 'kit', 'bundle',
+            'vintage', 'rare', 'retro', 'authentic', 'original', 'mint', 'sealed', 'bulk',
+            // Size / gender
+            'size', 'small', 'medium', 'large', 'xl', 'xs', 'men', 'women', 'kids', 'boys', 'girls',
+            // Condition / shipping terms
+            'nwt', 'nib', 'nwob', 'obo', 'free', 'fast', 'plus',
+            // Colors
+            'black', 'white', 'red', 'blue', 'green', 'pink', 'grey', 'gray', 'brown', 'gold', 'silver',
+            // Common clothing
+            'shirt', 'pants', 'jeans', 'jacket', 'dress', 'shoes', 'sneakers', 'boots', 'hoodie', 'top',
+            // Common numbers that appear as standalone words in many eBay titles
+            '1', '2', '3', '4', '5', '6', '7', '8', '9', '10',
+          ];
+          // ALL unique words from existing eBay inventory names (not just top 20).
+          // This is the key change: a new "Jordan 4 Retro" listing is only found if
+          // 'jordan' or 'retro' is already in inventory vocabulary.
+          const _invWords = new Set();
           for (const it of inv) {
             if (it.sold || it.deleted) continue;
             if (!it.platforms?.includes('eBay') && !it.ebayItemId) continue;
             for (const w of (it.name || '').toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/)) {
-              if (w.length >= 3 && !/^(the|and|for|with|new|used|size|pack|lot)$/.test(w))
-                _tc.set(w, (_tc.get(w) || 0) + 1);
+              if (w.length >= 3) _invWords.add(w);
             }
           }
-          const invKeywords = [..._tc.entries()].sort((a,b) => b[1]-a[1]).slice(0,20).map(e=>e[0]);
-          const broadTerms = ['the', 'for', 'new', 'lot', 'vintage', 'set', 'size', 'and', 'with', 'bag'];
-          const queries = [...new Set([...broadTerms, ...invKeywords])];
+          const queries = [...new Set([...broadTerms, ..._invWords])];
           const seenBrowseIds = new Set();
 
           for (const q of queries) {
@@ -1103,7 +1135,13 @@ export async function pullEBayListings({ silent = false } = {}) {
           if (!local) continue;
           let changed = false;
           const lid = offer.listing?.listingId || offer.listingId || '';
-          if (lid && local.ebayListingId !== lid) { local.ebayListingId = lid; changed = true; }
+          if (lid && local.ebayListingId !== lid) {
+            const existingOwner = byListingId.get(lid);
+            if (!existingOwner || existingOwner.id === local.id) {
+              local.ebayListingId = lid; changed = true;
+              byListingId.set(lid, local);
+            }
+          }
           if (lid) seenListingIds.add(lid);
           const fmt = (offer.format || offer.listingPolicies?.listingFormat || 'FIXED_PRICE') === 'AUCTION' ? 'AUCTION' : 'FIXED_PRICE';
           if (local.ebayListingFormat !== fmt) { local.ebayListingFormat = fmt; changed = true; }
