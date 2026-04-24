@@ -810,7 +810,8 @@ export async function pullEBayListings({ silent = false } = {}) {
               // Keep trying queries until we've found all items or exhausted queries
               // Each query finds items containing that term — need multiple for full coverage
               if (summaries.length >= 200) continue; // Might have more, try next query
-              if (seenBrowseIds.size >= 50) break; // Found plenty, stop
+              // Don't break early — all queries must run to ensure full coverage.
+              // Breaking at 50 would skip new listings found only by later queries.
             } catch (qErr) {
               console.warn(`[eBay] Browse q="${q}" failed:`, qErr.message);
               // If first attempt fails (empty q), try next query term
