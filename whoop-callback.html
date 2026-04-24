@@ -7,86 +7,124 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0d0d0d; color: #f0f0f0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; text-align: center; }
-  .icon { width: 64px; height: 64px; border-radius: 50%; background: rgba(200,245,66,.15); border: 2px solid rgba(200,245,66,.4); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
-  h1 { font-size: 24px; font-weight: 700; color: #c8f542; margin-bottom: 8px; }
-  p { font-size: 15px; color: #999; max-width: 320px; line-height: 1.6; margin-bottom: 8px; }
-  .spinner { width: 20px; height: 20px; border: 2px solid #2a2a2a; border-top-color: #c8f542; border-radius: 50%; animation: spin .7s linear infinite; margin: 20px auto 0; }
+  .icon { width: 72px; height: 72px; border-radius: 50%; background: rgba(200,245,66,.12); border: 2px solid rgba(200,245,66,.35); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+  h1 { font-size: 26px; font-weight: 700; margin-bottom: 10px; }
+  h1.success { color: #c8f542; }
+  h1.error { color: #e24b4a; }
+  p { font-size: 15px; color: #999; max-width: 340px; line-height: 1.6; }
+  .spinner { width: 22px; height: 22px; border: 2px solid #2a2a2a; border-top-color: #c8f542; border-radius: 50%; animation: spin .7s linear infinite; margin: 24px auto 0; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .error { color: #e24b4a; font-size: 14px; margin-top: 16px; display: none; }
-  .back-btn { margin-top: 24px; background: #1c1c1c; border: 1px solid #2a2a2a; color: #f0f0f0; padding: 10px 24px; border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer; text-decoration: none; display: inline-block; }
+  .back-btn { margin-top: 28px; background: #1c1c1c; border: 1px solid #2a2a2a; color: #f0f0f0; padding: 12px 28px; border-radius: 12px; font-size: 15px; font-weight: 500; cursor: pointer; text-decoration: none; display: inline-block; transition: background .15s; }
+  .back-btn:hover { background: #252525; }
+  .detail { font-size: 12px; color: #555; margin-top: 12px; font-family: monospace; word-break: break-all; max-width: 320px; }
 </style>
 </head>
 <body>
-<div class="icon">
-  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c8f542" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+
+<div class="icon" id="icon">
+  <div class="spinner" id="spinner"></div>
 </div>
-<h1 id="title">Connecting to WHOOP...</h1>
-<p id="message">Exchanging authorization code. This will only take a moment.</p>
-<div class="spinner" id="spinner"></div>
-<p class="error" id="error-msg"></p>
+<h1 id="title">Connecting WHOOP...</h1>
+<p id="message">Exchanging authorization code for access token.</p>
+<p class="detail" id="detail"></p>
 <a href="/train.html" class="back-btn" id="back-btn" style="display:none">Back to Train App</a>
 
 <script>
-(async function() {
+const CLIENT_ID     = 'a707eff2-69f7-4254-a282-2b429e5e8e2f';
+const CLIENT_SECRET = 'bdb8c514b9f335fb1a899e900c1d907b3fbe0fdf18064d17d625d49ad981761d';
+const REDIRECT_URI  = 'https://fliptrack.live/whoop-callback.html';
+
+const iconEl    = document.getElementById('icon');
+const spinnerEl = document.getElementById('spinner');
+const titleEl   = document.getElementById('title');
+const msgEl     = document.getElementById('message');
+const detailEl  = document.getElementById('detail');
+const backBtn   = document.getElementById('back-btn');
+
+function showCheck() {
+  spinnerEl.style.display = 'none';
+  iconEl.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#c8f542" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';
+}
+function showX() {
+  spinnerEl.style.display = 'none';
+  iconEl.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e24b4a" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+}
+function succeed(name) {
+  showCheck();
+  titleEl.textContent = 'WHOOP Connected!';
+  titleEl.className = 'success';
+  msgEl.textContent = (name ? 'Hey ' + name + '! ' : '') + 'Your WHOOP account is linked. Redirecting you back to the app...';
+  backBtn.style.display = 'inline-block';
+  setTimeout(() => { window.location.href = '/train.html?whoop=1'; }, 2200);
+}
+function fail(msg, detail) {
+  showX();
+  titleEl.textContent = 'Connection failed';
+  titleEl.className = 'error';
+  msgEl.textContent = msg;
+  if (detail) detailEl.textContent = detail;
+  backBtn.style.display = 'inline-block';
+}
+
+(async () => {
   const params = new URLSearchParams(window.location.search);
-  const code = params.get('code');
-  const state = params.get('state');
-  const error = params.get('error');
+  const code   = params.get('code');
+  const state  = params.get('state');
+  const err    = params.get('error');
 
-  const titleEl = document.getElementById('title');
-  const msgEl = document.getElementById('message');
-  const spinnerEl = document.getElementById('spinner');
-  const errorEl = document.getElementById('error-msg');
-  const backBtn = document.getElementById('back-btn');
+  if (err) { fail('WHOOP denied access: ' + err); return; }
+  if (!code) { fail('No authorization code received.', 'URL: ' + window.location.search); return; }
 
-  function showError(msg) {
-    titleEl.textContent = 'Connection failed';
-    titleEl.style.color = '#e24b4a';
-    msgEl.textContent = 'Could not connect your WHOOP account.';
-    spinnerEl.style.display = 'none';
-    errorEl.style.display = 'block';
-    errorEl.textContent = msg;
-    backBtn.style.display = 'inline-block';
-  }
-
-  function showSuccess(name) {
-    titleEl.textContent = 'WHOOP Connected!';
-    msgEl.textContent = (name ? 'Welcome, ' + name + '. ' : '') + 'Your WHOOP account is now linked. Redirecting you back to the app...';
-    spinnerEl.style.display = 'none';
-    backBtn.style.display = 'inline-block';
-  }
-
-  if (error) {
-    showError('Authorization denied: ' + error);
-    return;
-  }
-
-  if (!code) {
-    showError('No authorization code received from WHOOP.');
-    return;
-  }
-
-  // Verify state param matches what we sent
+  // Verify CSRF state
   const savedState = localStorage.getItem('whoop_oauth_state');
-  if (state && savedState && state !== savedState) {
-    showError('State mismatch — possible CSRF attack. Please try again.');
-    return;
+  if (savedState && state && savedState !== state) {
+    fail('State mismatch — possible CSRF. Please try again.'); return;
   }
-
-  // Store the auth code — the train app will exchange it for a token
-  // Since we can't safely do the token exchange client-side (exposes client_secret),
-  // we store the code and let the user know they need to complete setup.
-  // For a production app, a server-side proxy would handle this exchange.
-  localStorage.setItem('whoop_auth_code', code);
-  localStorage.setItem('whoop_auth_code_time', Date.now().toString());
   localStorage.removeItem('whoop_oauth_state');
 
-  showSuccess(null);
+  // Exchange code for token directly (client-side, personal app)
+  try {
+    const body = new URLSearchParams({
+      grant_type:    'authorization_code',
+      code:          code,
+      redirect_uri:  REDIRECT_URI,
+      client_id:     CLIENT_ID,
+      client_secret: CLIENT_SECRET,
+    });
 
-  // Redirect back to the train app after 2 seconds
-  setTimeout(() => {
-    window.location.href = '/train.html?whoop_connected=1';
-  }, 2000);
+    const res = await fetch('https://api.prod.whoop.com/oauth/oauth2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.access_token) {
+      fail('Token exchange failed.', JSON.stringify(data));
+      return;
+    }
+
+    // Store tokens
+    localStorage.setItem('whoop_access_token',  data.access_token);
+    localStorage.setItem('whoop_refresh_token', data.refresh_token || '');
+    localStorage.setItem('whoop_token_expiry',  (Date.now() + (data.expires_in || 3600) * 1000).toString());
+
+    // Fetch profile to confirm identity
+    let name = '';
+    try {
+      const profile = await fetch('https://api.prod.whoop.com/developer/v1/user/profile/basic', {
+        headers: { 'Authorization': 'Bearer ' + data.access_token }
+      });
+      const pd = await profile.json();
+      if (pd.first_name) name = pd.first_name;
+    } catch(e) {}
+
+    succeed(name);
+
+  } catch(e) {
+    fail('Network error during token exchange.', e.message);
+  }
 })();
 </script>
 </body>
