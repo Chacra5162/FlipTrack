@@ -192,10 +192,13 @@ self.addEventListener('notificationclick', (e) => {
   e.notification.close();
 
   const data = e.notification.data || {};
+  const tag = e.notification.tag || '';
   // Determine which view to navigate to
   let targetUrl = './app.html';
-  if (data.type === 'low-stock' || data.type === 'oos') {
+  if (data.type === 'low-stock' || data.type === 'oos' || tag === 'ft-low' || tag === 'ft-oos' || tag === 'ft-supplies-low') {
     targetUrl = './app.html#inventory';
+  } else if (tag.startsWith('ft-ebay-sale-') || tag.startsWith('ft-ebay-auction-') || tag.startsWith('ft-ebay-offer-')) {
+    targetUrl = './app.html#sales';
   }
 
   e.waitUntil(

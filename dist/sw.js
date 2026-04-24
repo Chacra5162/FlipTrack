@@ -5,12 +5,13 @@
    • Non-hashed scripts  → network-first  (always get latest version)
    • Images & fonts      → cache-first    (rarely change, fast loads)
 
-   v7 cache bust for v2.0.2 feature updates (tour auto-play, supply
-   allocation, peer benchmarking, sourcing pipeline, user guide v2.0).
+   v8 cache bust — adds Supabase Storage image caching to reduce egress.
+   Cross-origin item images now use cache-first strategy.
    ──────────────────────────────────────────────────────────────────────── */
 
-const CACHE_NAME = 'fliptrack-v7';
-const MAX_CACHE_ENTRIES = 120;
+const CACHE_NAME = 'fliptrack-v8';
+const MAX_CACHE_ENTRIES = 200;
+const SUPABASE_STORAGE_ORIGIN = 'https://gqructzvlkafclooybnc.supabase.co';
 const PRECACHE = [
   './',
   './index.html',
@@ -120,8 +121,16 @@ async function cacheFirst(request) {
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
 
-  // Skip non-GET and cross-origin (Supabase API, CDNs, etc.)
+  // Skip non-GET
   if (e.request.method !== 'GET') return;
+
+  // Supabase Storage images → cache-first (reduces egress significantly)
+  if (url.origin === SUPABASE_STORAGE_ORIGIN && url.pathname.includes('/storage/')) {
+    e.respondWith(cacheFirst(e.request));
+    return;
+  }
+
+  // Skip other cross-origin requests (Supabase API, CDNs, etc.)
   if (url.origin !== self.location.origin) return;
 
   // 1. HTML navigation → network-first (always fresh page)
@@ -183,10 +192,13 @@ self.addEventListener('notificationclick', (e) => {
   e.notification.close();
 
   const data = e.notification.data || {};
+  const tag = e.notification.tag || '';
   // Determine which view to navigate to
   let targetUrl = './app.html';
-  if (data.type === 'low-stock' || data.type === 'oos') {
+  if (data.type === 'low-stock' || data.type === 'oos' || tag === 'ft-low' || tag === 'ft-oos' || tag === 'ft-supplies-low') {
     targetUrl = './app.html#inventory';
+  } else if (tag.startsWith('ft-ebay-sale-') || tag.startsWith('ft-ebay-auction-') || tag.startsWith('ft-ebay-offer-')) {
+    targetUrl = './app.html#sales';
   }
 
   e.waitUntil(
