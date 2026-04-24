@@ -27,7 +27,7 @@ header { background:var(--bg); border-bottom:1px solid var(--border); padding:14
 .header-top { display:flex; align-items:center; justify-content:space-between; }
 .app-title { font-family:'Barlow Condensed',sans-serif; font-size:28px; font-weight:800; letter-spacing:-0.5px; color:var(--accent); line-height:1; }
 .week-pill { background:var(--bg3); border:1px solid var(--border); border-radius:20px; padding:4px 12px; font-size:12px; font-weight:500; color:var(--text2); cursor:pointer; }
-.phase-line { font-size:12px; color:var(--text3); margin-top:0; }
+.phase-line { font-size:12px; color:var(--text3); margin-top:4px; }
 .phase-line span { color:var(--accent); font-weight:500; }
 .day-tabs { display:flex; gap:6px; padding:10px 16px 0; overflow-x:auto; scrollbar-width:none; flex-shrink:0; }
 .day-tabs::-webkit-scrollbar { display:none; }
@@ -120,10 +120,6 @@ header { background:var(--bg); border-bottom:1px solid var(--border); padding:14
 .rest-day-emoji { font-size:48px; margin-bottom:12px; }
 .rest-day-title { font-family:'Barlow Condensed',sans-serif; font-size:28px; font-weight:800; }
 .rest-day-body { font-size:14px; color:var(--text2); margin-top:8px; line-height:1.6; }
-/* WHOOP */
-.whoop-btn{display:flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:6px 11px;font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all .15s;flex-shrink:0;}
-.whoop-btn.connected{border-color:rgba(200,245,66,.4);color:var(--accent);}
-.whoop-btn.logging{opacity:.5;pointer-events:none;}
 * { scrollbar-width:thin; scrollbar-color:var(--bg4) transparent; }
 @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
 .ex-card:nth-child(2){animation-delay:.04s}.ex-card:nth-child(3){animation-delay:.08s}.ex-card:nth-child(4){animation-delay:.12s}.ex-card:nth-child(5){animation-delay:.16s}.ex-card:nth-child(6){animation-delay:.20s}.ex-card:nth-child(7){animation-delay:.24s}
@@ -141,10 +137,7 @@ header { background:var(--bg); border-bottom:1px solid var(--border); padding:14
       <div class="app-title">TRAIN</div>
       <div class="week-pill" id="week-pill-btn">Week 1 &#9662;</div>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
-      <div class="phase-line" id="phase-line" style="flex:1"><span>Phase 1 &mdash; Foundation</span> &middot; 4-day Upper/Lower Split</div>
-      <button class="whoop-btn" id="whoop-header-btn" onclick="whoopHeaderClick()">Connect WHOOP</button>
-    </div>
+    <div class="phase-line" id="phase-line"><span>Phase 1 &mdash; Foundation</span> &middot; 4-day Upper/Lower Split</div>
   </header>
   <div class="day-tabs" id="day-tabs"></div>
   <div id="scroll-area">
@@ -376,7 +369,7 @@ function parseRest(r){if(!r||r==='--')return 90;const m=r.match(/(\d+)/);return 
 
 function cooldownHTML(){
   const items=[['Chest doorway stretch','30s x 2'],['Lat side stretch (overhead)','30s each'],['Hip flexor lunge','30s each'],['Standing quad stretch','30s each'],['Seated hamstring stretch','30s each'],["Child's pose",'60s']];
-  return '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:10px">'+items.map(([n,d],i)=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px;'+(i<items.length-1?'border-bottom:1px solid var(--border)':'')+'"><span style="font-size:13px;font-weight:500;color:var(--text)">'+n+'</span><span style="font-size:12px;color:var(--accent);font-weight:600;font-family:\'Barlow Condensed\',sans-serif">'+d+'</span></div>').join('')+'</div>';
+  return '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:10px">'+items.map(([n,d],i)=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px;'+(i<items.length-1?'border-bottom:1px solid var(--border)':'')+'" ><span style="font-size:13px;font-weight:500;color:var(--text)">'+n+'</span><span style="font-size:12px;color:var(--accent);font-weight:600;font-family:\'Barlow Condensed\',sans-serif">'+d+'</span></div>').join('')+'</div>';
 }
 
 function renderWorkout(){
@@ -388,7 +381,7 @@ function renderWorkout(){
   }
   const exercises=getExercises();
   const isDeload=getPhase()==='deload';
-  let html='<div class="day-header"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px"><div class="day-title">'+day.dayOfWeek+'<br>'+day.name+'</div><button class="whoop-btn" id="whoop-day-btn" onclick="whoopLogDay()">Log to WHOOP</button></div><div class="day-focus-tags">'+day.focus.map(f=>'<span class="focus-tag accent">'+f+'</span>').join('')+(isDeload?'<span class="focus-tag">Deload &mdash; 60% weight</span>':'')+'</div></div>';
+  let html='<div class="day-header"><div class="day-title">'+day.dayOfWeek+'<br>'+day.name+'</div><div class="day-focus-tags">'+day.focus.map(f=>'<span class="focus-tag accent">'+f+'</span>').join('')+(isDeload?'<span class="focus-tag">Deload &mdash; 60% weight</span>':'')+'</div></div>';
   if(day.warmup){html+='<div class="warmup-banner" id="warmup-banner" onclick="toggleWarmup()"><div class="warmup-banner-title"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#c8f542" stroke-width="2"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l2 2"/></svg>Warm-up &mdash; do this first<svg class="warmup-banner-chevron" width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8l5 5 5-5"/></svg></div><div class="warmup-banner-body">'+day.warmup.steps+'</div></div>';}
   html+='<div class="section-label">Exercises &mdash; '+exercises.length+' movements</div>';
   exercises.forEach((ex,i)=>{
@@ -421,116 +414,6 @@ function saveSetData(ei,si){const key=stateKey(ei,si);const w=document.getElemen
 function logSet(ei,si,rs){saveSetData(ei,si);const key=stateKey(ei,si);state.completedSets[key]=state.completedSets[key]||{};state.completedSets[key].done=true;save();const b=document.getElementById('setbtn-'+ei+'-'+si);if(b)b.classList.add('logged');startTimer(rs);}
 function openYT(e,q){e.stopPropagation();window.open('https://www.youtube.com/results?search_query='+q,'_blank');}
 
-// ─── WHOOP INTEGRATION ───────────────────────────────────────────────────────
-const WHOOP_CLIENT_ID     = 'a707eff2-69f7-4254-a282-2b429e5e8e2f';
-const WHOOP_CLIENT_SECRET = 'bdb8c514b9f335fb1a899e900c1d907b3fbe0fdf18064d17d625d49ad981761d';
-const WHOOP_REDIRECT_URI  = 'https://fliptrack.live/whoop-callback.html';
-const WHOOP_SCOPES        = 'read:profile offline read:workout write:workout';
-
-function whoopIsConnected(){return !!localStorage.getItem('whoop_access_token');}
-function whoopTokenExpired(){const exp=parseInt(localStorage.getItem('whoop_token_expiry')||'0');return Date.now()>exp-60000;}
-
-async function whoopRefreshToken(){
-  const refresh=localStorage.getItem('whoop_refresh_token');if(!refresh)return false;
-  try{
-    const res=await fetch('https://api.prod.whoop.com/oauth/oauth2/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'refresh_token',refresh_token:refresh,client_id:WHOOP_CLIENT_ID,client_secret:WHOOP_CLIENT_SECRET,scope:WHOOP_SCOPES}).toString()});
-    const d=await res.json();if(!d.access_token)return false;
-    localStorage.setItem('whoop_access_token',d.access_token);
-    localStorage.setItem('whoop_refresh_token',d.refresh_token||refresh);
-    localStorage.setItem('whoop_token_expiry',(Date.now()+(d.expires_in||3600)*1000).toString());
-    return true;
-  }catch(e){return false;}
-}
-
-async function whoopGetToken(){
-  if(!whoopIsConnected())return null;
-  if(whoopTokenExpired()){const ok=await whoopRefreshToken();if(!ok){whoopDisconnect();return null;}}
-  return localStorage.getItem('whoop_access_token');
-}
-
-function whoopConnect(){
-  const sv=Math.random().toString(36).slice(2);
-  localStorage.setItem('whoop_oauth_state',sv);
-  const url='https://api.prod.whoop.com/oauth/oauth2/auth?'+new URLSearchParams({response_type:'code',client_id:WHOOP_CLIENT_ID,redirect_uri:WHOOP_REDIRECT_URI,scope:WHOOP_SCOPES,state:sv});
-  window.location.href=url;
-}
-
-function whoopDisconnect(){
-  ['whoop_access_token','whoop_refresh_token','whoop_token_expiry'].forEach(k=>localStorage.removeItem(k));
-  updateWhoopButtons();showToast('WHOOP disconnected');
-}
-
-function whoopHeaderClick(){
-  if(whoopIsConnected()){if(confirm('Disconnect your WHOOP account?'))whoopDisconnect();}
-  else{whoopConnect();}
-}
-
-function updateWhoopButtons(){
-  const connected=whoopIsConnected();
-  const hb=document.getElementById('whoop-header-btn');
-  if(hb){
-    hb.className='whoop-btn'+(connected?' connected':'');
-    hb.innerHTML=connected
-      ?'<svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="4,10 8,14 16,6"/></svg>\u00a0WHOOP\u00a0\u2713'
-      :'<svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l2 2"/></svg>\u00a0Connect WHOOP';
-  }
-  const db=document.getElementById('whoop-day-btn');
-  if(db){
-    const day=getCurrentDay();
-    if(day&&!day.isRest){
-      db.style.display='';
-      db.className='whoop-btn'+(connected?' connected':'');
-      if(connected){
-        db.innerHTML='<svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7"/><path d="M7 10l2 2 4-4"/></svg>\u00a0Log to WHOOP';
-        db.onclick=whoopLogDay;
-      } else {
-        db.innerHTML='<svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l2 2"/></svg>\u00a0Connect WHOOP';
-        db.onclick=whoopConnect;
-      }
-    } else { db.style.display='none'; }
-  }
-}
-
-async function whoopLogDay(){
-  const token=await whoopGetToken();if(!token){whoopConnect();return;}
-  const day=getCurrentDay();if(!day||day.isRest)return;
-  const exercises=getExercises();
-  let totalSets=0;
-  exercises.forEach((ex,i)=>{if(state.completedExercises[exKey(i)])totalSets+=parseInt(ex.sets)||1;});
-  const mins=Math.max(totalSets*2+15,30);
-  const end=new Date();
-  const start=new Date(end.getTime()-mins*60000);
-  const db=document.getElementById('whoop-day-btn');
-  if(db){db.className='whoop-btn connected logging';db.textContent='Logging...';}
-  try{
-    const res=await fetch('https://api.prod.whoop.com/developer/v1/activity/workout',{
-      method:'POST',
-      headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
-      body:JSON.stringify({start:start.toISOString(),end:end.toISOString(),sport_id:1,timezone_offset:Intl.DateTimeFormat().resolvedOptions().timeZone||'America/New_York'})
-    });
-    const data=await res.json();
-    if(res.ok&&data.id){
-      showToast('Logged to WHOOP! \u2713 Strength Training '+mins+' min');
-    } else if(res.status===401){
-      whoopDisconnect();showToast('Session expired \u2014 reconnect WHOOP');
-    } else {
-      showToast('WHOOP error: '+(data.message||data.error||JSON.stringify(data)));
-    }
-  }catch(e){showToast('Network error: '+e.message);}
-  if(db){db.className='whoop-btn connected';updateWhoopButtons();}
-}
-
-function showToast(msg){
-  let t=document.getElementById('toast');
-  if(!t){
-    t=document.createElement('div');t.id='toast';
-    t.style.cssText="position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1c1c1c;border:1px solid #3a3a3a;color:#f0f0f0;font-size:13px;font-weight:500;padding:10px 18px;border-radius:20px;z-index:500;max-width:90vw;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.5);transition:opacity .3s;font-family:'DM Sans',sans-serif;";
-    document.body.appendChild(t);
-  }
-  t.textContent=msg;t.style.opacity='1';
-  clearTimeout(t._timer);t._timer=setTimeout(()=>{t.style.opacity='0';},4000);
-}
-
 function renderProgress(){
   const view=document.getElementById('view-progress');
   const day=getCurrentDay();
@@ -545,16 +428,11 @@ function switchView(v){state.view=v;document.querySelectorAll('.nav-item').forEa
 function renderWeekGrid(){const grid=document.getElementById('week-grid');grid.innerHTML='';PROGRAM.weeks.forEach(wk=>{const b=document.createElement('div');b.className='week-btn '+wk.phase+(wk.n===state.currentWeek?' active-wk':'');b.innerHTML='<div class="wn">Week '+wk.n+'</div><div class="wp">'+wk.label+'</div>';b.onclick=()=>{state.currentWeek=wk.n;save();closeWeekOverlay();renderAll();};grid.appendChild(b);});}
 document.getElementById('week-pill-btn').onclick=()=>{renderWeekGrid();document.getElementById('week-overlay').classList.add('show');};
 function closeWeekOverlay(e){if(!e||e.target===document.getElementById('week-overlay'))document.getElementById('week-overlay').classList.remove('show');}
-function renderAll(){renderTabs();renderPhase();if(state.view==='workout')renderWorkout();else renderProgress();setTimeout(updateWhoopButtons,50);}
+function renderAll(){renderTabs();renderPhase();if(state.view==='workout')renderWorkout();else renderProgress();}
 
 setTimeout(()=>{const s=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;if(!s&&!localStorage.getItem('installDismissed'))document.getElementById('install-banner').classList.add('show');},1000);
 document.getElementById('install-x').onclick=(e)=>{e.stopPropagation();document.getElementById('install-banner').classList.remove('show');localStorage.setItem('installDismissed','1');};
 
-// Handle return from WHOOP OAuth
-if(new URLSearchParams(window.location.search).get('whoop')==='1'){
-  history.replaceState({},'',window.location.pathname);
-  setTimeout(()=>showToast(whoopIsConnected()?'WHOOP connected! Tap \'Log to WHOOP\' after your workout.':'Connection failed — try again'),600);
-}
 renderAll();
 </script>
 </body>
