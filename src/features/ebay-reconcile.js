@@ -1,7 +1,7 @@
 // ebay-reconcile.js — Compare FlipTrack inventory vs live eBay listings
 import { inv, save, refresh, markDirty, isVariant } from '../data/store.js';
 import { ebayAPI, isEBayConnected, getEBayUsername, setEBayUsername } from './ebay-auth.js';
-import { pullEBayListings, endEBayListingByLid } from './ebay-sync.js';
+import { pullEBayListings, endEBayListingByLid, importEBayItem } from './ebay-sync.js';
 import { markPlatformStatus } from './crosslist.js';
 import { toast, releaseFocus, trapFocus } from '../utils/dom.js';
 import { fmt, escHtml, escAttr } from '../utils/format.js';
@@ -558,7 +558,13 @@ export function reconcileMarkEnded(itemId) {
   markDirty('inv', itemId);
   save(); refresh();
   toast(`Marked "${item.name?.slice(0, 30) || 'item'}" as ${isAuction ? 'expired' : 'removed'}`);
-  openReconcileModal();
+  if (_lastReconcile) {
+    _lastReconcile.localOnly = _lastReconcile.localOnly.filter(i => i.id !== itemId);
+    _lastReconcile.localTotal = Math.max(0, (_lastReconcile.localTotal || 1) - 1);
+    _renderReconcileResults(_lastReconcile);
+  } else {
+    openReconcileModal();
+  }
 }
 
 export function reconcileMarkActive(itemId) {
@@ -568,7 +574,12 @@ export function reconcileMarkActive(itemId) {
   markDirty('inv', itemId);
   save(); refresh();
   toast(`Marked "${item.name?.slice(0, 30) || 'item'}" as active`);
-  openReconcileModal();
+  if (_lastReconcile) {
+    _lastReconcile.ebayOnly = _lastReconcile.ebayOnly.filter(l => l.localItemId !== itemId);
+    _renderReconcileResults(_lastReconcile);
+  } else {
+    openReconcileModal();
+  }
 }
 
 /** Accept eBay's value for a specific field on one item. */
@@ -584,7 +595,15 @@ export function reconcileAcceptEbay(itemId, field, remoteValue) {
   markDirty('inv', itemId);
   save(); refresh();
   toast(`Updated ${field} for "${(item.name || 'item').slice(0, 25)}"`);
-  openReconcileModal();
+  if (_lastReconcile) {
+    for (const m of _lastReconcile.mismatched) {
+      if (m.item.id === itemId) { m.diffs = m.diffs.filter(d => d.field !== field); break; }
+    }
+    _lastReconcile.mismatched = _lastReconcile.mismatched.filter(m => m.diffs.length > 0);
+    _renderReconcileResults(_lastReconcile);
+  } else {
+    openReconcileModal();
+  }
 }
 
 export async function reconcileFixLinkage() {
@@ -599,18 +618,40 @@ export async function reconcileFixLinkage() {
     m.item.ebayListingId = newLid;
     m.item.url = `https://www.ebay.com/itm/${newLid}`;
     markDirty('inv', m.item.id);
+    m.diffs = m.diffs.filter(x => x.field !== 'listingId');
     fixed++;
   }
-  _lastReconcile = null; // stale after we change linkages
-  if (fixed > 0) { save(); refresh(); toast(`Linked ${fixed} item${fixed > 1 ? 's' : ''} to live eBay listings`); }
+  if (fixed > 0) {
+    save(); refresh();
+    toast(`Linked ${fixed} item${fixed > 1 ? 's' : ''} to live eBay listings`);
+    if (_lastReconcile) {
+      _lastReconcile.mismatched = _lastReconcile.mismatched.filter(m => m.diffs.length > 0);
+      _renderReconcileResults(_lastReconcile);
+      return;
+    }
+  }
+  _lastReconcile = null;
   openReconcileModal();
 }
 
-export function reconcileImport(listingId) {
-  closeReconcileModal();
-  if (typeof window.promptImportEBay === 'function') {
-    window.promptImportEBay();
-  } else {
-    toast('Use More ▾ → Import from eBay to add this listing', true);
+export async function reconcileImport(listingId) {
+  if (!listingId) return;
+  toast('Importing listing…');
+  try {
+    const result = await importEBayItem(String(listingId));
+    if (result.success) {
+      toast(`Imported: "${(result.item?.name || listingId).slice(0, 40)}" ✓`);
+      refresh();
+      if (_lastReconcile) {
+        _lastReconcile.ebayOnly = _lastReconcile.ebayOnly.filter(l => l.listingId !== String(listingId));
+        _renderReconcileResults(_lastReconcile);
+      } else {
+        openReconcileModal();
+      }
+    } else {
+      toast(result.error || 'Import failed', true);
+    }
+  } catch (e) {
+    toast('Import failed: ' + e.message, true);
   }
 }
