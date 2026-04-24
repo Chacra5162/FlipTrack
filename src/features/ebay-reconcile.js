@@ -10,6 +10,7 @@ const BROWSE_API = '/buy/browse/v1';
 
 let _isReconciling = false;
 let _reconcileCancelled = false;
+let _lastReconcile = null; // cache so button handlers don't re-fetch
 
 async function _fetchEBayListings() {
   let username = getEBayUsername();
@@ -38,35 +39,41 @@ async function _fetchEBayListings() {
   const sellerFilter = `sellers:%7B${encodeURIComponent(username)}%7D`;
   const listings = new Map();
 
-  // Strategy 1: Direct Browse API lookup by known ebayListingId. Most reliable —
-  // guaranteed to find listings that FlipTrack already has IDs for.
+  // Strategy 1: Direct Browse API lookup by known ebayListingId.
+  // Run in parallel batches of 8 to avoid eBay rate limits while still
+  // being much faster than sequential awaits.
   const knownLids = [...new Set(inv
     .filter(i => i.ebayListingId && !i.sold && !i.deleted)
     .map(i => String(i.ebayListingId)))];
   const progressEl = document.getElementById('reconcileProgress');
-  for (let i = 0; i < knownLids.length; i++) {
+  const BATCH1 = 8;
+  for (let i = 0; i < knownLids.length; i += BATCH1) {
     if (_reconcileCancelled) throw new Error('Reconciliation cancelled');
-    const lid = knownLids[i];
-    if (progressEl) progressEl.textContent = `Checking known listings… (${i + 1}/${knownLids.length})`;
-    try {
-      const resp = await ebayAPI('GET', `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${lid}`);
-      if (!resp || !resp.itemId) continue;
-      const isAuction = (resp.buyingOptions || []).includes('AUCTION');
-      listings.set(lid, {
-        listingId: lid,
-        title: resp.title || '',
-        price: parseFloat(resp.price?.value || '0'),
-        currentBid: parseFloat(resp.currentBidPrice?.value || '0'),
-        isAuction,
-        url: resp.itemWebUrl || `https://www.ebay.com/itm/${lid}`,
-        image: resp.image?.imageUrl || resp.thumbnailImages?.[0]?.imageUrl || '',
-      });
-    } catch (_) { /* 404 = listing ended/removed */ }
+    const batch = knownLids.slice(i, i + BATCH1);
+    if (progressEl) progressEl.textContent = `Checking known listings… (${Math.min(i + BATCH1, knownLids.length)}/${knownLids.length})`;
+    await Promise.all(batch.map(async lid => {
+      try {
+        const resp = await ebayAPI('GET', `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${lid}`);
+        if (!resp || !resp.itemId) return;
+        const isAuction = (resp.buyingOptions || []).includes('AUCTION');
+        listings.set(lid, {
+          listingId: lid,
+          title: resp.title || '',
+          price: parseFloat(resp.price?.value || '0'),
+          currentBid: parseFloat(resp.currentBidPrice?.value || '0'),
+          isAuction,
+          url: resp.itemWebUrl || `https://www.ebay.com/itm/${lid}`,
+          image: resp.image?.imageUrl || resp.thumbnailImages?.[0]?.imageUrl || '',
+        });
+      } catch (_) { /* 404 = listing ended/removed */ }
+    }));
   }
 
-  // Strategy 2: Seller search using keywords derived from local item names.
-  // Using keywords that actually appear in the user's inventory produces much
-  // better coverage than generic words like 'the', 'new', etc.
+  // Strategy 2: Seller search — two sub-strategies combined into one query list:
+  //   a) Keywords derived from local eBay item names (good at matching known items)
+  //   b) Broad single-letter queries ('a','e','i','o') that match virtually all titles
+  //      and are essential for finding new listings that have no local counterpart yet.
+  // All queries are deduplicated and run in parallel batches of 5.
   const tokenCounts = new Map();
   for (const item of inv) {
     if (item.sold || item.deleted) continue;
@@ -78,37 +85,41 @@ async function _fetchEBayListings() {
       }
     }
   }
-  // Use up to 40 most common tokens
-  const queries = [...tokenCounts.entries()].sort((a,b) => b[1] - a[1]).slice(0, 40).map(e => e[0]);
-  if (!queries.length) queries.push('a', 'the', 'new');
+  const inventoryKeywords = [...tokenCounts.entries()].sort((a,b) => b[1] - a[1]).slice(0, 36).map(e => e[0]);
+  // Broad fallbacks catch listings whose titles share no keywords with existing inventory
+  const broadFallbacks = ['a', 'e', 'i', 'o'];
+  const queries = [...new Set([...inventoryKeywords, ...broadFallbacks])];
 
-  for (let qi = 0; qi < queries.length; qi++) {
+  const BATCH2 = 5;
+  for (let qi = 0; qi < queries.length; qi += BATCH2) {
     if (_reconcileCancelled) throw new Error('Reconciliation cancelled');
-    const q = queries[qi];
-    if (progressEl) progressEl.textContent = `Searching eBay… (${qi + 1}/${queries.length}) — ${listings.size} found`;
-    try {
-      const resp = await ebayAPI('GET',
-        `${BROWSE_API}/item_summary/search?q=${encodeURIComponent(q)}&filter=${sellerFilter}&limit=200`
-      );
-      const summaries = resp?.itemSummaries || [];
-      for (const s of summaries) {
-        const lid = s.legacyItemId || '';
-        if (!lid || listings.has(lid)) continue;
-        const isAuction = (s.buyingOptions || []).includes('AUCTION');
-        listings.set(lid, {
-          listingId: lid,
-          title: s.title || '',
-          price: parseFloat(s.price?.value || '0'),
-          currentBid: parseFloat(s.currentBidPrice?.value || '0'),
-          isAuction,
-          url: s.itemWebUrl || `https://www.ebay.com/itm/${lid}`,
-          image: s.image?.imageUrl || s.thumbnailImages?.[0]?.imageUrl || '',
-        });
+    const batch = queries.slice(qi, qi + BATCH2);
+    if (progressEl) progressEl.textContent = `Searching eBay… (${Math.min(qi + BATCH2, queries.length)}/${queries.length} queries) — ${listings.size} found`;
+    await Promise.all(batch.map(async q => {
+      try {
+        const resp = await ebayAPI('GET',
+          `${BROWSE_API}/item_summary/search?q=${encodeURIComponent(q)}&filter=${sellerFilter}&limit=200`
+        );
+        const summaries = resp?.itemSummaries || [];
+        for (const s of summaries) {
+          const lid = s.legacyItemId || '';
+          if (!lid || listings.has(lid)) continue;
+          const isAuction = (s.buyingOptions || []).includes('AUCTION');
+          listings.set(lid, {
+            listingId: lid,
+            title: s.title || '',
+            price: parseFloat(s.price?.value || '0'),
+            currentBid: parseFloat(s.currentBidPrice?.value || '0'),
+            isAuction,
+            url: s.itemWebUrl || `https://www.ebay.com/itm/${lid}`,
+            image: s.image?.imageUrl || s.thumbnailImages?.[0]?.imageUrl || '',
+          });
+        }
+      } catch (e) {
+        if (e.message?.includes('cancelled')) throw e;
+        console.warn(`[Reconcile] query "${q}" failed:`, e.message);
       }
-    } catch (e) {
-      if (e.message?.includes('cancelled')) throw e;
-      console.warn(`[Reconcile] query "${q}" failed:`, e.message);
-    }
+    }));
   }
   return listings;
 }
@@ -219,7 +230,8 @@ export async function buildReconciliation() {
       }
     }
 
-    return { ebayOnly, localOnly, mismatched, ebayTotal: ebayMap.size, localTotal: localActive.length };
+    _lastReconcile = { ebayOnly, localOnly, mismatched, ebayTotal: ebayMap.size, localTotal: localActive.length };
+    return _lastReconcile;
   } finally {
     _isReconciling = false;
   }
@@ -259,6 +271,7 @@ export async function openReconcileModal() {
   modal.classList.add('on');
   trapFocus('#reconcileOv .modal');
   _reconcileCancelled = false;
+  _lastReconcile = null; // always re-fetch when modal is explicitly opened
 
   try {
     const r = await buildReconciliation();
@@ -503,20 +516,25 @@ export async function reconcileEndListing(listingId, localItemId) {
 
 /**
  * Bulk-end every eBay-only phantom (live on eBay, sold-or-missing locally).
- * Runs sequentially so we can stream progress; a rate-limit burst would just
- * fail the rest silently.
+ * Uses cached reconcile data so there's no re-fetch delay when called from
+ * within the reconcile modal. End calls run in parallel (batches of 5) to
+ * avoid Trading API rate limits while still being much faster than sequential.
  */
 export async function reconcileDumpAllPhantoms() {
-  const r = await buildReconciliation();
+  const r = _lastReconcile || await buildReconciliation();
   const phantoms = r.ebayOnly.filter(l =>
     !l.localItemId || (l.localStatus && l.localStatus !== 'active')
   );
   if (!phantoms.length) { toast('No phantom listings to end'); return; }
   if (!confirm(`End ${phantoms.length} phantom listing${phantoms.length > 1 ? 's' : ''} on eBay? This takes them down immediately and cannot be undone.`)) return;
+  _lastReconcile = null; // stale after we end listings
+  const BATCH = 5;
   let ok = 0, failed = 0;
-  for (const l of phantoms) {
-    const res = await endEBayListingByLid(l.listingId, l.localItemId || null);
-    if (res.success) ok++; else failed++;
+  for (let i = 0; i < phantoms.length; i += BATCH) {
+    const results = await Promise.all(
+      phantoms.slice(i, i + BATCH).map(l => endEBayListingByLid(l.listingId, l.localItemId || null))
+    );
+    for (const res of results) { if (res.success) ok++; else failed++; }
   }
   save(); refresh();
   toast(`Ended ${ok} listing${ok === 1 ? '' : 's'}${failed ? ` (${failed} failed)` : ''}`);
@@ -561,7 +579,9 @@ export function reconcileAcceptEbay(itemId, field, remoteValue) {
 }
 
 export async function reconcileFixLinkage() {
-  const r = await buildReconciliation();
+  // Use cached result — this is always called from within the reconcile modal
+  // which already completed a full reconciliation. Re-fetching wastes 4+ minutes.
+  const r = _lastReconcile || await buildReconciliation();
   let fixed = 0;
   for (const m of r.mismatched) {
     const d = m.diffs.find(x => x.field === 'listingId');
@@ -572,6 +592,7 @@ export async function reconcileFixLinkage() {
     markDirty('inv', m.item.id);
     fixed++;
   }
+  _lastReconcile = null; // stale after we change linkages
   if (fixed > 0) { save(); refresh(); toast(`Linked ${fixed} item${fixed > 1 ? 's' : ''} to live eBay listings`); }
   openReconcileModal();
 }
