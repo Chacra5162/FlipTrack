@@ -41,27 +41,44 @@ export async function requestNotifPermission() {
  * Send a browser notification
  */
 export function sendNotification(title, body, tag) {
-  if (_notifPermission !== 'granted') return;
-  try {
-    const notif = new Notification(title, {
-      body,
-      icon: './icons/icon-192.png',
-      badge: './icons/icon-192.png',
-      tag, // prevents duplicate notifications
-      silent: false,
+  // Respect explicit user disable (app-level toggle set to 'denied')
+  if (_notifPermission === 'denied') return;
+  // Check live browser permission — cached state may be stale if permission
+  // was granted via a browser prompt or VAPID subscribe path
+  if (Notification?.permission !== 'granted') return;
+  // Sync cached state so subsequent checks are consistent
+  if (_notifPermission !== 'granted') _notifPermission = 'granted';
+
+  const opts = {
+    body,
+    icon: './icons/icon-192.png',
+    badge: './icons/icon-192.png',
+    tag,
+    silent: false,
+  };
+
+  // Prefer SW-based showNotification() — required on mobile Chrome and more
+  // reliable than new Notification() for pages controlled by a service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.ready.then(reg => {
+      return reg.showNotification(title, opts);
+    }).catch(() => {
+      try {
+        const notif = new Notification(title, opts);
+        notif.onclick = () => { window.focus(); notif.close(); };
+      } catch (_) {}
     });
-    notif.onclick = () => {
-      window.focus();
-      notif.close();
-    };
-  } catch (e) {
-    // SW notifications fallback
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.ready.then(reg => {
-        reg.showNotification(title, { body, tag });
-      }).catch(e => console.warn('FlipTrack: SW notification failed:', e.message));
+  } else {
+    try {
+      const notif = new Notification(title, opts);
+      notif.onclick = () => { window.focus(); notif.close(); };
+    } catch (e) {
+      console.warn('FlipTrack: notification failed:', e.message);
     }
   }
+
+  // Send VAPID push as well if subscribed — delivers even in background tabs
+  if (_pushSubscription) sendPushViaEdge(title, body, { tag });
 }
 
 /**
@@ -86,21 +103,18 @@ export function checkStockAlerts() {
     const title = `${outOfStock.length} item${outOfStock.length > 1 ? 's' : ''} out of stock`;
     const body = outOfStock.slice(0, 3).map(i => i.name).join(', ') + (outOfStock.length > 3 ? ` +${outOfStock.length - 3} more` : '');
     sendNotification(title, body, 'ft-oos');
-    if (_pushSubscription) sendPushViaEdge(title, body, { type: 'oos' });
   }
 
   if (lowStock.length > 0) {
     const title = `${lowStock.length} item${lowStock.length > 1 ? 's' : ''} running low`;
     const body = lowStock.slice(0, 3).map(i => `${i.name} (${i.qty} left)`).join(', ');
     sendNotification(title, body, 'ft-low');
-    if (_pushSubscription) sendPushViaEdge(title, body, { type: 'low-stock' });
   }
 
   if (lowSupplies.length > 0) {
     const title = `${lowSupplies.length} supply item${lowSupplies.length > 1 ? 's' : ''} running low`;
     const body = lowSupplies.slice(0, 3).map(s => `${s.name} (${s.qty} left)`).join(', ');
     sendNotification(title, body, 'ft-supplies-low');
-    if (_pushSubscription) sendPushViaEdge(title, body, { type: 'supplies-low' });
   }
 
   localStorage.setItem('ft_notif_lastcheck', String(now));
@@ -132,7 +146,6 @@ export function checkShowReminders() {
             : `Show in ${minutesUntil} minutes`;
           const body = `${show.name} — ${show.items.length} items queued`;
           sendNotification(title, body, `ft-show-${show.id}`);
-          if (_pushSubscription) sendPushViaEdge(title, body, { type: 'show-reminder', showId: show.id });
           localStorage.setItem(notifKey, minutesUntil <= 15 ? '15' : '60');
         }
       }
