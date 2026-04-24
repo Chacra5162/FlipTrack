@@ -118,7 +118,7 @@ async function _fetchEBayListings() {
       if (_reconcileCancelled) throw new Error('Reconciliation cancelled');
       await Promise.all(knownLids.slice(i, i + BATCH1).map(async lid => {
         try {
-          const resp = await ebayAPI('GET', `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${lid}`);
+          const resp = await ebayAPI('GET', `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${lid}&fieldgroups=PRODUCT`);
           if (!resp?.itemId) return;
           const isAuction = (resp.buyingOptions || []).includes('AUCTION');
           listings.set(lid, {

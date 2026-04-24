@@ -942,7 +942,7 @@ export async function pullEBayListings({ silent = false } = {}) {
         await Promise.all(needsLiveData.slice(_li, _li + _LIVE_BATCH).map(async item => {
         try {
           const resp = await ebayAPI('GET',
-            `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${item.ebayListingId}`
+            `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${item.ebayListingId}&fieldgroups=PRODUCT`
           );
           if (!resp) return;
           // Listing still exists (no 404) — mark local as seen so reconcile won't mark it removed
@@ -2017,8 +2017,9 @@ export async function importEBayItem(input) {
   }
 
   try {
+    // fieldgroups=PRODUCT returns the full image set and product details.
     const resp = await ebayAPI('GET',
-      `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${listingId}`
+      `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${listingId}&fieldgroups=PRODUCT`
     );
     if (!resp) return { success: false, error: 'eBay returned no data for this listing' };
 
@@ -2028,7 +2029,7 @@ export async function importEBayItem(input) {
     const browsePrice = parseFloat(resp.price?.value || '0');
     const browseBid = parseFloat(resp.currentBidPrice?.value || '0');
     const price = browsePrice || browseBid;
-    // Try multiple image paths — Browse API structure varies through proxy
+    // Collect all images from every known Browse API response path
     const imgUrl = resp.image?.imageUrl || resp.thumbnailImages?.[0]?.imageUrl || '';
     const addlImgs = (resp.additionalImages || []).map(i => i?.imageUrl).filter(Boolean);
     const allImgs = [imgUrl, ...addlImgs].filter(Boolean);
@@ -2047,7 +2048,10 @@ export async function importEBayItem(input) {
 
     const newId = uid();
     const newItem = {
-      id: newId, name: title, sku: resp.sku || '', price, qty: 1, cost: 0,
+      // sku intentionally left empty — resp.sku is an eBay-internal inventory
+      // SKU already stored in ebayItemId. Copying it here caused two imports
+      // of same-SKU listings to be falsely merged by detectInventoryDuplicates.
+      id: newId, name: title, sku: '', price, qty: 1, cost: 0,
       condition: (resp.condition || 'good').toLowerCase(),
       category: resp.categoryPath?.split('|')?.[0]?.trim() || '',
       platforms: ['eBay'], platformStatus: { eBay: 'active' },
