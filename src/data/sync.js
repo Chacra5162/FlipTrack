@@ -115,6 +115,12 @@ export async function pushToCloud() {
     // Track which tables succeeded so we can clear dirty per-table even if
     // a later table fails (previously the whole push threw and re-queued).
     const succeeded = { inv: false, sales: false, expenses: false, supplies: false };
+    // Use a single push timestamp so _localUpdatedAt and updated_at stay in sync.
+    // After a successful push we stamp _localUpdatedAt = pushTime + 1 on live objects
+    // so the very next delta pull (which sees remoteTs ≈ pushTime) doesn't overwrite
+    // local data with the cloud echo via the remoteTs > localTs check.
+    const pushTime = Date.now();
+    const pushIso = new Date(pushTime).toISOString();
 
     // ── Push changed inventory rows ──
     if (dirty.inv.length) {
@@ -123,34 +129,42 @@ export async function pushToCloud() {
         if (d.images) d.images = d.images.map(img => isStorageUrl(img) ? img : null).filter(Boolean);
         if (d.image && !isStorageUrl(d.image)) delete d.image;
         if (d.images && d.images.length) d.image = d.images[0];
-        return { id: i.id, account_id: accountId, data: d, updated_at: new Date().toISOString() };
+        return { id: i.id, account_id: accountId, data: d, updated_at: pushIso };
       });
       const { error } = await _sb.from('ft_inventory').upsert(rows, { onConflict: 'id' });
       if (error) throw new Error(error.message);
       _rememberPushed('ft_inventory', rows);
+      // Stamp live objects so the next delta pull sees localTs > remoteTs and skips
+      // overwriting (prevents the push echo from wiping data the user entered locally).
+      for (const item of dirty.inv) item._localUpdatedAt = pushTime + 1;
       succeeded.inv = true;
     } else { succeeded.inv = true; }
 
     // ── Push changed sales rows ──
     if (dirty.sales.length) {
       const rows = dirty.sales.map(s => ({
-        id: s.id, account_id: accountId, data: s, updated_at: new Date().toISOString()
+        id: s.id, account_id: accountId, data: s, updated_at: pushIso
       }));
       const { error } = await _sb.from('ft_sales').upsert(rows, { onConflict: 'id' });
       if (error) throw new Error(error.message);
       _rememberPushed('ft_sales', rows);
+      for (const sale of dirty.sales) sale._localUpdatedAt = pushTime + 1;
       succeeded.sales = true;
     } else { succeeded.sales = true; }
 
     // ── Push changed expense rows ──
     if (dirty.expenses.length) {
       const rows = dirty.expenses.map(e => ({
-        id: e.id, account_id: accountId, data: e, updated_at: new Date().toISOString()
+        id: e.id, account_id: accountId, data: e, updated_at: pushIso
       }));
       try {
         const { error } = await _sb.from('ft_expenses').upsert(rows, { onConflict: 'id' });
         if (error) _warnOnce('exp-push-err', 'FlipTrack: expenses push error:', error.message);
-        else { _rememberPushed('ft_expenses', rows); succeeded.expenses = true; }
+        else {
+          _rememberPushed('ft_expenses', rows);
+          for (const exp of dirty.expenses) exp._localUpdatedAt = pushTime + 1;
+          succeeded.expenses = true;
+        }
       } catch (e) {
         _warnOnce('exp-missing', 'FlipTrack: ft_expenses not available:', e.message);
       }
@@ -398,7 +412,8 @@ export async function pullFromCloud() {
           }
           const localTs = arr[idx]._localUpdatedAt || 0;
           const remoteTs = row.updated_at ? new Date(row.updated_at).getTime() : 0;
-          if (remoteTs >= localTs) {
+          // Strict > so that pushTime+1 stamp from pushToCloud always beats the echo.
+          if (remoteTs > localTs) {
             arr[idx] = row.data;
           }
         } else {

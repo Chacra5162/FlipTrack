@@ -8,7 +8,7 @@
 
 import { inv, sales, save, refresh, markDirty, markDeleted, getInvItem, getSalesForItem, isInvDirty } from '../data/store.js';
 import { EBAY_SYNC_INTERVAL } from '../config/timing.js';
-import { ebayAPI, isEBayConnected, getEBayUsername, registerEBayConnectHook } from './ebay-auth.js';
+import { ebayAPI, isEBayConnected, getEBayUsername, setEBayUsername, registerEBayConnectHook } from './ebay-auth.js';
 import { markPlatformStatus } from './crosslist.js';
 import { autoDlistOnSale } from './crosslist.js';
 import { getOrCreateBuyer } from '../views/buyers.js';
@@ -38,6 +38,8 @@ let _dismissedEBayIds = new Set(); // eBay IDs of items user deleted — prevent
 let _returnCheckInterval = null;
 let _tradingApiBlocked = false; // set true after 403 — proxy doesn't support Trading API
 let _offerApiBlocked = false;   // set true after 400 — account has invalid SKU data
+// In-session rate limit flag; IDB-backed for persistence across page loads.
+let _browseRateLimitUntil = 0;
 const RETURN_CHECK_WINDOW = 30 * 86400000; // 30 days
 
 /** eBay SKU must be alphanumeric (plus limited punctuation) and ≤50 chars */
@@ -111,6 +113,18 @@ function _indexUpsert(idx, row) {
   if (row.id) idx.byId.set(row.id, row);
 }
 
+// Count meaningful (non-empty) fields — excludes null/''/0 AND empty arrays/objects
+// so structural eBay-import fields like tags:[], _notifiedOfferIds:[], platformListingExpiry:{}
+// don't inflate the count and cause eBay imports to beat user-populated items as the keeper.
+function _countFields(obj) {
+  return Object.values(obj).filter(v => {
+    if (v == null || v === '' || v === 0 || v === false) return false;
+    if (Array.isArray(v)) return v.length > 0;
+    if (typeof v === 'object') return Object.keys(v).length > 0;
+    return true;
+  }).length;
+}
+
 export function detectInventoryDuplicates() {
   const bySkuNorm = new Map();
   const byListing = new Map();
@@ -145,15 +159,26 @@ export function mergeInventoryDuplicates() {
     if (merged.has(a.id) || merged.has(b.id) || a.id === b.id) continue;
     const aS = sales.filter(s => s.itemId === a.id).length;
     const bS = sales.filter(s => s.itemId === b.id).length;
-    const aF = Object.values(a).filter(v => v != null && v !== '' && v !== 0).length;
-    const [keeper, dupe] = (aS > bS || (aS === bS && aF >= Object.values(b).filter(v => v != null && v !== '' && v !== 0).length)) ? [a, b] : [b, a];
+    const [keeper, dupe] = (aS > bS || (aS === bS && _countFields(a) >= _countFields(b))) ? [a, b] : [b, a];
     // MAX not SUM: a "duplicate" detected by shared SKU/listingId is almost
     // always a sync echo, not two distinct stock piles. Summing inflates qty
     // every boot; MAX preserves the higher count without compounding.
     keeper.qty = Math.max(keeper.qty || 0, dupe.qty || 0);
+    // Copy missing fields from dupe, and override known eBay-import defaults with
+    // the dupe's user-entered data. This handles the case where the eBay import
+    // ends up as keeper (condition:'good', cost:0) but the dupe has the real values.
+    const EBAY_DEFAULTS = { condition: 'good', cost: 0, notes: '', category: '' };
     for (const [k, v] of Object.entries(dupe)) {
       if (k === 'id' || k === 'qty' || k === 'added' || k === 'dateAdded') continue;
-      if ((keeper[k] == null || keeper[k] === '' || keeper[k] === 0) && v != null && v !== '' && v !== 0) keeper[k] = v;
+      const keeperVal = keeper[k];
+      // Override keeper's eBay-default value with dupe's more specific value
+      const isKeeperDefault = Object.prototype.hasOwnProperty.call(EBAY_DEFAULTS, k)
+        && (keeperVal === EBAY_DEFAULTS[k] || keeperVal == null || keeperVal === '');
+      if (isKeeperDefault && v != null && v !== '' && v !== EBAY_DEFAULTS[k]) {
+        keeper[k] = v;
+      } else if ((keeperVal == null || keeperVal === '' || keeperVal === 0) && v != null && v !== '' && v !== 0) {
+        keeper[k] = v;
+      }
     }
     for (const s of sales) { if (s.itemId === dupe.id) { s.itemId = keeper.id; markDirty('sales', s.id); } }
     const di = inv.indexOf(dupe); if (di >= 0) inv.splice(di, 1);
@@ -191,7 +216,7 @@ export function mergeDuplicatesByName() {
       const aS = sales.filter(s => s.itemId === a.id).length;
       const bS = sales.filter(s => s.itemId === b.id).length;
       if (aS !== bS) return bS - aS;
-      return Object.keys(b).length - Object.keys(a).length;
+      return _countFields(b) - _countFields(a);
     });
     const keeper = items[0];
     for (const dupe of items.slice(1)) {
@@ -220,9 +245,11 @@ export function mergeDuplicatesByName() {
 export async function resetEBayApiFlags() {
   _tradingApiBlocked = false;
   _offerApiBlocked = false;
+  _browseRateLimitUntil = 0;
   try {
     await setMeta('ebay_trading_blocked', null);
     await setMeta('ebay_offer_blocked', null);
+    await setMeta('ebay_browse_ratelimit', null);
   } catch (_) {}
 }
 
@@ -685,7 +712,15 @@ export async function pullEBayListings({ silent = false } = {}) {
     {
       try {
         let username = getEBayUsername();
-        // If no username cached, try fetching it from eBay API
+        // If no username in memory, try IDB cache from a previous sync
+        if (!username) {
+          const cached = await getMeta('ebay_seller_username').catch(() => null);
+          if (cached?.username) {
+            username = cached.username;
+            setEBayUsername(username);
+          }
+        }
+        // If still no username, try fetching it from eBay API
         if (!username) {
           try {
             console.warn('[eBay] No username cached — fetching from eBay API…');
@@ -722,6 +757,11 @@ export async function pullEBayListings({ silent = false } = {}) {
                 }
               }
             } catch (_) {}
+          }
+          // Persist the username so future syncs skip the fetch entirely
+          if (username) {
+            setEBayUsername(username);
+            setMeta('ebay_seller_username', { username, ts: Date.now() }).catch(() => {});
           }
         }
         console.warn('[eBay] Browse API: username =', username || '(none)');
@@ -932,15 +972,36 @@ export async function pullEBayListings({ silent = false } = {}) {
       );
       console.warn(`[eBay] Live data enrichment: ${needsLiveData.length} items need lookup (${seenListingIds.size} already synced)`);
       let liveUpdated = 0;
+
+      // Check persistent rate limit cooldown — if we got 429d recently, skip all
+      // per-item calls until the cooldown expires rather than burning quota on every sync.
+      if (!_browseRateLimitUntil) {
+        const saved = await getMeta('ebay_browse_ratelimit').catch(() => null);
+        _browseRateLimitUntil = saved?.until || 0;
+      }
+      if (_browseRateLimitUntil > Date.now()) {
+        const minutesLeft = Math.ceil((_browseRateLimitUntil - Date.now()) / 60000);
+        console.warn(`[eBay] Browse API rate limit cooldown active — skipping per-item lookup for ~${minutesLeft}m`);
+        // Mark all as seen so they're not falsely flagged as removed
+        for (const item of needsLiveData) seenListingIds.add(item.ebayListingId);
+      } else {
+
       // Prioritize auctions — their status changes matter most
       needsLiveData.sort((a, b) => (b.ebayListingFormat === 'AUCTION' ? 1 : 0) - (a.ebayListingFormat === 'AUCTION' ? 1 : 0));
       // Process ALL items in parallel batches of 6.
       // Previously capped at 30 which meant item #31+ never got confirmed as active,
       // causing the reconcile block below to falsely mark them as 'removed'.
+      // On 429, set rateLimited to abort remaining batches immediately.
       const _LIVE_BATCH = 6;
+      let rateLimited = false;
       for (let _li = 0; _li < needsLiveData.length; _li += _LIVE_BATCH) {
+        if (rateLimited) {
+          for (const item of needsLiveData.slice(_li)) seenListingIds.add(item.ebayListingId);
+          break;
+        }
         await Promise.all(needsLiveData.slice(_li, _li + _LIVE_BATCH).map(async item => {
         try {
+          await new Promise(r => setTimeout(r, 200));
           const resp = await ebayAPI('GET',
             `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${item.ebayListingId}&fieldgroups=PRODUCT`
           );
@@ -1043,8 +1104,16 @@ export async function pullEBayListings({ silent = false } = {}) {
               }
               updated++; liveUpdated++;
             }
+          } else if (e.isRateLimit) {
+            // eBay rate limit hit — stop making more calls this sync cycle AND
+            // persist a 1-hour cooldown so future syncs skip per-item lookups entirely.
+            seenListingIds.add(item.ebayListingId);
+            rateLimited = true;
+            _browseRateLimitUntil = Date.now() + 3_600_000; // 1 hour
+            setMeta('ebay_browse_ratelimit', { until: _browseRateLimitUntil }).catch(() => {});
+            console.warn('[eBay] Rate limit (429) hit — persisting 1-hour Browse API cooldown');
           } else {
-            // Transient error (rate limit, network hiccup, etc.) — NOT a 404.
+            // Transient error (network hiccup, etc.) — NOT a 404.
             // Do NOT mark as removed; the listing may still be active on eBay.
             // Add to seenListingIds so the reconcile block doesn't false-flag it.
             seenListingIds.add(item.ebayListingId);
@@ -1053,8 +1122,10 @@ export async function pullEBayListings({ silent = false } = {}) {
         }
         })); // end Promise.all batch
       }
+      if (rateLimited) console.warn('[eBay] Per-item lookup stopped early due to rate limit — will resume next sync');
       console.warn(`[eBay] Live data enrichment: ${liveUpdated} items updated`);
-    }
+      } // end else (rate limit cooldown check)
+    } // end per-item lookup block
 
     // ── FALLBACK 3: Inventory API (item discovery without offers) ─────
     if (!tradingWorked) {

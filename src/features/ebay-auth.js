@@ -134,11 +134,15 @@ async function callEdgeFn(action, body = {}) {
       || (data.error || '').includes('invalid value for a SKU')
       || (ebayStatus === 404 && pathStr.includes('/commerce/taxonomy/'))
       || (ebayStatus === 404 && pathStr.includes('/buy/browse/v1/item/get_item_by_legacy_id'));
-    const log = isExpected ? console.warn : console.error;
+    const isRateLimit = ebayStatus === 429 || resp.status === 429;
+    const isExpectedFull = isExpected || isRateLimit;
+    const log = isExpectedFull ? console.warn : console.error;
     log('[eBay] API ERROR:', data.method, data.path, '→', ebayStatus);
     if (data.error) log('[eBay] Error message:', data.error);
-    if (data.ebayErrors && !isExpected) console.error('[eBay] Full eBay errors:', JSON.stringify(data.ebayErrors, null, 2));
-    throw new Error(data.error || `eBay returned ${ebayStatus}`);
+    if (data.ebayErrors && !isExpectedFull) console.error('[eBay] Full eBay errors:', JSON.stringify(data.ebayErrors, null, 2));
+    const err = new Error(data.error || `eBay returned ${ebayStatus}`);
+    if (isRateLimit) err.isRateLimit = true;
+    throw err;
   }
   return data;
 }

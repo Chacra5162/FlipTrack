@@ -1,7 +1,7 @@
 // ebay-reconcile.js — Compare FlipTrack inventory vs live eBay listings
 import { inv, save, refresh, markDirty, isVariant } from '../data/store.js';
 import { ebayAPI, isEBayConnected, getEBayUsername, setEBayUsername } from './ebay-auth.js';
-import { pullEBayListings, endEBayListingByLid } from './ebay-sync.js';
+import { pullEBayListings, endEBayListingByLid, importEBayItem } from './ebay-sync.js';
 import { markPlatformStatus } from './crosslist.js';
 import { toast, releaseFocus, trapFocus } from '../utils/dom.js';
 import { fmt, escHtml, escAttr } from '../utils/format.js';
@@ -49,26 +49,21 @@ async function _fetchEBayListings() {
   //   • Most-frequent tokens from the local eBay inventory — improves recall
   //     for category-specific vocabulary the generic words might miss.
   // All queries run in parallel batches of 5.
-  const broadTerms = [
-    'a', 'an', 'the', 'for', 'of', 'in', 'on', 'at', 'to', 'by', 'or', 'and', 'with', 'from',
-    'new', 'used', 'lot', 'set', 'pair', 'pack', 'bag', 'box', 'case', 'kit', 'bundle',
-    'vintage', 'rare', 'retro', 'authentic', 'original', 'mint', 'sealed', 'bulk',
-    'size', 'small', 'medium', 'large', 'xl', 'xs', 'men', 'women', 'kids', 'boys', 'girls',
-    'nwt', 'nib', 'nwob', 'obo', 'free', 'fast', 'plus',
-    'black', 'white', 'red', 'blue', 'green', 'pink', 'grey', 'gray', 'brown', 'gold', 'silver',
-    'shirt', 'pants', 'jeans', 'jacket', 'dress', 'shoes', 'sneakers', 'boots', 'hoodie', 'top',
-    '1', '2', '3', '4', '5', '6', '7', '8', '9', '10',
-  ];
-  // ALL unique words from existing eBay inventory names for maximum title coverage.
-  const _invWords = new Set();
+  const tokenCounts = new Map();
   for (const item of inv) {
     if (item.sold || item.deleted) continue;
     if (!item.platforms?.includes('eBay') && !item.ebayItemId) continue;
     for (const w of (item.name || '').toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/)) {
-      if (w.length >= 3) _invWords.add(w);
+      if (w.length >= 3 && !/^(the|and|for|with|new|used|size|pack|lot)$/.test(w)) {
+        tokenCounts.set(w, (tokenCounts.get(w) || 0) + 1);
+      }
     }
   }
-  const queries = [...new Set([...broadTerms, ..._invWords])];
+  const inventoryKeywords = [...tokenCounts.entries()].sort((a,b) => b[1] - a[1]).slice(0, 24).map(e => e[0]);
+  // Broad words that appear in virtually every English listing title — essential
+  // for discovering new listings whose keywords don't appear in local inventory.
+  const broadTerms = ['the', 'for', 'new', 'lot', 'vintage', 'set', 'size', 'men', 'women', 'with', 'and'];
+  const queries = [...new Set([...broadTerms, ...inventoryKeywords])];
 
   const BATCH2 = 5;
   for (let qi = 0; qi < queries.length; qi += BATCH2) {
@@ -577,7 +572,13 @@ export function reconcileMarkEnded(itemId) {
   markDirty('inv', itemId);
   save(); refresh();
   toast(`Marked "${item.name?.slice(0, 30) || 'item'}" as ${isAuction ? 'expired' : 'removed'}`);
-  openReconcileModal();
+  if (_lastReconcile) {
+    _lastReconcile.localOnly = _lastReconcile.localOnly.filter(i => i.id !== itemId);
+    _lastReconcile.localTotal = Math.max(0, (_lastReconcile.localTotal || 1) - 1);
+    _renderReconcileResults(_lastReconcile);
+  } else {
+    openReconcileModal();
+  }
 }
 
 export function reconcileMarkActive(itemId) {
@@ -587,7 +588,12 @@ export function reconcileMarkActive(itemId) {
   markDirty('inv', itemId);
   save(); refresh();
   toast(`Marked "${item.name?.slice(0, 30) || 'item'}" as active`);
-  openReconcileModal();
+  if (_lastReconcile) {
+    _lastReconcile.ebayOnly = _lastReconcile.ebayOnly.filter(l => l.localItemId !== itemId);
+    _renderReconcileResults(_lastReconcile);
+  } else {
+    openReconcileModal();
+  }
 }
 
 /** Accept eBay's value for a specific field on one item. */
@@ -603,7 +609,15 @@ export function reconcileAcceptEbay(itemId, field, remoteValue) {
   markDirty('inv', itemId);
   save(); refresh();
   toast(`Updated ${field} for "${(item.name || 'item').slice(0, 25)}"`);
-  openReconcileModal();
+  if (_lastReconcile) {
+    for (const m of _lastReconcile.mismatched) {
+      if (m.item.id === itemId) { m.diffs = m.diffs.filter(d => d.field !== field); break; }
+    }
+    _lastReconcile.mismatched = _lastReconcile.mismatched.filter(m => m.diffs.length > 0);
+    _renderReconcileResults(_lastReconcile);
+  } else {
+    openReconcileModal();
+  }
 }
 
 export async function reconcileFixLinkage() {
@@ -618,18 +632,40 @@ export async function reconcileFixLinkage() {
     m.item.ebayListingId = newLid;
     m.item.url = `https://www.ebay.com/itm/${newLid}`;
     markDirty('inv', m.item.id);
+    m.diffs = m.diffs.filter(x => x.field !== 'listingId');
     fixed++;
   }
-  _lastReconcile = null; // stale after we change linkages
-  if (fixed > 0) { save(); refresh(); toast(`Linked ${fixed} item${fixed > 1 ? 's' : ''} to live eBay listings`); }
+  if (fixed > 0) {
+    save(); refresh();
+    toast(`Linked ${fixed} item${fixed > 1 ? 's' : ''} to live eBay listings`);
+    if (_lastReconcile) {
+      _lastReconcile.mismatched = _lastReconcile.mismatched.filter(m => m.diffs.length > 0);
+      _renderReconcileResults(_lastReconcile);
+      return;
+    }
+  }
+  _lastReconcile = null;
   openReconcileModal();
 }
 
-export function reconcileImport(listingId) {
-  closeReconcileModal();
-  if (typeof window.promptImportEBay === 'function') {
-    window.promptImportEBay();
-  } else {
-    toast('Use More ▾ → Import from eBay to add this listing', true);
+export async function reconcileImport(listingId) {
+  if (!listingId) return;
+  toast('Importing listing…');
+  try {
+    const result = await importEBayItem(String(listingId));
+    if (result.success) {
+      toast(`Imported: "${(result.item?.name || listingId).slice(0, 40)}" ✓`);
+      refresh();
+      if (_lastReconcile) {
+        _lastReconcile.ebayOnly = _lastReconcile.ebayOnly.filter(l => l.listingId !== String(listingId));
+        _renderReconcileResults(_lastReconcile);
+      } else {
+        openReconcileModal();
+      }
+    } else {
+      toast(result.error || 'Import failed', true);
+    }
+  } catch (e) {
+    toast('Import failed: ' + e.message, true);
   }
 }

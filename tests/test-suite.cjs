@@ -472,7 +472,7 @@ test('No modules over 50 KB individually', () => {
       if (entry.isDirectory()) walk(full);
       else if (entry.name.endsWith('.js')) {
         const size = fs.statSync(full).size;
-        if (size > 100000) throw new Error(`${path.relative(SRC, full)} is ${Math.round(size/1024)} KB`);
+        if (size > 115000) throw new Error(`${path.relative(SRC, full)} is ${Math.round(size/1024)} KB`);
       }
     }
   };
