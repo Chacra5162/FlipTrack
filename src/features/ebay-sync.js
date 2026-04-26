@@ -8,7 +8,7 @@
 
 import { inv, sales, save, refresh, markDirty, markDeleted, getInvItem, getSalesForItem, isInvDirty } from '../data/store.js';
 import { EBAY_SYNC_INTERVAL } from '../config/timing.js';
-import { ebayAPI, isEBayConnected, getEBayUsername, registerEBayConnectHook } from './ebay-auth.js';
+import { ebayAPI, isEBayConnected, getEBayUsername, setEBayUsername, registerEBayConnectHook } from './ebay-auth.js';
 import { markPlatformStatus } from './crosslist.js';
 import { autoDlistOnSale } from './crosslist.js';
 import { getOrCreateBuyer } from '../views/buyers.js';
@@ -38,6 +38,8 @@ let _dismissedEBayIds = new Set(); // eBay IDs of items user deleted — prevent
 let _returnCheckInterval = null;
 let _tradingApiBlocked = false; // set true after 403 — proxy doesn't support Trading API
 let _offerApiBlocked = false;   // set true after 400 — account has invalid SKU data
+// In-session rate limit flag; IDB-backed for persistence across page loads.
+let _browseRateLimitUntil = 0;
 const RETURN_CHECK_WINDOW = 30 * 86400000; // 30 days
 
 /** eBay SKU must be alphanumeric (plus limited punctuation) and ≤50 chars */
@@ -239,9 +241,11 @@ export function mergeDuplicatesByName() {
 export async function resetEBayApiFlags() {
   _tradingApiBlocked = false;
   _offerApiBlocked = false;
+  _browseRateLimitUntil = 0;
   try {
     await setMeta('ebay_trading_blocked', null);
     await setMeta('ebay_offer_blocked', null);
+    await setMeta('ebay_browse_ratelimit', null);
   } catch (_) {}
 }
 
@@ -695,7 +699,15 @@ export async function pullEBayListings({ silent = false } = {}) {
     {
       try {
         let username = getEBayUsername();
-        // If no username cached, try fetching it from eBay API
+        // If no username in memory, try IDB cache from a previous sync
+        if (!username) {
+          const cached = await getMeta('ebay_seller_username').catch(() => null);
+          if (cached?.username) {
+            username = cached.username;
+            setEBayUsername(username);
+          }
+        }
+        // If still no username, try fetching it from eBay API
         if (!username) {
           try {
             console.warn('[eBay] No username cached — fetching from eBay API…');
@@ -732,6 +744,11 @@ export async function pullEBayListings({ silent = false } = {}) {
                 }
               }
             } catch (_) {}
+          }
+          // Persist the username so future syncs skip the fetch entirely
+          if (username) {
+            setEBayUsername(username);
+            setMeta('ebay_seller_username', { username, ts: Date.now() }).catch(() => {});
           }
         }
         console.warn('[eBay] Browse API: username =', username || '(none)');
@@ -910,6 +927,20 @@ export async function pullEBayListings({ silent = false } = {}) {
       );
       console.warn(`[eBay] Live data enrichment: ${needsLiveData.length} items need lookup (${seenListingIds.size} already synced)`);
       let liveUpdated = 0;
+
+      // Check persistent rate limit cooldown — if we got 429d recently, skip all
+      // per-item calls until the cooldown expires rather than burning quota on every sync.
+      if (!_browseRateLimitUntil) {
+        const saved = await getMeta('ebay_browse_ratelimit').catch(() => null);
+        _browseRateLimitUntil = saved?.until || 0;
+      }
+      if (_browseRateLimitUntil > Date.now()) {
+        const minutesLeft = Math.ceil((_browseRateLimitUntil - Date.now()) / 60000);
+        console.warn(`[eBay] Browse API rate limit cooldown active — skipping per-item lookup for ~${minutesLeft}m`);
+        // Mark all as seen so they're not falsely flagged as removed
+        for (const item of needsLiveData) seenListingIds.add(item.ebayListingId);
+      } else {
+
       // Prioritize auctions — their status changes matter most
       needsLiveData.sort((a, b) => (b.ebayListingFormat === 'AUCTION' ? 1 : 0) - (a.ebayListingFormat === 'AUCTION' ? 1 : 0));
       // Process up to 30 per sync (15 auctions + 15 others typically); auctions prioritized.
@@ -1026,11 +1057,13 @@ export async function pullEBayListings({ silent = false } = {}) {
               updated++; liveUpdated++;
             }
           } else if (e.isRateLimit) {
-            // eBay rate limit hit — stop making more calls this sync cycle.
-            // Mark this item as seen so it won't be falsely marked removed.
+            // eBay rate limit hit — stop making more calls this sync cycle AND
+            // persist a 1-hour cooldown so future syncs skip per-item lookups entirely.
             seenListingIds.add(item.ebayListingId);
             rateLimited = true;
-            console.warn('[eBay] Rate limit (429) hit — pausing per-item lookup for this sync');
+            _browseRateLimitUntil = Date.now() + 3_600_000; // 1 hour
+            setMeta('ebay_browse_ratelimit', { until: _browseRateLimitUntil }).catch(() => {});
+            console.warn('[eBay] Rate limit (429) hit — persisting 1-hour Browse API cooldown');
           } else {
             // Transient error — treat as seen so it won't be marked removed
             seenListingIds.add(item.ebayListingId);
@@ -1040,7 +1073,8 @@ export async function pullEBayListings({ silent = false } = {}) {
       }
       if (rateLimited) console.warn('[eBay] Per-item lookup stopped early due to rate limit — will resume next sync');
       console.warn(`[eBay] Live data enrichment: ${liveUpdated} items updated`);
-    }
+      } // end else (rate limit cooldown check)
+    } // end per-item lookup block
 
     // ── FALLBACK 3: Inventory API (item discovery without offers) ─────
     if (!tradingWorked) {
