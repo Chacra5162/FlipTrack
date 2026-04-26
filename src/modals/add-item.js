@@ -589,6 +589,28 @@ export async function addItem(){
  * Runs in background — errors show as toasts.
  */
 async function _autoListEBay(itemId) {
+  const item = getInvItem(itemId);
+  if (!item) return;
+
+  // Pre-flight: validate before touching eBay at all.
+  // If we call pushItemToEBay first and THEN find the price is missing,
+  // an orphaned inventory item is left on eBay with no offer/price — which
+  // can result in a live $0 listing when the user publishes it manually.
+  const isAuction = item.ebayListingFormat === 'AUCTION';
+  if (!isAuction && !(item.price > 0)) {
+    toast('Set a price before listing on eBay — update the item and re-save to trigger listing', true);
+    return;
+  }
+  if (isAuction && !(item.ebayAuctionStart > 0) && !(item.price > 0)) {
+    toast('Set a starting price before listing auction on eBay', true);
+    return;
+  }
+  const hasHttpImage = (item.images || []).some(u => typeof u === 'string' && u.startsWith('http'));
+  if (!hasHttpImage) {
+    toast('eBay listing needs at least one uploaded photo — images may still be uploading, try again in a moment', true);
+    return;
+  }
+
   try {
     toast('Listing on eBay…');
     const pushResult = await pushItemToEBay(itemId);
