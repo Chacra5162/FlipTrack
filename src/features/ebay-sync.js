@@ -111,6 +111,18 @@ function _indexUpsert(idx, row) {
   if (row.id) idx.byId.set(row.id, row);
 }
 
+// Count meaningful (non-empty) fields — excludes null/''/0 AND empty arrays/objects
+// so structural eBay-import fields like tags:[], _notifiedOfferIds:[], platformListingExpiry:{}
+// don't inflate the count and cause eBay imports to beat user-populated items as the keeper.
+function _countFields(obj) {
+  return Object.values(obj).filter(v => {
+    if (v == null || v === '' || v === 0 || v === false) return false;
+    if (Array.isArray(v)) return v.length > 0;
+    if (typeof v === 'object') return Object.keys(v).length > 0;
+    return true;
+  }).length;
+}
+
 export function detectInventoryDuplicates() {
   const bySkuNorm = new Map();
   const byListing = new Map();
@@ -141,15 +153,26 @@ export function mergeInventoryDuplicates() {
     if (merged.has(a.id) || merged.has(b.id) || a.id === b.id) continue;
     const aS = sales.filter(s => s.itemId === a.id).length;
     const bS = sales.filter(s => s.itemId === b.id).length;
-    const aF = Object.values(a).filter(v => v != null && v !== '' && v !== 0).length;
-    const [keeper, dupe] = (aS > bS || (aS === bS && aF >= Object.values(b).filter(v => v != null && v !== '' && v !== 0).length)) ? [a, b] : [b, a];
+    const [keeper, dupe] = (aS > bS || (aS === bS && _countFields(a) >= _countFields(b))) ? [a, b] : [b, a];
     // MAX not SUM: a "duplicate" detected by shared SKU/listingId is almost
     // always a sync echo, not two distinct stock piles. Summing inflates qty
     // every boot; MAX preserves the higher count without compounding.
     keeper.qty = Math.max(keeper.qty || 0, dupe.qty || 0);
+    // Copy missing fields from dupe, and override known eBay-import defaults with
+    // the dupe's user-entered data. This handles the case where the eBay import
+    // ends up as keeper (condition:'good', cost:0) but the dupe has the real values.
+    const EBAY_DEFAULTS = { condition: 'good', cost: 0, notes: '', category: '' };
     for (const [k, v] of Object.entries(dupe)) {
       if (k === 'id' || k === 'qty' || k === 'added' || k === 'dateAdded') continue;
-      if ((keeper[k] == null || keeper[k] === '' || keeper[k] === 0) && v != null && v !== '' && v !== 0) keeper[k] = v;
+      const keeperVal = keeper[k];
+      // Override keeper's eBay-default value with dupe's more specific value
+      const isKeeperDefault = Object.prototype.hasOwnProperty.call(EBAY_DEFAULTS, k)
+        && (keeperVal === EBAY_DEFAULTS[k] || keeperVal == null || keeperVal === '');
+      if (isKeeperDefault && v != null && v !== '' && v !== EBAY_DEFAULTS[k]) {
+        keeper[k] = v;
+      } else if ((keeperVal == null || keeperVal === '' || keeperVal === 0) && v != null && v !== '' && v !== 0) {
+        keeper[k] = v;
+      }
     }
     for (const s of sales) { if (s.itemId === dupe.id) { s.itemId = keeper.id; markDirty('sales', s.id); } }
     const di = inv.indexOf(dupe); if (di >= 0) inv.splice(di, 1);
@@ -187,7 +210,7 @@ export function mergeDuplicatesByName() {
       const aS = sales.filter(s => s.itemId === a.id).length;
       const bS = sales.filter(s => s.itemId === b.id).length;
       if (aS !== bS) return bS - aS;
-      return Object.keys(b).length - Object.keys(a).length;
+      return _countFields(b) - _countFields(a);
     });
     const keeper = items[0];
     for (const dupe of items.slice(1)) {
