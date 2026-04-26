@@ -302,6 +302,8 @@ const WHATNOT_CAT_MAP = {
   'pet supplies': 'Pet Supplies',
   'pets': 'Pet Supplies',
   'beauty': 'Beauty',
+  'health & beauty': 'Beauty',
+  'health and beauty': 'Beauty',
   'food': 'Food & Drink',
   'food & drink': 'Food & Drink',
   'coins': 'Coins & Money',
@@ -314,28 +316,85 @@ const WHATNOT_CAT_MAP = {
  * Some subcategories force a category override.
  */
 const WHATNOT_SUBCAT_MAP = {
-  'engine parts': { sub: '' },
-  'educational/science kits': { sub: 'Other Toys' },
-  'educational/math manipulatives': { sub: 'Other Toys' },
-  'mystery toy': { sub: 'Other Toys' },
+  // ── Car Parts ──────────────────────────────────────────────────────────────
+  'engine parts': { cat: 'Car Parts', sub: 'Other Car Parts' },
+  'fuel system': { cat: 'Car Parts', sub: 'Other Car Parts' },
+  'car care products': { cat: 'Car Parts', sub: 'Other Car Parts' },
+  // ── Toys & Hobbies ─────────────────────────────────────────────────────────
+  'educational/science kits': { cat: 'Toys & Hobbies', sub: 'Other Toys' },
+  'educational/math manipulatives': { cat: 'Toys & Hobbies', sub: 'Other Toys' },
+  'mystery toy': { cat: 'Toys & Hobbies', sub: 'Other Toys' },
+  'inflatable toys': { cat: 'Toys & Hobbies', sub: 'Other Toys' },
+  // ── Home & Garden ──────────────────────────────────────────────────────────
   'storage & organization': { sub: 'Other Home & Garden' },
+  'smart home accessories': { sub: 'Other Home & Garden' },
+  // ── Arts & Handmade ────────────────────────────────────────────────────────
   'stationery': { sub: 'Other Craft Supplies' },
+  'notebooks & journals': { sub: 'Other Craft Supplies' },
+  'notebook': { sub: 'Other Craft Supplies' },
+  'journal': { sub: 'Other Craft Supplies' },
+  // ── Keychains → Arts & Handmade ───────────────────────────────────────────
   'keychains': { cat: 'Arts & Handmade', sub: 'Beads, Pens & Keychains' },
   'keychain': { cat: 'Arts & Handmade', sub: 'Beads, Pens & Keychains' },
+  'keychains & bag charms': { cat: 'Arts & Handmade', sub: 'Beads, Pens & Keychains' },
+  'keychain/bag charm': { cat: 'Arts & Handmade', sub: 'Beads, Pens & Keychains' },
+  'keychain & bag charm': { cat: 'Arts & Handmade', sub: 'Beads, Pens & Keychains' },
+  'bag charm': { cat: 'Arts & Handmade', sub: 'Beads, Pens & Keychains' },
+  // ── Beauty ─────────────────────────────────────────────────────────────────
+  'fragrances': { cat: 'Beauty', sub: 'Fragrances' },
+  'fragrance': { cat: 'Beauty', sub: 'Fragrances' },
+  'perfume': { cat: 'Beauty', sub: 'Fragrances' },
+  'cologne': { cat: 'Beauty', sub: 'Fragrances' },
+  'makeup': { cat: 'Beauty', sub: 'Makeup & Cosmetics' },
+  'cosmetics': { cat: 'Beauty', sub: 'Makeup & Cosmetics' },
+  'makeup & cosmetics': { cat: 'Beauty', sub: 'Makeup & Cosmetics' },
+  'skincare': { cat: 'Beauty', sub: 'Skincare' },
+  'skin care': { cat: 'Beauty', sub: 'Skincare' },
+  'hair care': { cat: 'Beauty', sub: 'Hair Care' },
+  "men's hair care": { cat: 'Beauty', sub: 'Hair Care' },
+  "women's hair care": { cat: 'Beauty', sub: 'Hair Care' },
+  'nail care': { cat: 'Beauty', sub: 'Nail Care' },
+  'body care': { cat: 'Beauty', sub: 'Body Care' },
+  // ── Bags & Accessories — route misplaced subcategories ─────────────────────
+  'bags': { sub: 'Handbags' },
+  'handbags': { sub: 'Handbags' },
+  'luxury leather goods': { sub: 'Handbags' },
+  'wallets': { sub: 'Wallets & Card Cases' },
+  'sunglasses': { sub: 'Sunglasses' },
+  'belts': { sub: 'Belts' },
+  // ── Hats → Men's or Women's Fashion ───────────────────────────────────────
+  'hats': { cat: 'Men\'s Fashion', sub: 'Men\'s Hats & Caps' },
+  'hats & caps': { cat: 'Men\'s Fashion', sub: 'Men\'s Hats & Caps' },
+  "men's hats": { cat: 'Men\'s Fashion', sub: 'Men\'s Hats & Caps' },
+  "women's hats": { cat: 'Women\'s Fashion', sub: 'Women\'s Hats & Caps' },
+  // ── Men's Fashion ─────────────────────────────────────────────────────────
+  "men's ties": { cat: 'Men\'s Fashion', sub: "Men's Ties & Bow Ties" },
+  'ties': { cat: 'Men\'s Fashion', sub: "Men's Ties & Bow Ties" },
+  'tie': { cat: 'Men\'s Fashion', sub: "Men's Ties & Bow Ties" },
+  'men': { cat: 'Men\'s Fashion', sub: 'Men\'s Modern' },
+  'mens': { cat: 'Men\'s Fashion', sub: 'Men\'s Modern' },
+  "men's": { cat: 'Men\'s Fashion', sub: 'Men\'s Modern' },
+  // ── Women's Fashion ───────────────────────────────────────────────────────
+  'woman': { cat: 'Women\'s Fashion', sub: 'Women\'s Contemporary' },
+  'women': { cat: 'Women\'s Fashion', sub: 'Women\'s Contemporary' },
+  'womens': { cat: 'Women\'s Fashion', sub: 'Women\'s Contemporary' },
+  "women's": { cat: 'Women\'s Fashion', sub: 'Women\'s Contemporary' },
+  // ── Jewelry → Jewelry category ────────────────────────────────────────────
+  'jewelry': { cat: 'Jewelry', sub: '' },
+  'fine jewelry': { cat: 'Jewelry', sub: '' },
+  'costume jewelry': { cat: 'Jewelry', sub: '' },
+  // ── Outdoor Gear ──────────────────────────────────────────────────────────
+  'golf accessories': { cat: 'Outdoor Gear', sub: 'Golf' },
+  'golf': { cat: 'Outdoor Gear', sub: 'Golf' },
+  'yoga equipment': { cat: 'Outdoor Gear', sub: 'Other Outdoor Gear' },
+  'fitness equipment': { cat: 'Outdoor Gear', sub: 'Other Outdoor Gear' },
+  'marine electronics': { cat: 'Outdoor Gear', sub: 'Other Outdoor Gear' },
+  // ── Other ─────────────────────────────────────────────────────────────────
   'barware': { cat: 'and Whatnot', sub: 'Breweriana' },
   'tablet accessories': { sub: 'Other Electronics' },
   'dvd': { cat: 'Movies', sub: 'DVDs' },
   'dvds': { cat: 'Movies', sub: 'DVDs' },
   'travel accessories': { sub: 'Other Accessories' },
-  'marine electronics': { cat: 'Outdoor Gear', sub: 'Other Outdoors Gear' },
-  'smart home accessories': { sub: 'Other Home & Garden' },
-  'men': { cat: 'Men\'s Fashion', sub: 'Men\'s Modern' },
-  'mens': { cat: 'Men\'s Fashion', sub: 'Men\'s Modern' },
-  "men's": { cat: 'Men\'s Fashion', sub: 'Men\'s Modern' },
-  'woman': { cat: 'Women\'s Fashion', sub: 'Women\'s Contemporary' },
-  'women': { cat: 'Women\'s Fashion', sub: 'Women\'s Contemporary' },
-  'womens': { cat: 'Women\'s Fashion', sub: 'Women\'s Contemporary' },
-  "women's": { cat: 'Women\'s Fashion', sub: 'Women\'s Contemporary' },
 };
 
 function mapWhatnotCatSub(cat, sub) {
