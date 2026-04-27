@@ -791,18 +791,10 @@ export async function pullEBayListings({ silent = false } = {}) {
             // Common numbers that appear as standalone words in many eBay titles
             '1', '2', '3', '4', '5', '6', '7', '8', '9', '10',
           ];
-          // ALL unique words from existing eBay inventory names (not just top 20).
-          // This is the key change: a new "Jordan 4 Retro" listing is only found if
-          // 'jordan' or 'retro' is already in inventory vocabulary.
-          const _invWords = new Set();
-          for (const it of inv) {
-            if (it.sold || it.deleted) continue;
-            if (!it.platforms?.includes('eBay') && !it.ebayItemId) continue;
-            for (const w of (it.name || '').toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/)) {
-              if (w.length >= 3) _invWords.add(w);
-            }
-          }
-          const queries = [...new Set([...broadTerms, ..._invWords])];
+          // Keep the query list to just the broad terms — one API call per broad term.
+          // Per-item lookups below handle known listing IDs; Trading API (when available)
+          // handles full inventory discovery without needing broad-term sweeps at all.
+          const queries = [...new Set(broadTerms)];
           const seenBrowseIds = new Set();
 
           for (const q of queries) {
