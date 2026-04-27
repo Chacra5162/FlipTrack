@@ -101,6 +101,7 @@ serve(async (req) => {
       case 'callback':   return await handleCallback(body, user.id, supabase);
       case 'disconnect': return await handleDisconnect(body, user.id, supabase);
       case 'api':        return await handleApiProxy(body, user.id, supabase);
+      case 'ping':       return await handlePing();
       default:           return err(400, `Unknown action: ${action}`);
     }
   } catch (e) {
@@ -127,6 +128,17 @@ async function handleStatus(_body: any, userId: string, supabase: any) {
     connected_at:  auth.connected_at  ?? null,
     is_sandbox:    auth.is_sandbox    ?? false,
   });
+}
+
+// ── PING / CONNECTIVITY TEST ──────────────────────────────────────────────
+
+async function handlePing() {
+  try {
+    const r = await fetch('https://api.ebay.com/buy/browse/v1/', { method: 'HEAD' });
+    return ok({ dns: 'ok', status: r.status });
+  } catch (e) {
+    return ok({ dns: 'fail', error: String((e as any)?.message ?? e) });
+  }
 }
 
 // ── AUTHORIZE ─────────────────────────────────────────────────────────────
