@@ -6,3 +6,4 @@ dist2/
 .env
 .env.local
 .env.production
+supabase/.temp/
