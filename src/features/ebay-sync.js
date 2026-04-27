@@ -767,32 +767,27 @@ export async function pullEBayListings({ silent = false } = {}) {
         }
         console.warn('[eBay] Browse API: username =', username || '(none)');
         if (username) {
-          toast('Searching your eBay store…');
           const sellerFilter = `sellers:%7B${encodeURIComponent(username)}%7D`;
-          // Build query list for broad seller search.
-          // broadTerms: common English words that appear in nearly every listing title.
-          // invAllWords: EVERY unique word from existing eBay inventory names — ensures
-          //   any new listing whose title shares vocabulary with existing items is found,
-          //   even for brand names and model numbers not in the broad list.
-          // Together these maximise new-listing discovery without Trading API.
-          const broadTerms = [
-            // Common listing words
-            'new', 'used', 'lot', 'set', 'pair', 'pack', 'bag', 'box', 'case', 'kit', 'bundle',
-            'vintage', 'rare', 'retro', 'authentic', 'original', 'mint', 'sealed', 'bulk',
-            // Size / gender
-            'size', 'small', 'medium', 'large', 'men', 'women', 'kids', 'boys', 'girls',
-            // Condition / shipping terms
-            'nwt', 'nib', 'nwob', 'free', 'plus',
-            // Colors
-            'black', 'white', 'red', 'blue', 'green', 'pink', 'grey', 'gray', 'brown', 'gold', 'silver',
-            // Common clothing
-            'shirt', 'pants', 'jeans', 'jacket', 'dress', 'shoes', 'sneakers', 'boots', 'hoodie', 'top',
-          ];
-          // Keep the query list to just the broad terms — one API call per broad term.
-          // Per-item lookups below handle known listing IDs; Trading API (when available)
-          // handles full inventory discovery without needing broad-term sweeps at all.
-          const queries = [...new Set(broadTerms)];
           const seenBrowseIds = new Set();
+
+          // Keyword sweep: only run when Trading API is unavailable. When Trading API
+          // already returned all active listings, this sweep is pure API call waste.
+          if (!tradingWorked) {
+            toast('Searching your eBay store…');
+            const broadTerms = [
+              // Common listing words
+              'new', 'used', 'lot', 'set', 'pair', 'pack', 'bag', 'box', 'case', 'kit', 'bundle',
+              'vintage', 'rare', 'retro', 'authentic', 'original', 'mint', 'sealed', 'bulk',
+              // Size / gender
+              'size', 'small', 'medium', 'large', 'men', 'women', 'kids', 'boys', 'girls',
+              // Condition / shipping terms
+              'nwt', 'nib', 'nwob', 'free', 'plus',
+              // Colors
+              'black', 'white', 'red', 'blue', 'green', 'pink', 'grey', 'gray', 'brown', 'gold', 'silver',
+              // Common clothing
+              'shirt', 'pants', 'jeans', 'jacket', 'dress', 'shoes', 'sneakers', 'boots', 'hoodie', 'top',
+            ];
+            const queries = [...new Set(broadTerms)];
 
           for (const q of queries) {
             try {
@@ -884,14 +879,13 @@ export async function pullEBayListings({ silent = false } = {}) {
               // Keep trying queries until we've found all items or exhausted queries
               // Each query finds items containing that term — need multiple for full coverage
               if (summaries.length >= 200) continue; // Might have more, try next query
-              // Don't break early — all queries must run to ensure full coverage.
-              // Breaking at 50 would skip new listings found only by later queries.
             } catch (qErr) {
               console.warn(`[eBay] Browse q="${q}" failed:`, qErr.message);
-              // If first attempt fails (empty q), try next query term
               continue;
             }
           }
+          } // end !tradingWorked keyword sweep
+
           // Targeted search: for items still missing ebayListingId, search by name
           const stillMissing = inv.filter(i =>
             i.platforms?.includes('eBay') && i.ebayItemId && !i.ebayListingId
