@@ -49,7 +49,6 @@ const EBAY_SCOPES = [
   'https://api.ebay.com/oauth/api_scope/sell.account.readonly',
   'https://api.ebay.com/oauth/api_scope/sell.fulfillment',
   'https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly',
-  'https://api.ebay.com/oauth/api_scope/buy.browse',
 ].join(' ');
 
 // Allowlist of eBay API paths the proxy will forward
@@ -78,13 +77,20 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) return err(401, 'Missing Authorization header');
 
-    const supabase = createClient(
+    // User client — validates the JWT and gets user identity
+    const userClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,
       { global: { headers: { Authorization: authHeader } } },
     );
-    const { data: { user }, error: userErr } = await supabase.auth.getUser();
+    const { data: { user }, error: userErr } = await userClient.auth.getUser();
     if (userErr || !user) return err(401, 'Invalid or expired session');
+
+    // Admin client — uses service role key for DB writes (bypasses RLS)
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
 
     const body  = await req.json().catch(() => ({}));
     const action = req.headers.get('x-ebay-action') || body.action || '';
@@ -95,6 +101,7 @@ serve(async (req) => {
       case 'callback':   return await handleCallback(body, user.id, supabase);
       case 'disconnect': return await handleDisconnect(body, user.id, supabase);
       case 'api':        return await handleApiProxy(body, user.id, supabase);
+      case 'ping':       return await handlePing();
       default:           return err(400, `Unknown action: ${action}`);
     }
   } catch (e) {
@@ -107,26 +114,38 @@ serve(async (req) => {
 
 async function handleStatus(_body: any, userId: string, supabase: any) {
   const { data: auth } = await supabase
-    .from('ebay_auth')
-    .select('ebay_username, connected_at, is_sandbox, expires_at')
-    .eq('user_id', userId)
+    .from('ebay_tokens')
+    .select('ebay_username, connected_at, is_sandbox, disconnected_at')
+    .eq('account_id', userId)
+    .is('disconnected_at', null)
     .maybeSingle();
 
   if (!auth) return ok({ connected: false });
 
   return ok({
-    connected:    true,
+    connected:     true,
     ebay_username: auth.ebay_username ?? null,
     connected_at:  auth.connected_at  ?? null,
     is_sandbox:    auth.is_sandbox    ?? false,
   });
 }
 
+// ── PING / CONNECTIVITY TEST ──────────────────────────────────────────────
+
+async function handlePing() {
+  try {
+    const r = await fetch('https://api.ebay.com/buy/browse/v1/', { method: 'HEAD' });
+    return ok({ dns: 'ok', status: r.status });
+  } catch (e) {
+    return ok({ dns: 'fail', error: String((e as any)?.message ?? e) });
+  }
+}
+
 // ── AUTHORIZE ─────────────────────────────────────────────────────────────
 
 async function handleAuthorize(body: any, _userId: string, _supabase: any) {
   const clientId   = Deno.env.get('EBAY_CLIENT_ID');
-  const redirectUri = Deno.env.get('EBAY_REDIRECT_URI');
+  const redirectUri = Deno.env.get('EBAY_RUNAME_PROD');
   if (!clientId || !redirectUri) return err(500, 'Server configuration error: eBay credentials not set');
 
   const isSandbox = Boolean(body.isSandbox);
@@ -152,7 +171,7 @@ async function handleCallback(body: any, userId: string, supabase: any) {
 
   const clientId    = Deno.env.get('EBAY_CLIENT_ID');
   const clientSecret = Deno.env.get('EBAY_CLIENT_SECRET');
-  const redirectUri  = Deno.env.get('EBAY_REDIRECT_URI');
+  const redirectUri  = Deno.env.get('EBAY_RUNAME_PROD');
   if (!clientId || !clientSecret || !redirectUri) {
     return err(500, 'Server configuration error: eBay credentials not set');
   }
@@ -204,19 +223,37 @@ async function handleCallback(body: any, userId: string, supabase: any) {
   }
 
   const now = new Date().toISOString();
-  const { error: upsertErr } = await supabase.from('ebay_auth').upsert({
-    user_id:       userId,
-    access_token:  accessToken,
-    refresh_token: refreshToken,
-    expires_at:    expiresAt,
-    ebay_username: ebayUsername,
-    connected_at:  now,
-    is_sandbox:    Boolean(isSandbox),
-  }, { onConflict: 'user_id' });
+  const record = {
+    access_token:             accessToken,
+    refresh_token:            refreshToken,
+    access_token_expires_at:  expiresAt,
+    ebay_username:            ebayUsername,
+    connected_at:             now,
+    disconnected_at:          null,
+    is_sandbox:               Boolean(isSandbox),
+    last_refreshed_at:        now,
+  };
 
-  if (upsertErr) {
-    console.error('[ebay-auth] Upsert failed:', upsertErr);
+  // Update existing row; if none exists, insert a new one.
+  const { data: updated, error: updateErr } = await supabase
+    .from('ebay_tokens')
+    .update(record)
+    .eq('account_id', userId)
+    .select('id');
+
+  if (updateErr) {
+    console.error('[ebay-auth] Token update failed:', updateErr);
     return err(500, 'Failed to store eBay credentials');
+  }
+
+  if (!updated || updated.length === 0) {
+    const { error: insertErr } = await supabase
+      .from('ebay_tokens')
+      .insert({ account_id: userId, ...record });
+    if (insertErr) {
+      console.error('[ebay-auth] Token insert failed:', insertErr);
+      return err(500, 'Failed to store eBay credentials');
+    }
   }
 
   return ok({ success: true, ebay_username: ebayUsername });
@@ -225,7 +262,9 @@ async function handleCallback(body: any, userId: string, supabase: any) {
 // ── DISCONNECT ────────────────────────────────────────────────────────────
 
 async function handleDisconnect(_body: any, userId: string, supabase: any) {
-  await supabase.from('ebay_auth').delete().eq('user_id', userId);
+  await supabase.from('ebay_tokens')
+    .update({ disconnected_at: new Date().toISOString(), access_token: null, refresh_token: null })
+    .eq('account_id', userId);
   return ok({ success: true });
 }
 
@@ -240,9 +279,10 @@ async function handleApiProxy(body: any, userId: string, supabase: any) {
 
   // Fetch stored token
   const { data: auth, error: authErr } = await supabase
-    .from('ebay_auth')
-    .select('access_token, refresh_token, expires_at, is_sandbox')
-    .eq('user_id', userId)
+    .from('ebay_tokens')
+    .select('access_token, refresh_token, access_token_expires_at, is_sandbox')
+    .eq('account_id', userId)
+    .is('disconnected_at', null)
     .maybeSingle();
 
   if (authErr) {
@@ -252,7 +292,7 @@ async function handleApiProxy(body: any, userId: string, supabase: any) {
   if (!auth) return err(401, 'eBay not connected');
 
   let token = auth.access_token as string;
-  if (new Date(auth.expires_at as string) < new Date(Date.now() + 60_000)) {
+  if (new Date(auth.access_token_expires_at as string) < new Date(Date.now() + 60_000)) {
     try {
       token = await refreshToken(auth.refresh_token as string, userId, isSandbox ?? auth.is_sandbox, supabase);
     } catch (e) {
@@ -307,7 +347,9 @@ async function handleApiProxy(body: any, userId: string, supabase: any) {
       headers: {
         'Authorization':           `Bearer ${token}`,
         'Content-Type':            'application/json',
+        'Content-Language':        'en-US',
         'Accept':                  'application/json',
+        'Accept-Language':         'en-US',
         'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
       },
       body: apiBody ? JSON.stringify(apiBody) : undefined,
@@ -366,10 +408,11 @@ async function refreshToken(
 
   const newToken  = data.access_token as string;
   const expiresAt = new Date(Date.now() + (data.expires_in as number) * 1000).toISOString();
+  const now       = new Date().toISOString();
 
-  await supabase.from('ebay_auth')
-    .update({ access_token: newToken, expires_at: expiresAt })
-    .eq('user_id', userId);
+  await supabase.from('ebay_tokens')
+    .update({ access_token: newToken, access_token_expires_at: expiresAt, last_refreshed_at: now })
+    .eq('account_id', userId);
 
   return newToken;
 }
