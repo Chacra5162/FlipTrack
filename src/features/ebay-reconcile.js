@@ -211,6 +211,87 @@ export async function buildReconciliation() {
       }
     }
 
+    // Phase 3: Verify items that appear "FlipTrack-only" by fetching eBay directly.
+    // Keyword search + fuzzy matching can miss items with unusual titles or stale IDs.
+    // For each candidate: first try a direct listing-ID lookup, then a name search.
+    if (localOnly.length > 0) {
+      const sellerUsername = getEBayUsername();
+      const sellerFilter = sellerUsername
+        ? `sellers:%7B${encodeURIComponent(sellerUsername)}%7D`
+        : null;
+
+      const BATCH3 = 4;
+      for (let vi = 0; vi < localOnly.length; vi += BATCH3) {
+        if (_reconcileCancelled) break;
+        await Promise.all(localOnly.slice(vi, vi + BATCH3).map(async item => {
+          // Step A: direct listing ID lookup if we have one not yet in ebayMap
+          const lid = String(item.ebayListingId || '');
+          if (lid && !ebayMap.has(lid)) {
+            try {
+              const resp = await ebayAPI('GET', `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${lid}`);
+              if (resp?.itemId) {
+                const isAuction = (resp.buyingOptions || []).includes('AUCTION');
+                ebayMap.set(lid, {
+                  listingId: lid, title: resp.title || '',
+                  price: parseFloat(resp.price?.value || '0'),
+                  currentBid: parseFloat(resp.currentBidPrice?.value || '0'),
+                  isAuction, url: resp.itemWebUrl || `https://www.ebay.com/itm/${lid}`,
+                  image: resp.image?.imageUrl || resp.thumbnailImages?.[0]?.imageUrl || '',
+                });
+                matchedLocal.add(item.id);
+                return;
+              }
+            } catch (_) {}
+          } else if (lid && ebayMap.has(lid)) {
+            matchedLocal.add(item.id);
+            return;
+          }
+
+          // Step B: name search — finds items with wrong/missing listing IDs
+          if (!item.name || !sellerFilter) return;
+          try {
+            const q = encodeURIComponent(item.name.slice(0, 80));
+            const resp = await ebayAPI('GET',
+              `${BROWSE_API}/item_summary/search?q=${q}&filter=${sellerFilter}&limit=10`
+            );
+            for (const s of (resp?.itemSummaries || [])) {
+              const foundLid = s.legacyItemId || '';
+              if (!foundLid) continue;
+              const sTokens = _tokenSet(s.title || '');
+              const iTokens = _tokenSet(item.name);
+              if (iTokens.size < 2) continue;
+              let hits = 0;
+              for (const t of iTokens) if (sTokens.has(t)) hits++;
+              if (hits / iTokens.size >= 0.5) {
+                if (!ebayMap.has(foundLid)) {
+                  const isAuction = (s.buyingOptions || []).includes('AUCTION');
+                  ebayMap.set(foundLid, {
+                    listingId: foundLid, title: s.title || '',
+                    price: parseFloat(s.price?.value || '0'),
+                    currentBid: parseFloat(s.currentBidPrice?.value || '0'),
+                    isAuction, url: s.itemWebUrl || `https://www.ebay.com/itm/${foundLid}`,
+                    image: s.image?.imageUrl || s.thumbnailImages?.[0]?.imageUrl || '',
+                  });
+                }
+                matchedLocal.add(item.id);
+                break;
+              }
+            }
+          } catch (e) {
+            if (e.message?.includes('cancelled')) throw e;
+          }
+        }));
+      }
+
+      // Rebuild localOnly — items confirmed via Phase 3 are no longer "FlipTrack-only"
+      localOnly.length = 0;
+      for (const item of localActive) {
+        if (matchedLocal.has(item.id)) continue;
+        const lid = String(item.ebayListingId || '');
+        if (!lid || !ebayMap.has(lid)) localOnly.push(item);
+      }
+    }
+
     // 3. Mismatched: both sides have the listing but data differs.
     // Use the same fuzzy matcher as above so items without a stored
     // ebayListingId still get compared via name.

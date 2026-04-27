@@ -530,10 +530,11 @@ export async function pullEBayListings({ silent = false } = {}) {
     }
 
     // ── SUPPLEMENT / FALLBACK: Offer API scan ─────────────────────────
-    // Always run: enriches items with listingId, price, and format that
-    // the Trading API may not provide (or fills everything if Trading failed)
-    // Skip if Offer API is known broken (account has invalid SKU data)
-    if (!_offerApiBlocked) {
+    // Run only when Trading API didn't work — eBay's Inventory API getOffers
+    // endpoint requires a specific SKU parameter (it can't list all offers in
+    // bulk), so this scan is only useful as a last-resort fallback when Trading
+    // API is unavailable. Skip if already known broken or if Trading API worked.
+    if (!_offerApiBlocked && !tradingWorked) {
       try {
         console.warn('[eBay] Running Offer API scan…');
         let offerOffset = 0;
@@ -775,21 +776,17 @@ export async function pullEBayListings({ silent = false } = {}) {
           //   even for brand names and model numbers not in the broad list.
           // Together these maximise new-listing discovery without Trading API.
           const broadTerms = [
-            // Articles / prepositions
-            'a', 'an', 'the', 'for', 'of', 'in', 'on', 'at', 'to', 'by', 'or', 'and', 'with', 'from',
             // Common listing words
             'new', 'used', 'lot', 'set', 'pair', 'pack', 'bag', 'box', 'case', 'kit', 'bundle',
             'vintage', 'rare', 'retro', 'authentic', 'original', 'mint', 'sealed', 'bulk',
             // Size / gender
-            'size', 'small', 'medium', 'large', 'xl', 'xs', 'men', 'women', 'kids', 'boys', 'girls',
+            'size', 'small', 'medium', 'large', 'men', 'women', 'kids', 'boys', 'girls',
             // Condition / shipping terms
-            'nwt', 'nib', 'nwob', 'obo', 'free', 'fast', 'plus',
+            'nwt', 'nib', 'nwob', 'free', 'plus',
             // Colors
             'black', 'white', 'red', 'blue', 'green', 'pink', 'grey', 'gray', 'brown', 'gold', 'silver',
             // Common clothing
             'shirt', 'pants', 'jeans', 'jacket', 'dress', 'shoes', 'sneakers', 'boots', 'hoodie', 'top',
-            // Common numbers that appear as standalone words in many eBay titles
-            '1', '2', '3', '4', '5', '6', '7', '8', '9', '10',
           ];
           // Keep the query list to just the broad terms — one API call per broad term.
           // Per-item lookups below handle known listing IDs; Trading API (when available)
