@@ -1,65 +1,397 @@
-// ebay-auth — Supabase Edge Function proxying eBay API calls for FlipTrack.
-//
-// This is a TEMPLATE. Your deployed version in Supabase already handles OAuth
-// token exchange, refresh, and REST proxying. This file adds Trading API
-// (legacy XML) support. Merge the Trading API section into your existing
-// function — don't replace wholesale without comparing.
-//
-// Trading API reference: https://developer.ebay.com/devzone/xml/docs/reference/ebay/
-// Headers required:
-//   X-EBAY-API-SITEID: 0 (US)
-//   X-EBAY-API-COMPATIBILITY-LEVEL: 1193 (or newer)
-//   X-EBAY-API-CALL-NAME: <verb, e.g. GetMyeBaySelling>
-//   X-EBAY-API-IAF-TOKEN: <OAuth access_token>
-//   Content-Type: text/xml; charset=utf-8
+/**
+ * ebay-auth — Supabase Edge Function for eBay OAuth + API proxy.
+ *
+ * Actions (x-ebay-action header or body.action):
+ *   status     → check if the signed-in user has eBay connected
+ *   authorize  → generate eBay OAuth URL + CSRF state
+ *   callback   → exchange auth code for tokens; store; return username
+ *   disconnect → delete auth record
+ *   api        → proxy authenticated eBay REST or Trading API call
+ *
+ * Required secrets (Supabase Dashboard → Edge Functions → Secrets):
+ *   EBAY_CLIENT_ID     — eBay app Client ID
+ *   EBAY_CLIENT_SECRET — eBay app Client Secret
+ *   EBAY_REDIRECT_URI  — OAuth redirect URI (your RU Name on eBay)
+ *
+ * Auto-provided by Supabase:
+ *   SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
+ *
+ * Database table (ebay_auth):
+ *   user_id       UUID   PRIMARY KEY REFERENCES auth.users
+ *   access_token  TEXT
+ *   refresh_token TEXT
+ *   expires_at    TIMESTAMPTZ
+ *   ebay_username TEXT
+ *   connected_at  TIMESTAMPTZ
+ *   is_sandbox    BOOLEAN DEFAULT false
+ *
+ * Trading API reference: https://developer.ebay.com/devzone/xml/docs/reference/ebay/
+ */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // ── CONFIG ────────────────────────────────────────────────────────────────
-const EBAY_API_HOST_PROD = 'https://api.ebay.com';
-const EBAY_API_HOST_SANDBOX = 'https://api.sandbox.ebay.com';
-const TRADING_COMPAT_LEVEL = '1193';
-const TRADING_SITE_ID = '0'; // US
 
-// Allowlist of API paths (Trading API added: /ws/api.dll)
+const EBAY_HOST_PROD    = 'https://api.ebay.com';
+const EBAY_HOST_SANDBOX = 'https://api.sandbox.ebay.com';
+const EBAY_AUTH_PROD    = 'https://auth.ebay.com/oauth2/authorize';
+const EBAY_AUTH_SANDBOX = 'https://auth.sandbox.ebay.com/oauth2/authorize';
+const EBAY_TOKEN_PATH   = '/identity/v1/oauth2/token';
+const TRADING_COMPAT    = '1193';
+const TRADING_SITE_ID   = '0'; // US
+
+const EBAY_SCOPES = [
+  'https://api.ebay.com/oauth/api_scope',
+  'https://api.ebay.com/oauth/api_scope/sell.inventory',
+  'https://api.ebay.com/oauth/api_scope/sell.inventory.readonly',
+  'https://api.ebay.com/oauth/api_scope/sell.account',
+  'https://api.ebay.com/oauth/api_scope/sell.account.readonly',
+  'https://api.ebay.com/oauth/api_scope/sell.fulfillment',
+  'https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly',
+  'https://api.ebay.com/oauth/api_scope/buy.browse',
+].join(' ');
+
+// Allowlist of eBay API paths the proxy will forward
 const ALLOWED_PATHS = [
   /^\/sell\/fulfillment\/v1\//,
   /^\/sell\/inventory\/v1\//,
   /^\/sell\/account\/v1\//,
   /^\/buy\/browse\/v1\//,
-  /^\/ws\/api\.dll$/, // Trading API
+  /^\/commerce\/taxonomy\/v1\//,
+  /^\/ws\/api\.dll$/,           // Trading API (XML)
 ];
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
+// CORS headers on EVERY response — no exceptions
+const CORS = {
+  'Access-Control-Allow-Origin':  '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-ebay-action',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-// ── UTILITIES ─────────────────────────────────────────────────────────────
+// ── MAIN HANDLER ─────────────────────────────────────────────────────────
 
-/** Build Trading API XML request from a JSON payload.
- * Input shape: { _tradingCall: 'GetMyeBaySelling', ...fields }
- * Output: valid eBay Trading API XML envelope
- */
+serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+
+  try {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) return err(401, 'Missing Authorization header');
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: { user }, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !user) return err(401, 'Invalid or expired session');
+
+    const body  = await req.json().catch(() => ({}));
+    const action = req.headers.get('x-ebay-action') || body.action || '';
+
+    switch (action) {
+      case 'status':     return await handleStatus(body, user.id, supabase);
+      case 'authorize':  return await handleAuthorize(body, user.id, supabase);
+      case 'callback':   return await handleCallback(body, user.id, supabase);
+      case 'disconnect': return await handleDisconnect(body, user.id, supabase);
+      case 'api':        return await handleApiProxy(body, user.id, supabase);
+      default:           return err(400, `Unknown action: ${action}`);
+    }
+  } catch (e) {
+    console.error('[ebay-auth] Unhandled error:', e);
+    return err(500, String((e as any)?.message ?? e));
+  }
+});
+
+// ── STATUS ────────────────────────────────────────────────────────────────
+
+async function handleStatus(_body: any, userId: string, supabase: any) {
+  const { data: auth } = await supabase
+    .from('ebay_auth')
+    .select('ebay_username, connected_at, is_sandbox, expires_at')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (!auth) return ok({ connected: false });
+
+  return ok({
+    connected:    true,
+    ebay_username: auth.ebay_username ?? null,
+    connected_at:  auth.connected_at  ?? null,
+    is_sandbox:    auth.is_sandbox    ?? false,
+  });
+}
+
+// ── AUTHORIZE ─────────────────────────────────────────────────────────────
+
+async function handleAuthorize(body: any, _userId: string, _supabase: any) {
+  const clientId   = Deno.env.get('EBAY_CLIENT_ID');
+  const redirectUri = Deno.env.get('EBAY_REDIRECT_URI');
+  if (!clientId || !redirectUri) return err(500, 'Server configuration error: eBay credentials not set');
+
+  const isSandbox = Boolean(body.isSandbox);
+  const state     = crypto.randomUUID();
+
+  const params = new URLSearchParams({
+    client_id:     clientId,
+    redirect_uri:  redirectUri,
+    response_type: 'code',
+    scope:         EBAY_SCOPES,
+    state,
+  });
+  const authUrl = `${isSandbox ? EBAY_AUTH_SANDBOX : EBAY_AUTH_PROD}?${params}`;
+
+  return ok({ state, authUrl });
+}
+
+// ── CALLBACK ──────────────────────────────────────────────────────────────
+
+async function handleCallback(body: any, userId: string, supabase: any) {
+  const { code, isSandbox } = body;
+  if (!code) return err(400, 'Missing authorization code');
+
+  const clientId    = Deno.env.get('EBAY_CLIENT_ID');
+  const clientSecret = Deno.env.get('EBAY_CLIENT_SECRET');
+  const redirectUri  = Deno.env.get('EBAY_REDIRECT_URI');
+  if (!clientId || !clientSecret || !redirectUri) {
+    return err(500, 'Server configuration error: eBay credentials not set');
+  }
+
+  const host  = isSandbox ? EBAY_HOST_SANDBOX : EBAY_HOST_PROD;
+  const basic = btoa(`${clientId}:${clientSecret}`);
+
+  // Exchange authorization code for tokens
+  const tokenResp = await fetch(`${host}${EBAY_TOKEN_PATH}`, {
+    method: 'POST',
+    headers: {
+      'Authorization':  `Basic ${basic}`,
+      'Content-Type':   'application/x-www-form-urlencoded',
+    },
+    body: `grant_type=authorization_code&code=${encodeURIComponent(code)}&redirect_uri=${encodeURIComponent(redirectUri)}`,
+  });
+
+  const tokenData = await tokenResp.json().catch(() => ({}));
+  if (!tokenResp.ok) {
+    const msg = tokenData.error_description || tokenData.error || `HTTP ${tokenResp.status}`;
+    console.error('[ebay-auth] Token exchange failed:', msg);
+    return err(400, `Token exchange failed: ${msg}`);
+  }
+
+  const accessToken  = tokenData.access_token  as string;
+  const refreshToken = tokenData.refresh_token as string;
+  const expiresAt    = new Date(Date.now() + (tokenData.expires_in as number) * 1000).toISOString();
+
+  // Fetch eBay username via Trading API GetUser
+  let ebayUsername: string | null = null;
+  try {
+    const xmlReq = buildTradingXml('GetUser', { DetailLevel: 'ReturnAll' }, accessToken);
+    const userResp = await fetch(`${host}/ws/api.dll`, {
+      method: 'POST',
+      headers: {
+        'Content-Type':                    'text/xml; charset=utf-8',
+        'X-EBAY-API-SITEID':               TRADING_SITE_ID,
+        'X-EBAY-API-COMPATIBILITY-LEVEL':  TRADING_COMPAT,
+        'X-EBAY-API-CALL-NAME':            'GetUser',
+        'X-EBAY-API-IAF-TOKEN':            accessToken,
+      },
+      body: xmlReq,
+    });
+    const xmlText = await userResp.text();
+    const parsed  = parseTradingXml(xmlText);
+    ebayUsername  = parsed?.User?.UserID ?? null;
+  } catch (e) {
+    console.warn('[ebay-auth] Could not fetch username via Trading API:', (e as any)?.message);
+  }
+
+  const now = new Date().toISOString();
+  const { error: upsertErr } = await supabase.from('ebay_auth').upsert({
+    user_id:       userId,
+    access_token:  accessToken,
+    refresh_token: refreshToken,
+    expires_at:    expiresAt,
+    ebay_username: ebayUsername,
+    connected_at:  now,
+    is_sandbox:    Boolean(isSandbox),
+  }, { onConflict: 'user_id' });
+
+  if (upsertErr) {
+    console.error('[ebay-auth] Upsert failed:', upsertErr);
+    return err(500, 'Failed to store eBay credentials');
+  }
+
+  return ok({ success: true, ebay_username: ebayUsername });
+}
+
+// ── DISCONNECT ────────────────────────────────────────────────────────────
+
+async function handleDisconnect(_body: any, userId: string, supabase: any) {
+  await supabase.from('ebay_auth').delete().eq('user_id', userId);
+  return ok({ success: true });
+}
+
+// ── API PROXY ─────────────────────────────────────────────────────────────
+
+async function handleApiProxy(body: any, userId: string, supabase: any) {
+  const { method, path, body: apiBody, isSandbox } = body;
+
+  if (!ALLOWED_PATHS.some(rx => rx.test(path))) {
+    return err(403, `API path not allowed: ${path}`);
+  }
+
+  // Fetch stored token
+  const { data: auth, error: authErr } = await supabase
+    .from('ebay_auth')
+    .select('access_token, refresh_token, expires_at, is_sandbox')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (authErr) {
+    console.error('[ebay-auth] DB error fetching auth:', authErr);
+    return err(500, 'Database error');
+  }
+  if (!auth) return err(401, 'eBay not connected');
+
+  let token = auth.access_token as string;
+  if (new Date(auth.expires_at as string) < new Date(Date.now() + 60_000)) {
+    try {
+      token = await refreshToken(auth.refresh_token as string, userId, isSandbox ?? auth.is_sandbox, supabase);
+    } catch (e) {
+      return err(401, `Token refresh failed: ${(e as any)?.message ?? e}`);
+    }
+  }
+
+  const host = (isSandbox ?? auth.is_sandbox) ? EBAY_HOST_SANDBOX : EBAY_HOST_PROD;
+
+  // ── Trading API (XML) ──────────────────────────────────────────────────
+  if (path === '/ws/api.dll') {
+    const callName = apiBody?._tradingCall;
+    if (!callName) return err(400, 'Trading API call requires _tradingCall field');
+
+    const xmlReq = buildTradingXml(callName, apiBody, token);
+    let tradResp: Response;
+    try {
+      tradResp = await fetch(`${host}/ws/api.dll`, {
+        method: 'POST',
+        headers: {
+          'Content-Type':                    'text/xml; charset=utf-8',
+          'X-EBAY-API-SITEID':               TRADING_SITE_ID,
+          'X-EBAY-API-COMPATIBILITY-LEVEL':  TRADING_COMPAT,
+          'X-EBAY-API-CALL-NAME':            callName,
+          'X-EBAY-API-IAF-TOKEN':            token,
+        },
+        body: xmlReq,
+      });
+    } catch (e) {
+      return err(502, `Trading API network error: ${(e as any)?.message ?? e}`);
+    }
+
+    const xmlText = await tradResp.text();
+    const parsed  = parseTradingXml(xmlText);
+    const ack     = parsed?.Ack;
+
+    if (ack === 'Failure' || !tradResp.ok) {
+      const errMsg = parsed?.Errors?.LongMessage
+        ?? parsed?.Errors?.[0]?.LongMessage
+        ?? 'Trading API failure';
+      return err(400, errMsg, { ebayErrors: parsed?.Errors, ebayStatus: tradResp.status, method, path });
+    }
+
+    return ok(parsed);
+  }
+
+  // ── REST API ───────────────────────────────────────────────────────────
+  let restResp: Response;
+  try {
+    restResp = await fetch(`${host}${path}`, {
+      method,
+      headers: {
+        'Authorization':           `Bearer ${token}`,
+        'Content-Type':            'application/json',
+        'Accept':                  'application/json',
+        'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
+      },
+      body: apiBody ? JSON.stringify(apiBody) : undefined,
+    });
+  } catch (e) {
+    return err(502, `eBay API network error: ${(e as any)?.message ?? e}`);
+  }
+
+  const ct = restResp.headers.get('content-type') ?? '';
+  const data = ct.includes('json')
+    ? await restResp.json().catch(() => ({}))
+    : await restResp.text();
+
+  if (!restResp.ok) {
+    const errMsg = (data as any)?.errors?.[0]?.message
+      ?? (data as any)?.message
+      ?? `eBay ${restResp.status}`;
+    return err(restResp.status, errMsg, {
+      ebayErrors: (data as any)?.errors,
+      ebayStatus: restResp.status,
+      method, path,
+    });
+  }
+
+  return ok(data);
+}
+
+// ── TOKEN REFRESH ─────────────────────────────────────────────────────────
+
+async function refreshToken(
+  refreshTok: string,
+  userId: string,
+  isSandbox: boolean,
+  supabase: any,
+): Promise<string> {
+  const clientId    = Deno.env.get('EBAY_CLIENT_ID');
+  const clientSecret = Deno.env.get('EBAY_CLIENT_SECRET');
+  if (!clientId || !clientSecret) throw new Error('eBay credentials not configured');
+
+  const host  = isSandbox ? EBAY_HOST_SANDBOX : EBAY_HOST_PROD;
+  const basic = btoa(`${clientId}:${clientSecret}`);
+
+  const resp = await fetch(`${host}${EBAY_TOKEN_PATH}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Basic ${basic}`,
+      'Content-Type':  'application/x-www-form-urlencoded',
+    },
+    body: `grant_type=refresh_token&refresh_token=${encodeURIComponent(refreshTok)}`,
+  });
+
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    throw new Error(`Token refresh failed: ${data.error_description || data.error || resp.status}`);
+  }
+
+  const newToken  = data.access_token as string;
+  const expiresAt = new Date(Date.now() + (data.expires_in as number) * 1000).toISOString();
+
+  await supabase.from('ebay_auth')
+    .update({ access_token: newToken, expires_at: expiresAt })
+    .eq('user_id', userId);
+
+  return newToken;
+}
+
+// ── TRADING API XML HELPERS ───────────────────────────────────────────────
+
 function buildTradingXml(callName: string, fields: Record<string, any>, token: string): string {
   const inner = toXml(fields);
   return `<?xml version="1.0" encoding="utf-8"?>
 <${callName}Request xmlns="urn:ebay:apis:eBLBaseComponents">
-  <RequesterCredentials><eBayAuthToken>${escapeXml(token)}</eBayAuthToken></RequesterCredentials>
+  <RequesterCredentials><eBayAuthToken>${escXml(token)}</eBayAuthToken></RequesterCredentials>
   ${inner}
 </${callName}Request>`;
 }
 
-/** Recursively convert JSON → XML for Trading API request bodies. */
 function toXml(obj: any, indent = '  '): string {
   if (obj === null || obj === undefined) return '';
-  if (typeof obj !== 'object') return escapeXml(String(obj));
+  if (typeof obj !== 'object') return escXml(String(obj));
   if (Array.isArray(obj)) return obj.map(v => toXml(v, indent)).join('\n');
   const parts: string[] = [];
   for (const [k, v] of Object.entries(obj)) {
-    if (k.startsWith('_')) continue; // skip meta keys like _tradingCall
+    if (k.startsWith('_')) continue;
     if (v === null || v === undefined) continue;
     if (typeof v === 'object' && !Array.isArray(v)) {
       parts.push(`${indent}<${k}>\n${toXml(v, indent + '  ')}\n${indent}</${k}>`);
@@ -68,26 +400,27 @@ function toXml(obj: any, indent = '  '): string {
         if (typeof item === 'object') {
           parts.push(`${indent}<${k}>\n${toXml(item, indent + '  ')}\n${indent}</${k}>`);
         } else {
-          parts.push(`${indent}<${k}>${escapeXml(String(item))}</${k}>`);
+          parts.push(`${indent}<${k}>${escXml(String(item))}</${k}>`);
         }
       }
     } else {
-      parts.push(`${indent}<${k}>${escapeXml(String(v))}</${k}>`);
+      parts.push(`${indent}<${k}>${escXml(String(v))}</${k}>`);
     }
   }
   return parts.join('\n');
 }
 
-function escapeXml(s: string): string {
+function escXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
           .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }
 
-/** Parse Trading API XML response to JSON. Very small parser — covers
- * the structures used by GetMyeBaySelling / GetItem / GetBestOffers / GetUser.
- * For complex cases, use a proper XML library like fast-xml-parser. */
+/**
+ * Minimal XML → JSON parser covering the structures returned by
+ * GetMyeBaySelling, GetItem, GetBestOffers, GetUser.
+ * Handles nested elements and same-name siblings (converted to arrays).
+ */
 function parseTradingXml(xml: string): any {
-  // Strip XML prolog and namespace declarations for simpler matching
   xml = xml.replace(/<\?xml[^?]*\?>/, '').replace(/ xmlns="[^"]*"/g, '');
 
   function parseNode(str: string): any {
@@ -100,13 +433,12 @@ function parseTradingXml(xml: string): any {
     while (remaining.length) {
       const childMatch = remaining.match(tagRe);
       if (!childMatch) {
-        // Text content with no more children
         if (remaining.trim() && Object.keys(children).length === 0) return remaining.trim();
         break;
       }
-      const tag = childMatch[1] || childMatch[2];
+      const tag   = childMatch[1] || childMatch[2];
       const inner = childMatch[3] ?? '';
-      const val = inner.match(/<\w/) ? parseNode(`<${tag}>${inner}</${tag}>`) : inner.trim();
+      const val   = inner.match(/<\w/) ? parseNode(`<${tag}>${inner}</${tag}>`) : inner.trim();
       if (tag in children) {
         if (!Array.isArray(children[tag])) children[tag] = [children[tag]];
         children[tag].push(val);
@@ -123,159 +455,18 @@ function parseTradingXml(xml: string): any {
   return parseNode(`<${rootMatch[1]}>${rootMatch[2]}</${rootMatch[1]}>`);
 }
 
-// ── REQUEST HANDLER ───────────────────────────────────────────────────────
+// ── RESPONSE HELPERS ──────────────────────────────────────────────────────
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS });
-
-  try {
-    // Auth the incoming request — user must be a signed-in Supabase user.
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) return jsonError(401, 'Missing Authorization header');
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-    const { data: { user }, error: userErr } = await supabase.auth.getUser();
-    if (userErr || !user) return jsonError(401, 'Invalid session');
-
-    const body = await req.json();
-    const action = req.headers.get('x-ebay-action') || body.action;
-
-    // ... existing OAuth + token-refresh handlers stay here (connect, disconnect,
-    // status, refresh, etc.) — not duplicated in this template to avoid overwriting.
-
-    if (action === 'api') {
-      return await handleApiProxy(body, user.id, supabase);
-    }
-
-    return jsonError(400, `Unknown action: ${action}`);
-  } catch (e) {
-    console.error('[ebay-auth] Unhandled error:', e);
-    return jsonError(500, e.message);
-  }
-});
-
-// ── API PROXY ─────────────────────────────────────────────────────────────
-
-async function handleApiProxy(body: any, userId: string, supabase: any) {
-  const { method, path, body: apiBody, isSandbox } = body;
-
-  // Validate path against allowlist
-  if (!ALLOWED_PATHS.some(rx => rx.test(path))) {
-    return jsonError(403, `API path not allowed: ${path}`);
-  }
-
-  // Fetch user's eBay access token (implementation depends on your schema).
-  const { data: auth } = await supabase
-    .from('ebay_auth')
-    .select('access_token, refresh_token, expires_at')
-    .eq('user_id', userId)
-    .single();
-  if (!auth) return jsonError(401, 'eBay not connected');
-
-  let token = auth.access_token;
-  if (new Date(auth.expires_at) < new Date(Date.now() + 60000)) {
-    token = await refreshToken(auth.refresh_token, userId, supabase);
-  }
-
-  const host = isSandbox ? EBAY_API_HOST_SANDBOX : EBAY_API_HOST_PROD;
-
-  // ── Trading API path ──
-  if (path === '/ws/api.dll') {
-    const callName = apiBody?._tradingCall;
-    if (!callName) return jsonError(400, 'Trading API call requires _tradingCall field');
-
-    const xmlRequest = buildTradingXml(callName, apiBody, token);
-    const resp = await fetch(`${host}/ws/api.dll`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/xml; charset=utf-8',
-        'X-EBAY-API-SITEID': TRADING_SITE_ID,
-        'X-EBAY-API-COMPATIBILITY-LEVEL': TRADING_COMPAT_LEVEL,
-        'X-EBAY-API-CALL-NAME': callName,
-        'X-EBAY-API-IAF-TOKEN': token,
-      },
-      body: xmlRequest,
-    });
-
-    const xmlText = await resp.text();
-    const parsed = parseTradingXml(xmlText);
-
-    // Trading API returns Ack = 'Success' or 'Failure' inside the response
-    const ack = parsed?.Ack;
-    if (ack === 'Failure' || !resp.ok) {
-      const errMsg = parsed?.Errors?.LongMessage || parsed?.Errors?.[0]?.LongMessage || 'Trading API failure';
-      return jsonError(400, errMsg, { ebayErrors: parsed?.Errors, ebayStatus: resp.status, method, path });
-    }
-
-    return new Response(JSON.stringify(parsed), {
-      headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
-    });
-  }
-
-  // ── REST API path (unchanged from your existing implementation) ──
-  const url = `${host}${path}`;
-  const resp = await fetch(url, {
-    method,
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
-    },
-    body: apiBody ? JSON.stringify(apiBody) : undefined,
-  });
-
-  const data = resp.headers.get('content-type')?.includes('json')
-    ? await resp.json().catch(() => ({}))
-    : await resp.text();
-
-  if (!resp.ok) {
-    const errMsg = data?.errors?.[0]?.message || data?.message || `eBay ${resp.status}`;
-    return jsonError(resp.status, errMsg, {
-      ebayErrors: data?.errors,
-      ebayStatus: resp.status,
-      method, path,
-    });
-  }
-
+function ok(data: any): Response {
   return new Response(JSON.stringify(data), {
-    headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
+    status: 200,
+    headers: { 'Content-Type': 'application/json', ...CORS },
   });
 }
 
-async function refreshToken(refreshToken: string, userId: string, supabase: any): Promise<string> {
-  const clientId = Deno.env.get('EBAY_CLIENT_ID')!;
-  const clientSecret = Deno.env.get('EBAY_CLIENT_SECRET')!;
-  const basic = btoa(`${clientId}:${clientSecret}`);
-
-  const resp = await fetch('https://api.ebay.com/identity/v1/oauth2/token', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Basic ${basic}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: `grant_type=refresh_token&refresh_token=${encodeURIComponent(refreshToken)}`,
-  });
-
-  const data = await resp.json();
-  if (!resp.ok) throw new Error(`Token refresh failed: ${data.error_description || resp.status}`);
-
-  const newToken = data.access_token;
-  const expiresAt = new Date(Date.now() + (data.expires_in * 1000)).toISOString();
-  await supabase.from('ebay_auth')
-    .update({ access_token: newToken, expires_at: expiresAt })
-    .eq('user_id', userId);
-
-  return newToken;
-}
-
-function jsonError(status: number, message: string, extra: Record<string, any> = {}): Response {
+function err(status: number, message: string, extra: Record<string, any> = {}): Response {
   return new Response(JSON.stringify({ error: message, ...extra }), {
     status,
-    headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
+    headers: { 'Content-Type': 'application/json', ...CORS },
   });
 }
