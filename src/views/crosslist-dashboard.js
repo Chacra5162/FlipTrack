@@ -19,7 +19,7 @@ import {
 import { generateListingLink, copyListingText, generateListingText } from '../features/deep-links.js';
 import { getTemplatesForCategory, addTemplate, deleteTemplate } from '../features/listing-templates.js';
 import { isEBayConnected, isEBayStatusVerified, getEBayUsername, connectEBay, disconnectEBay, checkEBayStatus } from '../features/ebay-auth.js';
-import { pullEBayListings, pushItemToEBay, publishEBayListing, endEBayListing, isEBaySyncing, getLastEBaySyncTime, resyncEBayOrders } from '../features/ebay-sync.js';
+import { pullEBayListings, pushItemToEBay, publishEBayListing, endEBayListing, isEBaySyncing, getLastEBaySyncTime, resyncEBayOrders, resetEBayApiFlags } from '../features/ebay-sync.js';
 import { isEtsyConnected, getEtsyShopName, connectEtsy, disconnectEtsy } from '../features/etsy-auth.js';
 import {
   pullEtsyListings, pushItemToEtsy, deactivateEtsyListing, renewEtsyListing, isEtsySyncing, getLastEtsySyncTime,
@@ -1157,6 +1157,7 @@ export async function clEBaySync() {
   toast('Syncing eBay listings…');
   renderCrosslistDashboard(); // Show syncing state
   try {
+    await resetEBayApiFlags(); // Manual sync always retries all APIs
     const result = await pullEBayListings();
     toast(`eBay sync complete — ${result.matched} matched, ${result.updated} updated`);
   } catch (e) {

@@ -348,6 +348,7 @@ async function handleApiProxy(body: any, userId: string, supabase: any) {
         'Authorization':           `Bearer ${token}`,
         'Content-Type':            'application/json',
         'Accept':                  'application/json',
+        'Accept-Language':         'en-US',
         'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
       },
       body: apiBody ? JSON.stringify(apiBody) : undefined,
