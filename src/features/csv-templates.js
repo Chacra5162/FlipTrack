@@ -1,9 +1,3 @@
-/**
- * csv-templates.js — Platform-specific CSV export templates
- * Generates CSV files formatted for direct import into eBay, Poshmark,
- * Mercari, and other platforms' bulk listing tools.
- */
-
 import { localDate } from '../utils/format.js';
 import { inv, sales, expenses, getInvItem } from '../data/store.js';
 import { getPlatforms } from './platforms.js';
@@ -12,9 +6,6 @@ import { toast } from '../utils/dom.js';
 import { getShow, getEndedShows, getItemNote } from '../features/whatnot-show.js';
 import { getShowMetrics } from '../features/whatnot-analytics.js';
 
-/**
- * Platform-specific column mappings
- */
 const TEMPLATES = {
   ebay: {
     name: 'eBay File Exchange',
@@ -175,10 +166,8 @@ function weightToWhatnotShipping(item) {
   const min = parseFloat(item.weightMin) || 0;
   const unit = (item.dimUnit || 'in').toLowerCase();
 
-  // Convert to oz for imperial, grams for metric
   let oz;
   if (unit === 'cm') {
-    // kg + g → grams
     const grams = maj * 1000 + min;
     if (grams <= 0) return '';
     if (grams < 20) return '0 to <20 grams';
@@ -194,9 +183,7 @@ function weightToWhatnotShipping(item) {
     return '7 to <10 KGs';
   }
 
-  // lb + oz → total oz
   oz = maj * 16 + min;
-  // Also check legacy item.weight field (typically in oz)
   if (oz <= 0) oz = parseFloat(item.weight) || 0;
   if (oz <= 0) return '';
   if (oz <= 1) return '0-1 oz';
@@ -249,16 +236,12 @@ function downloadCSV(filename, columns, rows) {
   URL.revokeObjectURL(url);
 }
 
-/**
- * Export inventory as platform-specific CSV
- */
 export function exportPlatformCSV(templateKey, filterPlatform) {
   const tpl = TEMPLATES[templateKey];
   if (!tpl) { toast('Unknown template', true); return; }
 
   let items = [...inv].filter(i => (i.qty || 0) > 0);
 
-  // Filter by platform if specified
   if (filterPlatform) {
     items = items.filter(i => getPlatforms(i).some(p => p.toLowerCase().includes(filterPlatform.toLowerCase())));
   }
@@ -271,151 +254,255 @@ export function exportPlatformCSV(templateKey, filterPlatform) {
   toast(`Exported ${rows.length} items — ${tpl.name} format`);
 }
 
-/** Map FlipTrack categories to valid Whatnot categories */
 const WHATNOT_CAT_MAP = {
-  'automotive': 'Car Parts',
-  'car parts': 'Car Parts',
-  'toys & games': 'Toys & Hobbies',
-  'toys': 'Toys & Hobbies',
-  'office supplies': 'Home & Garden',
-  'art & crafts': 'Arts & Handmade',
-  'arts & crafts': 'Arts & Handmade',
-  'crafts': 'Arts & Handmade',
-  'accessories': 'Bags & Accessories',
-  'collectibles': 'and Whatnot',
-  'books & media': 'Books',
-  'books': 'Books',
-  'media': 'Movies',
-  'sports & outdoors': 'Outdoor Gear',
-  'outdoors': 'Outdoor Gear',
-  'clothing': 'Men\'s Fashion',
-  'home & garden': 'Home & Garden',
-  'home': 'Home & Garden',
-  'electronics': 'Electronics',
-  'jewelry': 'Jewelry',
-  'music': 'Music',
-  'movies': 'Movies',
-  'video games': 'Video Games',
-  'sports cards': 'Sports Cards',
-  'trading cards': 'Trading Card Games',
-  'sneakers': 'Sneakers & Streetwear',
-  'pet supplies': 'Pet Supplies',
-  'pets': 'Pet Supplies',
-  'beauty': 'Beauty',
-  'health & beauty': 'Beauty',
-  'health and beauty': 'Beauty',
-  'food': 'Food & Drink',
-  'food & drink': 'Food & Drink',
-  'coins': 'Coins & Money',
-  'comics': 'Comics & Manga',
-  'rocks & crystals': 'Rocks & Crystals',
+  'clothing':             'Men\'s Fashion',
+  'books':                'Books',
+  'books & media':        'Books',
+  'electronics':          'Electronics',
+  'toys & games':         'Toys & Hobbies',
+  'toys':                 'Toys & Hobbies',
+  'home & garden':        'Home & Garden',
+  'home':                 'Home & Garden',
+  'office supplies':      'Home & Garden',
+  'sports & outdoors':    'Outdoor Gear',
+  'sports':               'Outdoor Gear',
+  'outdoors':             'Outdoor Gear',
+  'outdoor':              'Outdoor Gear',
+  'collectibles':         'Collectibles',
+  'health & beauty':      'Beauty',
+  'health and beauty':    'Beauty',
+  'beauty':               'Beauty',
+  'crafts & diy':         'Arts & Handmade',
+  'crafts':               'Arts & Handmade',
+  'art & crafts':         'Arts & Handmade',
+  'arts & crafts':        'Arts & Handmade',
+  'diy':                  'Arts & Handmade',
+  'sneakers':             'Sneakers & Streetwear',
+  'footwear':             'Sneakers & Streetwear',
+  'jewelry':              'Jewelry',
+  'video games':          'Video Games',
+  'media':                'Movies',
+  'movies':               'Movies',
+  'music':                'Music',
+  'automotive':           'Car Parts',
+  'car parts':            'Car Parts',
+  'accessories':          'Bags & Accessories',
+  'trading cards':        'Trading Card Games',
+  'sports cards':         'Sports Cards',
+  'coins':                'Coins & Money',
+  'comics':               'Comics & Manga',
+  'rocks & crystals':     'Rocks & Crystals',
+  'pet supplies':         'Pet Supplies',
+  'pets':                 'Pet Supplies',
+  'food':                 'Food & Drink',
+  'food & drink':         'Food & Drink',
 };
 
-/**
- * Map FlipTrack subcategories → { cat, sub } for Whatnot.
- * Some subcategories force a category override.
- */
 const WHATNOT_SUBCAT_MAP = {
-  // ── Car Parts ──────────────────────────────────────────────────────────────
-  'engine parts': { cat: 'Car Parts', sub: 'Other Car Parts' },
-  'fuel system': { cat: 'Car Parts', sub: 'Other Car Parts' },
-  'car care products': { cat: 'Car Parts', sub: 'Other Car Parts' },
-  // ── Toys & Hobbies ─────────────────────────────────────────────────────────
-  'educational/science kits': { cat: 'Toys & Hobbies', sub: 'Other Toys' },
+  'men':                      { cat: 'Men\'s Fashion',   sub: 'Men\'s Modern' },
+  'mens':                     { cat: 'Men\'s Fashion',   sub: 'Men\'s Modern' },
+  "men's":                    { cat: 'Men\'s Fashion',   sub: 'Men\'s Modern' },
+  'women':                    { cat: 'Women\'s Fashion', sub: 'Women\'s Contemporary' },
+  'womens':                   { cat: 'Women\'s Fashion', sub: 'Women\'s Contemporary' },
+  'woman':                    { cat: 'Women\'s Fashion', sub: 'Women\'s Contemporary' },
+  "women's":                  { cat: 'Women\'s Fashion', sub: 'Women\'s Contemporary' },
+  'children':                 { cat: 'and Whatnot',      sub: '' },
+  "kids":                     { cat: 'and Whatnot',      sub: '' },
+  'footwear':                 { cat: 'Sneakers & Streetwear', sub: 'Other Sneakers' },
+  "men's accessories":        { cat: 'Bags & Accessories', sub: 'Other Accessories' },
+  "women's accessories":      { cat: 'Bags & Accessories', sub: 'Other Accessories' },
+  'fiction':                  { cat: 'Books',            sub: 'Fiction' },
+  'non-fiction':              { cat: 'Books',            sub: 'Non-Fiction' },
+  'nonfiction':               { cat: 'Books',            sub: 'Non-Fiction' },
+  'textbooks':                { cat: 'Books',            sub: 'Other Books' },
+  'rare & collectible':       { cat: 'Books',            sub: 'Other Books' },
+  'art & photography':        { cat: 'Books',            sub: 'Other Books' },
+  'reference':                { cat: 'Books',            sub: 'Other Books' },
+  'comics & graphic novels':  { cat: 'Comics & Manga',   sub: '' },
+  'graphic novels':           { cat: 'Comics & Manga',   sub: '' },
+  "children's books":         { cat: 'Books',            sub: "Children's Books" },
+  'phones & tablets':         { cat: 'Electronics',      sub: 'Phones' },
+  'phones':                   { cat: 'Electronics',      sub: 'Phones' },
+  'tablets':                  { cat: 'Electronics',      sub: 'Phones' },
+  'computers':                { cat: 'Electronics',      sub: 'Computers & Laptops' },
+  'laptops':                  { cat: 'Electronics',      sub: 'Computers & Laptops' },
+  'audio':                    { cat: 'Electronics',      sub: 'Audio' },
+  'cameras':                  { cat: 'Electronics',      sub: 'Cameras' },
+  'gaming':                   { cat: 'Video Games',      sub: 'Other Video Games' },
+  'smart home':               { cat: 'Electronics',      sub: 'Smart Home' },
+  'smart home accessories':   { cat: 'Electronics',      sub: 'Smart Home' },
+  'tablet accessories':       { cat: 'Electronics',      sub: 'Other Electronics' },
+  'storage & organization':   { cat: 'Home & Garden',    sub: 'Other Home & Garden' },
+  'action figures':           { cat: 'Toys & Hobbies',   sub: 'Action Figures' },
+  'board games':              { cat: 'Toys & Hobbies',   sub: 'Board Games & Puzzles' },
+  'building sets':            { cat: 'Toys & Hobbies',   sub: 'Building Sets (LEGO)' },
+  'lego':                     { cat: 'Toys & Hobbies',   sub: 'Building Sets (LEGO)' },
+  'dolls':                    { cat: 'Toys & Hobbies',   sub: 'Dolls' },
+  'puzzles':                  { cat: 'Toys & Hobbies',   sub: 'Board Games & Puzzles' },
+  'collectible toys':         { cat: 'Toys & Hobbies',   sub: 'Other Toys' },
+  'outdoor toys':             { cat: 'Outdoor Gear',     sub: 'Other Outdoor Gear' },
+  'educational/science kits': { cat: 'Toys & Hobbies',   sub: 'Other Toys' },
   'educational/math manipulatives': { cat: 'Toys & Hobbies', sub: 'Other Toys' },
-  'mystery toy': { cat: 'Toys & Hobbies', sub: 'Other Toys' },
-  'inflatable toys': { cat: 'Toys & Hobbies', sub: 'Other Toys' },
-  // ── Home & Garden ──────────────────────────────────────────────────────────
-  'storage & organization': { sub: 'Other Home & Garden' },
-  'smart home accessories': { sub: 'Other Home & Garden' },
-  // ── Arts & Handmade ────────────────────────────────────────────────────────
-  'stationery': { sub: 'Other Craft Supplies' },
-  'notebooks & journals': { sub: 'Other Craft Supplies' },
-  'notebook': { sub: 'Other Craft Supplies' },
-  'journal': { sub: 'Other Craft Supplies' },
-  // ── Keychains → Arts & Handmade ───────────────────────────────────────────
-  'keychains': { cat: 'Arts & Handmade', sub: 'Beads, Pens & Keychains' },
-  'keychain': { cat: 'Arts & Handmade', sub: 'Beads, Pens & Keychains' },
-  'keychains & bag charms': { cat: 'Arts & Handmade', sub: 'Beads, Pens & Keychains' },
-  'keychain/bag charm': { cat: 'Arts & Handmade', sub: 'Beads, Pens & Keychains' },
-  'keychain & bag charm': { cat: 'Arts & Handmade', sub: 'Beads, Pens & Keychains' },
-  'bag charm': { cat: 'Arts & Handmade', sub: 'Beads, Pens & Keychains' },
-  // ── Beauty ─────────────────────────────────────────────────────────────────
-  'fragrances': { cat: 'Beauty', sub: 'Fragrances' },
-  'fragrance': { cat: 'Beauty', sub: 'Fragrances' },
-  'perfume': { cat: 'Beauty', sub: 'Fragrances' },
-  'cologne': { cat: 'Beauty', sub: 'Fragrances' },
-  'makeup': { cat: 'Beauty', sub: 'Makeup & Cosmetics' },
-  'cosmetics': { cat: 'Beauty', sub: 'Makeup & Cosmetics' },
-  'makeup & cosmetics': { cat: 'Beauty', sub: 'Makeup & Cosmetics' },
-  'skincare': { cat: 'Beauty', sub: 'Skincare' },
-  'skin care': { cat: 'Beauty', sub: 'Skincare' },
-  'hair care': { cat: 'Beauty', sub: 'Hair Care' },
-  "men's hair care": { cat: 'Beauty', sub: 'Hair Care' },
-  "women's hair care": { cat: 'Beauty', sub: 'Hair Care' },
-  'nail care': { cat: 'Beauty', sub: 'Nail Care' },
-  'body care': { cat: 'Beauty', sub: 'Body Care' },
-  // ── Bags & Accessories — route misplaced subcategories ─────────────────────
-  'bags': { sub: 'Handbags' },
-  'handbags': { sub: 'Handbags' },
-  'luxury leather goods': { sub: 'Handbags' },
-  'wallets': { sub: 'Wallets & Card Cases' },
-  'sunglasses': { sub: 'Sunglasses' },
-  'belts': { sub: 'Belts' },
-  // ── Hats → Men's or Women's Fashion ───────────────────────────────────────
-  'hats': { cat: 'Men\'s Fashion', sub: 'Men\'s Hats & Caps' },
-  'hats & caps': { cat: 'Men\'s Fashion', sub: 'Men\'s Hats & Caps' },
-  "men's hats": { cat: 'Men\'s Fashion', sub: 'Men\'s Hats & Caps' },
-  "women's hats": { cat: 'Women\'s Fashion', sub: 'Women\'s Hats & Caps' },
-  // ── Men's Fashion ─────────────────────────────────────────────────────────
-  "men's ties": { cat: 'Men\'s Fashion', sub: "Men's Ties & Bow Ties" },
-  'ties': { cat: 'Men\'s Fashion', sub: "Men's Ties & Bow Ties" },
-  'tie': { cat: 'Men\'s Fashion', sub: "Men's Ties & Bow Ties" },
-  'men': { cat: 'Men\'s Fashion', sub: 'Men\'s Modern' },
-  'mens': { cat: 'Men\'s Fashion', sub: 'Men\'s Modern' },
-  "men's": { cat: 'Men\'s Fashion', sub: 'Men\'s Modern' },
-  // ── Women's Fashion ───────────────────────────────────────────────────────
-  'woman': { cat: 'Women\'s Fashion', sub: 'Women\'s Contemporary' },
-  'women': { cat: 'Women\'s Fashion', sub: 'Women\'s Contemporary' },
-  'womens': { cat: 'Women\'s Fashion', sub: 'Women\'s Contemporary' },
-  "women's": { cat: 'Women\'s Fashion', sub: 'Women\'s Contemporary' },
-  // ── Jewelry → Jewelry category ────────────────────────────────────────────
-  'jewelry': { cat: 'Jewelry', sub: '' },
-  'fine jewelry': { cat: 'Jewelry', sub: '' },
-  'costume jewelry': { cat: 'Jewelry', sub: '' },
-  // ── Outdoor Gear ──────────────────────────────────────────────────────────
-  'golf accessories': { cat: 'Outdoor Gear', sub: 'Golf' },
-  'golf': { cat: 'Outdoor Gear', sub: 'Golf' },
-  'yoga equipment': { cat: 'Outdoor Gear', sub: 'Other Outdoor Gear' },
-  'fitness equipment': { cat: 'Outdoor Gear', sub: 'Other Outdoor Gear' },
-  'marine electronics': { cat: 'Outdoor Gear', sub: 'Other Outdoor Gear' },
-  // ── Other ─────────────────────────────────────────────────────────────────
-  'barware': { cat: 'and Whatnot', sub: 'Breweriana' },
-  'tablet accessories': { sub: 'Other Electronics' },
-  'dvd': { cat: 'Movies', sub: 'DVDs' },
-  'dvds': { cat: 'Movies', sub: 'DVDs' },
-  'travel accessories': { sub: 'Other Accessories' },
+  'mystery toy':              { cat: 'Toys & Hobbies',   sub: 'Other Toys' },
+  'inflatable toys':          { cat: 'Toys & Hobbies',   sub: 'Other Toys' },
+  'kitchen':                  { sub: 'Kitchen' },
+  'decor':                    { sub: 'Decor' },
+  'furniture':                { sub: 'Furniture' },
+  'bedding':                  { sub: 'Bedding & Bath' },
+  'bath':                     { sub: 'Bedding & Bath' },
+  'tools':                    { sub: 'Tools & Hardware' },
+  'garden':                   { sub: 'Garden' },
+  'fitness':                  { cat: 'Outdoor Gear',     sub: 'Fitness' },
+  'cycling':                  { cat: 'Outdoor Gear',     sub: 'Other Outdoor Gear' },
+  'camping':                  { cat: 'Outdoor Gear',     sub: 'Other Outdoor Gear' },
+  'team sports':              { cat: 'Outdoor Gear',     sub: 'Other Outdoor Gear' },
+  'water sports':             { cat: 'Outdoor Gear',     sub: 'Other Outdoor Gear' },
+  'winter sports':            { cat: 'Outdoor Gear',     sub: 'Other Outdoor Gear' },
+  'golf':                     { cat: 'Outdoor Gear',     sub: 'Golf' },
+  'golf accessories':         { cat: 'Outdoor Gear',     sub: 'Golf' },
+  'yoga equipment':           { cat: 'Outdoor Gear',     sub: 'Other Outdoor Gear' },
+  'fitness equipment':        { cat: 'Outdoor Gear',     sub: 'Other Outdoor Gear' },
+  'marine electronics':       { cat: 'Outdoor Gear',     sub: 'Other Outdoor Gear' },
+  'trading cards':            { cat: 'Trading Card Games', sub: '' },
+  'coins & currency':         { cat: 'Coins & Money',    sub: '' },
+  'stamps':                   { cat: 'Collectibles',     sub: 'Other Collectibles' },
+  'figurines':                { cat: 'Collectibles',     sub: 'Other Collectibles' },
+  'memorabilia':              { cat: 'Collectibles',     sub: 'Memorabilia' },
+  'vintage':                  { cat: 'Collectibles',     sub: 'Vintage' },
+  'antiques':                 { cat: 'Collectibles',     sub: 'Antiques' },
+  'skincare':                 { cat: 'Beauty',           sub: 'Skincare' },
+  'skin care':                { cat: 'Beauty',           sub: 'Skincare' },
+  'makeup':                   { cat: 'Beauty',           sub: 'Makeup & Cosmetics' },
+  'cosmetics':                { cat: 'Beauty',           sub: 'Makeup & Cosmetics' },
+  'makeup & cosmetics':       { cat: 'Beauty',           sub: 'Makeup & Cosmetics' },
+  'hair care':                { cat: 'Beauty',           sub: 'Hair Care' },
+  "men's hair care":          { cat: 'Beauty',           sub: 'Hair Care' },
+  "women's hair care":        { cat: 'Beauty',           sub: 'Hair Care' },
+  'fragrance':                { cat: 'Beauty',           sub: 'Fragrances' },
+  'fragrances':               { cat: 'Beauty',           sub: 'Fragrances' },
+  'perfume':                  { cat: 'Beauty',           sub: 'Fragrances' },
+  'cologne':                  { cat: 'Beauty',           sub: 'Fragrances' },
+  'nail care':                { cat: 'Beauty',           sub: 'Nail Care' },
+  'body care':                { cat: 'Beauty',           sub: 'Body Care' },
+  'personal care':            { cat: 'Beauty',           sub: 'Other Beauty' },
+  'sewing':                   { cat: 'Arts & Handmade',  sub: 'Sewing' },
+  'art supplies':             { cat: 'Arts & Handmade',  sub: 'Art Supplies' },
+  'scrapbooking':             { cat: 'Arts & Handmade',  sub: 'Other Craft Supplies' },
+  'knitting & crochet':       { cat: 'Arts & Handmade',  sub: 'Other Craft Supplies' },
+  'beading & jewelry':        { cat: 'Arts & Handmade',  sub: 'Beads, Pens & Keychains' },
+  'stationery':               { cat: 'Arts & Handmade',  sub: 'Other Craft Supplies' },
+  'notebooks & journals':     { cat: 'Arts & Handmade',  sub: 'Other Craft Supplies' },
+  'notebook':                 { cat: 'Arts & Handmade',  sub: 'Other Craft Supplies' },
+  'journal':                  { cat: 'Arts & Handmade',  sub: 'Other Craft Supplies' },
+  'keychains':                { cat: 'Arts & Handmade',  sub: 'Beads, Pens & Keychains' },
+  'keychain':                 { cat: 'Arts & Handmade',  sub: 'Beads, Pens & Keychains' },
+  'keychains & bag charms':   { cat: 'Arts & Handmade',  sub: 'Beads, Pens & Keychains' },
+  'keychain/bag charm':       { cat: 'Arts & Handmade',  sub: 'Beads, Pens & Keychains' },
+  'keychain & bag charm':     { cat: 'Arts & Handmade',  sub: 'Beads, Pens & Keychains' },
+  'bag charm':                { cat: 'Arts & Handmade',  sub: 'Beads, Pens & Keychains' },
+  'nike':                     { cat: 'Sneakers & Streetwear', sub: 'Nike' },
+  'adidas':                   { cat: 'Sneakers & Streetwear', sub: 'Adidas' },
+  'yeezy':                    { cat: 'Sneakers & Streetwear', sub: 'Adidas' },
+  'jordan':                   { cat: 'Sneakers & Streetwear', sub: 'Jordan' },
+  'new balance':              { cat: 'Sneakers & Streetwear', sub: 'New Balance' },
+  'converse':                 { cat: 'Sneakers & Streetwear', sub: 'Other Sneakers' },
+  'vans':                     { cat: 'Sneakers & Streetwear', sub: 'Other Sneakers' },
+  'other brands':             { cat: 'Sneakers & Streetwear', sub: 'Other Sneakers' },
+  'designer':                 { cat: 'Sneakers & Streetwear', sub: 'Other Sneakers' },
+  'necklaces':                { cat: 'Jewelry',          sub: 'Necklaces' },
+  'rings':                    { cat: 'Jewelry',          sub: 'Rings' },
+  'bracelets':                { cat: 'Jewelry',          sub: 'Bracelets' },
+  'earrings':                 { cat: 'Jewelry',          sub: 'Earrings' },
+  'watches':                  { cat: 'Jewelry',          sub: 'Watches' },
+  'fine jewelry':             { cat: 'Jewelry',          sub: 'Fine Jewelry' },
+  'costume jewelry':          { cat: 'Jewelry',          sub: 'Costume Jewelry' },
+  'jewelry':                  { cat: 'Jewelry',          sub: '' },
+  'playstation':              { cat: 'Video Games',      sub: 'PlayStation' },
+  'xbox':                     { cat: 'Video Games',      sub: 'Xbox' },
+  'nintendo':                 { cat: 'Video Games',      sub: 'Nintendo' },
+  'pc gaming':                { cat: 'Video Games',      sub: 'PC Gaming' },
+  'retro':                    { cat: 'Video Games',      sub: 'Retro Gaming' },
+  'retro gaming':             { cat: 'Video Games',      sub: 'Retro Gaming' },
+  'vinyl records':            { cat: 'Music',            sub: 'Vinyl' },
+  'vinyl':                    { cat: 'Music',            sub: 'Vinyl' },
+  'cds':                      { cat: 'Music',            sub: 'CDs' },
+  'cassettes':                { cat: 'Music',            sub: 'Cassettes' },
+  'dvds & blu-ray':           { cat: 'Movies',           sub: 'DVDs' },
+  'dvds':                     { cat: 'Movies',           sub: 'DVDs' },
+  'dvd':                      { cat: 'Movies',           sub: 'DVDs' },
+  'blu-ray':                  { cat: 'Movies',           sub: 'Blu-Rays' },
+  'vhs':                      { cat: 'Movies',           sub: 'VHS' },
+  'bags':                     { sub: 'Handbags' },
+  'handbags':                 { sub: 'Handbags' },
+  'luxury leather goods':     { sub: 'Handbags' },
+  'wallets':                  { sub: 'Wallets & Card Cases' },
+  'sunglasses':               { sub: 'Sunglasses' },
+  'belts':                    { sub: 'Belts' },
+  'travel accessories':       { sub: 'Other Accessories' },
+  'hats':                     { cat: 'Men\'s Fashion',   sub: 'Men\'s Hats & Caps' },
+  'hats & caps':              { cat: 'Men\'s Fashion',   sub: 'Men\'s Hats & Caps' },
+  "men's hats":               { cat: 'Men\'s Fashion',   sub: 'Men\'s Hats & Caps' },
+  "women's hats":             { cat: 'Women\'s Fashion', sub: 'Women\'s Hats & Caps' },
+  "men's ties":               { cat: 'Men\'s Fashion',   sub: "Men's Ties & Bow Ties" },
+  'ties':                     { cat: 'Men\'s Fashion',   sub: "Men's Ties & Bow Ties" },
+  'tie':                      { cat: 'Men\'s Fashion',   sub: "Men's Ties & Bow Ties" },
+  'engine parts':             { cat: 'Car Parts',        sub: 'Other Car Parts' },
+  'fuel system':              { cat: 'Car Parts',        sub: 'Other Car Parts' },
+  'car care products':        { cat: 'Car Parts',        sub: 'Other Car Parts' },
+  'barware':                  { cat: 'and Whatnot',      sub: 'Breweriana' },
 };
 
 function mapWhatnotCatSub(cat, sub) {
-  let mappedCat = cat ? (WHATNOT_CAT_MAP[cat.toLowerCase()] || cat) : '';
-  let mappedSub = sub || '';
+  const catKey = (cat || '').toLowerCase().trim();
+  const subKey = (sub || '').toLowerCase().trim();
 
-  // Clothing splits into Men's or Women's Fashion based on subcategory
-  if (cat && cat.toLowerCase() === 'clothing' && sub) {
-    const s = sub.toLowerCase();
-    if (/women|woman/.test(s)) { mappedCat = 'Women\'s Fashion'; mappedSub = 'Women\'s Contemporary'; }
-    else if (/men|man/.test(s)) { mappedCat = 'Men\'s Fashion'; mappedSub = 'Men\'s Modern'; }
+  let mappedCat = WHATNOT_CAT_MAP[catKey] || 'and Whatnot';
+  let mappedSub = '';
+
+  if (catKey === 'clothing' && subKey) {
+    if (/women|woman/.test(subKey)) { mappedCat = 'Women\'s Fashion'; mappedSub = 'Women\'s Contemporary'; }
+    else if (/\bmen\b|^mens$|^man$/.test(subKey)) { mappedCat = 'Men\'s Fashion'; mappedSub = 'Men\'s Modern'; }
+    else if (/footwear|shoe|sneaker|boot|heel|sandal/.test(subKey)) { mappedCat = 'Sneakers & Streetwear'; mappedSub = 'Other Sneakers'; }
   }
 
-  // Check subcategory overrides
-  if (sub) {
-    const key = sub.toLowerCase().trim();
-    const override = WHATNOT_SUBCAT_MAP[key];
+  if (catKey === 'media' && subKey) {
+    if (/vinyl|record/.test(subKey)) { mappedCat = 'Music'; mappedSub = 'Vinyl'; }
+    else if (/cd|compact disc/.test(subKey)) { mappedCat = 'Music'; mappedSub = 'CDs'; }
+    else if (/cassette/.test(subKey)) { mappedCat = 'Music'; mappedSub = 'Cassettes'; }
+    else if (/dvd|blu.ray/.test(subKey)) { mappedCat = 'Movies'; mappedSub = 'DVDs'; }
+    else if (/vhs/.test(subKey)) { mappedCat = 'Movies'; mappedSub = 'VHS'; }
+  }
+
+  if (subKey) {
+    const override = WHATNOT_SUBCAT_MAP[subKey];
     if (override) {
       if (override.cat) mappedCat = override.cat;
-      mappedSub = override.sub;
+      mappedSub = override.sub ?? mappedSub;
     }
+  }
+
+  if (!mappedSub && mappedCat && mappedCat !== 'and Whatnot') {
+    const catDefaults = {
+      'Men\'s Fashion':      'Men\'s Modern',
+      'Women\'s Fashion':    'Women\'s Contemporary',
+      'Electronics':         'Other Electronics',
+      'Toys & Hobbies':      'Other Toys',
+      'Home & Garden':       'Other Home & Garden',
+      'Outdoor Gear':        'Other Outdoor Gear',
+      'Collectibles':        'Other Collectibles',
+      'Beauty':              'Other Beauty',
+      'Arts & Handmade':     'Other Craft Supplies',
+      'Sneakers & Streetwear': 'Other Sneakers',
+      'Bags & Accessories':  'Other Accessories',
+      'Video Games':         'Other Video Games',
+      'Books':               'Other Books',
+      'Movies':              'Other Movies',
+      'Music':               'Other Music',
+      'Jewelry':             'Other Jewelry',
+      'Trading Card Games':  'Other Trading Cards',
+      'Car Parts':           'Other Car Parts',
+    };
+    mappedSub = catDefaults[mappedCat] || '';
   }
 
   return { cat: mappedCat, sub: mappedSub };
@@ -519,8 +606,6 @@ export function exportTaxCSV() {
   downloadCSV(`fliptrack-tax-${localDate()}.csv`, tpl.columns, rows);
   toast(`Exported ${rows.length} tax records`);
 }
-
-// ── WHATNOT SHOW CSV EXPORTS ─────────────────────────────────────────────
 
 /**
  * Export show prep list as CSV.
