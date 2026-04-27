@@ -49,7 +49,6 @@ const EBAY_SCOPES = [
   'https://api.ebay.com/oauth/api_scope/sell.account.readonly',
   'https://api.ebay.com/oauth/api_scope/sell.fulfillment',
   'https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly',
-  'https://api.ebay.com/oauth/api_scope/buy.browse',
 ].join(' ');
 
 // Allowlist of eBay API paths the proxy will forward
@@ -78,13 +77,20 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) return err(401, 'Missing Authorization header');
 
-    const supabase = createClient(
+    // User client — validates the JWT and gets user identity
+    const userClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,
       { global: { headers: { Authorization: authHeader } } },
     );
-    const { data: { user }, error: userErr } = await supabase.auth.getUser();
+    const { data: { user }, error: userErr } = await userClient.auth.getUser();
     if (userErr || !user) return err(401, 'Invalid or expired session');
+
+    // Admin client — uses service role key for DB writes (bypasses RLS)
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
 
     const body  = await req.json().catch(() => ({}));
     const action = req.headers.get('x-ebay-action') || body.action || '';
@@ -126,7 +132,7 @@ async function handleStatus(_body: any, userId: string, supabase: any) {
 
 async function handleAuthorize(body: any, _userId: string, _supabase: any) {
   const clientId   = Deno.env.get('EBAY_CLIENT_ID');
-  const redirectUri = Deno.env.get('EBAY_REDIRECT_URI');
+  const redirectUri = Deno.env.get('EBAY_RUNAME_PROD');
   if (!clientId || !redirectUri) return err(500, 'Server configuration error: eBay credentials not set');
 
   const isSandbox = Boolean(body.isSandbox);
@@ -152,7 +158,7 @@ async function handleCallback(body: any, userId: string, supabase: any) {
 
   const clientId    = Deno.env.get('EBAY_CLIENT_ID');
   const clientSecret = Deno.env.get('EBAY_CLIENT_SECRET');
-  const redirectUri  = Deno.env.get('EBAY_REDIRECT_URI');
+  const redirectUri  = Deno.env.get('EBAY_RUNAME_PROD');
   if (!clientId || !clientSecret || !redirectUri) {
     return err(500, 'Server configuration error: eBay credentials not set');
   }
@@ -204,7 +210,10 @@ async function handleCallback(body: any, userId: string, supabase: any) {
   }
 
   const now = new Date().toISOString();
-  const { error: upsertErr } = await supabase.from('ebay_auth').upsert({
+
+  // Try full upsert first; if extra columns don't exist fall back to core fields only.
+  let upsertOk = false;
+  const { error: fullErr } = await supabase.from('ebay_auth').upsert({
     user_id:       userId,
     access_token:  accessToken,
     refresh_token: refreshToken,
@@ -214,10 +223,24 @@ async function handleCallback(body: any, userId: string, supabase: any) {
     is_sandbox:    Boolean(isSandbox),
   }, { onConflict: 'user_id' });
 
-  if (upsertErr) {
-    console.error('[ebay-auth] Upsert failed:', upsertErr);
-    return err(500, 'Failed to store eBay credentials');
+  if (!fullErr) {
+    upsertOk = true;
+  } else {
+    console.warn('[ebay-auth] Full upsert failed, trying core fields:', fullErr.message);
+    const { error: coreErr } = await supabase.from('ebay_auth').upsert({
+      user_id:       userId,
+      access_token:  accessToken,
+      refresh_token: refreshToken,
+      expires_at:    expiresAt,
+    }, { onConflict: 'user_id' });
+    if (!coreErr) {
+      upsertOk = true;
+    } else {
+      console.error('[ebay-auth] Core upsert also failed:', coreErr);
+    }
   }
+
+  if (!upsertOk) return err(500, 'Failed to store eBay credentials');
 
   return ok({ success: true, ebay_username: ebayUsername });
 }

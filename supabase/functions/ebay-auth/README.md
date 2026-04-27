@@ -57,7 +57,7 @@ Set these in Supabase dashboard → Edge Functions → Secrets:
 | `SUPABASE_ANON_KEY` | Auto-provided |
 | `EBAY_CLIENT_ID` | Your eBay app's Client ID |
 | `EBAY_CLIENT_SECRET` | Your eBay app's Client Secret |
-| `EBAY_REDIRECT_URI` | OAuth redirect (your RU Name) |
+| `EBAY_RUNAME_PROD` | OAuth redirect URI / RU Name from eBay developer console |
 
 ## Database schema
 
