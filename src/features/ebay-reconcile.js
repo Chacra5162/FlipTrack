@@ -40,71 +40,106 @@ async function _fetchEBayListings() {
   const listings = new Map();
   const progressEl = document.getElementById('reconcileProgress');
 
-  // ── Phase 1: Broad seller keyword search ─────────────────────────────────
-  // Run first so a single query covers the entire seller catalogue without
-  // requiring one API call per listing. Query list combines:
-  //   • Common English words that appear in virtually all item titles (the,
-  //     for, new, lot, vintage, set, etc.) — catches listings with no local
-  //     counterpart so brand-new listings are always found.
-  //   • Most-frequent tokens from the local eBay inventory — improves recall
-  //     for category-specific vocabulary the generic words might miss.
-  // All queries run in parallel batches of 5.
-  const tokenCounts = new Map();
-  for (const item of inv) {
-    if (item.sold || item.deleted) continue;
-    if (!item.platforms?.includes('eBay') && !item.ebayItemId) continue;
-    for (const w of (item.name || '').toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/)) {
-      if (w.length >= 3 && !/^(the|and|for|with|new|used|size|pack|lot)$/.test(w)) {
-        tokenCounts.set(w, (tokenCounts.get(w) || 0) + 1);
+  // ── Phase 0: Trading API GetMyeBaySelling — 1 call per 200 listings ──────
+  // Most efficient path: returns the complete active listing set directly.
+  // Falls back to the keyword sweep (Phase 1) only if Trading API is unavailable.
+  let tradingSucceeded = false;
+  if (progressEl) progressEl.textContent = 'Fetching live eBay listings…';
+  try {
+    let pageNum = 1, totalPages = 1;
+    while (pageNum <= totalPages) {
+      if (_reconcileCancelled) throw new Error('Reconciliation cancelled');
+      const resp = await ebayAPI('POST', '/ws/api.dll', {
+        _tradingCall: 'GetMyeBaySelling',
+        ActiveList: { Include: true, Pagination: { EntriesPerPage: 200, PageNumber: pageNum }, Sort: 1 },
+        DetailLevel: 'ReturnAll',
+      });
+      const activeList = resp?.ActiveList || resp?.GetMyeBaySellingResponse?.ActiveList;
+      if (!activeList) break;
+      totalPages = parseInt(activeList?.PaginationResult?.TotalNumberOfPages || '1', 10);
+      const items = activeList?.ItemArray?.Item || [];
+      const itemArr = Array.isArray(items) ? items : (items.ItemID ? [items] : []);
+      for (const ebayItem of itemArr) {
+        const lid = String(ebayItem.ItemID || '');
+        if (!lid || listings.has(lid)) continue;
+        const isAuction = ebayItem.ListingType === 'Chinese';
+        const price = parseFloat(
+          ebayItem.SellingStatus?.CurrentPrice?.Value
+          || ebayItem.BuyItNowPrice?.Value
+          || ebayItem.StartPrice?.Value || '0'
+        );
+        const imgRaw = ebayItem.PictureDetails?.PictureURL;
+        listings.set(lid, {
+          listingId: lid, title: ebayItem.Title || '',
+          price: isAuction ? 0 : price,
+          currentBid: isAuction ? price : 0,
+          isAuction,
+          url: `https://www.ebay.com/itm/${lid}`,
+          image: Array.isArray(imgRaw) ? imgRaw[0] : (imgRaw || ''),
+        });
+      }
+      if (progressEl) progressEl.textContent = `Fetched ${listings.size} listings… (page ${pageNum}/${totalPages})`;
+      pageNum++;
+    }
+    if (listings.size > 0) tradingSucceeded = true;
+  } catch (e) {
+    if (e.message?.includes('cancelled')) throw e;
+    console.warn('[Reconcile] Trading API unavailable, falling back to keyword search:', e.message);
+  }
+
+  // ── Phase 1: Broad seller keyword search (fallback when Trading API fails) ─
+  if (!tradingSucceeded) {
+    const tokenCounts = new Map();
+    for (const item of inv) {
+      if (item.sold || item.deleted) continue;
+      if (!item.platforms?.includes('eBay') && !item.ebayItemId) continue;
+      for (const w of (item.name || '').toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/)) {
+        if (w.length >= 3 && !/^(the|and|for|with|new|used|size|pack|lot)$/.test(w)) {
+          tokenCounts.set(w, (tokenCounts.get(w) || 0) + 1);
+        }
       }
     }
-  }
-  const inventoryKeywords = [...tokenCounts.entries()].sort((a,b) => b[1] - a[1]).slice(0, 24).map(e => e[0]);
-  // Broad words that appear in virtually every English listing title — essential
-  // for discovering new listings whose keywords don't appear in local inventory.
-  const broadTerms = ['the', 'for', 'new', 'lot', 'vintage', 'set', 'size', 'men', 'women', 'with', 'and'];
-  const queries = [...new Set([...broadTerms, ...inventoryKeywords])];
-
-  const BATCH2 = 5;
-  for (let qi = 0; qi < queries.length; qi += BATCH2) {
-    if (_reconcileCancelled) throw new Error('Reconciliation cancelled');
-    const batch = queries.slice(qi, qi + BATCH2);
-    if (progressEl) progressEl.textContent = `Searching eBay listings… (${Math.min(qi + BATCH2, queries.length)}/${queries.length} queries — ${listings.size} found)`;
-    await Promise.all(batch.map(async q => {
-      try {
-        const resp = await ebayAPI('GET',
-          `${BROWSE_API}/item_summary/search?q=${encodeURIComponent(q)}&filter=${sellerFilter}&limit=200`
-        );
-        for (const s of (resp?.itemSummaries || [])) {
-          const lid = s.legacyItemId || '';
-          if (!lid || listings.has(lid)) continue;
-          const isAuction = (s.buyingOptions || []).includes('AUCTION');
-          listings.set(lid, {
-            listingId: lid,
-            title: s.title || '',
-            price: parseFloat(s.price?.value || '0'),
-            currentBid: parseFloat(s.currentBidPrice?.value || '0'),
-            isAuction,
-            url: s.itemWebUrl || `https://www.ebay.com/itm/${lid}`,
-            image: s.image?.imageUrl || s.thumbnailImages?.[0]?.imageUrl || '',
-          });
+    const inventoryKeywords = [...tokenCounts.entries()].sort((a,b) => b[1] - a[1]).slice(0, 24).map(e => e[0]);
+    const broadTerms = ['the', 'for', 'new', 'lot', 'vintage', 'set', 'size', 'men', 'women', 'with', 'and'];
+    const queries = [...new Set([...broadTerms, ...inventoryKeywords])];
+    const BATCH2 = 5;
+    for (let qi = 0; qi < queries.length; qi += BATCH2) {
+      if (_reconcileCancelled) throw new Error('Reconciliation cancelled');
+      const batch = queries.slice(qi, qi + BATCH2);
+      if (progressEl) progressEl.textContent = `Searching eBay listings… (${Math.min(qi + BATCH2, queries.length)}/${queries.length} queries — ${listings.size} found)`;
+      await Promise.all(batch.map(async q => {
+        try {
+          const resp = await ebayAPI('GET',
+            `${BROWSE_API}/item_summary/search?q=${encodeURIComponent(q)}&filter=${sellerFilter}&limit=200`
+          );
+          for (const s of (resp?.itemSummaries || [])) {
+            const lid = s.legacyItemId || '';
+            if (!lid || listings.has(lid)) continue;
+            const isAuction = (s.buyingOptions || []).includes('AUCTION');
+            listings.set(lid, {
+              listingId: lid, title: s.title || '',
+              price: parseFloat(s.price?.value || '0'),
+              currentBid: parseFloat(s.currentBidPrice?.value || '0'),
+              isAuction,
+              url: s.itemWebUrl || `https://www.ebay.com/itm/${lid}`,
+              image: s.image?.imageUrl || s.thumbnailImages?.[0]?.imageUrl || '',
+            });
+          }
+        } catch (e) {
+          if (e.message?.includes('cancelled')) throw e;
+          console.warn(`[Reconcile] query "${q}" failed:`, e.message);
         }
-      } catch (e) {
-        if (e.message?.includes('cancelled')) throw e;
-        console.warn(`[Reconcile] query "${q}" failed:`, e.message);
-      }
-    }));
+      }));
+    }
   }
 
-  // ── Phase 2: Per-listing check for any known IDs the search missed ────────
-  // The keyword search catches ~95%+ of active listings. A small number of
-  // listings with unusual titles (no common words, all-numeric, etc.) may be
-  // missed. Only check those remaining known IDs — this keeps the total API
-  // call count low regardless of inventory size.
+  // ── Phase 2: Per-listing check for known IDs missed by Phase 0/1 ──────────
+  // When Trading API returned all listings this is a no-op. When falling back
+  // to keyword search, this catches listings with unusual titles.
   const knownLids = [...new Set(inv
     .filter(i => i.ebayListingId && !i.sold && !i.deleted)
     .map(i => String(i.ebayListingId))
-  )].filter(lid => !listings.has(lid)); // skip what Phase 1 already found
+  )].filter(lid => !listings.has(lid));
 
   if (knownLids.length > 0) {
     if (progressEl) progressEl.textContent = `Verifying ${knownLids.length} remaining known listing${knownLids.length > 1 ? 's' : ''}…`;
@@ -208,6 +243,87 @@ export async function buildReconciliation() {
       const lid = String(item.ebayListingId || '');
       if (!lid || !ebayMap.has(lid)) {
         localOnly.push(item);
+      }
+    }
+
+    // Phase 3: Verify items that appear "FlipTrack-only" by fetching eBay directly.
+    // Keyword search + fuzzy matching can miss items with unusual titles or stale IDs.
+    // For each candidate: first try a direct listing-ID lookup, then a name search.
+    if (localOnly.length > 0) {
+      const sellerUsername = getEBayUsername();
+      const sellerFilter = sellerUsername
+        ? `sellers:%7B${encodeURIComponent(sellerUsername)}%7D`
+        : null;
+
+      const BATCH3 = 4;
+      for (let vi = 0; vi < localOnly.length; vi += BATCH3) {
+        if (_reconcileCancelled) break;
+        await Promise.all(localOnly.slice(vi, vi + BATCH3).map(async item => {
+          // Step A: direct listing ID lookup if we have one not yet in ebayMap
+          const lid = String(item.ebayListingId || '');
+          if (lid && !ebayMap.has(lid)) {
+            try {
+              const resp = await ebayAPI('GET', `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${lid}`);
+              if (resp?.itemId) {
+                const isAuction = (resp.buyingOptions || []).includes('AUCTION');
+                ebayMap.set(lid, {
+                  listingId: lid, title: resp.title || '',
+                  price: parseFloat(resp.price?.value || '0'),
+                  currentBid: parseFloat(resp.currentBidPrice?.value || '0'),
+                  isAuction, url: resp.itemWebUrl || `https://www.ebay.com/itm/${lid}`,
+                  image: resp.image?.imageUrl || resp.thumbnailImages?.[0]?.imageUrl || '',
+                });
+                matchedLocal.add(item.id);
+                return;
+              }
+            } catch (_) {}
+          } else if (lid && ebayMap.has(lid)) {
+            matchedLocal.add(item.id);
+            return;
+          }
+
+          // Step B: name search — finds items with wrong/missing listing IDs
+          if (!item.name || !sellerFilter) return;
+          try {
+            const q = encodeURIComponent(item.name.slice(0, 80));
+            const resp = await ebayAPI('GET',
+              `${BROWSE_API}/item_summary/search?q=${q}&filter=${sellerFilter}&limit=10`
+            );
+            for (const s of (resp?.itemSummaries || [])) {
+              const foundLid = s.legacyItemId || '';
+              if (!foundLid) continue;
+              const sTokens = _tokenSet(s.title || '');
+              const iTokens = _tokenSet(item.name);
+              if (iTokens.size < 2) continue;
+              let hits = 0;
+              for (const t of iTokens) if (sTokens.has(t)) hits++;
+              if (hits / iTokens.size >= 0.5) {
+                if (!ebayMap.has(foundLid)) {
+                  const isAuction = (s.buyingOptions || []).includes('AUCTION');
+                  ebayMap.set(foundLid, {
+                    listingId: foundLid, title: s.title || '',
+                    price: parseFloat(s.price?.value || '0'),
+                    currentBid: parseFloat(s.currentBidPrice?.value || '0'),
+                    isAuction, url: s.itemWebUrl || `https://www.ebay.com/itm/${foundLid}`,
+                    image: s.image?.imageUrl || s.thumbnailImages?.[0]?.imageUrl || '',
+                  });
+                }
+                matchedLocal.add(item.id);
+                break;
+              }
+            }
+          } catch (e) {
+            if (e.message?.includes('cancelled')) throw e;
+          }
+        }));
+      }
+
+      // Rebuild localOnly — items confirmed via Phase 3 are no longer "FlipTrack-only"
+      localOnly.length = 0;
+      for (const item of localActive) {
+        if (matchedLocal.has(item.id)) continue;
+        const lid = String(item.ebayListingId || '');
+        if (!lid || !ebayMap.has(lid)) localOnly.push(item);
       }
     }
 

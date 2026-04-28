@@ -36,10 +36,13 @@ let _orderSyncErrorLogged = false; // throttle repeated order-sync warnings
 let _processedReturnIds = new Set(); // avoid duplicate return/cancel notifications
 let _dismissedEBayIds = new Set(); // eBay IDs of items user deleted — prevent re-import
 let _returnCheckInterval = null;
-let _tradingApiBlocked = false; // set true after 403 — proxy doesn't support Trading API
-let _offerApiBlocked = false;   // set true after 400 — account has invalid SKU data
-// In-session rate limit flag; IDB-backed for persistence across page loads.
-let _browseRateLimitUntil = 0;
+let _tradingApiBlocked = false;
+let _offerApiBlocked = false;
+let _ebayRateLimitUntil = 0;
+function _setRateLimit() {
+  _ebayRateLimitUntil = Date.now() + 3_600_000;
+  setMeta('ebay_ratelimit', { until: _ebayRateLimitUntil }).catch(() => {});
+}
 const RETURN_CHECK_WINDOW = 30 * 86400000; // 30 days
 
 /** eBay SKU must be alphanumeric (plus limited punctuation) and ≤50 chars */
@@ -245,11 +248,11 @@ export function mergeDuplicatesByName() {
 export async function resetEBayApiFlags() {
   _tradingApiBlocked = false;
   _offerApiBlocked = false;
-  _browseRateLimitUntil = 0;
+  _ebayRateLimitUntil = 0;
   try {
     await setMeta('ebay_trading_blocked', null);
     await setMeta('ebay_offer_blocked', null);
-    await setMeta('ebay_browse_ratelimit', null);
+    await setMeta('ebay_ratelimit', null);
   } catch (_) {}
 }
 
@@ -369,6 +372,17 @@ export function stopEBaySyncInterval() {
 export async function pullEBayListings({ silent = false } = {}) {
   if (!isEBayConnected()) throw new Error('eBay not connected');
   if (_syncing) throw new Error('Sync already in progress');
+
+  if (!_ebayRateLimitUntil) {
+    const saved = await getMeta('ebay_ratelimit').catch(() => null);
+    _ebayRateLimitUntil = saved?.until || 0;
+  }
+  if (_ebayRateLimitUntil > Date.now()) {
+    const m = Math.ceil((_ebayRateLimitUntil - Date.now()) / 60000);
+    toast(`eBay sync paused — rate limited, ~${m} min remaining`, true);
+    return;
+  }
+
   _syncing = true;
 
   try {
@@ -522,6 +536,7 @@ export async function pullEBayListings({ silent = false } = {}) {
         console.warn('[eBay] Trading API returned 0 listings — trying fallbacks');
       }
     } catch (e) {
+      if (e.isRateLimit) { _setRateLimit(); toast('eBay rate limit hit — sync paused for 1 hour', true); return; }
       if (e.message?.includes('not allowed') || e.message?.includes('403')) {
         _tradingApiBlocked = true;
         setMeta('ebay_trading_blocked', '1').catch(() => {});
@@ -530,10 +545,11 @@ export async function pullEBayListings({ silent = false } = {}) {
     }
 
     // ── SUPPLEMENT / FALLBACK: Offer API scan ─────────────────────────
-    // Always run: enriches items with listingId, price, and format that
-    // the Trading API may not provide (or fills everything if Trading failed)
-    // Skip if Offer API is known broken (account has invalid SKU data)
-    if (!_offerApiBlocked) {
+    // Run only when Trading API didn't work — eBay's Inventory API getOffers
+    // endpoint requires a specific SKU parameter (it can't list all offers in
+    // bulk), so this scan is only useful as a last-resort fallback when Trading
+    // API is unavailable. Skip if already known broken or if Trading API worked.
+    if (!_offerApiBlocked && !tradingWorked) {
       try {
         console.warn('[eBay] Running Offer API scan…');
         let offerOffset = 0;
@@ -766,44 +782,27 @@ export async function pullEBayListings({ silent = false } = {}) {
         }
         console.warn('[eBay] Browse API: username =', username || '(none)');
         if (username) {
-          toast('Searching your eBay store…');
           const sellerFilter = `sellers:%7B${encodeURIComponent(username)}%7D`;
-          // Build query list for broad seller search.
-          // broadTerms: common English words that appear in nearly every listing title.
-          // invAllWords: EVERY unique word from existing eBay inventory names — ensures
-          //   any new listing whose title shares vocabulary with existing items is found,
-          //   even for brand names and model numbers not in the broad list.
-          // Together these maximise new-listing discovery without Trading API.
-          const broadTerms = [
-            // Articles / prepositions
-            'a', 'an', 'the', 'for', 'of', 'in', 'on', 'at', 'to', 'by', 'or', 'and', 'with', 'from',
-            // Common listing words
-            'new', 'used', 'lot', 'set', 'pair', 'pack', 'bag', 'box', 'case', 'kit', 'bundle',
-            'vintage', 'rare', 'retro', 'authentic', 'original', 'mint', 'sealed', 'bulk',
-            // Size / gender
-            'size', 'small', 'medium', 'large', 'xl', 'xs', 'men', 'women', 'kids', 'boys', 'girls',
-            // Condition / shipping terms
-            'nwt', 'nib', 'nwob', 'obo', 'free', 'fast', 'plus',
-            // Colors
-            'black', 'white', 'red', 'blue', 'green', 'pink', 'grey', 'gray', 'brown', 'gold', 'silver',
-            // Common clothing
-            'shirt', 'pants', 'jeans', 'jacket', 'dress', 'shoes', 'sneakers', 'boots', 'hoodie', 'top',
-            // Common numbers that appear as standalone words in many eBay titles
-            '1', '2', '3', '4', '5', '6', '7', '8', '9', '10',
-          ];
-          // ALL unique words from existing eBay inventory names (not just top 20).
-          // This is the key change: a new "Jordan 4 Retro" listing is only found if
-          // 'jordan' or 'retro' is already in inventory vocabulary.
-          const _invWords = new Set();
-          for (const it of inv) {
-            if (it.sold || it.deleted) continue;
-            if (!it.platforms?.includes('eBay') && !it.ebayItemId) continue;
-            for (const w of (it.name || '').toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/)) {
-              if (w.length >= 3) _invWords.add(w);
-            }
-          }
-          const queries = [...new Set([...broadTerms, ..._invWords])];
           const seenBrowseIds = new Set();
+
+          // Keyword sweep: only run when Trading API is unavailable. When Trading API
+          // already returned all active listings, this sweep is pure API call waste.
+          if (!tradingWorked) {
+            toast('Searching your eBay store…');
+            const broadTerms = [
+              // Common listing words
+              'new', 'used', 'lot', 'set', 'pair', 'pack', 'bag', 'box', 'case', 'kit', 'bundle',
+              'vintage', 'rare', 'retro', 'authentic', 'original', 'mint', 'sealed', 'bulk',
+              // Size / gender
+              'size', 'small', 'medium', 'large', 'men', 'women', 'kids', 'boys', 'girls',
+              // Condition / shipping terms
+              'nwt', 'nib', 'nwob', 'free', 'plus',
+              // Colors
+              'black', 'white', 'red', 'blue', 'green', 'pink', 'grey', 'gray', 'brown', 'gold', 'silver',
+              // Common clothing
+              'shirt', 'pants', 'jeans', 'jacket', 'dress', 'shoes', 'sneakers', 'boots', 'hoodie', 'top',
+            ];
+            const queries = [...new Set(broadTerms)];
 
           for (const q of queries) {
             try {
@@ -895,15 +894,14 @@ export async function pullEBayListings({ silent = false } = {}) {
               // Keep trying queries until we've found all items or exhausted queries
               // Each query finds items containing that term — need multiple for full coverage
               if (summaries.length >= 200) continue; // Might have more, try next query
-              // Don't break early — all queries must run to ensure full coverage.
-              // Breaking at 50 would skip new listings found only by later queries.
             } catch (qErr) {
               console.warn(`[eBay] Browse q="${q}" failed:`, qErr.message);
-              // If first attempt fails (empty q), try next query term
               continue;
             }
           }
-          // Targeted search: for items still missing ebayListingId, search by name
+          } // end !tradingWorked keyword sweep
+
+          if (!tradingWorked) { // stillMissing search: skip when Trading API worked
           const stillMissing = inv.filter(i =>
             i.platforms?.includes('eBay') && i.ebayItemId && !i.ebayListingId
           );
@@ -950,6 +948,7 @@ export async function pullEBayListings({ silent = false } = {}) {
               }
             } catch (_) {}
           }
+          } // end stillMissing
 
           if (imported > 0 || matched > 0) tradingWorked = true;
           console.warn(`[eBay] Browse API: matched=${matched}, imported=${imported}, updated=${updated}`);
@@ -961,11 +960,8 @@ export async function pullEBayListings({ silent = false } = {}) {
       }
     }
 
-    // ── Browse API getItemByLegacyId for LIVE data ──────────────────────
-    // Only queries items NOT already covered by Trading API or Browse API
-    // search earlier in this sync. Skips items whose listingId was already
-    // seen — those already have fresh data.
-    {
+    // Browse per-item enrichment: skip when Trading API worked (redundant + causes 429s)
+    if (!tradingWorked) {
       const needsLiveData = inv.filter(i =>
         i.platforms?.includes('eBay') && i.ebayListingId
         && !seenListingIds.has(i.ebayListingId)
@@ -975,12 +971,12 @@ export async function pullEBayListings({ silent = false } = {}) {
 
       // Check persistent rate limit cooldown — if we got 429d recently, skip all
       // per-item calls until the cooldown expires rather than burning quota on every sync.
-      if (!_browseRateLimitUntil) {
-        const saved = await getMeta('ebay_browse_ratelimit').catch(() => null);
-        _browseRateLimitUntil = saved?.until || 0;
+      if (!_ebayRateLimitUntil) {
+        const saved = await getMeta('ebay_ratelimit').catch(() => null);
+        _ebayRateLimitUntil = saved?.until || 0;
       }
-      if (_browseRateLimitUntil > Date.now()) {
-        const minutesLeft = Math.ceil((_browseRateLimitUntil - Date.now()) / 60000);
+      if (_ebayRateLimitUntil > Date.now()) {
+        const minutesLeft = Math.ceil((_ebayRateLimitUntil - Date.now()) / 60000);
         console.warn(`[eBay] Browse API rate limit cooldown active — skipping per-item lookup for ~${minutesLeft}m`);
         // Mark all as seen so they're not falsely flagged as removed
         for (const item of needsLiveData) seenListingIds.add(item.ebayListingId);
@@ -1105,13 +1101,10 @@ export async function pullEBayListings({ silent = false } = {}) {
               updated++; liveUpdated++;
             }
           } else if (e.isRateLimit) {
-            // eBay rate limit hit — stop making more calls this sync cycle AND
-            // persist a 1-hour cooldown so future syncs skip per-item lookups entirely.
             seenListingIds.add(item.ebayListingId);
             rateLimited = true;
-            _browseRateLimitUntil = Date.now() + 3_600_000; // 1 hour
-            setMeta('ebay_browse_ratelimit', { until: _browseRateLimitUntil }).catch(() => {});
-            console.warn('[eBay] Rate limit (429) hit — persisting 1-hour Browse API cooldown');
+            _setRateLimit();
+            console.warn('[eBay] Rate limit (429) hit — pausing for 1 hour');
           } else {
             // Transient error (network hiccup, etc.) — NOT a 404.
             // Do NOT mark as removed; the listing may still be active on eBay.
@@ -1125,7 +1118,7 @@ export async function pullEBayListings({ silent = false } = {}) {
       if (rateLimited) console.warn('[eBay] Per-item lookup stopped early due to rate limit — will resume next sync');
       console.warn(`[eBay] Live data enrichment: ${liveUpdated} items updated`);
       } // end else (rate limit cooldown check)
-    } // end per-item lookup block
+    } // end per-item lookup
 
     // ── FALLBACK 3: Inventory API (item discovery without offers) ─────
     if (!tradingWorked) {
