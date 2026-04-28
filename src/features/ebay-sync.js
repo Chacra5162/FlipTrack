@@ -886,7 +886,7 @@ export async function pullEBayListings({ silent = false } = {}) {
           }
           } // end !tradingWorked keyword sweep
 
-          // Targeted search: for items still missing ebayListingId, search by name
+          if (!tradingWorked) { // stillMissing search: skip when Trading API worked
           const stillMissing = inv.filter(i =>
             i.platforms?.includes('eBay') && i.ebayItemId && !i.ebayListingId
           );
@@ -933,6 +933,7 @@ export async function pullEBayListings({ silent = false } = {}) {
               }
             } catch (_) {}
           }
+          } // end stillMissing
 
           if (imported > 0 || matched > 0) tradingWorked = true;
           console.warn(`[eBay] Browse API: matched=${matched}, imported=${imported}, updated=${updated}`);
@@ -944,11 +945,8 @@ export async function pullEBayListings({ silent = false } = {}) {
       }
     }
 
-    // ── Browse API getItemByLegacyId for LIVE data ──────────────────────
-    // Only queries items NOT already covered by Trading API or Browse API
-    // search earlier in this sync. Skips items whose listingId was already
-    // seen — those already have fresh data.
-    {
+    // Browse per-item enrichment: skip when Trading API worked (redundant + causes 429s)
+    if (!tradingWorked) {
       const needsLiveData = inv.filter(i =>
         i.platforms?.includes('eBay') && i.ebayListingId
         && !seenListingIds.has(i.ebayListingId)
@@ -1108,7 +1106,7 @@ export async function pullEBayListings({ silent = false } = {}) {
       if (rateLimited) console.warn('[eBay] Per-item lookup stopped early due to rate limit — will resume next sync');
       console.warn(`[eBay] Live data enrichment: ${liveUpdated} items updated`);
       } // end else (rate limit cooldown check)
-    } // end per-item lookup block
+    } // end per-item lookup
 
     // ── FALLBACK 3: Inventory API (item discovery without offers) ─────
     if (!tradingWorked) {
