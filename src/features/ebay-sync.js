@@ -36,10 +36,13 @@ let _orderSyncErrorLogged = false; // throttle repeated order-sync warnings
 let _processedReturnIds = new Set(); // avoid duplicate return/cancel notifications
 let _dismissedEBayIds = new Set(); // eBay IDs of items user deleted — prevent re-import
 let _returnCheckInterval = null;
-let _tradingApiBlocked = false; // set true after 403 — proxy doesn't support Trading API
-let _offerApiBlocked = false;   // set true after 400 — account has invalid SKU data
-// In-session rate limit flag; IDB-backed for persistence across page loads.
-let _browseRateLimitUntil = 0;
+let _tradingApiBlocked = false;
+let _offerApiBlocked = false;
+let _ebayRateLimitUntil = 0;
+function _setRateLimit() {
+  _ebayRateLimitUntil = Date.now() + 3_600_000;
+  setMeta('ebay_ratelimit', { until: _ebayRateLimitUntil }).catch(() => {});
+}
 const RETURN_CHECK_WINDOW = 30 * 86400000; // 30 days
 
 /** eBay SKU must be alphanumeric (plus limited punctuation) and ≤50 chars */
@@ -245,11 +248,11 @@ export function mergeDuplicatesByName() {
 export async function resetEBayApiFlags() {
   _tradingApiBlocked = false;
   _offerApiBlocked = false;
-  _browseRateLimitUntil = 0;
+  _ebayRateLimitUntil = 0;
   try {
     await setMeta('ebay_trading_blocked', null);
     await setMeta('ebay_offer_blocked', null);
-    await setMeta('ebay_browse_ratelimit', null);
+    await setMeta('ebay_ratelimit', null);
   } catch (_) {}
 }
 
@@ -369,6 +372,17 @@ export function stopEBaySyncInterval() {
 export async function pullEBayListings({ silent = false } = {}) {
   if (!isEBayConnected()) throw new Error('eBay not connected');
   if (_syncing) throw new Error('Sync already in progress');
+
+  if (!_ebayRateLimitUntil) {
+    const saved = await getMeta('ebay_ratelimit').catch(() => null);
+    _ebayRateLimitUntil = saved?.until || 0;
+  }
+  if (_ebayRateLimitUntil > Date.now()) {
+    const m = Math.ceil((_ebayRateLimitUntil - Date.now()) / 60000);
+    toast(`eBay sync paused — rate limited, ~${m} min remaining`, true);
+    return;
+  }
+
   _syncing = true;
 
   try {
@@ -522,6 +536,7 @@ export async function pullEBayListings({ silent = false } = {}) {
         console.warn('[eBay] Trading API returned 0 listings — trying fallbacks');
       }
     } catch (e) {
+      if (e.isRateLimit) { _setRateLimit(); toast('eBay rate limit hit — sync paused for 1 hour', true); return; }
       if (e.message?.includes('not allowed') || e.message?.includes('403')) {
         _tradingApiBlocked = true;
         setMeta('ebay_trading_blocked', '1').catch(() => {});
@@ -956,12 +971,12 @@ export async function pullEBayListings({ silent = false } = {}) {
 
       // Check persistent rate limit cooldown — if we got 429d recently, skip all
       // per-item calls until the cooldown expires rather than burning quota on every sync.
-      if (!_browseRateLimitUntil) {
-        const saved = await getMeta('ebay_browse_ratelimit').catch(() => null);
-        _browseRateLimitUntil = saved?.until || 0;
+      if (!_ebayRateLimitUntil) {
+        const saved = await getMeta('ebay_ratelimit').catch(() => null);
+        _ebayRateLimitUntil = saved?.until || 0;
       }
-      if (_browseRateLimitUntil > Date.now()) {
-        const minutesLeft = Math.ceil((_browseRateLimitUntil - Date.now()) / 60000);
+      if (_ebayRateLimitUntil > Date.now()) {
+        const minutesLeft = Math.ceil((_ebayRateLimitUntil - Date.now()) / 60000);
         console.warn(`[eBay] Browse API rate limit cooldown active — skipping per-item lookup for ~${minutesLeft}m`);
         // Mark all as seen so they're not falsely flagged as removed
         for (const item of needsLiveData) seenListingIds.add(item.ebayListingId);
@@ -1086,13 +1101,10 @@ export async function pullEBayListings({ silent = false } = {}) {
               updated++; liveUpdated++;
             }
           } else if (e.isRateLimit) {
-            // eBay rate limit hit — stop making more calls this sync cycle AND
-            // persist a 1-hour cooldown so future syncs skip per-item lookups entirely.
             seenListingIds.add(item.ebayListingId);
             rateLimited = true;
-            _browseRateLimitUntil = Date.now() + 3_600_000; // 1 hour
-            setMeta('ebay_browse_ratelimit', { until: _browseRateLimitUntil }).catch(() => {});
-            console.warn('[eBay] Rate limit (429) hit — persisting 1-hour Browse API cooldown');
+            _setRateLimit();
+            console.warn('[eBay] Rate limit (429) hit — pausing for 1 hour');
           } else {
             // Transient error (network hiccup, etc.) — NOT a 404.
             // Do NOT mark as removed; the listing may still be active on eBay.
