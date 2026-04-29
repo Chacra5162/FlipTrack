@@ -237,7 +237,7 @@ function _renderWnShowsTab() {
           for (const item of visible) {
             const showHist = getItemShowHistory(item.id);
             const histLabel = showHist.length ? ` (${showHist.filter(h => h.wasSold).length}/${showHist.length} shows sold)` : '';
-            html += `<div class="wn-picker-item" onclick="wnPickItem('${escAttr(show.id)}','${escAttr(item.id)}')"
+            html += `<div class="wn-picker-item" onclick="wnPickItem('${escAttr(show.id)}','${escAttr(item.id)}')">
               <span class="wn-picker-name">${escHtml(item.name || 'Untitled')}${histLabel}</span>
               <span class="wn-picker-price">${item.price ? fmt(item.price) : ''}</span>
             </div>`;
@@ -519,7 +519,7 @@ function _renderWnBuilderTab() {
     html += `<div class="wn-builder-list">`;
     for (const s of suggestions) {
       const isSelected = _wnBuilderSelected.has(s.item.id);
-      html += `<div class="wn-builder-item${isSelected ? ' selected' : ''}" onclick="wnBuilderToggle('${escAttr(s.item.id)}')"
+      html += `<div class="wn-builder-item${isSelected ? ' selected' : ''}" onclick="wnBuilderToggle('${escAttr(s.item.id)}')">
         <div class="wn-builder-check">${isSelected ? '☑' : '☐'}</div>
         <div class="wn-builder-item-info">
           <span class="wn-builder-item-name">${escHtml(s.item.name || 'Untitled')}</span>
