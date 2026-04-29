@@ -1951,12 +1951,6 @@ textarea { resize:vertical; min-height:70px; }
   display: flex; gap: 10px; align-items: center; flex-shrink: 0;
   font-size: 11px; color: var(--muted);
 }
-.wn-past-chip {
-  background: var(--bg);
-  padding: 2px 8px;
-  border-radius: 4px;
-  color: var(--muted);
-}
 @media (max-width: 480px) {
   .wn-panel-header { flex-direction: column; align-items: flex-start; gap: 8px; }
   .wn-panel-actions { width: 100%; }
@@ -2865,9 +2859,6 @@ textarea { resize:vertical; min-height:70px; }
   background: var(--surface2); border-radius: 8px; padding: 8px 12px;
   font-size: 12px;
 }
-.wn-badge-icon { font-size: 16px; }
-.wn-badge-label { color: var(--muted); font-size: 10px; }
-.wn-badge-value { font-weight: 600; color: var(--text); }
 
 /* Sparkline trend */
 .wn-trend-section { margin-bottom: 12px; }
@@ -2915,19 +2906,6 @@ textarea { resize:vertical; min-height:70px; }
 
 /* Top/worst performers */
 .wn-performer-list { margin-bottom: 12px; }
-.wn-performer-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,.03);
-  font-size: 12px;
-}
-.wn-performer-item:hover { background: var(--hover); }
-.wn-performer-rank {
-  width: 22px; height: 22px; border-radius: 50%;
-  background: var(--surface2); display: flex; align-items: center;
-  justify-content: center; font-size: 10px; font-weight: 700;
-  color: var(--muted); flex-shrink: 0;
-}
-.wn-performer-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wn-performer-stat { color: var(--muted); font-size: 11px; white-space: nowrap; }
 
 .wn-performer-row {
@@ -2947,25 +2925,10 @@ textarea { resize:vertical; min-height:70px; }
   background: var(--surface2); border-radius: 8px; padding: 12px;
   margin-bottom: 12px; font-size: 12px;
 }
-.wn-builder-rec-title { font-weight: 600; margin-bottom: 6px; color: var(--text); }
-.wn-builder-rec-val { color: var(--accent); font-weight: 700; font-size: 18px; }
-.wn-builder-rec-note { color: var(--muted); font-size: 11px; margin-top: 4px; }
 
 .wn-builder-mix {
   background: var(--surface2); border-radius: 8px; padding: 12px;
-  margin-bottom: 12px;
-}
-.wn-builder-mix-title { font-weight: 600; font-size: 12px; margin-bottom: 8px; }
-.wn-builder-mix-row {
-  display: flex; align-items: center; gap: 8px; font-size: 11px;
-  padding: 3px 0;
-}
-.wn-builder-mix-bar {
-  flex: 1; height: 10px; background: var(--bg); border-radius: 5px; overflow: hidden;
-}
-.wn-builder-mix-fill {
-  height: 100%; background: var(--accent); border-radius: 5px;
-  opacity: .7;
+  margin-bottom: 12px; font-size: 12px;
 }
 
 .wn-builder-actions {
@@ -2988,7 +2951,6 @@ textarea { resize:vertical; min-height:70px; }
 .wn-builder-item:last-child { border-bottom: none; }
 .wn-builder-item:hover { background: var(--hover); }
 .wn-builder-item.selected { background: rgba(108,99,255,.08); }
-.wn-builder-item input[type="checkbox"] { flex-shrink: 0; cursor: pointer; }
 .wn-builder-check { font-size: 15px; flex-shrink: 0; width: 20px; text-align: center; color: var(--muted); margin-top: 1px; }
 .wn-builder-item.selected .wn-builder-check { color: var(--accent); }
 .wn-builder-item-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -2998,22 +2960,10 @@ textarea { resize:vertical; min-height:70px; }
   font-size: 12px; font-weight: 500; color: var(--text);
   display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.wn-builder-item-meta {
-  font-size: 10px; color: var(--muted); display: flex; gap: 8px;
-  margin-top: 2px;
-}
 .wn-builder-item-score {
   font-size: 12px; font-weight: 700; color: var(--accent);
   white-space: nowrap; flex-shrink: 0; min-width: 28px; text-align: right;
   margin-top: 1px;
-}
-.wn-builder-item-reasons {
-  font-size: 10px; color: var(--muted); margin-top: 2px;
-  display: flex; gap: 4px; flex-wrap: wrap;
-}
-.wn-builder-reason {
-  background: var(--surface2); padding: 1px 6px; border-radius: 4px;
-  font-size: 9px;
 }
 
 /* ── Show Card Enhancements (Notes, Sold Tags, Live Controls) ──────── */
@@ -3068,11 +3018,6 @@ textarea { resize:vertical; min-height:70px; }
   transition: background .1s;
 }
 .wn-past-actions button:hover { background: var(--hover); }
-
-.wn-show-history-badge {
-  font-size: 9px; color: var(--warn); font-weight: 600;
-  display: inline-block; margin-left: 4px;
-}
 
 /* ── Run Sheet (print-friendly) ──────────────────────────────────────── */
 @media print {
