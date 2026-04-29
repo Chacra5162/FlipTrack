@@ -413,5 +413,17 @@ export function getEBayConnectedAt() { return _connectedAt; }
  */
 export async function ebayAPI(method, path, body = null) {
   if (!_connected) throw new Error('eBay not connected');
-  return callEdgeFn('api', { method, path, body });
+  let delay = 1000;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      return await callEdgeFn('api', { method, path, body });
+    } catch (err) {
+      if (err.isRateLimit && attempt < 3) {
+        await new Promise(r => setTimeout(r, delay));
+        delay *= 2;
+        continue;
+      }
+      throw err;
+    }
+  }
 }

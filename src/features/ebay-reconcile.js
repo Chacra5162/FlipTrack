@@ -102,11 +102,12 @@ async function _fetchEBayListings() {
     const inventoryKeywords = [...tokenCounts.entries()].sort((a,b) => b[1] - a[1]).slice(0, 24).map(e => e[0]);
     const broadTerms = ['the', 'for', 'new', 'lot', 'vintage', 'set', 'size', 'men', 'women', 'with', 'and'];
     const queries = [...new Set([...broadTerms, ...inventoryKeywords])];
-    const BATCH2 = 5;
+    const BATCH2 = 2;
     for (let qi = 0; qi < queries.length; qi += BATCH2) {
       if (_reconcileCancelled) throw new Error('Reconciliation cancelled');
       const batch = queries.slice(qi, qi + BATCH2);
       if (progressEl) progressEl.textContent = `Searching eBay listings… (${Math.min(qi + BATCH2, queries.length)}/${queries.length} queries — ${listings.size} found)`;
+      if (qi > 0) await new Promise(r => setTimeout(r, 300));
       await Promise.all(batch.map(async q => {
         try {
           const resp = await ebayAPI('GET',
@@ -143,9 +144,10 @@ async function _fetchEBayListings() {
 
   if (knownLids.length > 0) {
     if (progressEl) progressEl.textContent = `Verifying ${knownLids.length} remaining known listing${knownLids.length > 1 ? 's' : ''}…`;
-    const BATCH1 = 6;
+    const BATCH1 = 3;
     for (let i = 0; i < knownLids.length; i += BATCH1) {
       if (_reconcileCancelled) throw new Error('Reconciliation cancelled');
+      if (i > 0) await new Promise(r => setTimeout(r, 300));
       await Promise.all(knownLids.slice(i, i + BATCH1).map(async lid => {
         try {
           const resp = await ebayAPI('GET', `${BROWSE_API}/item/get_item_by_legacy_id?legacy_item_id=${lid}&fieldgroups=PRODUCT`);
@@ -255,9 +257,10 @@ export async function buildReconciliation() {
         ? `sellers:%7B${encodeURIComponent(sellerUsername)}%7D`
         : null;
 
-      const BATCH3 = 4;
+      const BATCH3 = 2;
       for (let vi = 0; vi < localOnly.length; vi += BATCH3) {
         if (_reconcileCancelled) break;
+        if (vi > 0) await new Promise(r => setTimeout(r, 300));
         await Promise.all(localOnly.slice(vi, vi + BATCH3).map(async item => {
           // Step A: direct listing ID lookup if we have one not yet in ebayMap
           const lid = String(item.ebayListingId || '');
