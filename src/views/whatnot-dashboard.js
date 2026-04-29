@@ -523,7 +523,7 @@ function _renderWnBuilderTab() {
         <div class="wn-builder-check">${isSelected ? '☑' : '☐'}</div>
         <div class="wn-builder-item-info">
           <span class="wn-builder-item-name">${escHtml(s.item.name || 'Untitled')}</span>
-          <span class="wn-builder-item-detail">${escHtml(s.item.condition || '')} · ${s.item.price ? fmt(s.item.price) : '—'} · ${s.item.category || ''}</span>
+          <span class="wn-builder-item-detail">${[s.item.condition, s.item.price ? fmt(s.item.price) : null, s.item.category].filter(Boolean).join(' · ')}</span>
           <span class="wn-builder-item-reason">${escHtml(s.reason)}</span>
         </div>
         <div class="wn-builder-item-score">${s.score.toFixed(1)}</div>
